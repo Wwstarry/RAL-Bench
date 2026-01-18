@@ -1,0 +1,98 @@
+task_id: pygments
+domain: lib
+difficulty: medium
+description: "Implement a pure-Python syntax highlighting library that is API-compatible\
+  \ with the core parts of the reference Pygments project. The generated repository\
+  \ must:\n\n- Match the directory and package structure expected by the test suite,\
+  \ including:\n    * pygments.lexers\n    * pygments.formatters\n    * pygments.styles\n\
+  \    * pygments.token\n    * pygments.util\n    * pygments.filters\n\n- Provide\
+  \ a functioning lexing pipeline via pygments.lex that returns a token stream over\
+  \ source code.\n- Implement highlight(code, lexer, formatter) that connects lexing\
+  \ to formatting.\n- Implement a minimal but API-compatible PythonLexer, JsonLexer,\
+  \ IniLexer and a generic get_lexer_by_name interface.\n- Implement an HtmlFormatter\
+  \ capable of generating HTML output and style definitions.\n- Implement a TerminalFormatter\
+  \ that can optionally emit ANSI-colored output.\n\n- Behave consistently enough\
+  \ with the reference implementation to allow the same black-box tests used for the\
+  \ reference repository to succeed on the generated implementation.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: pygments/__init__.py
+reference_repository: ./repositories/pygments
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.71521
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.399796
+    resource_tests_total: 2
+    avg_memory_mb: 32.18
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.646342
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 3.229936
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 3.14705
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 2.0
+      files_scanned: 339.0
+      total_loc: 109541.0
+  maintainability:
+    maintainability_suite_time_s: 7.701201
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 339.0
+      total_loc: 109541.0
+      max_cc: 109.0
+test_suite:
+  functional: ./tests/Pygments/functional_test.py
+  performance: ./tests/Pygments/performance_test.py
+  resource: ./tests/Pygments/resource_test.py
+  robustness: ./tests/Pygments/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Pygments
+package:
+  name: pygments
+  root_dir: .
+files:
+- path: pygments/__init__.py
+  role: package_init
+  description: Top-level pygments package initialization.
+- path: pygments/lex.py
+  role: core_lexer_dispatch
+  description: Implements pygments.lex(tokenizing) interface.
+- path: pygments/highlight.py
+  role: highlighter_entry
+  description: Implements highlight(code, lexer, formatter).
+- path: pygments/token.py
+  role: token_definitions
+  description: Defines Token classes and hierarchy.
+- path: pygments/util.py
+  role: helpers
+  description: Utility helpers used by lexers and formatters.
+- path: pygments/lexers/__init__.py
+  role: lexers_package_init
+- path: pygments/lexers/python.py
+  role: python_lexer
+- path: pygments/lexers/json.py
+  role: json_lexer
+- path: pygments/lexers/ini.py
+  role: ini_lexer
+- path: pygments/formatters/__init__.py
+  role: formatters_package_init
+- path: pygments/formatters/html.py
+  role: html_formatter
+- path: pygments/formatters/terminal.py
+  role: terminal_formatter
+- path: pygments/styles/__init__.py
+  role: styles_package_init
+- path: pygments/styles/default.py
+  role: default_style
+- path: pygments/filters/__init__.py
+  role: filters_package_init

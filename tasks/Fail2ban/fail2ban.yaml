@@ -1,0 +1,79 @@
+task_id: fail2ban
+name: Fail2ban
+domain: security
+difficulty: medium
+description: "Implement a minimal, safe-to-evaluate subset of Fail2Ban (intrusion\
+  \ prevention framework).\nFail2Ban monitors log files for suspicious authentication\
+  \ failures and bans offending IPs\nby updating firewall rules. In this benchmark,\
+  \ we DO NOT perform real banning or daemon\noperations. We validate core API surface,\
+  \ configuration artifacts, and regex-based log\nmatching behavior in a safe offline\
+  \ manner.\n\nReference API surface / alignment anchors (must exist in reference\
+  \ & generated repos):\n\n1) Core server objects:\n   - fail2ban.server.jail.Jail\
+  \ : jail object managing filter+actions coordination.\n   - fail2ban.server.filter\
+  \ : IP parsing helpers (e.g., isValidIP/searchIP) and related utilities.\n\n2) Repository\
+  \ artifacts:\n   - config/jail.conf exists (canonical configuration entrypoint).\n\
+  \   - bin/ scripts exist: fail2ban-client, fail2ban-server, fail2ban-regex.\n\n\
+  Safety note:\n- Tests MUST NOT start fail2ban-server, MUST NOT modify firewall rules,\
+  \ and MUST NOT require root.\n- CLI scripts are exercised only via --help or offline\
+  \ regex checks against temporary log files.\n"
+reference_repository: ./repositories/fail2ban
+generated_repository: ./generation/Fail2ban
+package:
+  name: fail2ban
+  root_dir: .
+test_suite:
+  functional: ./tests/Fail2ban/functional_test.py
+  robustness: ./tests/Fail2ban/robustness_test.py
+  performance: ./tests/Fail2ban/performance_test.py
+  resource: ./tests/Fail2ban/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 120
+  functional: 120
+  robustness: 120
+  performance: 120
+  resource: 120
+  security: 300
+  maintainability: 300
+interfaces:
+  entry_point: bin/fail2ban-client
+  language: python
+  type: DAEMON
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.665516
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 3.301722
+    robustness_tests_total: 5
+  performance:
+    performance_suite_time_s: 1.562239
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.604329
+    resource_tests_total: 1
+    avg_memory_mb: 33.7
+    avg_cpu_percent: 83.2
+  security:
+    security_suite_time_s: 1.888481
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 5.0
+      files_scanned: 48.0
+      total_loc: 13128.0
+  maintainability:
+    maintainability_suite_time_s: 4.689749
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 78.0
+      total_loc: 24927.0
+      max_cc: 98.0
+target_env: FAIL2BAN_TARGET
+tests:
+- ./tests/Fail2ban/functional_test.py
+- ./tests/Fail2ban/robustness_test.py
+- ./tests/Fail2ban/performance_test.py
+- ./tests/Fail2ban/resource_test.py
+reference: {}

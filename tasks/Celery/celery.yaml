@@ -1,0 +1,102 @@
+task_id: celery
+domain: devops
+difficulty: hard
+description: 'Implement a pure Python distributed task queue library that is
+
+  API-compatible with the core parts of the reference Celery project under
+
+  ./repositories/celery. The generated repository must:
+
+
+  - Provide a top-level "celery" package importable with `import celery`.
+
+
+  - Match the key public API surface used by the test suite, including at least:
+
+  * celery.Celery application class for creating an app instance.
+
+  * Task registration via `@app.task` decorator supporting `name=...` and `bind=...`.
+
+  * AsyncResult-like object returned by `.delay(...)` and `.apply_async(...)` with:
+
+  - `.get(timeout=...)` to obtain task return value or raise on failure.
+
+  - `.successful()` / `.failed()` or equivalent observable status.
+
+  * Basic message broker configuration via `broker_url` (or `broker`) and
+
+  `result_backend` (or equivalents), supporting a brokerless test mode using
+
+  an in-memory transport (e.g., `memory://`) and/or eager execution mode.
+
+  * `app.send_task(task_name, args=..., kwargs=...)` for name-based dispatch.
+
+  * A minimal configuration surface under `app.conf` with common keys used by tests,
+
+  including eager execution controls and result storage behaviours.
+
+
+  - Execute tasks correctly in the local test environment without requiring
+
+  external services (e.g., RabbitMQ/Redis). The implementation may support
+
+  eager/local execution as long as observable behaviours match tests.
+
+
+  - Preserve module layout and public symbol names expected by tests.
+
+  '
+reference_repository: ./repositories/celery
+generated_repository: ./generation/Celery
+package:
+  name: celery
+  root_dir: .
+test_suite:
+  functional: ./tests/Celery/functional_test.py
+  performance: ./tests/Celery/performance_test.py
+  resource: ./tests/Celery/resource_test.py
+  robustness: ./tests/Celery/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 120
+  functional: 120
+  performance: 120
+  resource: 120
+  robustness: 120
+  security: 300
+  maintainability: 300
+interfaces:
+  entry_point: celery/__init__.py
+  language: python
+  type: LIB
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.734527
+    functional_tests_total: 10
+  performance:
+    performance_suite_time_s: 3.769039
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 9.788972
+    resource_tests_total: 2
+    avg_memory_mb: 44.36
+    avg_cpu_percent: 99.2
+  robustness:
+    robustness_suite_time_s: 4.859838
+    robustness_tests_total: 6
+  security:
+    security_suite_time_s: 2.146028
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 4.0
+      files_scanned: 161.0
+      total_loc: 32227.0
+  maintainability:
+    maintainability_suite_time_s: 4.314273
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 156.0
+      total_loc: 32227.0
+      max_cc: 66.0

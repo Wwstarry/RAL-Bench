@@ -1,0 +1,85 @@
+task_id: markdown
+domain: lib
+difficulty: medium
+description: "Implement a pure Python Markdown-to-HTML conversion library that is\
+  \ API-compatible\nwith the core parts of the reference Python-Markdown project under\
+  \ ./repositories/markdown.\nThe generated repository must:\n\n- Provide a top-level\
+  \ \"markdown\" package importable with `import markdown`.\n\n- Expose the key public\
+  \ API used by the test suite, including at least:\n    * markdown.markdown(text,\
+  \ **kwargs)\n    * markdown.markdownFromFile(**kwargs)\n    * the markdown.Markdown\
+  \ class with a convert(text) method.\n\n- Ensure that markdown.markdown(text, **kwargs)\
+  \ accepts a Unicode string as input\n  and returns a Unicode HTML string, without\
+  \ writing to stdin/stdout directly in\n  the core API used by the tests.\n\n- Support\
+  \ the core Markdown syntax exercised by the test suite, including, at minimum:\n\
+  \    * ATX-style headings (#, ##, ###, ...).\n    * Paragraphs separated by blank\
+  \ lines.\n    * Emphasis and strong emphasis using * and ** or _ and __.\n    *\
+  \ Inline code using backticks.\n    * Fenced or indented code blocks.\n    * Unordered\
+  \ lists starting with -, +, or *.\n    * Ordered lists starting with \"1.\".\n \
+  \   * Blockquotes starting with \">\".\n    * Links and images using the standard\
+  \ [text](url) and ![alt](url) syntax.\n\n- Properly escape raw HTML-sensitive characters\
+  \ (such as \"<\" and \"&\") in normal\n  text while preserving them inside code\
+  \ blocks and inline code, in a way that\n  matches the behavior of the reference\
+  \ implementation for the inputs used by\n  the test suite.\n\n- Provide the markdown.Markdown\
+  \ class in a way that allows multiple documents\n  to be converted by either creating\
+  \ new instances or calling reset() between\n  conversions, consistent with the semantics\
+  \ used by the test suite.\n\n- Provide markdown.markdownFromFile(**kwargs) to convert\
+  \ Markdown stored in a\n  file on disk to HTML, honoring the same options as markdown.markdown\
+  \ where\n  applicable, and producing HTML output equivalent to the reference behavior\n\
+  \  for the test inputs.\n\n- Behave in a way that allows the same black-box tests\
+  \ used for the reference\n  repository to run successfully on the generated repository,\
+  \ including the\n  exact public API names, module layout, and the observable HTML\
+  \ output\n  (ignoring insignificant whitespace differences) for the inputs covered\
+  \ by\n  the tests.\n"
+reference_repository: ./repositories/markdown
+test_suite:
+  functional: ./tests/Markdown/functional_test.py
+  performance: ./tests/Markdown/performance_test.py
+  resource: ./tests/Markdown/resource_test.py
+  robustness: ./tests/Markdown/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Markdown
+interfaces:
+  entry_point: markdown/__init__.py
+  language: python
+  type: LIB
+package:
+  name: markdown
+  root_dir: .
+files:
+- path: markdown/__init__.py
+  role: package_init
+- path: markdown/core.py
+  role: core_conversion_logic
+- path: markdown/extensions/__init__.py
+  role: extensions_package
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.488889
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.323826
+    resource_tests_total: 2
+    avg_memory_mb: 31.96
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.640586
+    functional_tests_total: 19
+  robustness:
+    robustness_suite_time_s: 1.41468
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.482427
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 33.0
+      total_loc: 5698.0
+  maintainability:
+    maintainability_suite_time_s: 1.975499
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 5.374
+      files_scanned: 33.0
+      total_loc: 5698.0
+      max_cc: 33.0

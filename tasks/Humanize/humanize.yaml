@@ -1,0 +1,81 @@
+task_id: humanize
+domain: lib
+difficulty: easy
+description: "Implement a pure Python humanization library that is API-compatible\
+  \ with the\ncore parts of the reference humanize project. The generated repository\
+  \ must:\n\n- Provide a top-level \"humanize\" package importable with `import humanize`.\n\
+  \n- Match the package and module layout expected by the test suite, including at\n\
+  \  least:\n    * humanize.__init__\n    * humanize.number\n    * humanize.time\n\
+  \    * humanize.filesize\n    * humanize.lists\n    * humanize.i18n\n\n- Expose\
+  \ number formatting helpers via the top-level package, including:\n    * humanize.intcomma\n\
+  \    * humanize.ordinal\n\n- Expose size and time helpers via the top-level package,\
+  \ including:\n    * humanize.naturalsize\n    * humanize.precisedelta\n    * humanize.naturaldelta\n\
+  \    * humanize.naturaltime\n\n- Behave in a way that permits the same black-box\
+  \ tests used for the reference\n  repository to run successfully on the generated\
+  \ implementation, including\n  functional, performance, and integration-style tests\
+  \ in this benchmark.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: humanize/__init__.py
+reference_repository: ./repositories/humanize
+test_suite:
+  functional: ./tests/Humanize/functional_test.py
+  performance: ./tests/Humanize/performance_test.py
+  resource: ./tests/Humanize/resource_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+  robustness: ./tests/Humanize/robustness_test.py
+  security: ./tests/_generic/security_test.py
+generated_repository: ./generation/Humanize
+package:
+  name: humanize
+  root_dir: .
+files:
+- path: humanize/__init__.py
+  role: package_init
+  description: Top-level humanize package init, re-exporting public helpers.
+- path: humanize/number.py
+  role: number_helpers
+  description: Number-related helpers such as intcomma and ordinal.
+- path: humanize/time.py
+  role: time_helpers
+  description: Time and delta helpers such as naturaldelta and naturaltime.
+- path: humanize/filesize.py
+  role: filesize_helpers
+  description: Helpers for human-readable byte sizes such as naturalsize.
+- path: humanize/lists.py
+  role: list_helpers
+  description: Helpers for formatting lists in a human-friendly way.
+- path: humanize/i18n.py
+  role: i18n_helpers
+  description: Internationalization helpers and locale management.
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.604119
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.196727
+    resource_tests_total: 1
+    avg_memory_mb: 30.73
+    avg_cpu_percent: 98.5
+  functional:
+    functional_suite_time_s: 1.228457
+    functional_tests_total: 15
+  maintainability:
+    maintainability_suite_time_s: 1.428683
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 5.2014
+      files_scanned: 12.0
+      total_loc: 2595.0
+      max_cc: 30.0
+  robustness:
+    robustness_suite_time_s: 1.219278
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.270661
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 7.0
+      total_loc: 1285.0

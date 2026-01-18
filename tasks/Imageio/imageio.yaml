@@ -1,0 +1,100 @@
+task_id: imageio_v3_core_io
+domain: media
+difficulty: medium
+description: "Implement a pure Python image and animated image I/O library that is\
+  \ API-compatible with\nthe core parts of the reference Imageio v3 interface used\
+  \ by the test suite. The generated\nrepository must:\n\n- Provide a top-level `imageio`\
+  \ package importable as `import imageio`, with at least the\n  following modules:\n\
+  \    * imageio\n    * imageio.v3\n\n- Implement the high-level v3 API functions\
+  \ used by the tests:\n    * `imageio.v3.imwrite(uri, image)`:\n        - Accepts\
+  \ a filesystem path (string or pathlib.Path) and a NumPy array.\n        - For 2D\
+  \ arrays `(H, W)` and 3D arrays `(H, W, C)` with C=1 or 3, writes a single\n   \
+  \       image to disk in a common file format (e.g. PNG or GIF), preserving shape\
+  \ and\n          dtype as far as possible.\n        - For 3D arrays `(N, H, W)`\
+  \ or 4D arrays `(N, H, W, C)` where N is the number of\n          frames, writes\
+  \ an animated image (e.g. GIF) with N frames.\n    * `imageio.v3.imread(uri)`:\n\
+  \        - Reads an image from the given path and returns a NumPy ndarray.\n   \
+  \     - For images written by `imwrite` from a single `(H, W, 3)` RGB array, `imread`\n\
+  \          must return an array with the same `shape` and `dtype`.\n    * `imageio.v3.imiter(uri)`:\n\
+  \        - Returns an iterable of NumPy arrays, one per frame of the image at the\
+  \ given path.\n        - When called on an animated image written from `(N, H, W)`\
+  \ or `(N, H, W, C)`,\n          the iterator must yield exactly N frames.\n    \
+  \    - Each frame array must have the same height and width as the original frames.\n\
+  \          It is acceptable for grayscale frames to be read back as either `(H,\
+  \ W)` or\n          `(H, W, 3)`; tests only require the first two dimensions to\
+  \ match.\n    * `imageio.v3.improps(uri)`:\n        - Returns an object with at\
+  \ least the attributes `shape` and `dtype`, describing\n          the shape and\
+  \ NumPy dtype of the image as it would be returned by `imread`.\n        - The tests\
+  \ expect `tuple(props.shape)` to equal the shape of the original image\n       \
+  \   passed to `imwrite`, and `props.dtype` to equal that image’s dtype.\n    * `imageio.v3.immeta(uri)`:\n\
+  \        - Returns a dictionary containing format-specific metadata.\n        -\
+  \ The tests only require that the dictionary contains a `\"mode\"` key whose value\n\
+  \          is a string (for example, `\"L\"` for grayscale or `\"RGB\"` for color\
+  \ images).\n\n- Ensure that NumPy arrays with dtype `uint8` are supported as primary\
+  \ image containers.\n  The tests exercise both small RGB images `(H, W, 3)` and\
+  \ stacks of grayscale frames\n  `(N, H, W)` as animated images.\n\n- Guarantee that\
+  \ writing and then reading back PNG images via `imwrite`/`imread` preserves\n  the\
+  \ exact image data (verified through `np.testing.assert_array_equal` in the tests),\n\
+  \  while animated image roundtrips via `imwrite`/`imiter` preserve:\n    * number\
+  \ of frames;\n    * frame height and width; and\n    * array dtype compatibility\
+  \ (uint8).\n\n- Implement the v3 API in a way that allows bulk performance tests\
+  \ to complete within a\n  generous time bound when writing and reading many small\
+  \ PNG images and an animated GIF\n  with many frames. Resource tests exercise repeated\
+  \ write/read cycles for PNG and animated\n  GIF files and assert that peak memory\
+  \ usage stays below a coarse upper bound; the\n  implementation must not retain\
+  \ unbounded in-memory caches of image data.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: imageio/__init__.py
+reference_repository: ./repositories/Imageio
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+test_suite:
+  functional: ./tests/Imageio/functional_test.py
+  performance: ./tests/Imageio/performance_test.py
+  resource: ./tests/Imageio/resource_test.py
+  robustness: ./tests/Imageio/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Imageio
+package:
+  name: imageio
+  root_dir: .
+files:
+- path: imageio/__init__.py
+  role: package_init
+  description: Package entry point; sets up the v3 namespace and re-exports core I/O
+    functions.
+- path: imageio/v3.py
+  role: v3_api_impl
+  description: Implements the high-level v3 API (imread, imwrite, imiter, improps,
+    immeta) used by the tests.

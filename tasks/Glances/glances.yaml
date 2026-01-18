@@ -1,0 +1,82 @@
+task_id: glances
+domain: operations
+difficulty: medium
+description: 'Implement a cross-platform system monitoring tool that is API-compatible
+  with the core CLI behaviors of the reference Glances project under ./repositories/glances.
+  The generated repository must:
+
+  - Provide an importable top-level "glances" package.
+
+  - Provide a runnable CLI entry via `python -m glances` that supports: * `--help`
+  (prints usage and exits with code 0) * `-V` or `--version` (prints a version string
+  and exits with code 0) * `--stdout-csv <FIELDS>` for one-shot CSV output (prints
+  one line and exits with code 0)
+
+  - Support the following CSV field patterns used by the test suite: * `now` * `cpu.user`
+  * `cpu.total` * `mem.used` * `load`
+
+  - For `--stdout-csv now,cpu.user,mem.used,load`, output must contain exactly 4 columns
+  with parseable numeric values for cpu.user, mem.used, and load.
+
+  - Behave predictably for invalid invocations: * Missing `--stdout-csv` argument
+  must exit non-zero. * Unknown fields must exit non-zero with a non-empty error message.
+
+  - Be efficient: repeated one-shot calls should complete within reasonable time and
+  memory constraints.
+
+  - Behave so the same black-box tests run successfully on the generated repo, including
+  the observable CLI behavior and module layout. '
+reference_repository: ./repositories/glances
+generated_repository: ./generation/Glances
+package:
+  name: glances
+  root_dir: .
+test_suite:
+  functional: ./tests/Glances/functional_test.py
+  robustness: ./tests/Glances/robustness_test.py
+  performance: ./tests/Glances/performance_test.py
+  resource: ./tests/Glances/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 120
+  functional: 120
+  robustness: 120
+  performance: 120
+  resource: 120
+  security: 300
+  maintainability: 300
+interfaces:
+  entry_point: glances/__init__.py
+  language: python
+  type: APP
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.225459
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.368425
+    robustness_tests_total: 4
+  performance:
+    performance_suite_time_s: 2.308354
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 3.189132
+    resource_tests_total: 1
+    avg_memory_mb: 50.65
+    avg_cpu_percent: 94.4
+  security:
+    security_suite_time_s: 1.706013
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 1.0
+      files_scanned: 136.0
+      total_loc: 18677.0
+  maintainability:
+    maintainability_suite_time_s: 3.009637
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 2.0257
+      files_scanned: 129.0
+      total_loc: 18677.0
+      max_cc: 30.0

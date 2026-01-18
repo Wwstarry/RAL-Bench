@@ -1,0 +1,95 @@
+task_id: pendulum
+domain: lib
+difficulty: medium
+description: 'Implement a pure Python datetime and timezone utility library that is
+  API-compatible with the core parts of the reference Pendulum project. The generated
+  repository must:
+
+
+  - Provide a top-level "pendulum" package importable with import pendulum.
+
+
+  - Support creating timezone-aware datetimes via pendulum.datetime(..., tz=...) and
+  parsing ISO-8601 strings via pendulum.parse(...).
+
+
+  - Implement timezone handling and conversion, including pendulum.timezone(...) and
+  DateTime.in_timezone(...).
+
+
+  - Implement datetime arithmetic and durations via DateTime.add(...), subtraction
+  between DateTime objects, and pendulum.duration(...).
+
+
+  - Provide human-readable differences via DateTime.diff_for_humans(...).
+
+
+  - Behave in a way that permits the same black-box tests used for the reference repository
+  to run successfully on the generated implementation.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: pendulum/__init__.py
+reference_repository: ./repositories/pendulum
+test_suite:
+  functional: ./tests/Pendulum/functional_test.py
+  performance: ./tests/Pendulum/performance_test.py
+  resource: ./tests/Pendulum/resource_test.py
+  robustness: ./tests/Pendulum/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Pendulum
+package:
+  name: pendulum
+  root_dir: .
+files:
+- path: pendulum/__init__.py
+  role: package_init
+  description: Top-level pendulum package init and public API exports.
+- path: pendulum/datetime.py
+  role: datetime_implementation
+  description: Core DateTime type, constructors, arithmetic, and diff_for_humans.
+- path: pendulum/timezone.py
+  role: timezone_implementation
+  description: Timezone utilities and in_timezone support.
+- path: pendulum/duration.py
+  role: duration_implementation
+  description: Duration data type and helpers used for datetime arithmetic.
+- path: pendulum/formatting.py
+  role: formatting_helpers
+  description: String formatting helpers for ISO-8601 and human-readable outputs.
+- path: pendulum/utils.py
+  role: utils_helpers
+  description: Internal helpers shared across datetime, timezone, and duration.
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.322455
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.330804
+    resource_tests_total: 1
+    avg_memory_mb: 32.89
+    avg_cpu_percent: 101.3
+  functional:
+    functional_suite_time_s: 1.368165
+    functional_tests_total: 13
+  robustness:
+    robustness_suite_time_s: 1.390624
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.430329
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 119.0
+      total_loc: 11757.0
+  maintainability:
+    maintainability_suite_time_s: 3.35882
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.029
+      files_scanned: 172.0
+      total_loc: 19627.0
+      max_cc: 44.0

@@ -1,0 +1,51 @@
+.F.....F..s.                                                             [100%]
+================================== FAILURES ===================================
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-540/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+        reader = PdfReader(str(pdf_path))
+        page = reader.pages[0]
+        w, h = _page_size(page)
+    
+>       assert w > 0 and h > 0
+E       assert (0.0 > 0)
+
+tests\PyPDF\functional_test.py:149: AssertionError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-540/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        writer.add_page(reader.pages[0])
+        writer.encrypt("pw")
+    
+        with enc.open("wb") as fp:
+            writer.write(fp)
+    
+        enc_reader = PdfReader(str(enc))
+        assert enc_reader.is_encrypted
+        assert enc_reader.decrypt("pw")
+    
+        page = enc_reader.pages[0]
+        w, h = _page_size(page)
+>       assert w > 0 and h > 0
+E       assert (0.0 > 0)
+
+tests\PyPDF\functional_test.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - as...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+2 failed, 9 passed, 1 skipped in 0.68s

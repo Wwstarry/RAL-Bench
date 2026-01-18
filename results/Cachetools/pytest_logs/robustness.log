@@ -1,0 +1,75 @@
+F..FF.....F                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+        cachetools = _import_cachetools()
+    
+        c = cachetools.Cache(-1)
+        with pytest.raises(Exception):
+>           c["k"] = "v"
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Cachetools\robustness_test.py:74: Failed
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'FIFOCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'LFUCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+_________ test_non_hashable_keys_raise_typeerror_in_dict_like_methods _________
+
+    def test_non_hashable_keys_raise_typeerror_in_dict_like_methods():
+        """
+        This is stable: list keys are unhashable and should raise TypeError.
+        """
+        cachetools = _import_cachetools()
+        c = cachetools.Cache(100)
+    
+        with pytest.raises(TypeError):
+            _ = c.get([1, 2, 3])  # type: ignore[arg-type]
+    
+        with pytest.raises(TypeError):
+            c[[1, 2, 3]] = "value"  # type: ignore[index]
+    
+        with pytest.raises(TypeError):
+>           del c[[1, 2, 3]]  # type: ignore[index]
+
+tests\Cachetools\robustness_test.py:228: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Cache({}, maxsize=100, currsize=0), key = [1, 2, 3]
+
+    def __delitem__(self, key: Any) -> None:
+>       value = self.__data.pop(key)
+E       KeyError: [1, 2, 3]
+
+generation_m3\Cachetools\cachetools\cache.py:57: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+FAILED tests/Cachetools/robustness_test.py::test_non_hashable_keys_raise_typeerror_in_dict_like_methods
+4 failed, 7 passed in 0.52s

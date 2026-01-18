@@ -1,0 +1,128 @@
+..F..FFFF..FFF.                                                          [100%]
+================================== FAILURES ===================================
+____________________________ test_coxph_basic_fit _____________________________
+
+    def test_coxph_basic_fit() -> None:
+        """Fit a simple Cox proportional hazards model on a toy dataset."""
+        df = _toy_cox_df()
+    
+        cph = CoxPHFitter()
+        cph.fit(df, duration_col="duration", event_col="event")
+        summary = cph.summary
+    
+        assert "coef" in summary.columns
+        assert "se(coef)" in summary.columns
+>       assert "p" in summary.columns or "p" in "".join(summary.columns).lower()
+E       AssertionError: assert ('p' in Index(['coef', 'se(coef)'], dtype='object') or 'p' in 'coefse(coef)')
+E        +  where Index(['coef', 'se(coef)'], dtype='object') =            coef  se(coef)\nage         0.0    0.0801\ntreatment   0.0    2.0000.columns
+E        +  and   'coefse(coef)' = <built-in method lower of str object at 0x0000026351C128B0>()
+E        +    where <built-in method lower of str object at 0x0000026351C128B0> = 'coefse(coef)'.lower
+E        +      where 'coefse(coef)' = <built-in method join of str object at 0x000002630F634670>(Index(['coef', 'se(coef)'], dtype='object'))
+E        +        where <built-in method join of str object at 0x000002630F634670> = ''.join
+E        +        and   Index(['coef', 'se(coef)'], dtype='object') =            coef  se(coef)\nage         0.0    0.0801\ntreatment   0.0    2.0000.columns
+
+tests\Lifelines\functional_test.py:127: AssertionError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       et = kmf.event_table
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'event_table'
+
+tests\Lifelines\functional_test.py:183: AttributeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+__________ test_coxph_predict_partial_hazard_is_positive_and_varies ___________
+
+    def test_coxph_predict_partial_hazard_is_positive_and_varies() -> None:
+        """Partial hazards should be positive and reflect covariate differences."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x_low = pd.DataFrame({"age": [25], "treatment": [0]})
+        x_high = pd.DataFrame({"age": [55], "treatment": [1]})
+    
+>       h_low = float(cph.predict_partial_hazard(x_low).iloc[0])
+E       AttributeError: 'CoxPHFitter' object has no attribute 'predict_partial_hazard'
+
+tests\Lifelines\functional_test.py:240: AttributeError
+____________ test_coxph_predict_survival_function_shape_and_bounds ____________
+
+    def test_coxph_predict_survival_function_shape_and_bounds() -> None:
+        """Predict survival functions for two individuals; verify shape and bounds."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x = pd.DataFrame({"age": [30, 60], "treatment": [0, 1]})
+>       sf = cph.predict_survival_function(x)
+
+tests\Lifelines\functional_test.py:254: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x0000026351D48490>
+df =    age  treatment
+0   30          0
+1   60          1, times = None
+
+    def predict_survival_function(self, df: pd.DataFrame, times=None) -> pd.DataFrame:
+        if self.params_ is None or self.baseline_survival_ is None:
+            raise ValueError("Must call fit before predict_survival_function.")
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame.")
+        if len(df) != 1:
+>           raise ValueError("df must be a single-row DataFrame.")
+E           ValueError: df must be a single-row DataFrame.
+
+generation_m3\Lifelines\lifelines\fitters\coxph_fitter.py:183: ValueError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_coxph_basic_fit - AssertionEr...
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_partial_hazard_is_positive_and_varies
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+8 failed, 7 passed in 5.42s

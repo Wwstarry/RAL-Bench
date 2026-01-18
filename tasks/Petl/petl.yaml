@@ -1,0 +1,97 @@
+task_id: petl_core_etl_pipeline
+domain: data
+difficulty: medium
+description: "Implement a pure Python lightweight ETL (Extract–Transform–Load) library\
+  \ that is\nAPI-compatible with the core functionality of the reference Petl project\
+  \ as exercised\nby the test suite. The generated repository must:\n\n- Provide a\
+  \ top-level `petl` package importable as `import petl`, organized so that\n  at\
+  \ minimum the following modules exist:\n    * petl\n    * petl/io/csv\n    * petl/transform/conversions\n\
+  \    * petl/transform/selects\n    * petl/transform/sort\n    * petl/transform/joins\n\
+  \n- Implement lazy table semantics where ETL operators return new table wrappers\
+  \ without\n  materializing the data until iterated.\n\n- Expose the key public API\
+  \ functions used by the test suite, including:\n    * CSV I/O:\n        - `petl.fromcsv(path)`\
+  \ → returns a table\n        - `petl.tocsv(table, path)` → writes rows to CSV\n\
+  \    * In-memory table construction:\n        - `petl.fromdicts(records, header=[...])`\n\
+  \    * Column conversion:\n        - `petl.convert(table, field, func)`\n    * Row\
+  \ filtering:\n        - `petl.select(table, predicate)`\n        - `petl.selectge(table,\
+  \ field, threshold)`\n        - `petl.selectgt(table, field, threshold)`\n    *\
+  \ Sorting:\n        - `petl.sort(table, field)`\n    * Field creation:\n       \
+  \ - `petl.addfield(table, fieldname, func)`\n    * Joins:\n        - `petl.join(left,\
+  \ right, key='id')`\n\n- Table protocol required by the tests:\n    * A table is\
+  \ an iterable where the first row is the header and the remaining rows\n      are\
+  \ data rows.\n    * Pipelines such as `fromcsv(...) → convert → select → sort →\
+  \ tocsv` are valid and\n      must compose correctly.\n    * Joins must produce\
+  \ a header row including all participating fields, and each\n      resulting row\
+  \ must contain combined values for the join key.\n\n- Efficiency expectations (black-box):\n\
+  \    * `performance_test` must complete within the expected time on bulk CSV and\n\
+  \      in-memory pipelines.\n    * Table evaluation should be lazy; full materialization\
+  \ only happens when the\n      table is converted to a list or written through `tocsv`.\n\
+  \n- Resource expectations:\n    * The memory footprint of repeated CSV and fromdicts\
+  \ pipelines must remain below\n      the coarse upper bound enforced by the tests\
+  \ (no unbounded caching of rows).\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: petl/__init__.py
+reference_repository: ./repositories/Petl
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.294684
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 2.52548
+    resource_tests_total: 2
+    avg_memory_mb: 39.25
+    avg_cpu_percent: 98.3
+  functional:
+    functional_suite_time_s: 1.986035
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.335635
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.826552
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 6.0
+      files_scanned: 125.0
+      total_loc: 26979.0
+  maintainability:
+    maintainability_suite_time_s: 3.446776
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 124.0
+      total_loc: 26979.0
+      max_cc: 33.0
+test_suite:
+  functional: ./tests/Petl/functional_test.py
+  performance: ./tests/Petl/performance_test.py
+  resource: ./tests/Petl/resource_test.py
+  robustness: ./tests/Petl/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Petl
+package:
+  name: petl
+  root_dir: .
+files:
+- path: petl/__init__.py
+  role: package_init
+  description: Public entry point; exposes fromcsv, fromdicts, convert, select, addfield,
+    sort, join, and tocsv.
+- path: petl/io/csv.py
+  role: csv_io_impl
+  description: Implements fromcsv and tocsv based on lazy iterator wrappers.
+- path: petl/transform/conversions.py
+  role: convert_impl
+  description: Implements convert(table, field, func) to lazily apply a column transformation.
+- path: petl/transform/selects.py
+  role: selects_impl
+  description: Implements select, selectge, selectgt filtering wrappers.
+- path: petl/transform/sort.py
+  role: sort_impl
+  description: Implements sort(table, field) with lazy sorting on materialization.
+- path: petl/transform/joins.py
+  role: joins_impl
+  description: Implements join(left, right, key) to lazily combine rows from two tables.

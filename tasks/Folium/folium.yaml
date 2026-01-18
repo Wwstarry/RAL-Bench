@@ -1,0 +1,79 @@
+task_id: folium
+name: Folium
+domain: data
+difficulty: medium
+description: "Implement a pure-Python library for generating interactive maps as HTML\
+  \ using Leaflet.js,\ncompatible with the core parts of the reference Folium project\
+  \ under ./repositories/folium.\n\nThe generated repository must:\n- Provide a top-level\
+  \ \"folium\" package importable with `import folium`.\n- Provide key public API\
+  \ surface used by the test suite, including at least:\n  * folium.Map with .get_root().render()\
+  \ producing HTML/JS containing Leaflet constructs.\n  * folium.Marker and folium.CircleMarker\
+  \ layers addable to a Map.\n  * folium.GeoJson for adding GeoJSON features to a\
+  \ Map.\n  * folium.TileLayer for adding a named tile provider (e.g., \"OpenStreetMap\"\
+  ) to a Map.\n  * folium.LayerControl for toggling layers.\n  * Plugins compatibility\
+  \ anchor: folium.plugins.MarkerCluster (or equivalent) for large marker sets.\n\n\
+  Benchmarking notes:\n- Functional tests validate that HTML output contains expected\
+  \ layer snippets and that objects\n  compose correctly.\n- Performance tests avoid\
+  \ browser rendering. They measure Python-side build time and\n  resulting HTML size\
+  \ for large numbers of markers, and ensure clustering helps control\n  output size.\n"
+reference_repository: ./repositories/folium
+generated_repository: ./generation/Folium
+package:
+  name: folium
+  root_dir: .
+test_suite:
+  functional: ./tests/Folium/functional_test.py
+  robustness: ./tests/Folium/robustness_test.py
+  performance: ./tests/Folium/performance_test.py
+  resource: ./tests/Folium/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 120
+  functional: 120
+  robustness: 120
+  performance: 120
+  resource: 120
+  security: 300
+  maintainability: 300
+interfaces:
+  entry_point: folium/__init__.py
+  language: python
+  type: LIB
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 3.273698
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 3.040584
+    robustness_tests_total: 5
+  performance:
+    performance_suite_time_s: 5.132183
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 3.251659
+    resource_tests_total: 1
+    avg_memory_mb: 89.27
+    avg_cpu_percent: 92.5
+  security:
+    security_suite_time_s: 1.287643
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 48.0
+      total_loc: 8249.0
+  maintainability:
+    maintainability_suite_time_s: 1.706584
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 48.0
+      total_loc: 8249.0
+      max_cc: 29.0
+target_env: FOLIUM_TARGET
+tests:
+- ./tests/Folium/functional_test.py
+- ./tests/Folium/robustness_test.py
+- ./tests/Folium/performance_test.py
+- ./tests/Folium/resource_test.py
+reference: {}

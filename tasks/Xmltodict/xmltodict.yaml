@@ -1,0 +1,67 @@
+task_id: xmltodict
+domain: lib
+difficulty: medium
+description: "Implement a pure Python XML parsing and serialization library that is\n\
+  API-compatible with the core parts of the reference xmltodict project.\nThe generated\
+  \ repository must:\n\n- Provide a top-level `xmltodict` module importable via `import\
+  \ xmltodict`.\n\n- Implement the two main public APIs required by the test suite:\n\
+  \    * xmltodict.parse(xml_string, ...)\n    * xmltodict.unparse(mapping, ...)\n\
+  \n- Ensure parse() returns nested Python dictionaries with:\n    * element names\
+  \ as keys,\n    * attributes under \"@attr\" keys,\n    * text content under \"\
+  #text\",\n    * repeated elements grouped into lists,\n    * namespace prefixes\
+  \ preserved in element names.\n\n- Ensure unparse() converts such mappings back\
+  \ into XML in a form that,\n  when parsed again, reproduces the original mapping\
+  \ for structures\n  exercised in the test suite (including nested catalogs, attributes,\n\
+  \  text fields, and repeated elements).\n\n- Behave in a way that permits the same\
+  \ black-box tests used for the\n  reference repository to run successfully on the\
+  \ generated implementation.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: xmltodict.py
+reference_repository: ./repositories/xmltodict
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.593666
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.556051
+    resource_tests_total: 2
+    avg_memory_mb: 32.5
+    avg_cpu_percent: 98.9
+  functional:
+    functional_suite_time_s: 1.63732
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.692569
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.470756
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 542.0
+  maintainability:
+    maintainability_suite_time_s: 1.751538
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 9.2435
+      files_scanned: 3.0
+      total_loc: 1446.0
+      max_cc: 44.0
+test_suite:
+  functional: ./tests/Xmltodict/functional_test.py
+  performance: ./tests/Xmltodict/performance_test.py
+  resource: ./tests/Xmltodict/resource_test.py
+  robustness: ./tests/Xmltodict/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Xmltodict
+package:
+  name: xmltodict
+  root_dir: .
+files:
+- path: xmltodict.py
+  role: core_implementation
+  description: Top-level implementation of parse() and unparse() APIs.

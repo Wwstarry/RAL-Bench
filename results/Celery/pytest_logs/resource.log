@@ -1,0 +1,66 @@
+F.                                                                       [100%]
+================================== FAILURES ===================================
+_______ test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks ________
+
+    @pytest.mark.resource
+    def test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks() -> None:
+        """
+        Use tracemalloc (stdlib) so the test stays portable.
+        We only check that memory growth is not pathological.
+        """
+        app = _make_app()
+    
+        @app.task(name="celery_resource.small")
+        def small(x: int) -> int:
+            return x + 1
+    
+        gc.collect()
+        tracemalloc.start()
+        snap0 = tracemalloc.take_snapshot()
+    
+        n = 8000
+        for i in range(n):
+            r = small.delay(i)
+>           _ = r.get(timeout=2)
+
+tests\Celery\resource_test.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <AsyncResult: 43b0f585-9c54-4c03-8fdc-53b6e57ad29d state=PENDING>
+timeout = 2, propagate = True, interval = 0.01
+
+    def get(self, timeout=None, propagate=True, interval=0.01):
+        """
+        Wait for and return the task result.
+    
+        If task failed and propagate=True, re-raise the stored exception.
+        """
+        deadline = None if timeout is None else (time.time() + timeout)
+        while True:
+            meta = self.backend.get_meta(self.id)
+            status = meta.get("status", PENDING)
+            if status == SUCCESS:
+                return meta.get("result")
+            if status == FAILURE:
+                exc = meta.get("exception")
+                if propagate and exc is not None:
+                    raise exc
+                return meta.get("result")
+            if deadline is not None and time.time() >= deadline:
+>               raise TimeoutError(f"Result {self.id} not ready within {timeout} seconds")
+E               celery.exceptions.TimeoutError: Result 43b0f585-9c54-4c03-8fdc-53b6e57ad29d not ready within 2 seconds
+
+generation_m3\Celery\celery\result.py:55: TimeoutError
+============================== warnings summary ===============================
+tests\Celery\resource_test.py:48
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Celery\resource_test.py:48: PytestUnknownMarkWarning: Unknown pytest.mark.resource - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.resource
+
+tests\Celery\resource_test.py:85
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Celery\resource_test.py:85: PytestUnknownMarkWarning: Unknown pytest.mark.resource - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.resource
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Celery/resource_test.py::test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks
+1 failed, 1 passed, 2 warnings in 2.62s

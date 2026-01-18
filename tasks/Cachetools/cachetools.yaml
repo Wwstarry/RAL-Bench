@@ -1,0 +1,75 @@
+task_id: cachetools
+domain: lib
+difficulty: medium
+description: "Implement a pure Python caching utility library that is API-compatible\
+  \ with the\ncore parts of the reference Cachetools project. The generated repository\
+  \ must:\n\n- Provide a top-level `cachetools` package importable as `import cachetools`,\n\
+  \  structured so that the following modules exist:\n    * cachetools\n    * cachetools.cache\n\
+  \    * cachetools.lru\n    * cachetools.ttl\n    * cachetools.keys\n\n- Expose the\
+  \ key public API objects used by the test suite, including at least:\n    * Base\
+  \ cache classes: Cache, LRUCache, TTLCache\n    * Decorators: cached, cachedmethod\n\
+  \    * Key helpers: cachetools.keys.hashkey and related key functions\n\n- Implement\
+  \ LRUCache with eviction based on least-recently-used policy, matching\n  the behavior\
+  \ expected by the tests, including update-on-access semantics.\n\n- Implement TTLCache\
+  \ such that cache entries expire automatically according\n  to the specified TTL,\
+  \ and expired entries are treated as missing.\n\n- Implement the `cached` decorator\
+  \ with correct support for configurable cache\n  objects, key functions, method\
+  \ binding, and consistent return behavior.\n\n- Ensure the generated repository\
+  \ behaves in a way that allows the same black-box\n  tests used for the reference\
+  \ repository to run successfully, including error\n  handling, mutation semantics,\
+  \ iterator behavior, and dictionary-like access.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: cachetools/__init__.py
+reference_repository: ./repositories/cachetools
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.247364
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.330613
+    resource_tests_total: 2
+    avg_memory_mb: 31.07
+    avg_cpu_percent: 98.7
+  functional:
+    functional_suite_time_s: 2.774696
+    functional_tests_total: 13
+  robustness:
+    robustness_suite_time_s: 1.275119
+    robustness_tests_total: 11
+  security:
+    security_suite_time_s: 1.163912
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 997.0
+  maintainability:
+    maintainability_suite_time_s: 1.271974
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 8.3242
+      files_scanned: 5.0
+      total_loc: 997.0
+      max_cc: 13.0
+test_suite:
+  functional: ./tests/Cachetools/functional_test.py
+  performance: ./tests/Cachetools/performance_test.py
+  resource: ./tests/Cachetools/resource_test.py
+  robustness: ./tests/Cachetools/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Cachetools
+package:
+  name: cachetools
+  root_dir: .
+files:
+- path: cachetools/__init__.py
+  role: package_init
+- path: cachetools/cache.py
+  role: core_cache_impl
+- path: cachetools/decorators.py
+  role: cache_decorators
+- path: cachetools/keys.py
+  role: key_functions

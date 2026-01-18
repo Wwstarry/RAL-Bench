@@ -1,0 +1,34 @@
+.FF..                                                                    [100%]
+================================== FAILURES ===================================
+_____________ test_002_fail2ban_regex_invalid_regex_reports_error _____________
+
+    def test_002_fail2ban_regex_invalid_regex_reports_error():
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "x.log"
+            logp.write_text("Failed password for invalid user root from 203.0.113.5\n", encoding="utf-8")
+    
+            # invalid regex: unbalanced bracket
+            p = _run(script, [str(logp), r"(unbalanced["], timeout_s=20)
+            out = _out(p)
+>           assert ("error" in out) or ("exception" in out) or ("re.error" in out) or ("invalid" in out)
+E           assert ('error' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n" or 'exception' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n" or 're.error' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n" or 'invalid' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n")
+
+tests\Fail2ban\robustness_test.py:67: AssertionError
+___________ test_003_fail2ban_client_unknown_command_reports_usage ____________
+
+    def test_003_fail2ban_client_unknown_command_reports_usage():
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-client"
+        p = _run(script, ["this-command-should-not-exist"], timeout_s=20)
+        out = _out(p)
+>       assert ("usage" in out) or ("unknown" in out) or ("error" in out)
+E       assert ('usage' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-client': [errno 2] no such file or directory\n" or 'unknown' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-client': [errno 2] no such file or directory\n" or 'error' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-client': [errno 2] no such file or directory\n")
+
+tests\Fail2ban\robustness_test.py:75: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/robustness_test.py::test_002_fail2ban_regex_invalid_regex_reports_error
+FAILED tests/Fail2ban/robustness_test.py::test_003_fail2ban_client_unknown_command_reports_usage
+2 failed, 3 passed in 1.50s

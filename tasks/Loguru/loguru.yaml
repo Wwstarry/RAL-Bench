@@ -1,0 +1,67 @@
+task_id: loguru
+domain: lib
+difficulty: medium
+description: "Implement a pure Python logging library that is API-compatible with\
+  \ the core\nparts of the reference Loguru project. The generated repository must:\n\
+  \n- Provide a top-level `loguru` package exposing:\n    * loguru.logger\n    * loguru._logger\
+  \ (or a compatible internal stub)\n\n- Expose the key public API used by the test\
+  \ suite, including:\n    * logger.add, logger.remove\n    * logger.info, logger.debug,\
+  \ logger.warning, logger.error\n    * logger.bind, logger.opt\n    * Support for\
+  \ sink functions and file output\n\n- Implement message formatting compatible with\
+  \ the expectations of the tests,\n  including timestamps, levels, contextual variables,\
+  \ and formatting patterns.\n\n- Support dynamic enabling/disabling of sinks, propagation\
+  \ of bound context,\n  and exception logging.\n\n- Preserve ordering, line breaks,\
+  \ and string representation behavior so that\n  black-box snapshot tests comparing\
+  \ log output can pass.\n\n- Ensure the generated repository behaves in a way compatible\
+  \ with the same\n  tests used for the reference implementation.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: loguru/__init__.py
+reference_repository: ./repositories/loguru
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.524903
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 2.683393
+    resource_tests_total: 1
+    avg_memory_mb: 37.9
+    avg_cpu_percent: 99.4
+  functional:
+    functional_suite_time_s: 1.656537
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.560491
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416348
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 1.0
+      files_scanned: 19.0
+      total_loc: 4015.0
+  maintainability:
+    maintainability_suite_time_s: 1.770687
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 19.0
+      total_loc: 4015.0
+      max_cc: 56.0
+test_suite:
+  functional: ./tests/Loguru/functional_test.py
+  performance: ./tests/Loguru/performance_test.py
+  resource: ./tests/Loguru/resource_test.py
+  robustness: ./tests/Loguru/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Loguru
+package:
+  name: loguru
+  root_dir: .
+files:
+- path: loguru/__init__.py
+  role: package_init
+- path: loguru/_logger.py
+  role: logger_core

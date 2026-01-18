@@ -1,0 +1,166 @@
+FF..FFF.FFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_parse_simple_element __________________________
+
+    def test_parse_simple_element() -> None:
+        """Parsing a simple XML element should produce the expected dict."""
+        xml = "<root><message>Hello</message></root>"
+        data = _parse(xml)
+    
+        assert "root" in data
+>       assert data["root"]["message"] == "Hello"
+E       AssertionError: assert {'#text': 'Hello'} == 'Hello'
+
+tests\Xmltodict\functional_test.py:80: AssertionError
+____________________ test_parse_repeated_elements_as_list _____________________
+
+    def test_parse_repeated_elements_as_list() -> None:
+        """Repeated child elements should be represented as a list."""
+        xml = "<root><item>1</item><item>2</item><item>3</item></root>"
+        data = _parse(xml)
+    
+        items = data["root"]["item"]
+        assert isinstance(items, list)
+>       assert items == ["1", "2", "3"]
+E       AssertionError: assert [{'#text': '1...'#text': '3'}] == ['1', '2', '3']
+E         
+E         At index 0 diff: {'#text': '1'} != '1'
+E         Use -v to get more diff
+
+tests\Xmltodict\functional_test.py:90: AssertionError
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+        data = _parse(xml)
+    
+        root = data["root"]
+        keys = [k for k in root.keys() if isinstance(k, str)]
+>       assert any(k.startswith("x:") for k in keys)
+E       assert False
+E        +  where False = any(<generator object test_namespace_prefix_is_preserved.<locals>.<genexpr> at 0x000001F6677BCD60>)
+
+tests\Xmltodict\functional_test.py:131: AssertionError
+_________________________ test_parse_nested_structure _________________________
+
+    def test_parse_nested_structure() -> None:
+        """Nested XML elements should map to nested dict structures."""
+        xml = """
+        <root>
+            <user>
+                <name>Ada</name>
+                <address>
+                    <city>London</city>
+                    <country>UK</country>
+                </address>
+            </user>
+        </root>
+        """
+        data = _parse(xml)
+>       assert data["root"]["user"]["name"] == "Ada"
+E       AssertionError: assert {'#text': 'Ada'} == 'Ada'
+
+tests\Xmltodict\functional_test.py:151: AssertionError
+__________________ test_force_list_option_for_single_element __________________
+
+    def test_force_list_option_for_single_element() -> None:
+        """force_list should allow representing a single child as a list when supported."""
+        xml = "<root><item>1</item></root>"
+    
+        # Prefer a targeted force_list that is common in xmltodict.
+        data = _parse(xml, force_list=("item",))
+    
+        item = data["root"]["item"]
+        if "force_list" in _PARSE_PARAMS:
+            assert isinstance(item, list)
+            assert item == ["1"]
+        else:
+            # Fallback: without force_list support, single element is typically a scalar string.
+>           assert item == "1"
+E           AssertionError: assert {'#text': '1'} == '1'
+
+tests\Xmltodict\functional_test.py:169: AssertionError
+____________ test_xml_attribs_false_drops_attributes_if_supported _____________
+
+    def test_xml_attribs_false_drops_attributes_if_supported() -> None:
+        """xml_attribs=False should omit attribute keys when supported."""
+        xml = '<user id="9"><name>Alice</name></user>'
+    
+        data = _parse(xml, xml_attribs=False)
+        user = data["user"]
+    
+        if "xml_attribs" in _PARSE_PARAMS:
+            # With xml_attribs=False, attribute keys should not be present.
+            assert "@id" not in user
+            assert user["name"] == "Alice"
+        else:
+            # Fallback: attribute is included in typical default behavior.
+            assert user.get("@id") == "9"
+>           assert user["name"] == "Alice"
+E           AssertionError: assert {'#text': 'Alice'} == 'Alice'
+
+tests\Xmltodict\functional_test.py:201: AssertionError
+______________________ test_dict_constructor_ordereddict ______________________
+
+    def test_dict_constructor_ordereddict() -> None:
+        """dict_constructor should allow choosing mapping type (e.g., OrderedDict) when supported."""
+        xml = "<root><a>1</a><b>2</b></root>"
+        data = _parse(xml, dict_constructor=OrderedDict)
+    
+        if "dict_constructor" in _PARSE_PARAMS:
+            assert isinstance(data, OrderedDict)
+            assert isinstance(data["root"], OrderedDict)
+        else:
+            assert isinstance(data, dict)
+    
+>       assert data["root"]["a"] == "1"
+E       AssertionError: assert OrderedDict([('#text', '1')]) == '1'
+
+tests\Xmltodict\functional_test.py:215: AssertionError
+_____________________ test_unparse_pretty_and_parse_back ______________________
+
+    def test_unparse_pretty_and_parse_back() -> None:
+        """Pretty/full_document knobs should not break roundtrip of basic structure."""
+        original: Dict[str, Any] = {"root": {"x": "1", "y": "2"}}
+    
+        xml = _unparse(original, pretty=True, full_document=True)
+>       assert "<root>" in xml or "<root" in xml
+E       TypeError: a bytes-like object is required, not 'str'
+
+tests\Xmltodict\functional_test.py:224: TypeError
+______________ test_postprocessor_transforms_value_if_supported _______________
+
+    def test_postprocessor_transforms_value_if_supported() -> None:
+        """postprocessor can transform values in a happy-path parse when supported."""
+        xml = "<root><message>Hello</message></root>"
+    
+        def _pp(path: Any, key: str, value: Any) -> Any:
+            if key == "message" and isinstance(value, str):
+                return key, value.upper()
+            return key, value
+    
+        data = _parse(xml, postprocessor=_pp)
+    
+        if "postprocessor" in _PARSE_PARAMS:
+            assert data["root"]["message"] == "HELLO"
+        else:
+>           assert data["root"]["message"] == "Hello"
+E           AssertionError: assert {'#text': 'Hello'} == 'Hello'
+
+tests\Xmltodict\functional_test.py:244: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/functional_test.py::test_parse_simple_element - Assert...
+FAILED tests/Xmltodict/functional_test.py::test_parse_repeated_elements_as_list
+FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved
+FAILED tests/Xmltodict/functional_test.py::test_parse_nested_structure - Asse...
+FAILED tests/Xmltodict/functional_test.py::test_force_list_option_for_single_element
+FAILED tests/Xmltodict/functional_test.py::test_xml_attribs_false_drops_attributes_if_supported
+FAILED tests/Xmltodict/functional_test.py::test_dict_constructor_ordereddict
+FAILED tests/Xmltodict/functional_test.py::test_unparse_pretty_and_parse_back
+FAILED tests/Xmltodict/functional_test.py::test_postprocessor_transforms_value_if_supported
+9 failed, 3 passed in 0.68s

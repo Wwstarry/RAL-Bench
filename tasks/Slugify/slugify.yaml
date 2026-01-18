@@ -1,0 +1,75 @@
+task_id: slugify
+domain: lib
+difficulty: medium
+description: "Implement a pure Python string slugification library that is API-compatible\n\
+  with the core parts of the reference python-slugify project. The generated\nrepository\
+  \ must:\n\n- Provide the package structure required by the test suite, including:\n\
+  \    * slugify\n    * slugify.slugify\n\n- Expose the high-level API used by the\
+  \ tests:\n    * slugify.slugify(text, allow_unicode=False, max_length=None,\n  \
+  \    word_boundary=False, separator='-', regex_pattern=None,\n      stopwords=None,\
+  \ lowercase=True, replacements=None, **kwargs)\n\n- Support slug generation for\
+  \ ASCII input by:\n    * normalizing whitespace and punctuation into separators.\n\
+  \    * lowercasing by default when lowercase=True.\n    * producing a dash-separated\
+  \ slug string for basic ASCII text.\n\n- Support unicode handling as exercised in\
+  \ the tests:\n    * by default, produce an ASCII-only slug (non-ASCII characters\
+  \ may be\n      removed depending on transliteration availability).\n    * when\
+  \ allow_unicode=True, preserve non-ASCII characters in the output\n      where possible.\n\
+  \n- Implement the main configuration flags used by the test suite:\n    * max_length\
+  \ and word_boundary for controlling truncation.\n    * separator for customizing\
+  \ the separator character.\n    * regex_pattern for custom character filtering.\n\
+  \    * stopwords for dropping specific words from the slug.\n    * lowercase to\
+  \ toggle automatic lowercasing.\n\n- Behave in a way that allows all black-box tests\
+  \ under ./tests/Slugify/\n  to run successfully on the generated implementation.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: slugify/__init__.py
+reference_repository: ./repositories/python-slugify
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.214036
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.191233
+    resource_tests_total: 2
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.215999
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.276187
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416456
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 278.0
+  maintainability:
+    maintainability_suite_time_s: 1.253803
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.6286
+      files_scanned: 5.0
+      total_loc: 278.0
+      max_cc: 27.0
+test_suite:
+  functional: ./tests/Slugify/functional_test.py
+  performance: ./tests/Slugify/performance_test.py
+  resource: ./tests/Slugify/resource_test.py
+  robustness: ./tests/Slugify/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Slugify
+package:
+  name: slugify
+  root_dir: .
+files:
+- path: slugify/__init__.py
+  role: package_init
+  description: Top-level slugify package that re-exports slugify().
+- path: slugify/slugify.py
+  role: slugify_core
+  description: Core implementation of the slugify() function and helpers.

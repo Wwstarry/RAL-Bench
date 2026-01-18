@@ -1,0 +1,120 @@
+task_id: mutagen_id3_easyid3_core
+domain: media
+difficulty: medium
+description: "Implement a pure Python audio metadata tagging library that is API-compatible\
+  \ with the\ncore parts of the reference Mutagen project used by the test suite.\
+  \ The generated\nrepository must:\n\n- Provide a top-level `mutagen` package importable\
+  \ as `import mutagen`, with at least\n  the following modules:\n    * mutagen\n\
+  \    * mutagen.easyid3\n    * mutagen.id3\n\n- Implement the high-level EasyID3\
+  \ interface:\n    * Class `mutagen.easyid3.EasyID3`:\n        - Can be constructed\
+  \ empty (for a new tag-only file) or from a file path:\n              EasyID3()\n\
+  \              EasyID3(path)\n        - Behaves like a mutable mapping from string\
+  \ keys to lists of strings:\n              tags[\"title\"] = [\"Song Title\"]\n\
+  \              tags[\"artist\"] = [\"Some Artist\"]\n              value_list =\
+  \ tags[\"title\"]\n        - Supports deletion of keys using `del tags[\"key\"]`,\
+  \ raising `KeyError` when\n          attempting to access a missing key.\n     \
+  \   - Exposes iteration over keys and `.items()`/`.keys()`/`.values()` like a normal\n\
+  \          mapping (only basic item access is used by the tests).\n        - Provides\
+  \ `save(path=None)`:\n            * When called with a path, writes tags to the\
+  \ given path, creating a\n              tag-only MP3 file if no audio data is present.\n\
+  \            * When called without a path, writes changes back to the original file\n\
+  \              that the EasyID3 instance was loaded from.\n\n- Implement the low-level\
+  \ ID3 frame interface:\n    * Class `mutagen.id3.ID3`:\n        - Can be constructed\
+  \ empty (`ID3()`) or from a file path (`ID3(path)`).\n        - Provides `add(frame)`\
+  \ to add ID3 frame instances.\n        - Supports dictionary-style access to single\
+  \ frames by frame ID:\n              tags[\"TIT2\"]  # text frame\n        - Provides\
+  \ `getall(frame_id)` which returns a list of all frames of a given\n          type,\
+  \ and `delall(frame_id)` which removes all frames of that type.\n        - Provides\
+  \ `setall(frame_id, frames)` which sets the list of frames for a\n          given\
+  \ ID, replacing any previous frames with the same ID.\n        - Provides `save(path=None)`\
+  \ with the same semantics as EasyID3: when called\n          with a path, writes\
+  \ tags to that path; when called without a path, writes\n          back to the file\
+  \ it was loaded from.\n\n    * Frame classes used in the tests, defined in `mutagen.id3`:\n\
+  \        - `TIT2(encoding, text=...)`: text frame representing the track title.\n\
+  \        - `TPE1(encoding, text=...)`: text frame representing the lead performer\
+  \ /\n          artist.\n        - `COMM(encoding, lang, desc, text)`: comment frame;\
+  \ tests access `lang`,\n          `desc`, and `text` attributes and expect text\
+  \ content to roundtrip.\n        - `APIC(encoding, mime, type, desc, data)`: attached\
+  \ picture frame; tests\n          access `mime`, `type`, `desc`, and `data` and\
+  \ require that `data` preserves\n          the binary payload prefix used when writing.\n\
+  \n- Behavior required by the tests:\n    * EasyID3 must support writing and reading\
+  \ tag-only MP3 files:\n        - After `tags.save(\"file.mp3\")`, a subsequent `EasyID3(\"\
+  file.mp3\")` must\n          expose the same tag values.\n    * Updating and deleting\
+  \ fields:\n        - Overwriting an existing key (such as \"title\" or \"tracknumber\"\
+  ) must\n          replace the stored value.\n        - Deleting a key removes it\
+  \ from the tags and it must not reappear after\n          saving and reloading.\n\
+  \    * Multiple values:\n        - EasyID3 must preserve multiple values for a single\
+  \ key (for example,\n          `tags[\"artist\"] = [\"Artist One\", \"Artist Two\"\
+  ]`), roundtripping them\n          through save and reload.\n    * ID3 frame-level\
+  \ operations:\n        - ID3 tags must preserve low-level text frames (`TIT2`, `TPE1`),\
+  \ comment\n          frames (`COMM`), and picture frames (`APIC`) across save/reload\
+  \ cycles.\n        - `getall(\"COMM\")` must return all comment frames; `getall(\"\
+  APIC\")` must\n          return all picture frames.\n        - Overwriting an existing\
+  \ text frame (for example updating `TIT2.text`)\n          and saving must leave\
+  \ only the new value visible.\n        - Adding and removing APIC frames using `add`,\
+  \ `getall`, and `delall`\n          must behave consistently.\n\n- Performance and\
+  \ resource expectations:\n    * The implementation must allow creating and reading\
+  \ many small tag-only files\n      with EasyID3 within a generous time bound, as\
+  \ measured by the performance\n      tests.\n    * Repeated updates to ID3 frames\
+  \ on a single file must complete within the\n      enforced time limit.\n    * Resource\
+  \ tests exercise the creation of many EasyID3-tagged files and repeated\n      ID3\
+  \ comment updates while measuring peak memory usage; the implementation must\n \
+  \     not retain unbounded in-memory state beyond what is needed for each file.\n"
+interfaces:
+  type: LIB
+  language: python
+  entry_point: mutagen/__init__.py
+reference_repository: ./repositories/Mutagen
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.921474
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 2.234125
+    resource_tests_total: 2
+    avg_memory_mb: 32.35
+    avg_cpu_percent: 99.3
+  functional:
+    functional_suite_time_s: 1.449134
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.206195
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.509728
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 57.0
+      total_loc: 14512.0
+  maintainability:
+    maintainability_suite_time_s: 2.55953
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 56.0
+      total_loc: 14512.0
+      max_cc: 52.0
+test_suite:
+  functional: ./tests/Mutagen/functional_test.py
+  performance: ./tests/Mutagen/performance_test.py
+  resource: ./tests/Mutagen/resource_test.py
+  robustness: ./tests/Mutagen/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+generated_repository: ./generation/Mutagen
+package:
+  name: mutagen
+  root_dir: .
+files:
+- path: mutagen/__init__.py
+  role: package_init
+  description: Package entry; exposes the mutagen namespace and re-exports EasyID3
+    and ID3.
+- path: mutagen/easyid3.py
+  role: high_level_easyid3_impl
+  description: Implements the EasyID3 mapping interface over ID3 tags.
+- path: mutagen/id3.py
+  role: low_level_id3_frames_impl
+  description: Implements the ID3 class and core text, comment, and picture frames
+    (TIT2, TPE1, COMM, APIC).

@@ -1,0 +1,118 @@
+task_id: thefuck
+domain: productivity
+difficulty: medium
+description: 'Implement a pure Python command-line utility that auto-corrects the
+  user''s
+
+  previous console command, compatible with the core behavior of the reference
+
+  TheFuck project under ./repositories/thefuck. The generated repository must:
+
+
+  - Provide a top-level "thefuck" package importable with `import thefuck`.
+
+
+  - Provide a working CLI entry point runnable as:
+
+  * `python -m thefuck <args...>`
+
+  and behave consistently with the reference for the scenarios exercised by tests.
+
+
+  - Match the key public API surface used by the test suite, including at least:
+
+  * a callable entry function (commonly `thefuck.main.main`) that parses CLI args
+
+  and returns an exit code (or exits via SystemExit with a code).
+
+  * rule discovery/loading mechanisms (the "rules" concept), where rules can
+
+  inspect a failed command and propose corrections.
+
+  * a representation of a "Command" (or equivalent) capturing the command line,
+
+  stdout/stderr, and return code for the previous command.
+
+  * a function (or equivalent) that, given the previous command + output, returns
+
+  a list of suggested corrected commands ordered by preference.
+
+
+  - Correctly detect common error patterns (typos, unknown command, wrong subcommand,
+
+  missing arguments, or wrong option ordering) for the synthetic cases covered by
+
+  tests, and return deterministic suggestions.
+
+
+  - Ensure suggestions are stable: for identical inputs, the same suggestion set
+
+  and ordering must be returned, and the "best" suggestion must be reproducible.
+
+
+  - Avoid interactive prompts in the code paths used by tests (tests must run
+
+  unattended). If confirmation would normally be required, provide a non-interactive
+
+  mode compatible with the reference behavior exercised by tests.
+
+
+  - Behave so the same black-box tests run successfully on the generated repo,
+
+  including exact public API names, module layout, and observable behavior.
+
+  '
+reference_repository: ./repositories/thefuck
+generated_repository: ./generation/TheFuck
+package:
+  name: thefuck
+  root_dir: .
+test_suite:
+  functional: ./tests/TheFuck/functional_test.py
+  performance: ./tests/TheFuck/performance_test.py
+  resource: ./tests/TheFuck/resource_test.py
+  robustness: ./tests/TheFuck/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 120
+  functional: 120
+  performance: 120
+  resource: 120
+  robustness: 120
+  security: 300
+  maintainability: 300
+interfaces:
+  entry_point: thefuck/__init__.py
+  language: python
+  type: APP
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 3.931892
+    functional_tests_total: 12
+  performance:
+    performance_suite_time_s: 1.739092
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 1.993894
+    resource_tests_total: 1
+    avg_memory_mb: 34.79
+    avg_cpu_percent: 100.0
+  robustness:
+    robustness_suite_time_s: 3.760219
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.360078
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 1.0
+      files_scanned: 210.0
+      total_loc: 4814.0
+  maintainability:
+    maintainability_suite_time_s: 1.72084
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 18.3597
+      files_scanned: 206.0
+      total_loc: 4814.0
+      max_cc: 11.0

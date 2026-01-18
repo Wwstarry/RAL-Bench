@@ -1,0 +1,73 @@
+task_id: lifelines
+domain: lifestyle
+difficulty: medium
+description: "Implement a pure Python survival analysis library that is API-compatible\n\
+  with the core parts of the reference lifelines project under ./repositories/lifelines.\n\
+  The generated repository must:\n\n- Provide a top-level \"lifelines\" package importable\
+  \ with `import lifelines`.\n\n- Expose the key public APIs used by the test suite,\
+  \ including at least:\n    * lifelines.KaplanMeierFitter for univariate survival\
+  \ estimation.\n    * lifelines.CoxPHFitter for Cox proportional hazards regression.\n\
+  \    * lifelines.datasets.load_waltons to load the Waltons example dataset.\n\n\
+  - For KaplanMeierFitter:\n    * Support .fit(durations, event_observed) to estimate\
+  \ the survival function.\n    * Expose a .survival_function_ attribute as a pandas\
+  \ DataFrame indexed by time.\n    * Provide a .predict(time) method that returns\
+  \ the estimated survival probability\n      at the given time, with values in the\
+  \ range [0, 1].\n\n- For CoxPHFitter:\n    * Support .fit(df, duration_col=...,\
+  \ event_col=...) on a pandas DataFrame with\n      numeric covariates, fitting a\
+  \ proportional hazards model.\n    * Expose a .summary attribute as a pandas DataFrame\
+  \ containing at least the\n      coefficient (\"coef\") and standard error (\"se(coef)\"\
+  ) columns.\n    * Provide a .predict_survival_function(row) method that accepts\
+  \ a single-row\n      DataFrame and returns a survival curve with values in the\
+  \ range [0, 1].\n\n- Provide a datasets submodule with a load_waltons() function\
+  \ that returns a\n  pandas DataFrame containing at least the columns:\n    * \"\
+  T\" (duration)\n    * \"E\" (event indicator)\n    * \"group\" (categorical group\
+  \ label)\n\n- Behave in a way that allows the same black-box tests used for the\
+  \ reference\n  repository to run successfully on the generated repository, including\
+  \ the\n  exact public API names, module layout, and observable behavior for the\n\
+  \  operations covered by the tests.\n"
+reference_repository: ./repositories/lifelines
+generated_repository: ./generation/Lifelines
+test_suite:
+  functional: ./tests/Lifelines/functional_test.py
+  performance: ./tests/Lifelines/performance_test.py
+  resource: ./tests/Lifelines/resource_test.py
+  robustness: ./tests/Lifelines/robustness_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+interfaces:
+  entry_point: lifelines/__init__.py
+  language: python
+  type: LIB
+package:
+  name: lifelines
+  root_dir: .
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 4.479736
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 4.442984
+    resource_tests_total: 1
+    avg_memory_mb: 120.76
+    avg_cpu_percent: 99.35
+  functional:
+    functional_suite_time_s: 6.121189
+    functional_tests_total: 15
+  robustness:
+    robustness_suite_time_s: 4.315143
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.664574
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 39.0
+      total_loc: 14070.0
+  maintainability:
+    maintainability_suite_time_s: 3.936326
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 47.0
+      total_loc: 20752.0
+      max_cc: 31.0
