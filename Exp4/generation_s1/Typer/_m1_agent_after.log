@@ -1,0 +1,23 @@
+........F                                                                [100%]
+================================== FAILURES ===================================
+_______________________ test_catch_exceptions_behavior ________________________
+
+    def test_catch_exceptions_behavior():
+        app = typer.Typer()
+    
+        @app.command()
+        def boom():
+            raise RuntimeError("nope")
+    
+        runner = CliRunner()
+        r = runner.invoke(app, ["boom"], catch_exceptions=True)
+        assert r.exit_code == 1
+>       assert isinstance(r.exception, RuntimeError)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, RuntimeError)
+E        +    where None = Result(exit_code=1, stdout='', stderr='nope\n', exception=None).exception
+
+generation_m1\Typer\_agent_tests\test_agent_basic.py:170: AssertionError
+=========================== short test summary info ===========================
+FAILED generation_m1\Typer\_agent_tests\test_agent_basic.py::test_catch_exceptions_behavior
+1 failed, 8 passed in 0.36s

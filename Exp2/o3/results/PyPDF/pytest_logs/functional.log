@@ -1,0 +1,450 @@
+FFFFFFFFFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+>       _create_simple_pdf(pdf_path, num_pages=3)
+
+tests\PyPDF\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD39A22E0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_create_and_read_blank_pdf0\\simple.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+>       _create_simple_pdf(pdf_path, num_pages=1)
+
+tests\PyPDF\functional_test.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD39A09D0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_blank_page_has_expected_s0\\size.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+>       _create_simple_pdf(pdf1, num_pages=1)
+
+tests\PyPDF\functional_test.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD399C3D0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_merge_two_pdfs0\\p1.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+>       _create_simple_pdf(src, num_pages=4)
+
+tests\PyPDF\functional_test.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD39A3730>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_writer_add_page_preserves0\\src.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD399C0D0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_rotate_page0\\src.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:210: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD3A1DEE0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_rotate_preserves_page_siz0\\src_size.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+__________________________ test_encrypt_and_decrypt ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_encrypt_and_decrypt0')
+
+    def test_encrypt_and_decrypt(tmp_path: Path) -> None:
+        src = tmp_path / "plain.pdf"
+        enc = tmp_path / "encrypted.pdf"
+>       _create_simple_pdf(src, num_pages=2)
+
+tests\PyPDF\functional_test.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD3A7FE80>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_encrypt_and_decrypt0\\plain.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD39A0340>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_encrypted_pdf_allows_page0\\plain2.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD3A574F0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_metadata_roundtrip0\\src.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD3A3CCA0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_metadata_multiple_fields_0\\src_info.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-470/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+>       _create_simple_pdf(src, num_pages=3)
+
+tests\PyPDF\functional_test.py:361: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x000001ECD23989D0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-470\\test_clone_document_by_writing0\\orig.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - Attri...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - At...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - AttributeError: ...
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - AttributeError: mod...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Attr...
+FAILED tests/PyPDF/functional_test.py::test_encrypt_and_decrypt - AttributeEr...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AttributeErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+11 failed, 1 skipped in 23.09s

@@ -1,0 +1,896 @@
+<file:name=sqlmodel/__init__.py>
+"""
+A tiny, pure-Python subset of SQLModel, implemented for educational/testing use.
+
+Non-goals:
+- No SQLAlchemy dependency
+- No Pydantic dependency
+- No real SQL execution; in-memory engine only
+"""
+
+from .main import SQLModel
+from .fields import Field
+from .sql import select
+from .orm import Relationship
+from .engine import Engine, create_engine
+from .session import Session
+
+__all__ = [
+    "SQLModel",
+    "Field",
+    "Relationship",
+    "select",
+    "Session",
+    "Engine",
+    "create_engine",
+]
+</file>
+
+<file:name=sqlmodel/_compat.py>
+from __future__ import annotations
+
+import json
+import typing as t
+
+NoneType = type(None)
+
+
+def is_optional(tp: t.Any) -> bool:
+    origin = t.get_origin(tp)
+    if origin is t.Union:
+        args = t.get_args(tp)
+        return any(a is NoneType for a in args)
+    return False
+
+
+def optional_inner(tp: t.Any) -> t.Any:
+    origin = t.get_origin(tp)
+    if origin is t.Union:
+        args = tuple(a for a in t.get_args(tp) if a is not NoneType)
+        if len(args) == 1:
+            return args[0]
+    return tp
+
+
+def to_jsonable(obj: t.Any) -> t.Any:
+    if hasattr(obj, "dict") and callable(obj.dict):
+        return obj.dict()
+    if isinstance(obj, (str, int, float, bool)) or obj is None:
+        return obj
+    if isinstance(obj, dict):
+        return {k: to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [to_jsonable(v) for v in obj]
+    return obj
+
+
+def json_dumps(data: t.Any, **kwargs: t.Any) -> str:
+    default = kwargs.pop("default", None)
+
+    def _default(x: t.Any) -> t.Any:
+        if default is not None:
+            return default(x)
+        return to_jsonable(x)
+
+    return json.dumps(data, default=_default, **kwargs)
+</file>
+
+<file:name=sqlmodel/exceptions.py>
+class SQLModelError(Exception):
+    pass
+
+
+class TableNotCreatedError(SQLModelError):
+    pass
+
+
+class UnmappedInstanceError(SQLModelError, TypeError):
+    pass
+
+
+class MultiplePrimaryKeyError(SQLModelError, ValueError):
+    pass
+</file>
+
+<file:name=sqlmodel/fields.py>
+from __future__ import annotations
+
+import typing as t
+
+Undefined = object()
+
+
+class FieldInfo:
+    __slots__ = (
+        "default",
+        "default_factory",
+        "primary_key",
+        "foreign_key",
+        "nullable",
+        "index",
+        "unique",
+        "max_length",
+        "sa_column",
+        "sa_column_kwargs",
+        "description",
+        "extra",
+    )
+
+    def __init__(
+        self,
+        default: t.Any = Undefined,
+        *,
+        default_factory: t.Optional[t.Callable[[], t.Any]] = None,
+        primary_key: bool = False,
+        foreign_key: t.Optional[str] = None,
+        nullable: t.Optional[bool] = None,
+        index: bool = False,
+        unique: bool = False,
+        max_length: t.Optional[int] = None,
+        sa_column: t.Any = None,
+        sa_column_kwargs: t.Optional[dict] = None,
+        description: t.Optional[str] = None,
+        **extra: t.Any,
+    ):
+        self.default = default
+        self.default_factory = default_factory
+        self.primary_key = bool(primary_key)
+        self.foreign_key = foreign_key
+        self.nullable = nullable
+        self.index = bool(index)
+        self.unique = bool(unique)
+        self.max_length = max_length
+        self.sa_column = sa_column
+        self.sa_column_kwargs = sa_column_kwargs or None
+        self.description = description
+        self.extra = dict(extra)
+
+    def get_default(self) -> t.Any:
+        if self.default_factory is not None:
+            return self.default_factory()
+        if self.default is Undefined:
+            return Undefined
+        return self.default
+
+
+def Field(
+    default: t.Any = Undefined,
+    *,
+    default_factory: t.Optional[t.Callable[[], t.Any]] = None,
+    primary_key: bool = False,
+    foreign_key: t.Optional[str] = None,
+    nullable: t.Optional[bool] = None,
+    index: bool = False,
+    unique: bool = False,
+    max_length: t.Optional[int] = None,
+    sa_column: t.Any = None,
+    sa_column_kwargs: t.Optional[dict] = None,
+    description: t.Optional[str] = None,
+    **extra: t.Any,
+) -> t.Any:
+    return FieldInfo(
+        default,
+        default_factory=default_factory,
+        primary_key=primary_key,
+        foreign_key=foreign_key,
+        nullable=nullable,
+        index=index,
+        unique=unique,
+        max_length=max_length,
+        sa_column=sa_column,
+        sa_column_kwargs=sa_column_kwargs,
+        description=description,
+        **extra,
+    )
+</file>
+
+<file:name=sqlmodel/orm.py>
+from __future__ import annotations
+
+import typing as t
+
+from .exceptions import MultiplePrimaryKeyError
+
+
+class RelationshipInfo:
+    __slots__ = ("back_populates", "link_model", "sa_relationship_kwargs", "extra")
+
+    def __init__(
+        self,
+        *,
+        back_populates: t.Optional[str] = None,
+        link_model: t.Any = None,
+        sa_relationship_kwargs: t.Optional[dict] = None,
+        **extra: t.Any,
+    ):
+        self.back_populates = back_populates
+        self.link_model = link_model
+        self.sa_relationship_kwargs = sa_relationship_kwargs or None
+        self.extra = dict(extra)
+
+
+def Relationship(
+    *,
+    back_populates: t.Optional[str] = None,
+    link_model: t.Any = None,
+    sa_relationship_kwargs: t.Optional[dict] = None,
+    **extra: t.Any,
+) -> t.Any:
+    return RelationshipInfo(
+        back_populates=back_populates,
+        link_model=link_model,
+        sa_relationship_kwargs=sa_relationship_kwargs,
+        **extra,
+    )
+
+
+class Column:
+    def __init__(
+        self,
+        model_cls: type,
+        name: str,
+        python_type: t.Any,
+        *,
+        primary_key: bool = False,
+        nullable: bool = True,
+        default: t.Any = None,
+        index: bool = False,
+        unique: bool = False,
+    ):
+        self.model_cls = model_cls
+        self.name = name
+        self.python_type = python_type
+        self.primary_key = primary_key
+        self.nullable = nullable
+        self.default = default
+        self.index = index
+        self.unique = unique
+
+    def __repr__(self) -> str:
+        return f"{self.model_cls.__name__}.{self.name}"
+
+    def _cmp(self, op: str, other: t.Any) -> "Condition":
+        return Condition(self, op, other)
+
+    def __eq__(self, other: t.Any) -> "Condition":  # type: ignore[override]
+        return self._cmp("==", other)
+
+    def __ne__(self, other: t.Any) -> "Condition":  # type: ignore[override]
+        return self._cmp("!=", other)
+
+    def __lt__(self, other: t.Any) -> "Condition":
+        return self._cmp("<", other)
+
+    def __le__(self, other: t.Any) -> "Condition":
+        return self._cmp("<=", other)
+
+    def __gt__(self, other: t.Any) -> "Condition":
+        return self._cmp(">", other)
+
+    def __ge__(self, other: t.Any) -> "Condition":
+        return self._cmp(">=", other)
+
+    def in_(self, values: t.Iterable[t.Any]) -> "Condition":
+        return self._cmp("in", list(values))
+
+
+class Condition:
+    def __init__(self, left: t.Any, op: str, right: t.Any):
+        self.left = left
+        self.op = op
+        self.right = right
+
+    def __and__(self, other: "Condition") -> "BoolCondition":
+        return BoolCondition("and", [self, other])
+
+    def __or__(self, other: "Condition") -> "BoolCondition":
+        return BoolCondition("or", [self, other])
+
+    def __repr__(self) -> str:
+        return f"({self.left!r} {self.op} {self.right!r})"
+
+    def eval(self, row: dict) -> bool:
+        if isinstance(self.left, Column):
+            lval = row.get(self.left.name)
+        else:
+            lval = self.left
+
+        rval = self.right
+        if isinstance(rval, Column):
+            rval = row.get(rval.name)
+
+        if self.op == "==":
+            return lval == rval
+        if self.op == "!=":
+            return lval != rval
+        if self.op == "<":
+            return lval < rval
+        if self.op == "<=":
+            return lval <= rval
+        if self.op == ">":
+            return lval > rval
+        if self.op == ">=":
+            return lval >= rval
+        if self.op == "in":
+            return lval in (rval or [])
+        raise ValueError(f"Unknown operator: {self.op}")
+
+
+class BoolCondition(Condition):
+    def __init__(self, mode: str, conditions: list[Condition]):
+        self.mode = mode
+        self.conditions = conditions
+        super().__init__(left=None, op=mode, right=None)
+
+    def __and__(self, other: Condition) -> "BoolCondition":
+        if self.mode == "and":
+            return BoolCondition("and", self.conditions + [other])
+        return BoolCondition("and", [self, other])
+
+    def __or__(self, other: Condition) -> "BoolCondition":
+        if self.mode == "or":
+            return BoolCondition("or", self.conditions + [other])
+        return BoolCondition("or", [self, other])
+
+    def __repr__(self) -> str:
+        join = " AND " if self.mode == "and" else " OR "
+        return "(" + join.join(repr(c) for c in self.conditions) + ")"
+
+    def eval(self, row: dict) -> bool:
+        if self.mode == "and":
+            return all(c.eval(row) for c in self.conditions)
+        return any(c.eval(row) for c in self.conditions)
+
+
+class Table:
+    def __init__(self, name: str, model_cls: type, columns: dict[str, Column]):
+        self.name = name
+        self.model_cls = model_cls
+        self.columns = columns
+
+        pks = [c for c in columns.values() if c.primary_key]
+        if len(pks) > 1:
+            raise MultiplePrimaryKeyError("Only a single primary key column is supported")
+        self.primary_key: t.Optional[Column] = pks[0] if pks else None
+
+    def __repr__(self) -> str:
+        return f"Table({self.name})"
+
+
+class MetaData:
+    def __init__(self):
+        self.tables: dict[str, Table] = {}
+
+    def create_all(self, engine: "Engine") -> None:
+        from .engine import Engine  # local import to avoid cycle
+
+        if not isinstance(engine, Engine):
+            raise TypeError("engine must be an Engine")
+        for table in self.tables.values():
+            engine._ensure_table(table)
+
+    def drop_all(self, engine: "Engine") -> None:
+        from .engine import Engine  # local import to avoid cycle
+
+        if not isinstance(engine, Engine):
+            raise TypeError("engine must be an Engine")
+        engine._drop_all()
+</file>
+
+<file:name=sqlmodel/sql.py>
+from __future__ import annotations
+
+import typing as t
+
+from .orm import Column, Condition
+
+
+class Select:
+    def __init__(self, *entities: t.Any):
+        if not entities:
+            raise TypeError("select() requires at least one entity")
+        self.entities = entities
+        self._where: list[Condition] = []
+        self._limit: t.Optional[int] = None
+        self._offset: int = 0
+        self._order_by: list[t.Any] = []
+
+    def where(self, condition: Condition) -> "Select":
+        self._where.append(condition)
+        return self
+
+    def limit(self, n: int) -> "Select":
+        self._limit = int(n)
+        return self
+
+    def offset(self, n: int) -> "Select":
+        self._offset = int(n)
+        return self
+
+    def order_by(self, *cols: t.Any) -> "Select":
+        self._order_by.extend(cols)
+        return self
+
+
+def select(*entities: t.Any) -> Select:
+    return Select(*entities)
+
+
+class Row(tuple):
+    __slots__ = ()
+
+    def __new__(cls, items: tuple):
+        return super().__new__(cls, items)
+
+    def __repr__(self) -> str:
+        return f"Row{tuple.__repr__(self)}"
+
+
+class ScalarResult:
+    def __init__(self, values: list[t.Any]):
+        self._values = values
+
+    def all(self) -> list[t.Any]:
+        return list(self._values)
+
+    def first(self) -> t.Any:
+        return self._values[0] if self._values else None
+
+    def one(self) -> t.Any:
+        if len(self._values) != 1:
+            raise ValueError("Expected exactly one row")
+        return self._values[0]
+
+    def one_or_none(self) -> t.Any:
+        if len(self._values) == 0:
+            return None
+        if len(self._values) != 1:
+            raise ValueError("Expected at most one row")
+        return self._values[0]
+
+
+class Result:
+    def __init__(self, rows: list[t.Any], *, scalar_index: t.Optional[int] = None):
+        self._rows = rows
+        self._scalar_index = scalar_index
+
+    def all(self) -> list[t.Any]:
+        return list(self._rows)
+
+    def first(self) -> t.Any:
+        return self._rows[0] if self._rows else None
+
+    def one(self) -> t.Any:
+        if len(self._rows) != 1:
+            raise ValueError("Expected exactly one row")
+        return self._rows[0]
+
+    def one_or_none(self) -> t.Any:
+        if len(self._rows) == 0:
+            return None
+        if len(self._rows) != 1:
+            raise ValueError("Expected at most one row")
+        return self._rows[0]
+
+    def scalars(self) -> ScalarResult:
+        if self._scalar_index is None:
+            if self._rows and isinstance(self._rows[0], Row):
+                values = [r[0] for r in self._rows]
+            else:
+                values = list(self._rows)
+        else:
+            values = []
+            for r in self._rows:
+                if isinstance(r, Row):
+                    values.append(r[self._scalar_index])
+                else:
+                    values.append(r)
+        return ScalarResult(values)
+</file>
+
+<file:name=sqlmodel/engine.py>
+from __future__ import annotations
+
+import typing as t
+
+
+class Engine:
+    def __init__(self, url: str, *, echo: bool = False, connect_args: t.Optional[dict] = None, **kwargs: t.Any):
+        self.url = url
+        self.echo = echo
+        self.connect_args = connect_args or {}
+        self.kwargs = dict(kwargs)
+        self._db: dict[str, dict[str, t.Any]] = {}  # table_name -> {"rows": [dict], "ai": int, "table": Table}
+
+    def _ensure_table(self, table: "Table") -> None:
+        from .orm import Table  # avoid cycle
+
+        if not isinstance(table, Table):
+            raise TypeError("table must be a Table")
+        if table.name not in self._db:
+            self._db[table.name] = {"rows": [], "ai": 1, "table": table}
+
+    def _drop_all(self) -> None:
+        self._db.clear()
+
+
+def create_engine(
+    url: str,
+    *,
+    echo: bool = False,
+    connect_args: t.Optional[dict] = None,
+    **kwargs: t.Any,
+) -> Engine:
+    return Engine(url, echo=echo, connect_args=connect_args, **kwargs)
+</file>
+
+<file:name=sqlmodel/main.py>
+from __future__ import annotations
+
+import typing as t
+
+from ._compat import is_optional, optional_inner, json_dumps
+from .exceptions import UnmappedInstanceError
+from .fields import FieldInfo, Undefined
+from .orm import Column, MetaData, RelationshipInfo, Table
+
+
+class ModelField:
+    def __init__(self, name: str, annotation: t.Any, field_info: FieldInfo):
+        self.name = name
+        self.annotation = annotation
+        self.field_info = field_info
+        self.required = field_info.default is Undefined and field_info.default_factory is None
+
+    def get_default(self) -> t.Any:
+        return self.field_info.get_default()
+
+
+class SQLModelMeta(type):
+    def __new__(mcls, name: str, bases: tuple[type, ...], namespace: dict, **kwargs: t.Any):
+        table_flag = bool(kwargs.pop("table", False))
+        cls = super().__new__(mcls, name, bases, dict(namespace))
+
+        if name == "SQLModel":
+            return cls
+
+        # inherit/merge annotations
+        annotations: dict[str, t.Any] = {}
+        for b in reversed(bases):
+            annotations.update(getattr(b, "__annotations__", {}) or {})
+        annotations.update(namespace.get("__annotations__", {}) or {})
+
+        fields: dict[str, ModelField] = {}
+        relationships: dict[str, RelationshipInfo] = {}
+
+        for fname, ann in annotations.items():
+            val = namespace.get(fname, getattr(cls, fname, Undefined))
+            if isinstance(val, RelationshipInfo):
+                relationships[fname] = val
+                continue
+
+            if isinstance(val, FieldInfo):
+                finfo = val
+            else:
+                finfo = FieldInfo(default=val)
+
+            fields[fname] = ModelField(fname, ann, finfo)
+
+        cls.__sqlmodel_fields__ = fields
+        cls.__fields__ = fields  # pydantic v1-ish
+        cls.model_fields = fields  # pydantic v2-ish
+        cls.__sqlmodel_relationships__ = relationships
+
+        if table_flag:
+            # tablename
+            if not hasattr(cls, "__tablename__"):
+                cls.__tablename__ = name.lower()
+
+            columns: dict[str, Column] = {}
+            for fname, f in fields.items():
+                ann = f.annotation
+                base_type = optional_inner(ann)
+                nullable = f.field_info.nullable
+                if nullable is None:
+                    nullable = bool(is_optional(ann) or f.field_info.default is None)
+
+                default = f.get_default()
+                if default is Undefined:
+                    default = None
+
+                col = Column(
+                    model_cls=cls,
+                    name=fname,
+                    python_type=base_type,
+                    primary_key=f.field_info.primary_key,
+                    nullable=nullable,
+                    default=default,
+                    index=f.field_info.index,
+                    unique=f.field_info.unique,
+                )
+                columns[fname] = col
+
+            cls.__table__ = Table(cls.__tablename__, cls, columns)
+
+            # attach Column descriptors to class (to build expressions)
+            for fname, col in columns.items():
+                setattr(cls, fname, col)
+
+            # register in global metadata
+            SQLModel.metadata.tables[cls.__tablename__] = cls.__table__
+
+        return cls
+
+
+class SQLModel(metaclass=SQLModelMeta):
+    metadata = MetaData()
+
+    def __init__(self, **data: t.Any):
+        cls = self.__class__
+        fields: dict[str, ModelField] = getattr(cls, "__sqlmodel_fields__", {})
+
+        for name, mf in fields.items():
+            if name in data:
+                value = data[name]
+            else:
+                dv = mf.get_default()
+                if dv is Undefined:
+                    value = None
+                else:
+                    value = dv
+
+            value = self._coerce_value(mf.annotation, value)
+            object.__setattr__(self, name, value)
+
+        extra = {k: v for k, v in data.items() if k not in fields}
+        for k, v in extra.items():
+            object.__setattr__(self, k, v)
+
+    @classmethod
+    def model_validate(cls, obj: t.Any) -> "SQLModel":
+        if isinstance(obj, cls):
+            return obj
+        if isinstance(obj, dict):
+            return cls(**obj)
+        raise TypeError("model_validate expects a dict or instance")
+
+    @classmethod
+    def parse_obj(cls, obj: t.Any) -> "SQLModel":
+        return cls.model_validate(obj)
+
+    def dict(self, *, exclude_none: bool = False, **kwargs: t.Any) -> dict:
+        cls = self.__class__
+        fields: dict[str, ModelField] = getattr(cls, "__sqlmodel_fields__", {})
+        out = {}
+        for name in fields.keys():
+            val = getattr(self, name, None)
+            if exclude_none and val is None:
+                continue
+            out[name] = val
+        return out
+
+    def model_dump(self, **kwargs: t.Any) -> dict:
+        return self.dict(**kwargs)
+
+    def json(self, **kwargs: t.Any) -> str:
+        data = self.dict(**{k: v for k, v in kwargs.items() if k in {"exclude_none"}})
+        json_kwargs = {k: v for k, v in kwargs.items() if k not in {"exclude_none"}}
+        return json_dumps(data, **json_kwargs)
+
+    def model_dump_json(self, **kwargs: t.Any) -> str:
+        return self.json(**kwargs)
+
+    def __repr__(self) -> str:
+        cls = self.__class__
+        fields: dict[str, ModelField] = getattr(cls, "__sqlmodel_fields__", {})
+        parts = []
+        for name in fields.keys():
+            parts.append(f"{name}={getattr(self, name, None)!r}")
+        return f"{cls.__name__}({', '.join(parts)})"
+
+    @property
+    def __table__(self) -> Table:  # type: ignore[override]
+        t_ = getattr(self.__class__, "__table__", None)
+        if t_ is None:
+            raise UnmappedInstanceError("Instance is not mapped as a table model")
+        return t_
+
+    @staticmethod
+    def _coerce_value(tp: t.Any, value: t.Any) -> t.Any:
+        if value is None:
+            return None
+        base = optional_inner(tp)
+
+        origin = t.get_origin(base)
+        if origin is list:
+            (inner,) = t.get_args(base) or (t.Any,)
+            if isinstance(value, list):
+                return [SQLModel._coerce_value(inner, v) for v in value]
+            return list(value)
+
+        if base in (int, float, str, bool):
+            try:
+                return base(value)
+            except Exception:
+                return value
+        return value
+</file>
+
+<file:name=sqlmodel/session.py>
+from __future__ import annotations
+
+import typing as t
+
+from .exceptions import TableNotCreatedError, UnmappedInstanceError
+from .orm import Column, Condition
+from .sql import Result, Row, Select
+
+
+class Session:
+    def __init__(self, engine: "Engine", **kwargs: t.Any):
+        from .engine import Engine
+
+        if not isinstance(engine, Engine):
+            raise TypeError("Session requires an Engine")
+        self.engine = engine
+        self.kwargs = dict(kwargs)
+        self._new: list[t.Any] = []
+        self._closed = False
+
+    def __enter__(self) -> "Session":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self._closed = True
+
+    def add(self, instance: t.Any) -> None:
+        table = getattr(instance.__class__, "__table__", None)
+        if table is None:
+            raise UnmappedInstanceError("Can only add SQLModel table models")
+        self._new.append(instance)
+
+    def add_all(self, instances: list[t.Any]) -> None:
+        for inst in instances:
+            self.add(inst)
+
+    def commit(self) -> None:
+        # Insert-only minimal UoW
+        for inst in list(self._new):
+            table = inst.__class__.__table__
+            tname = table.name
+            if tname not in self.engine._db:
+                raise TableNotCreatedError(f"Table '{tname}' is not created. Call SQLModel.metadata.create_all(engine).")
+
+            bucket = self.engine._db[tname]
+            row = {}
+            for col_name, col in table.columns.items():
+                val = getattr(inst, col_name, None)
+                if col.primary_key and (val is None):
+                    val = bucket["ai"]
+                    bucket["ai"] += 1
+                    setattr(inst, col_name, val)
+                row[col_name] = val
+            bucket["rows"].append(row)
+            self._new.remove(inst)
+
+    def rollback(self) -> None:
+        self._new.clear()
+
+    def refresh(self, instance: t.Any) -> None:
+        table = getattr(instance.__class__, "__table__", None)
+        if table is None:
+            raise UnmappedInstanceError("Can only refresh SQLModel table models")
+
+        pkcol = table.primary_key
+        if pkcol is None:
+            return
+        pk = getattr(instance, pkcol.name, None)
+        if pk is None:
+            return
+        found = self._find_row(table, pk)
+        if found is None:
+            return
+        for k, v in found.items():
+            setattr(instance, k, v)
+
+    def get(self, model_cls: type, pk: t.Any) -> t.Any:
+        table = getattr(model_cls, "__table__", None)
+        if table is None:
+            raise UnmappedInstanceError("Can only get() SQLModel table models")
+        if table.name not in self.engine._db:
+            raise TableNotCreatedError(f"Table '{table.name}' is not created. Call SQLModel.metadata.create_all(engine).")
+        row = self._find_row(table, pk)
+        if row is None:
+            return None
+        return self._row_to_model(model_cls, row)
+
+    def exec(self, statement: Select) -> Result:
+        return self.execute(statement)
+
+    def execute(self, statement: Select) -> Result:
+        if not isinstance(statement, Select):
+            raise TypeError("Session.execute expects a Select statement")
+
+        entities = statement.entities
+
+        # Determine "FROM" model (first entity that is a model class with __table__)
+        model_cls = None
+        for ent in entities:
+            if isinstance(ent, type) and getattr(ent, "__table__", None) is not None:
+                model_cls = ent
+                break
+        if model_cls is None:
+            # support select(Model.col, ...) where Model.col is Column
+            for ent in entities:
+                if isinstance(ent, Column):
+                    model_cls = ent.model_cls
+                    break
+
+        if model_cls is None:
+            raise TypeError("Could not determine selectable model")
+
+        table = model_cls.__table__
+        if table.name not in self.engine._db:
+            raise TableNotCreatedError(f"Table '{table.name}' is not created. Call SQLModel.metadata.create_all(engine).")
+
+        rows = list(self.engine._db[table.name]["rows"])
+
+        # where filters (AND semantics)
+        for cond in statement._where:
+            rows = [r for r in rows if cond.eval(r)]
+
+        # order_by (only basic column ordering)
+        for ob in reversed(statement._order_by):
+            if isinstance(ob, Column):
+                rows.sort(key=lambda rr: rr.get(ob.name))
+            else:
+                # unknown order_by; ignore
+                pass
+
+        # offset/limit
+        if statement._offset:
+            rows = rows[statement._offset :]
+        if statement._limit is not None:
+            rows = rows[: statement._limit]
+
+        # shape result
+        if len(entities) == 1 and entities[0] is model_cls:
+            models = [self._row_to_model(model_cls, r) for r in rows]
+            return Result(models, scalar_index=None)
+
+        out_rows: list[Row] = []
+        for r in rows:
+            values = []
+            for ent in entities:
+                if ent is model_cls:
+                    values.append(self._row_to_model(model_cls, r))
+                elif isinstance(ent, Column):
+                    values.append(r.get(ent.name))
+                else:
+                    # fallback: if a class attribute Column was passed, it will be Column
+                    values.append(ent)
+            out_rows.append(Row(tuple(values)))
+
+        scalar_index = 0 if len(entities) == 1 else None
+        return Result(out_rows, scalar_index=scalar_index)
+
+    def _find_row(self, table: "Table", pk: t.Any) -> t.Optional[dict]:
+        pkcol = table.primary_key
+        if pkcol is None:
+            return None
+        for r in self.engine._db[table.name]["rows"]:
+            if r.get(pkcol.name) == pk:
+                return r
+        return None
+
+    def _row_to_model(self, model_cls: type, row: dict) -> t.Any:
+        # create instance without calling __init__ (to avoid type coercion issues)
+        obj = model_cls.__new__(model_cls)
+        fields = getattr(model_cls, "__sqlmodel_fields__", {})
+        for name in fields.keys():
+            setattr(obj, name, row.get(name))
+        return obj
+</file>

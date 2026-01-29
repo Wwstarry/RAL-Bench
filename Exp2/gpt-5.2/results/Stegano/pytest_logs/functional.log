@@ -1,0 +1,132 @@
+FFFF........                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-378/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+        encoded_img = lsb.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = lsb.reveal(str(output))
+
+tests\Stegano\functional_test.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:158: in reveal
+    msg_bits_list = _reveal_bits_from_channels(channels, msg_bits, pos_it)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+channels = [226, 136, 124, 226, 136, 124, ...], nbits = 88
+positions = <generator object _positions_sequential at 0x000002A141D7C820>
+
+    def _reveal_bits_from_channels(channels: list[int], nbits: int, positions: Iterator[int]) -> list[int]:
+        out_bits: list[int] = []
+        for _ in range(nbits):
+>           pos = next(positions)
+E           StopIteration
+
+generation\Stegano\stegano\lsb\lsb.py:55: StopIteration
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-378/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+        encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+        encoded_img.save(str(output))
+    
+        gen2 = generators.eratosthenes()
+>       revealed = lsb.reveal(str(output), generator=gen2)
+
+tests\Stegano\functional_test.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:158: in reveal
+    msg_bits_list = _reveal_bits_from_channels(channels, msg_bits, pos_it)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+channels = [226, 137, 124, 226, 137, 124, ...], nbits = 128
+positions = <generator object _positions_from_generator at 0x000002A141BDF350>
+
+    def _reveal_bits_from_channels(channels: list[int], nbits: int, positions: Iterator[int]) -> list[int]:
+        out_bits: list[int] = []
+        for _ in range(nbits):
+>           pos = next(positions)
+E           StopIteration
+
+generation\Stegano\stegano\lsb\lsb.py:55: StopIteration
+__________________ test_lsb_hide_and_reveal_long_ascii_text ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-378/test_lsb_hide_and_reveal_long_0')
+
+    def test_lsb_hide_and_reveal_long_ascii_text(tmp_path: Path) -> None:
+        """LSB should roundtrip a longer ASCII text message (still < typical capacity)."""
+        _ensure_image_samples_exist()
+    
+        secret = "This is a longer secret message with punctuation: 12345, hello-world!"
+        output = tmp_path / "lsb_long.png"
+    
+        encoded_img = lsb.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = lsb.reveal(str(output))
+
+tests\Stegano\functional_test.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:158: in reveal
+    msg_bits_list = _reveal_bits_from_channels(channels, msg_bits, pos_it)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+channels = [226, 136, 124, 226, 136, 124, ...], nbits = 552
+positions = <generator object _positions_sequential at 0x000002A141D0F740>
+
+    def _reveal_bits_from_channels(channels: list[int], nbits: int, positions: Iterator[int]) -> list[int]:
+        out_bits: list[int] = []
+        for _ in range(nbits):
+>           pos = next(positions)
+E           StopIteration
+
+generation\Stegano\stegano\lsb\lsb.py:55: StopIteration
+______________________ test_lsb_reveal_from_image_object ______________________
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+        img_obj = lsb.hide(str(LENNA_PNG), secret)
+>       revealed = lsb.reveal(img_obj)
+
+tests\Stegano\functional_test.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:158: in reveal
+    msg_bits_list = _reveal_bits_from_channels(channels, msg_bits, pos_it)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+channels = [226, 136, 124, 226, 136, 124, ...], nbits = 96
+positions = <generator object _positions_sequential at 0x000002A143AD3270>
+
+    def _reveal_bits_from_channels(channels: list[int], nbits: int, positions: Iterator[int]) -> list[int]:
+        out_bits: list[int] = []
+        for _ in range(nbits):
+>           pos = next(positions)
+E           StopIteration
+
+generation\Stegano\stegano\lsb\lsb.py:55: StopIteration
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_text - Stop...
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_long_ascii_text
+FAILED tests/Stegano/functional_test.py::test_lsb_reveal_from_image_object - ...
+4 failed, 8 passed in 4.33s

@@ -1,0 +1,903 @@
+<file:name=typer/__init__.py>
+from .main import Typer, run
+from .params import Option, Argument
+from .utils import echo
+from .exceptions import Exit
+
+__all__ = [
+    "Typer",
+    "Option",
+    "Argument",
+    "echo",
+    "Exit",
+    "run",
+    "testing",
+]
+
+__version__ = "0.0.0"
+
+# Provide typer.testing module as attribute (like Typer)
+from . import testing  # noqa: E402
+</file>
+
+<file:name=typer/exceptions.py>
+class Exit(Exception):
+    """
+    Exception used to exit a Typer app with a specific status code.
+    Compatible with Click/Typer expectations (.exit_code) and a .code alias.
+    """
+
+    def __init__(self, code: int = 0):
+        super().__init__(code)
+        self.exit_code = int(code)
+
+    @property
+    def code(self) -> int:
+        return self.exit_code
+</file>
+
+<file:name=typer/utils.py>
+from __future__ import annotations
+
+import sys
+from typing import Any
+
+
+def echo(message: Any = "", nl: bool = True, err: bool = False) -> None:
+    stream = sys.stderr if err else sys.stdout
+    if message is None:
+        message = ""
+    if isinstance(message, (bytes, bytearray)):
+        try:
+            text = message.decode()
+        except Exception:
+            text = str(message)
+    else:
+        text = str(message)
+    if nl:
+        stream.write(text + "\n")
+    else:
+        stream.write(text)
+    stream.flush()
+
+
+def _normalize_command_name(name: str) -> str:
+    return name.replace("_", "-")
+
+
+def _option_decl_to_dest(decl: str) -> str:
+    # "--foo-bar" -> "foo_bar", "-f" -> "f"
+    d = decl.lstrip("-")
+    d = d.replace("-", "_")
+    return d
+
+
+def _is_optional_annotation(annotation) -> tuple[bool, object]:
+    # Returns (is_optional, inner_type)
+    try:
+        from typing import get_origin, get_args, Union
+    except ImportError:  # pragma: no cover
+        return False, annotation
+
+    origin = get_origin(annotation)
+    if origin is None:
+        return False, annotation
+    if origin is Union:
+        args = get_args(annotation)
+        if len(args) == 2 and (args[0] is type(None) or args[1] is type(None)):
+            inner = args[1] if args[0] is type(None) else args[0]
+            return True, inner
+    return False, annotation
+
+
+def _to_bool(value: str) -> bool:
+    v = value.strip().lower()
+    if v in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if v in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise ValueError(f"Invalid boolean value: {value!r}")
+
+
+def convert_value(value: str, annotation) -> object:
+    if annotation is None or annotation is str:
+        return value
+    opt, inner = _is_optional_annotation(annotation)
+    if opt:
+        if value is None:
+            return None
+        annotation = inner
+
+    if annotation is bool:
+        return _to_bool(value)
+    if annotation is int:
+        return int(value)
+    if annotation is float:
+        return float(value)
+    # Fallback: try call the type
+    try:
+        return annotation(value)
+    except Exception:
+        return value
+
+
+def _first_line(doc: str | None) -> str | None:
+    if not doc:
+        return None
+    doc = doc.strip("\n")
+    if not doc.strip():
+        return None
+    return doc.strip().splitlines()[0].strip()
+</file>
+
+<file:name=typer/params.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Sequence
+
+
+@dataclass(frozen=True)
+class OptionInfo:
+    default: Any = ...
+    param_decls: tuple[str, ...] = ()
+    help: str | None = None
+    show_default: bool = True
+    is_flag: bool | None = None
+    hidden: bool = False
+
+    # accept many Typer kwargs for compatibility
+    prompt: Any = None
+    envvar: Any = None
+    callback: Any = None
+    case_sensitive: bool = True
+    count: bool = False
+
+
+@dataclass(frozen=True)
+class ArgumentInfo:
+    default: Any = ...
+    help: str | None = None
+    metavar: str | None = None
+    nargs: Any = None
+    envvar: Any = None
+    callback: Any = None
+
+
+def Option(default: Any = ..., *param_decls: str, **kwargs: Any) -> OptionInfo:
+    return OptionInfo(
+        default=default,
+        param_decls=tuple(param_decls),
+        help=kwargs.get("help"),
+        show_default=kwargs.get("show_default", True),
+        is_flag=kwargs.get("is_flag"),
+        hidden=kwargs.get("hidden", False),
+        prompt=kwargs.get("prompt"),
+        envvar=kwargs.get("envvar"),
+        callback=kwargs.get("callback"),
+        case_sensitive=kwargs.get("case_sensitive", True),
+        count=kwargs.get("count", False),
+    )
+
+
+def Argument(default: Any = ..., **kwargs: Any) -> ArgumentInfo:
+    return ArgumentInfo(
+        default=default,
+        help=kwargs.get("help"),
+        metavar=kwargs.get("metavar"),
+        nargs=kwargs.get("nargs"),
+        envvar=kwargs.get("envvar"),
+        callback=kwargs.get("callback"),
+    )
+</file>
+
+<file:name=typer/main.py>
+from __future__ import annotations
+
+import inspect
+import sys
+from dataclasses import dataclass
+from typing import Any, Callable
+
+from .exceptions import Exit
+from .params import ArgumentInfo, OptionInfo
+from .utils import _first_line, _normalize_command_name, _option_decl_to_dest, convert_value, echo
+
+
+@dataclass
+class _ParamSpec:
+    name: str
+    kind: str  # "argument" or "option"
+    annotation: Any
+    required: bool
+    default: Any
+    help: str | None
+    # option
+    option_decls: tuple[str, ...] = ()
+    is_flag: bool = False
+
+
+@dataclass
+class _Command:
+    name: str
+    func: Callable[..., Any]
+    help: str | None = None
+
+
+class Typer:
+    def __init__(
+        self,
+        name: str | None = None,
+        help: str | None = None,
+        add_help_option: bool = True,
+        invoke_without_command: bool = False,
+        no_args_is_help: bool = False,
+    ):
+        self.info_name = name
+        self.help = help
+        self.add_help_option = add_help_option
+        self.invoke_without_command = invoke_without_command
+        self.no_args_is_help = no_args_is_help
+        self._commands: list[_Command] = []
+        self._callback: Callable[..., Any] | None = None
+
+    def command(self, name: str | None = None, help: str | None = None):
+        def decorator(func: Callable[..., Any]):
+            cmd_name = _normalize_command_name(name or func.__name__)
+            cmd_help = help if help is not None else _first_line(func.__doc__)
+            self._commands.append(_Command(name=cmd_name, func=func, help=cmd_help))
+            return func
+
+        return decorator
+
+    def callback(self, name: str | None = None, help: str | None = None):
+        # Minimal compatibility: store as root callback
+        def decorator(func: Callable[..., Any]):
+            self._callback = func
+            return func
+
+        return decorator
+
+    def add_typer(self, other: "Typer", name: str | None = None):
+        prefix = _normalize_command_name(name or other.info_name or "")
+        if not prefix:
+            for c in other._commands:
+                self._commands.append(c)
+        else:
+            for c in other._commands:
+                self._commands.append(
+                    _Command(
+                        name=f"{prefix} {c.name}",
+                        func=c.func,
+                        help=c.help,
+                    )
+                )
+        return other
+
+    def _prog_name(self, prog_name: str | None) -> str:
+        if prog_name:
+            return prog_name
+        if self.info_name:
+            return self.info_name
+        return "app"
+
+    def _find_command(self, tokens: list[str]) -> tuple[_Command | None, int]:
+        # Support "grouped" commands created by add_typer by matching multiple tokens.
+        if not tokens:
+            return None, 0
+        # Find longest match of command.name split by spaces.
+        best = None
+        best_len = 0
+        for c in self._commands:
+            parts = c.name.split()
+            if len(parts) > len(tokens):
+                continue
+            if tokens[: len(parts)] == parts and len(parts) > best_len:
+                best = c
+                best_len = len(parts)
+        if best is not None:
+            return best, best_len
+        # Single token match
+        for c in self._commands:
+            if c.name == tokens[0]:
+                return c, 1
+        return None, 0
+
+    def _app_help(self, prog: str) -> str:
+        lines: list[str] = []
+        lines.append(f"Usage: {prog} [OPTIONS] COMMAND [ARGS]...")
+        if self.help:
+            lines.append("")
+            lines.append(self.help)
+        lines.append("")
+        lines.append("Commands:")
+        if self._commands:
+            for c in self._commands:
+                desc = c.help or ""
+                if desc:
+                    lines.append(f"  {c.name}  {desc}")
+                else:
+                    lines.append(f"  {c.name}")
+        else:
+            lines.append("  (no commands)")
+        if self.add_help_option:
+            lines.append("")
+            lines.append("Options:")
+            lines.append("  --help  Show this message and exit.")
+        return "\n".join(lines) + "\n"
+
+    def _command_help(self, prog: str, cmd: _Command) -> str:
+        specs = _build_params(cmd.func)
+        args_usage = []
+        for s in specs:
+            if s.kind == "argument":
+                token = s.name.upper()
+                if not s.required:
+                    token = f"[{token}]"
+                args_usage.append(token)
+        usage = f"Usage: {prog} {cmd.name}"
+        if any(s.kind == "option" for s in specs):
+            usage += " [OPTIONS]"
+        if args_usage:
+            usage += " " + " ".join(args_usage)
+
+        lines: list[str] = [usage]
+        if cmd.help:
+            lines += ["", cmd.help]
+        arg_specs = [s for s in specs if s.kind == "argument"]
+        opt_specs = [s for s in specs if s.kind == "option"]
+
+        if arg_specs:
+            lines.append("")
+            lines.append("Arguments:")
+            for s in arg_specs:
+                desc = s.help or ""
+                req = "" if s.required else "  [optional]"
+                if desc:
+                    lines.append(f"  {s.name.upper()}  {desc}{req}")
+                else:
+                    lines.append(f"  {s.name.upper()}{req}")
+
+        if opt_specs or self.add_help_option:
+            lines.append("")
+            lines.append("Options:")
+            for s in opt_specs:
+                decls = ", ".join(s.option_decls) if s.option_decls else f"--{s.name.replace('_','-')}"
+                tail = []
+                if s.help:
+                    tail.append(s.help)
+                if not s.required and s.default is not None and s.default is not ...:
+                    tail.append(f"[default: {s.default}]")
+                txt = "  " + decls
+                if tail:
+                    txt += "  " + " ".join(tail)
+                lines.append(txt)
+            if self.add_help_option:
+                lines.append("  --help  Show this message and exit.")
+        return "\n".join(lines) + "\n"
+
+    def _parse_and_invoke(self, cmd: _Command, cmd_args: list[str], prog: str) -> int:
+        specs = _build_params(cmd.func)
+        if any(a in ("--help", "-h") for a in cmd_args):
+            echo(self._command_help(prog, cmd), nl=False)
+            return 0
+
+        opt_specs = {s.name: s for s in specs if s.kind == "option"}
+        arg_specs = [s for s in specs if s.kind == "argument"]
+
+        # Build option lookup by declarations
+        decl_map: dict[str, str] = {}
+        for s in opt_specs.values():
+            for d in (s.option_decls or (f"--{s.name.replace('_','-')}",)):
+                decl_map[d] = s.name
+            # also allow --no-flag for bool flags default True
+            if s.is_flag and isinstance(s.default, bool) and s.default is True:
+                decl_map[f"--no-{s.name.replace('_','-')}"] = s.name
+
+        values: dict[str, Any] = {}
+        # defaults
+        for s in specs:
+            if s.default is not ...:
+                values[s.name] = s.default
+
+        positionals: list[str] = []
+        i = 0
+        while i < len(cmd_args):
+            tok = cmd_args[i]
+            if tok == "--":
+                positionals.extend(cmd_args[i + 1 :])
+                break
+            if tok.startswith("-") and tok != "-":
+                # option
+                name = None
+                val: str | None = None
+                if tok.startswith("--") and "=" in tok:
+                    k, v = tok.split("=", 1)
+                    name = decl_map.get(k)
+                    val = v
+                else:
+                    name = decl_map.get(tok)
+                if name is None:
+                    echo(f"Error: No such option: {tok}", err=True)
+                    return 2
+                spec = opt_specs[name]
+
+                # handle negated bool
+                if spec.is_flag and tok.startswith("--no-"):
+                    values[name] = False
+                    i += 1
+                    continue
+
+                if spec.is_flag:
+                    values[name] = True
+                    i += 1
+                    continue
+
+                if val is None:
+                    if i + 1 >= len(cmd_args):
+                        echo(f"Error: Option {tok} requires a value", err=True)
+                        return 2
+                    val = cmd_args[i + 1]
+                    i += 2
+                else:
+                    i += 1
+                try:
+                    values[name] = convert_value(val, spec.annotation)
+                except Exception:
+                    echo(f"Error: Invalid value for {tok}: {val}", err=True)
+                    return 2
+                continue
+            else:
+                positionals.append(tok)
+                i += 1
+
+        if len(positionals) < sum(1 for s in arg_specs if s.required):
+            echo("Error: Missing argument", err=True)
+            return 2
+        if len(positionals) > len(arg_specs):
+            echo("Error: Got unexpected extra argument", err=True)
+            return 2
+
+        # bind positional args
+        for idx, spec in enumerate(arg_specs):
+            if idx < len(positionals):
+                raw = positionals[idx]
+                try:
+                    values[spec.name] = convert_value(raw, spec.annotation)
+                except Exception:
+                    echo(f"Error: Invalid value for {spec.name}: {raw}", err=True)
+                    return 2
+            else:
+                if spec.required:
+                    echo(f"Error: Missing argument {spec.name}", err=True)
+                    return 2
+                # already defaulted
+
+        # required options
+        for s in opt_specs.values():
+            if s.required and s.name not in values:
+                # show preferred decl
+                decl = (s.option_decls[0] if s.option_decls else f"--{s.name.replace('_','-')}")
+                echo(f"Error: Missing option {decl}", err=True)
+                return 2
+
+        try:
+            result = cmd.func(**values)
+            if isinstance(result, int):
+                return int(result)
+            return 0
+        except Exit as e:
+            return int(e.exit_code)
+        except SystemExit as e:
+            code = e.code
+            if code is None:
+                return 0
+            if isinstance(code, int):
+                return code
+            try:
+                return int(code)
+            except Exception:
+                return 1
+
+    def _run(self, args: list[str], prog_name: str | None) -> int:
+        prog = self._prog_name(prog_name)
+        if any(a in ("--help", "-h") for a in args[:1]) and (args and args[0] in ("--help", "-h")):
+            echo(self._app_help(prog), nl=False)
+            return 0
+
+        if not args:
+            if self.no_args_is_help:
+                echo(self._app_help(prog), nl=False)
+                return 0
+            if self._callback and self.invoke_without_command:
+                try:
+                    r = self._callback()
+                    return int(r) if isinstance(r, int) else 0
+                except Exit as e:
+                    return int(e.exit_code)
+            echo(self._app_help(prog), nl=False)
+            return 0
+
+        cmd, consumed = self._find_command(args)
+        if cmd is None:
+            if args and args[0] in ("--help", "-h"):
+                echo(self._app_help(prog), nl=False)
+                return 0
+            echo(f"Error: No such command: {args[0]}", err=True)
+            echo(self._app_help(prog), nl=False)
+            return 2
+
+        cmd_args = args[consumed:]
+        # run callback if present (minimal)
+        if self._callback:
+            try:
+                r = self._callback()
+                if isinstance(r, int) and r != 0:
+                    return int(r)
+            except Exit as e:
+                return int(e.exit_code)
+        return self._parse_and_invoke(cmd, cmd_args, prog)
+
+    def __call__(self, args: list[str] | None = None, prog_name: str | None = None) -> int:
+        if args is None:
+            args = sys.argv[1:]
+        return self._run(list(args), prog_name)
+
+    def main(self, args: list[str] | None = None, prog_name: str | None = None, standalone_mode: bool = True):
+        if args is None:
+            args = sys.argv[1:]
+        try:
+            code = self._run(list(args), prog_name)
+        except Exit as e:
+            code = int(e.exit_code)
+        except SystemExit as e:
+            code = int(e.code) if isinstance(e.code, int) else 1
+        except Exception as e:
+            echo(str(e), err=True)
+            code = 1
+
+        if standalone_mode:
+            raise SystemExit(code)
+        return code
+
+
+def _build_params(func: Callable[..., Any]) -> list[_ParamSpec]:
+    sig = inspect.signature(func)
+    specs: list[_ParamSpec] = []
+    for name, p in sig.parameters.items():
+        if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            # not supported in this minimal version
+            continue
+
+        annotation = p.annotation if p.annotation is not inspect._empty else str
+        default = p.default if p.default is not inspect._empty else ...
+
+        if isinstance(default, OptionInfo):
+            info = default
+            # Determine declarations
+            decls = info.param_decls
+            if not decls:
+                decls = (f"--{name.replace('_','-')}",)
+            # Determine flag
+            is_flag = bool(info.is_flag) if info.is_flag is not None else (annotation is bool or info.default in (True, False))
+            required = info.default is ...
+            specs.append(
+                _ParamSpec(
+                    name=name,
+                    kind="option",
+                    annotation=annotation,
+                    required=required,
+                    default=info.default,
+                    help=info.help,
+                    option_decls=tuple(decls),
+                    is_flag=is_flag,
+                )
+            )
+        else:
+            if isinstance(default, ArgumentInfo):
+                info = default
+                required = info.default is ...
+                dflt = info.default
+                hlp = info.help
+            else:
+                required = default is ...
+                dflt = default
+                hlp = None
+            specs.append(
+                _ParamSpec(
+                    name=name,
+                    kind="argument",
+                    annotation=annotation,
+                    required=required,
+                    default=dflt,
+                    help=hlp,
+                )
+            )
+    return specs
+
+
+def run(function: Callable[..., Any]) -> None:
+    app = Typer()
+    app.command()(function)
+    app.main()
+</file>
+
+<file:name=typer/testing.py>
+from __future__ import annotations
+
+import io
+import sys
+from contextlib import redirect_stderr, redirect_stdout
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass
+class Result:
+    exit_code: int
+    stdout: str
+    stderr: str
+    exception: BaseException | None = None
+
+    @property
+    def output(self) -> str:
+        # Click/Typer commonly expose combined output
+        return (self.stdout or "") + (self.stderr or "")
+
+
+class CliRunner:
+    def invoke(
+        self,
+        app: Any,
+        args: str | list[str] | tuple[str, ...] | None = None,
+        input: str | None = None,
+        catch_exceptions: bool = True,
+        env: dict[str, str] | None = None,
+        prog_name: str | None = None,
+    ) -> Result:
+        if args is None:
+            argv = []
+        elif isinstance(args, str):
+            argv = args.split()
+        else:
+            argv = list(args)
+
+        old_env = None
+        if env is not None:
+            old_env = dict(sys.environ) if hasattr(sys, "environ") else None  # pragma: no cover
+
+        old_stdin = sys.stdin
+        if input is not None:
+            sys.stdin = io.StringIO(input)
+
+        out = io.StringIO()
+        err = io.StringIO()
+        exc: BaseException | None = None
+        code: int = 0
+
+        try:
+            with redirect_stdout(out), redirect_stderr(err):
+                try:
+                    # Prefer .main(standalone_mode=False) if available (Typer-like)
+                    if hasattr(app, "main") and callable(getattr(app, "main")):
+                        code = app.main(args=argv, prog_name=prog_name, standalone_mode=False)
+                        if code is None:
+                            code = 0
+                    elif callable(app):
+                        code = app(argv)
+                        if code is None:
+                            code = 0
+                    else:
+                        raise TypeError("App is not callable")
+                except SystemExit as e:
+                    c = e.code
+                    if c is None:
+                        code = 0
+                    elif isinstance(c, int):
+                        code = c
+                    else:
+                        try:
+                            code = int(c)
+                        except Exception:
+                            code = 1
+                except BaseException as e:
+                    exc = e
+                    if not catch_exceptions:
+                        raise
+                    code = 1
+        finally:
+            sys.stdin = old_stdin
+            if old_env is not None:
+                sys.environ.clear()
+                sys.environ.update(old_env)
+
+        return Result(exit_code=int(code), stdout=out.getvalue(), stderr=err.getvalue(), exception=exc)
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import pytest
+import typer
+from typer.testing import CliRunner
+
+
+def test_basic_command_and_echo():
+    app = typer.Typer()
+
+    @app.command()
+    def hello(name: str):
+        typer.echo(f"Hello {name}")
+
+    r = CliRunner().invoke(app, ["hello", "World"])
+    assert r.exit_code == 0
+    assert r.stdout.strip() == "Hello World"
+    assert r.stderr == ""
+
+
+def test_options_long_short_and_default_and_equals():
+    app = typer.Typer()
+
+    @app.command()
+    def cmd(
+        name: str = typer.Option("x", "--name", "-n", help="Name"),
+        age: int = typer.Option(10, "--age"),
+    ):
+        typer.echo(f"{name}:{age}")
+
+    runner = CliRunner()
+    r1 = runner.invoke(app, ["cmd"])
+    assert r1.exit_code == 0
+    assert r1.stdout.strip() == "x:10"
+
+    r2 = runner.invoke(app, ["cmd", "--name", "bob", "--age=3"])
+    assert r2.exit_code == 0
+    assert r2.stdout.strip() == "bob:3"
+
+    r3 = runner.invoke(app, ["cmd", "-n", "ann"])
+    assert r3.exit_code == 0
+    assert r3.stdout.strip() == "ann:10"
+
+
+def test_required_option_and_argument_errors_exit_2_to_stderr():
+    app = typer.Typer()
+
+    @app.command()
+    def cmd(
+        x: int = typer.Option(..., "--x"),
+        name: str = typer.Argument(...),
+    ):
+        typer.echo(f"{x}-{name}")
+
+    runner = CliRunner()
+    r1 = runner.invoke(app, ["cmd", "bob"])
+    assert r1.exit_code == 2
+    assert "Missing option" in r1.stderr
+
+    r2 = runner.invoke(app, ["cmd", "--x", "1"])
+    assert r2.exit_code == 2
+    assert "Missing argument" in r2.stderr
+
+
+def test_bool_flag_and_no_flag():
+    app = typer.Typer()
+
+    @app.command()
+    def cmd(flag: bool = typer.Option(False, "--flag")):
+        typer.echo("yes" if flag else "no")
+
+    runner = CliRunner()
+    r1 = runner.invoke(app, ["cmd"])
+    assert r1.stdout.strip() == "no"
+    r2 = runner.invoke(app, ["cmd", "--flag"])
+    assert r2.stdout.strip() == "yes"
+
+    app2 = typer.Typer()
+
+    @app2.command()
+    def cmd2(flag: bool = typer.Option(True, "--flag")):
+        typer.echo("yes" if flag else "no")
+
+    r3 = runner.invoke(app2, ["cmd2", "--no-flag"])
+    assert r3.exit_code == 0
+    assert r3.stdout.strip() == "no"
+
+
+def test_help_includes_usage_commands_and_show_message():
+    app = typer.Typer(help="App help text")
+
+    @app.command(help="Do foo")
+    def foo():
+        pass
+
+    @app.command()
+    def bar():
+        """Do bar."""
+        pass
+
+    runner = CliRunner()
+    r = runner.invoke(app, ["--help"])
+    assert r.exit_code == 0
+    assert "Usage:" in r.stdout
+    assert "Commands:" in r.stdout
+    assert "foo" in r.stdout
+    assert "bar" in r.stdout
+    assert "Show this message and exit." in r.stdout
+
+    r2 = runner.invoke(app, ["foo", "--help"])
+    assert r2.exit_code == 0
+    assert "Usage:" in r2.stdout
+    assert "Options:" in r2.stdout
+
+
+def test_exit_propagation_exit_and_return_int():
+    app = typer.Typer()
+
+    @app.command()
+    def a():
+        raise typer.Exit(code=3)
+
+    @app.command()
+    def b():
+        return 5
+
+    runner = CliRunner()
+    r1 = runner.invoke(app, ["a"])
+    assert r1.exit_code == 3
+    r2 = runner.invoke(app, ["b"])
+    assert r2.exit_code == 5
+
+
+def test_unknown_command_exit_2_and_shows_help():
+    app = typer.Typer()
+
+    @app.command()
+    def ok():
+        pass
+
+    r = CliRunner().invoke(app, ["nope"])
+    assert r.exit_code == 2
+    assert "No such command" in r.stderr
+    assert "Commands:" in r.stdout
+
+
+def test_stderr_capture_echo_err_true():
+    app = typer.Typer()
+
+    @app.command()
+    def cmd():
+        typer.echo("out")
+        typer.echo("err", err=True)
+
+    r = CliRunner().invoke(app, ["cmd"])
+    assert r.exit_code == 0
+    assert r.stdout.strip() == "out"
+    assert r.stderr.strip() == "err"
+    assert r.output.strip().endswith("err")
+
+
+def test_catch_exceptions_behavior():
+    app = typer.Typer()
+
+    @app.command()
+    def boom():
+        raise RuntimeError("nope")
+
+    runner = CliRunner()
+    r = runner.invoke(app, ["boom"], catch_exceptions=True)
+    assert r.exit_code == 1
+    assert isinstance(r.exception, RuntimeError)
+
+    with pytest.raises(RuntimeError):
+        runner.invoke(app, ["boom"], catch_exceptions=False)
+</file>
+
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "typer"
+version = "0.0.0"
+description = "Minimal Typer-compatible CLI framework (pure Python)"
+requires-python = ">=3.9"
+</file>

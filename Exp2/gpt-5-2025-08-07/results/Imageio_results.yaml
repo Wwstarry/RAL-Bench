@@ -1,0 +1,358 @@
+project_name: Imageio
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Imageio\imageio.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Imageio
+timestamp: '2025-12-31 22:46:01'
+functional_score: 0.5
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.F..FFF.                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________ test_gif_multiframe_roundtrip_with_imiter __________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-359/test_gif_multiframe_roundtrip_0')\n\
+      \n    def test_gif_multiframe_roundtrip_with_imiter(tmp_path: Path) -> None:\n\
+      \        \"\"\"Write a small animated GIF and iterate frames using imiter.\"\
+      \"\"\n        frames = _make_grayscale_frames(num_frames=6, height=24, width=24)\n\
+      \        path = tmp_path / \"anim.gif\"\n    \n        iio.imwrite(path, frames)\n\
+      \        assert path.exists()\n    \n>       loaded_frames = list(iio.imiter(path))\n\
+      \ntests\\Imageio\\functional_test.py:103: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\npath = 'C:\\\\Users\\\\\
+      86152\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-86152\\\\pytest-359\\\\test_gif_multiframe_roundtrip_0\\\
+      \\anim.gif'\n\n    def _gif_iterate_frames(path: str) -> Generator[np.ndarray,\
+      \ None, None]:\n        with open(path, \"rb\") as fp:\n            header =\
+      \ fp.read(6)\n            if header not in (b\"GIF87a\", b\"GIF89a\"):\n   \
+      \             raise ValueError(\"Not a GIF file.\")\n            # Logical Screen\
+      \ Descriptor\n            ls = fp.read(7)\n            W, H, packed, bg, aspect\
+      \ = struct.unpack(\"<HHBBB\", ls)\n            gct_flag = (packed & 0x80) >>\
+      \ 7\n            gct_size_value = packed & 0x07\n            gct_size = 2 **\
+      \ (gct_size_value + 1)\n            if gct_flag:\n                fp.read(3\
+      \ * gct_size)\n            # Iterate blocks\n            while True:\n     \
+      \           introducer = fp.read(1)\n                if not introducer:\n  \
+      \                  break\n                b = introducer[0]\n              \
+      \  if b == 0x3B:\n                    # Trailer\n                    break\n\
+      \                elif b == 0x21:\n                    # Extension\n        \
+      \            label = fp.read(1)\n                    if not label:\n       \
+      \                 break\n                    if label[0] == 0xF9:\n        \
+      \                # Graphics Control Extension\n                        block_size_b\
+      \ = fp.read(1)\n                        if not block_size_b:\n             \
+      \               break\n                        block_size = block_size_b[0]\n\
+      \                        data = fp.read(block_size)\n                      \
+      \  fp.read(1)  # block terminator\n                    else:\n             \
+      \           # Application or other extension: read data sub-blocks\n       \
+      \                 # First block may be application ID length (usually 11)\n\
+      \                        # Read until terminator\n                        #\
+      \ Read a block size; if zero then done\n                        # We already\
+      \ read label; now read subblocks generically\n                        # Possibly\
+      \ there is a fixed-length initial block for APP\n                        # We'll\
+      \ consume in generic fashion\n                        # Read sub-blocks (size,\
+      \ data) until sz==0\n                        # First we may have an initial\
+      \ block size preceding sub-blocks\n                        # We'll handle generically:\n\
+      \                        # Read blocks until terminator\n                  \
+      \      _ = _read_subblocks(fp)\n                elif b == 0x2C:\n          \
+      \          # Image Descriptor\n                    idesc = fp.read(9)\n    \
+      \                left, top, width, height, ipacked = struct.unpack(\"<HHHHB\"\
+      , idesc)\n                    lct_flag = (ipacked & 0x80) >> 7\n           \
+      \         interlace_flag = (ipacked & 0x40) >> 6\n                    lct_size_value\
+      \ = ipacked & 0x07\n                    if lct_flag:\n                     \
+      \   lct_size = 2 ** (lct_size_value + 1)\n                        fp.read(3\
+      \ * lct_size)\n                    # LZW minimum code size\n               \
+      \     lzw_min_b = fp.read(1)\n                    if not lzw_min_b:\n      \
+      \                  break\n                    lzw_min_code_size = lzw_min_b[0]\n\
+      \                    # Image data\n                    data_stream = _read_subblocks(fp)\n\
+      \                    # Decode\n                    pixels = _lzw_decode(data_stream,\
+      \ lzw_min_code_size)\n                    # Expect width*height bytes\n    \
+      \                if len(pixels) < width * height:\n                        #\
+      \ Some encoders might store interlaced data; we don't support.\n>          \
+      \             raise ValueError(\"Unsupported GIF interlace or truncated data.\"\
+      )\nE                       ValueError: Unsupported GIF interlace or truncated\
+      \ data.\n\ngeneration\\Imageio\\imageio\\v3.py:537: ValueError\n_____________________\
+      \ test_png_roundtrip_via_bytes_buffer _____________________\n\n    def test_png_roundtrip_via_bytes_buffer()\
+      \ -> None:\n        \"\"\"Write PNG to in-memory bytes, then read back using\
+      \ extension.\"\"\"\n        img = _make_color_image(height=20, width=31)\n \
+      \   \n>       blob = iio.imwrite(\"<bytes>\", img, extension=\".png\")\nE  \
+      \     TypeError: imwrite() got an unexpected keyword argument 'extension'\n\n\
+      tests\\Imageio\\functional_test.py:139: TypeError\n___________ test_gif_imread_returns_stack_with_expected_frame_count\
+      \ ___________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-359/test_gif_imread_returns_stack_0')\n\
+      \n    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Reading a GIF via imread should produce a stack/sequence\
+      \ with the right number of frames.\"\"\"\n        frames = _make_grayscale_frames(num_frames=5,\
+      \ height=20, width=21)\n        path = tmp_path / \"stack.gif\"\n    \n    \
+      \    iio.imwrite(path, frames)\n        assert path.exists()\n    \n>      \
+      \ loaded = iio.imread(path)\n\ntests\\Imageio\\functional_test.py:192: \n_ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _\ngeneration\\Imageio\\imageio\\v3.py:104: in imread\n    for frame in _gif_iterate_frames(path):\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\npath = 'C:\\\\Users\\\\86152\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-86152\\\
+      \\pytest-359\\\\test_gif_imread_returns_stack_0\\\\stack.gif'\n\n    def _gif_iterate_frames(path:\
+      \ str) -> Generator[np.ndarray, None, None]:\n        with open(path, \"rb\"\
+      ) as fp:\n            header = fp.read(6)\n            if header not in (b\"\
+      GIF87a\", b\"GIF89a\"):\n                raise ValueError(\"Not a GIF file.\"\
+      )\n            # Logical Screen Descriptor\n            ls = fp.read(7)\n  \
+      \          W, H, packed, bg, aspect = struct.unpack(\"<HHBBB\", ls)\n      \
+      \      gct_flag = (packed & 0x80) >> 7\n            gct_size_value = packed\
+      \ & 0x07\n            gct_size = 2 ** (gct_size_value + 1)\n            if gct_flag:\n\
+      \                fp.read(3 * gct_size)\n            # Iterate blocks\n     \
+      \       while True:\n                introducer = fp.read(1)\n             \
+      \   if not introducer:\n                    break\n                b = introducer[0]\n\
+      \                if b == 0x3B:\n                    # Trailer\n            \
+      \        break\n                elif b == 0x21:\n                    # Extension\n\
+      \                    label = fp.read(1)\n                    if not label:\n\
+      \                        break\n                    if label[0] == 0xF9:\n \
+      \                       # Graphics Control Extension\n                     \
+      \   block_size_b = fp.read(1)\n                        if not block_size_b:\n\
+      \                            break\n                        block_size = block_size_b[0]\n\
+      \                        data = fp.read(block_size)\n                      \
+      \  fp.read(1)  # block terminator\n                    else:\n             \
+      \           # Application or other extension: read data sub-blocks\n       \
+      \                 # First block may be application ID length (usually 11)\n\
+      \                        # Read until terminator\n                        #\
+      \ Read a block size; if zero then done\n                        # We already\
+      \ read label; now read subblocks generically\n                        # Possibly\
+      \ there is a fixed-length initial block for APP\n                        # We'll\
+      \ consume in generic fashion\n                        # Read sub-blocks (size,\
+      \ data) until sz==0\n                        # First we may have an initial\
+      \ block size preceding sub-blocks\n                        # We'll handle generically:\n\
+      \                        # Read blocks until terminator\n                  \
+      \      _ = _read_subblocks(fp)\n                elif b == 0x2C:\n          \
+      \          # Image Descriptor\n                    idesc = fp.read(9)\n    \
+      \                left, top, width, height, ipacked = struct.unpack(\"<HHHHB\"\
+      , idesc)\n                    lct_flag = (ipacked & 0x80) >> 7\n           \
+      \         interlace_flag = (ipacked & 0x40) >> 6\n                    lct_size_value\
+      \ = ipacked & 0x07\n                    if lct_flag:\n                     \
+      \   lct_size = 2 ** (lct_size_value + 1)\n                        fp.read(3\
+      \ * lct_size)\n                    # LZW minimum code size\n               \
+      \     lzw_min_b = fp.read(1)\n                    if not lzw_min_b:\n      \
+      \                  break\n                    lzw_min_code_size = lzw_min_b[0]\n\
+      \                    # Image data\n                    data_stream = _read_subblocks(fp)\n\
+      \                    # Decode\n                    pixels = _lzw_decode(data_stream,\
+      \ lzw_min_code_size)\n                    # Expect width*height bytes\n    \
+      \                if len(pixels) < width * height:\n                        #\
+      \ Some encoders might store interlaced data; we don't support.\n>          \
+      \             raise ValueError(\"Unsupported GIF interlace or truncated data.\"\
+      )\nE                       ValueError: Unsupported GIF interlace or truncated\
+      \ data.\n\ngeneration\\Imageio\\imageio\\v3.py:537: ValueError\n___________\
+      \ test_gif_imread_index0_matches_first_imiter_frame_shape ___________\n\ntmp_path\
+      \ = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-359/test_gif_imread_index0_matches0')\n\
+      \n    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Read first GIF frame using both index=0 and\
+      \ imiter; verify consistent spatial shape.\"\"\"\n        frames = _make_grayscale_frames(num_frames=4,\
+      \ height=19, width=23)\n        path = tmp_path / \"index0.gif\"\n    \n   \
+      \     iio.imwrite(path, frames)\n        assert path.exists()\n    \n>     \
+      \  first_by_index = iio.imread(path, index=0)\nE       TypeError: imread() got\
+      \ an unexpected keyword argument 'index'\n\ntests\\Imageio\\functional_test.py:206:\
+      \ TypeError\n_______________________ test_imopen_write_then_read_png _______________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-359/test_imopen_write_then_read_pn0')\n\
+      \n    def test_imopen_write_then_read_png(tmp_path: Path) -> None:\n       \
+      \ \"\"\"Use the v3 imopen context manager to write then read a PNG.\"\"\"\n\
+      \        img = _make_color_image(height=16, width=20)\n        path = tmp_path\
+      \ / \"imopen.png\"\n    \n>       with iio.imopen(path, \"w\") as f:\nE    \
+      \   AttributeError: module 'imageio.v3' has no attribute 'imopen'\n\ntests\\\
+      Imageio\\functional_test.py:221: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Imageio/functional_test.py::test_gif_multiframe_roundtrip_with_imiter\n\
+      FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape\n\
+      FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...\n\
+      5 failed, 5 passed in 0.93s\n"
+    elapsed_time_s: 2.391135
+    avg_memory_mb: 22.6
+    avg_cpu_percent: 48.55
+    passed: 5
+    failed: 5
+    skipped: 0
+    total: 10
+    score_inputs_passed: 5
+    score_inputs_failed: 5
+    score_inputs_total: 10
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Imageio/performance_test.py ______________\n\
+      tests\\Imageio\\performance_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/performance_test.py\
+      \ - RuntimeError: Unsupported IMAGEIO_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.77s\n"
+    elapsed_time_s: 2.087875
+    avg_memory_mb: 44.04
+    avg_cpu_percent: 102.4
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.827932
+    score_inputs_actual_time_s: 2.087875
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Imageio/resource_test.py _______________\n\
+      tests\\Imageio\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/resource_test.py - RuntimeError:\
+      \ Unsupported IMAGEIO_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.75s\n"
+    elapsed_time_s: 2.168767
+    avg_memory_mb: 44.03
+    avg_cpu_percent: 98.5
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 49.3
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 44.03
+    score_inputs_actual_cpu_pct: 98.5
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.36s
+
+      '
+    elapsed_time_s: 1.75686
+    avg_memory_mb: 40.04
+    avg_cpu_percent: 99.0
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=541.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.438541
+    avg_memory_mb: 32.46
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 541.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=8.0696 files_scanned=2.0 total_loc=541.0 max_cc=25.0
+
+      .
+
+      1 passed in 0.19s
+
+      '
+    elapsed_time_s: 1.505165
+    avg_memory_mb: 32.69
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 8.0696
+      files_scanned: 2.0
+      total_loc: 541.0
+      max_cc: 25.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 8.0696
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Imageio\pytest_logs

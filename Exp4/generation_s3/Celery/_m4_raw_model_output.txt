@@ -1,0 +1,476 @@
+<file:name=celery/__init__.py>
+"""
+Minimal pure-Python Celery-compatible API surface for the unit tests.
+
+This is NOT the real Celery project. It implements a tiny subset of the
+public API: Celery application, task decorator/registry, eager/in-memory
+execution, and AsyncResult-like results.
+"""
+
+from __future__ import annotations
+
+from .app.base import Celery
+from .local import current_app
+from .app.base import shared_task
+
+__all__ = ["Celery", "shared_task", "current_app"]
+
+__version__ = "0.0.0-test"
+</file>
+
+<file:name=celery/app/__init__.py>
+from __future__ import annotations
+
+from .base import Celery
+
+__all__ = ["Celery"]
+</file>
+
+<file:name=celery/app/base.py>
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional
+
+from ..exceptions import CeleryError
+from ..local import _set_current_app
+from ..result import AsyncResult, EagerResult
+from ..utils.collections import AttributeDict
+from .task import Task, task_from_callable
+from ..backends import get_backend
+
+
+@dataclass
+class _AppConfigDefaults:
+    broker_url: Optional[str] = "memory://"
+    broker: Optional[str] = None
+    result_backend: Optional[str] = "cache+memory://"
+
+    task_always_eager: bool = True
+    task_eager_propagates: bool = True
+
+    task_ignore_result: bool = False
+
+
+class Celery:
+    """
+    Minimal Celery-like application.
+
+    Supports:
+    - task decorator: @app.task(...)
+    - tasks registry: app.tasks[name] -> Task
+    - send_task(name, ...)
+    - eager/in-memory result backend
+    """
+
+    def __init__(
+        self,
+        main: Optional[str] = None,
+        broker: Optional[str] = None,
+        backend: Optional[str] = None,
+        include: Optional[Iterable[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        self.main = main
+        self.include = list(include) if include else []
+
+        defaults = _AppConfigDefaults()
+        conf = AttributeDict(defaults.__dict__)
+        conf.update(kwargs)
+
+        broker_url = kwargs.get("broker_url", None)
+        if broker_url is None:
+            broker_url = broker if broker is not None else conf.get("broker_url")
+        conf["broker_url"] = broker_url
+        conf["broker"] = broker if broker is not None else conf.get("broker")
+
+        result_backend = kwargs.get("result_backend", None)
+        if result_backend is None:
+            result_backend = backend if backend is not None else conf.get("result_backend")
+        conf["result_backend"] = result_backend
+
+        self.conf = conf
+
+        self.tasks: Dict[str, Task] = {}
+
+        self.backend = get_backend(self, self.conf.get("result_backend"))
+
+        _set_current_app(self)
+
+    def __repr__(self) -> str:
+        return f"<Celery {self.main or 'app'}:0x{id(self):x}>"
+
+    def _new_task_id(self) -> str:
+        return str(uuid.uuid4())
+
+    def task(self, *dargs: Any, **dkwargs: Any):
+        """
+        Decorator: @app.task or @app.task(name=..., bind=...)
+
+        Supports subset of Celery options used by tests:
+        - name: custom task name
+        - bind: if True, first arg is Task instance
+        - ignore_result: if True, do not store result
+        """
+        if dargs and callable(dargs[0]) and len(dargs) == 1 and not dkwargs:
+            return self._register_task_from_callable(dargs[0])
+
+        def _decorator(func: Callable[..., Any]) -> Task:
+            return self._register_task_from_callable(func, **dkwargs)
+
+        return _decorator
+
+    def _register_task_from_callable(self, func: Callable[..., Any], **options: Any) -> Task:
+        task = task_from_callable(self, func, **options)
+        self.tasks[task.name] = task
+        return task
+
+    def send_task(
+        self,
+        name: str,
+        args: Optional[Iterable[Any]] = None,
+        kwargs: Optional[Mapping[str, Any]] = None,
+        countdown: Optional[float] = None,
+        eta: Any = None,
+        task_id: Optional[str] = None,
+        **options: Any,
+    ) -> AsyncResult:
+        try:
+            task = self.tasks[name]
+        except KeyError:
+            raise KeyError(name)
+
+        return task.apply_async(args=list(args) if args is not None else None, kwargs=dict(kwargs) if kwargs else None, task_id=task_id, countdown=countdown, eta=eta, **options)
+
+    def AsyncResult(self, task_id: str) -> AsyncResult:
+        return AsyncResult(task_id, backend=self.backend, app=self)
+
+    def _execute_task(self, task: Task, task_id: str, args: list, kwargs: dict) -> AsyncResult:
+        eager = bool(self.conf.get("task_always_eager"))
+        propagate = bool(self.conf.get("task_eager_propagates"))
+        if eager:
+            try:
+                retval = task(*args, **kwargs)
+            except Exception as exc:
+                if propagate:
+                    self.backend.store_result(task_id, exc, state="FAILURE", traceback=None, request={"task": task.name})
+                else:
+                    self.backend.store_result(task_id, exc, state="FAILURE", traceback=None, request={"task": task.name})
+                return EagerResult(task_id, backend=self.backend, app=self)
+            else:
+                if not task.ignore_result:
+                    self.backend.store_result(task_id, retval, state="SUCCESS", traceback=None, request={"task": task.name})
+                else:
+                    self.backend.store_result(task_id, None, state="SUCCESS", traceback=None, request={"task": task.name})
+                return EagerResult(task_id, backend=self.backend, app=self)
+
+        # "Non-eager" not implemented; in this library, memory transport is eager.
+        raise CeleryError("Non-eager execution is not supported in this minimal implementation.")
+
+
+_default_app: Optional[Celery] = None
+
+
+def _get_default_app() -> Celery:
+    global _default_app
+    if _default_app is None:
+        _default_app = Celery("default", broker_url="memory://", result_backend="cache+memory://")
+    return _default_app
+
+
+def shared_task(*dargs: Any, **dkwargs: Any):
+    """
+    Minimal shared_task decorator. Registers tasks on the current/default app.
+
+    In real Celery, shared_task is app-agnostic and binds later; for tests we
+    register immediately on current_app/default app.
+    """
+    app = _get_default_app()
+
+    if dargs and callable(dargs[0]) and len(dargs) == 1 and not dkwargs:
+        return app.task(dargs[0])
+
+    return app.task(*dargs, **dkwargs)
+</file>
+
+<file:name=celery/app/task.py>
+from __future__ import annotations
+
+from typing import Any, Callable, Optional
+
+from ..result import AsyncResult
+
+
+class Task:
+    abstract = True
+
+    def __init__(self) -> None:
+        self.app = None
+        self.name = ""
+        self.__module__ = self.__class__.__module__
+        self.__name__ = self.__class__.__name__
+        self.ignore_result = False
+        self._run = None
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self.run(*args, **kwargs)
+
+    def run(self, *args: Any, **kwargs: Any) -> Any:
+        if self._run is None:
+            raise NotImplementedError("Task.run must be implemented")
+        return self._run(*args, **kwargs)
+
+    def delay(self, *args: Any, **kwargs: Any) -> AsyncResult:
+        return self.apply_async(args=list(args), kwargs=dict(kwargs))
+
+    def apply_async(
+        self,
+        args: Optional[list] = None,
+        kwargs: Optional[dict] = None,
+        task_id: Optional[str] = None,
+        countdown: Any = None,
+        eta: Any = None,
+        **options: Any,
+    ) -> AsyncResult:
+        args = args or []
+        kwargs = kwargs or {}
+        if task_id is None:
+            task_id = self.app._new_task_id()
+        return self.app._execute_task(self, task_id, args, kwargs)
+
+    def apply(self, args: Optional[list] = None, kwargs: Optional[dict] = None, **options: Any) -> AsyncResult:
+        return self.apply_async(args=args or [], kwargs=kwargs or {}, **options)
+
+
+def task_from_callable(app, func: Callable[..., Any], **options: Any) -> Task:
+    name = options.get("name")
+    bind = bool(options.get("bind", False))
+
+    ignore_result_opt = options.get("ignore_result", None)
+    if ignore_result_opt is None:
+        ignore_result = bool(app.conf.get("task_ignore_result", False))
+    else:
+        ignore_result = bool(ignore_result_opt)
+
+    if name is None:
+        name = f"{getattr(func, '__module__', '__main__')}.{getattr(func, '__name__', 'task')}"
+
+    task = Task()
+    task.abstract = False
+    task.app = app
+    task.name = name
+    task.ignore_result = ignore_result
+
+    task.__module__ = getattr(func, "__module__", task.__module__)
+    task.__name__ = getattr(func, "__name__", task.__name__)
+
+    if bind:
+        def _bound_run(*args: Any, **kwargs: Any) -> Any:
+            return func(task, *args, **kwargs)
+        task._run = _bound_run
+    else:
+        task._run = func
+
+    return task
+</file>
+
+<file:name=celery/result.py>
+from __future__ import annotations
+
+import time
+from typing import Any, Optional
+
+from .exceptions import TimeoutError
+
+
+class AsyncResult:
+    def __init__(self, id: str, backend, app=None) -> None:
+        self.id = id
+        self.backend = backend
+        self.app = app
+
+    @property
+    def status(self) -> str:
+        meta = self.backend.get_task_meta(self.id)
+        return meta.get("status", "PENDING")
+
+    @property
+    def result(self) -> Any:
+        meta = self.backend.get_task_meta(self.id)
+        return meta.get("result", None)
+
+    @property
+    def traceback(self) -> Optional[str]:
+        meta = self.backend.get_task_meta(self.id)
+        return meta.get("traceback")
+
+    def successful(self) -> bool:
+        return self.status == "SUCCESS"
+
+    def failed(self) -> bool:
+        return self.status == "FAILURE"
+
+    def ready(self) -> bool:
+        return self.status in ("SUCCESS", "FAILURE")
+
+    def get(self, timeout: Optional[float] = None, propagate: bool = True, interval: float = 0.01, **kwargs: Any) -> Any:
+        deadline = None if timeout is None else (time.monotonic() + float(timeout))
+        while True:
+            meta = self.backend.get_task_meta(self.id)
+            status = meta.get("status", "PENDING")
+            if status == "SUCCESS":
+                return meta.get("result", None)
+            if status == "FAILURE":
+                exc = meta.get("result")
+                if propagate and isinstance(exc, BaseException):
+                    raise exc
+                return exc
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError(f"Result for {self.id} not ready within {timeout} seconds")
+            time.sleep(interval)
+
+
+class EagerResult(AsyncResult):
+    """
+    In this minimal implementation, eager results are stored in backend
+    and behave like AsyncResult. This class mainly exists for API parity.
+    """
+    pass
+</file>
+
+<file:name=celery/exceptions.py>
+from __future__ import annotations
+
+
+class CeleryError(Exception):
+    """Base exception class."""
+
+
+class TimeoutError(CeleryError):
+    """Raised by AsyncResult.get on timeout."""
+
+
+class ImproperlyConfigured(CeleryError):
+    """Raised when configuration is invalid for requested operation."""
+
+
+class TaskRevokedError(CeleryError):
+    """Stub for API compatibility."""
+</file>
+
+<file:name=celery/local.py>
+from __future__ import annotations
+
+from typing import Optional
+
+_current_app: Optional[object] = None
+
+
+def _set_current_app(app) -> None:
+    global _current_app
+    _current_app = app
+
+
+class _Proxy:
+    def __init__(self, getter):
+        self._getter = getter
+
+    def __getattr__(self, name):
+        return getattr(self._getter(), name)
+
+    def __repr__(self) -> str:
+        return repr(self._getter())
+
+
+def _get_current_app():
+    if _current_app is None:
+        # Late import to avoid circular imports.
+        from .app.base import _get_default_app
+        return _get_default_app()
+    return _current_app
+
+
+current_app = _Proxy(_get_current_app)
+</file>
+
+<file:name=celery/backends.py>
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+
+class InMemoryBackend:
+    def __init__(self, app=None) -> None:
+        self.app = app
+        self._data: Dict[str, Dict[str, Any]] = {}
+
+    def store_result(self, task_id: str, result: Any, state: str = "SUCCESS", traceback: Optional[str] = None, request: Optional[dict] = None) -> None:
+        self._data[task_id] = {
+            "task_id": task_id,
+            "status": state,
+            "result": result,
+            "traceback": traceback,
+            "request": request or {},
+        }
+
+    def get_task_meta(self, task_id: str) -> Dict[str, Any]:
+        return self._data.get(task_id, {"task_id": task_id, "status": "PENDING", "result": None, "traceback": None})
+
+
+def get_backend(app, backend_url: Optional[str]):
+    # Accept common celery-ish strings, but always return in-memory.
+    # Examples: "cache+memory://", "memory://", None
+    return InMemoryBackend(app=app)
+</file>
+
+<file:name=celery/utils/__init__.py>
+from __future__ import annotations
+</file>
+
+<file:name=celery/utils/collections.py>
+from __future__ import annotations
+
+from typing import Any
+
+
+class AttributeDict(dict):
+    """
+    Dict with attribute access: conf.key and conf['key'] both work.
+    """
+    def __getattr__(self, key: str) -> Any:
+        try:
+            return self[key]
+        except KeyError as e:
+            raise AttributeError(key) from e
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        self[key] = value
+
+    def __delattr__(self, key: str) -> None:
+        try:
+            del self[key]
+        except KeyError as e:
+            raise AttributeError(key) from e
+</file>
+
+<file:name=celery/utils/imports.py>
+from __future__ import annotations
+
+import importlib
+from typing import Any
+
+
+def symbol_by_name(name: str) -> Any:
+    """
+    Import 'pkg.module:attr' or 'pkg.module.attr' and return the attribute.
+    """
+    if ":" in name:
+        module_name, attr = name.split(":", 1)
+    else:
+        module_name, _, attr = name.rpartition(".")
+        if not module_name:
+            raise ImportError(f"Not a fully qualified name: {name}")
+    module = importlib.import_module(module_name)
+    return getattr(module, attr)
+</file>

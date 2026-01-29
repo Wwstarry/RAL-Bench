@@ -1,0 +1,171 @@
+import base64
+import json
+import hmac
+import hashlib
+import time
+from datetime import datetime, timezone
+
+from .exceptions import DecodeError, InvalidSignatureError, ExpiredSignatureError
+
+
+def _force_bytes(value):
+    if value is None:
+        return b""
+    if isinstance(value, bytes):
+        return value
+    if isinstance(value, str):
+        return value.encode("utf-8")
+    return str(value).encode("utf-8")
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(data: str) -> bytes:
+    if not isinstance(data, (str, bytes)):
+        raise DecodeError("Invalid base64 input")
+    if isinstance(data, bytes):
+        data = data.decode("ascii", errors="strict")
+    s = data.strip()
+    pad = "=" * ((4 - (len(s) % 4)) % 4)
+    try:
+        return base64.urlsafe_b64decode((s + pad).encode("ascii"))
+    except Exception as e:
+        raise DecodeError("Invalid base64 encoding") from e
+
+
+def _json_dumps(obj) -> str:
+    # Compact, stable JSON similar to PyJWT default
+    return json.dumps(obj, separators=(",", ":"), sort_keys=True)
+
+
+def _sign_hs256(signing_input: bytes, key: bytes) -> bytes:
+    return hmac.new(key, signing_input, hashlib.sha256).digest()
+
+
+def _get_now() -> float:
+    return time.time()
+
+
+def _to_timestamp(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            # Treat naive datetimes as UTC for compatibility
+            value = value.replace(tzinfo=timezone.utc)
+        return value.timestamp()
+    raise DecodeError("Invalid 'exp' claim")
+
+
+class PyJWT:
+    def encode(self, payload, key, algorithm="HS256", headers=None, json_encoder=None, **kwargs):
+        if algorithm is None:
+            algorithm = "HS256"
+        if algorithm != "HS256":
+            raise DecodeError("Unsupported algorithm")
+
+        if not isinstance(payload, dict):
+            raise DecodeError("Payload must be a dict")
+
+        header = {"typ": "JWT", "alg": algorithm}
+        if headers:
+            if not isinstance(headers, dict):
+                raise DecodeError("headers must be a dict")
+            header.update(headers)
+
+        # Convert datetime exp to int timestamp for interoperability
+        payload_out = dict(payload)
+        if "exp" in payload_out and isinstance(payload_out["exp"], datetime):
+            payload_out["exp"] = int(_to_timestamp(payload_out["exp"]))
+
+        header_b64 = _b64url_encode(_json_dumps(header).encode("utf-8"))
+        payload_b64 = _b64url_encode(_json_dumps(payload_out).encode("utf-8"))
+        signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+
+        sig = _sign_hs256(signing_input, _force_bytes(key))
+        sig_b64 = _b64url_encode(sig)
+
+        return f"{header_b64}.{payload_b64}.{sig_b64}"
+
+    def decode(
+        self,
+        token,
+        key="",
+        algorithms=None,
+        options=None,
+        leeway=0,
+        **kwargs,
+    ):
+        if not isinstance(token, (str, bytes)):
+            raise DecodeError("Invalid token type")
+
+        if isinstance(token, bytes):
+            token = token.decode("utf-8")
+
+        options = options or {}
+        verify_signature = options.get("verify_signature", True)
+        verify_exp = options.get("verify_exp", True)
+
+        if verify_signature:
+            if not algorithms:
+                # Required by tests: decoding without algorithms should error when verification expected
+                raise DecodeError("It is required that you pass in a value for the 'algorithms' argument")
+            if "HS256" not in algorithms:
+                raise DecodeError("Unsupported algorithm")
+
+        parts = token.split(".")
+        if len(parts) != 3:
+            raise DecodeError("Not enough segments")
+
+        header_b64, payload_b64, sig_b64 = parts
+        try:
+            header_bytes = _b64url_decode(header_b64)
+            payload_bytes = _b64url_decode(payload_b64)
+        except DecodeError:
+            raise
+        except Exception as e:
+            raise DecodeError("Invalid payload encoding") from e
+
+        try:
+            header = json.loads(header_bytes.decode("utf-8"))
+            payload = json.loads(payload_bytes.decode("utf-8"))
+        except Exception as e:
+            raise DecodeError("Invalid JSON") from e
+
+        if not isinstance(header, dict) or not isinstance(payload, dict):
+            raise DecodeError("Invalid token contents")
+
+        alg = header.get("alg")
+        if verify_signature:
+            if alg != "HS256":
+                raise DecodeError("The specified alg value is not allowed")
+
+            signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+            expected = _sign_hs256(signing_input, _force_bytes(key))
+            try:
+                sig = _b64url_decode(sig_b64)
+            except Exception as e:
+                raise DecodeError("Invalid signature encoding") from e
+
+            if not hmac.compare_digest(sig, expected):
+                raise InvalidSignatureError("Signature verification failed")
+
+        if verify_exp and "exp" in payload:
+            exp = _to_timestamp(payload["exp"])
+            now = _get_now()
+            try:
+                leeway_val = float(leeway or 0)
+            except Exception:
+                leeway_val = 0.0
+            if now > (exp + leeway_val):
+                raise ExpiredSignatureError("Signature has expired")
+
+        return payload
+
+
+_api = PyJWT()
+
+encode = _api.encode
+decode = _api.decode

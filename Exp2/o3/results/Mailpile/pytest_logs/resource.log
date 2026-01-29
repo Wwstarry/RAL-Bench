@@ -1,0 +1,25 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_mailpile_resource_usage_smoke ______________________
+
+    def test_mailpile_resource_usage_smoke() -> None:
+>       metrics = run_mailpile_resource_probe(iterations=600)
+
+tests\Mailpile\resource_test.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+iterations = 600
+
+    def run_mailpile_resource_probe(iterations: int = 1500) -> Dict[str, float]:
+        """Measure memory and CPU while exercising representative functionality."""
+    
+        process = psutil.Process(os.getpid())
+    
+        # Warm up to reduce first-import/first-call noise.
+>       vcl = VCardLine(name="bogus", value=("B" * 100) + "C")
+E       TypeError: __init__() missing 1 required positional argument: 'params'
+
+tests\Mailpile\resource_test.py:134: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Mailpile/resource_test.py::test_mailpile_resource_usage_smoke - ...
+1 failed in 0.44s

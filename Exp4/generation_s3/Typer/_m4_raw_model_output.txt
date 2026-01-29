@@ -1,0 +1,570 @@
+<file:name=typer/__init__.py>
+"""
+A tiny, pure-Python subset of Typer's public API, sufficient for the tests in this kata.
+
+This is NOT the real Typer project.
+"""
+
+from .main import Typer
+from .params import Option, Argument, OptionInfo, ArgumentInfo
+from .utils import echo
+from .exceptions import Exit
+
+# Expose testing as a submodule like real Typer
+from . import testing  # noqa: F401
+
+__all__ = [
+    "Typer",
+    "Option",
+    "Argument",
+    "OptionInfo",
+    "ArgumentInfo",
+    "echo",
+    "Exit",
+    "testing",
+]
+</file>
+
+<file:name=typer/exceptions.py>
+class Exit(Exception):
+    """Exit the CLI early with a specific exit code."""
+
+    def __init__(self, code: int = 0):
+        super().__init__(code)
+        self.exit_code = int(code)
+        self.code = self.exit_code
+</file>
+
+<file:name=typer/utils.py>
+from __future__ import annotations
+
+import sys
+from typing import Any
+
+
+def echo(
+    message: Any = "",
+    *,
+    nl: bool = True,
+    err: bool = False,
+    file=None,
+) -> None:
+    """Write a message to stdout/stderr, similar to Typer/Click."""
+    if file is None:
+        file = sys.stderr if err else sys.stdout
+    text = str(message)
+    if nl:
+        file.write(text + "\n")
+    else:
+        file.write(text)
+    file.flush()
+</file>
+
+<file:name=typer/params.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Tuple
+
+
+_MISSING = object()
+
+
+@dataclass
+class OptionInfo:
+    default: Any = _MISSING
+    param_decls: Tuple[str, ...] = field(default_factory=tuple)
+    help: str | None = None
+    required: bool = False
+    type: Any = None
+
+    def __post_init__(self) -> None:
+        # Required if default is missing or Ellipsis
+        self.required = self.default is _MISSING or self.default is ...
+
+
+@dataclass
+class ArgumentInfo:
+    default: Any = _MISSING
+    param_decls: Tuple[str, ...] = field(default_factory=tuple)
+    help: str | None = None
+    required: bool = False
+    type: Any = None
+
+    def __post_init__(self) -> None:
+        self.required = self.default is _MISSING or self.default is ...
+
+
+def Option(default: Any = _MISSING, *param_decls: str, help: str | None = None, **kwargs) -> OptionInfo:
+    # kwargs accepted for API-compat; ignored in this minimal implementation
+    return OptionInfo(default=default, param_decls=tuple(param_decls), help=help)
+
+
+def Argument(default: Any = _MISSING, *param_decls: str, help: str | None = None, **kwargs) -> ArgumentInfo:
+    return ArgumentInfo(default=default, param_decls=tuple(param_decls), help=help)
+</file>
+
+<file:name=typer/testing.py>
+from __future__ import annotations
+
+import contextlib
+import io
+import os
+import shlex
+import traceback
+from dataclasses import dataclass
+from typing import Any, Callable
+
+from .exceptions import Exit
+
+
+@dataclass
+class Result:
+    exit_code: int
+    stdout: str
+    stderr: str
+    output: str
+    exception: Exception | None = None
+
+
+class CliRunner:
+    def __init__(self, *, mix_stderr: bool = False):
+        self.mix_stderr = mix_stderr
+
+    def invoke(
+        self,
+        app: Any,
+        args: str | list[str] | None = None,
+        input: str | None = None,
+        env: dict | None = None,
+        catch_exceptions: bool = True,
+        prog_name: str | None = None,
+    ) -> Result:
+        if args is None:
+            argv = []
+        elif isinstance(args, str):
+            argv = shlex.split(args)
+        else:
+            argv = list(args)
+
+        stdin = io.StringIO(input if input is not None else "")
+        stdout = io.StringIO()
+        stderr = stdout if self.mix_stderr else io.StringIO()
+
+        old_env = os.environ.copy()
+        if env:
+            os.environ.update({str(k): str(v) for k, v in env.items()})
+
+        exit_code = 0
+        exc: Exception | None = None
+
+        try:
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr), contextlib.redirect_stdin(stdin):
+                try:
+                    if hasattr(app, "__call__"):
+                        # Our Typer app returns an int exit code
+                        rc = app(args=argv, prog_name=prog_name)
+                        if isinstance(rc, int):
+                            exit_code = rc
+                        else:
+                            exit_code = 0
+                    elif isinstance(app, Callable):
+                        res = app(*argv)
+                        exit_code = int(res) if isinstance(res, int) else 0
+                    else:
+                        raise TypeError("App is not callable")
+                except Exit as e:
+                    exit_code = int(getattr(e, "exit_code", getattr(e, "code", 0)))
+                except SystemExit as e:
+                    code = e.code
+                    exit_code = int(code) if isinstance(code, int) else (0 if code is None else 1)
+                except Exception as e:  # noqa: BLE001
+                    if not catch_exceptions:
+                        raise
+                    exc = e
+                    exit_code = 1
+                    # Keep output minimal; include traceback for debugging if tests expect it.
+                    tb = traceback.format_exc()
+                    if tb:
+                        (stderr if not self.mix_stderr else stdout).write(tb)
+        finally:
+            os.environ.clear()
+            os.environ.update(old_env)
+
+        out_s = stdout.getvalue()
+        err_s = "" if self.mix_stderr else stderr.getvalue()
+        output = out_s if not self.mix_stderr else out_s
+        if not self.mix_stderr:
+            output = out_s  # Match common expectation: output==stdout when not mixing
+
+        return Result(exit_code=exit_code, stdout=out_s, stderr=err_s, output=output, exception=exc)
+</file>
+
+<file:name=typer/main.py>
+from __future__ import annotations
+
+import inspect
+import sys
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Tuple, get_type_hints
+
+from .exceptions import Exit
+from .params import ArgumentInfo, OptionInfo, _MISSING
+from .utils import echo
+
+
+def _to_kebab(name: str) -> str:
+    return name.replace("_", "-")
+
+
+def _doc_first_line(func: Callable) -> str:
+    doc = inspect.getdoc(func) or ""
+    return doc.splitlines()[0].strip() if doc.strip() else ""
+
+
+def _is_option_token(tok: str) -> bool:
+    return tok.startswith("-") and tok != "-"
+
+
+def _convert_value(val: str, tp: Any) -> Any:
+    if tp in (None, inspect._empty):
+        return val
+    if tp is str:
+        return val
+    if tp is int:
+        return int(val)
+    if tp is float:
+        return float(val)
+    if tp is bool:
+        v = val.strip().lower()
+        if v in ("1", "true", "t", "yes", "y", "on"):
+            return True
+        if v in ("0", "false", "f", "no", "n", "off"):
+            return False
+        # Fallback: non-empty string True
+        return bool(v)
+    return val
+
+
+@dataclass
+class _ParamSpec:
+    name: str
+    kind: str  # "option" or "argument"
+    default: Any
+    required: bool
+    help: str | None
+    flags: Tuple[str, ...]  # for options
+    type: Any
+
+
+@dataclass
+class _Command:
+    name: str
+    func: Callable
+    help: str
+
+
+class Typer:
+    def __init__(self, *, name: str | None = None, help: str | None = None, add_help_option: bool = True):
+        self.name = name
+        self.help = help or ""
+        self.add_help_option = add_help_option
+        self._commands: List[_Command] = []
+        self._command_map: Dict[str, _Command] = {}
+        self._callback: Optional[Callable] = None
+
+    def callback(self, **kwargs) -> Callable:
+        def deco(func: Callable) -> Callable:
+            self._callback = func
+            return func
+
+        return deco
+
+    def command(self, name: str | None = None, **kwargs) -> Callable:
+        def decorator(func: Callable) -> Callable:
+            cmd_name = name or _to_kebab(func.__name__)
+            cmd = _Command(name=cmd_name, func=func, help=_doc_first_line(func))
+            self._commands.append(cmd)
+            self._command_map[cmd_name] = cmd
+            return func
+
+        return decorator
+
+    def __call__(self, args: list[str] | None = None, prog_name: str | None = None) -> int:
+        argv = list(args) if args is not None else sys.argv[1:]
+        prog = prog_name or (self.name or (sys.argv[0] if sys.argv else "app"))
+
+        # Global help
+        if self.add_help_option and (("--help" in argv) or ("-h" in argv)):
+            self._print_app_help(prog)
+            return 0
+
+        if not argv:
+            # If commands exist, show help and exit 0 (friendly) or 2? We'll do 0.
+            self._print_app_help(prog)
+            return 0
+
+        cmd_name = argv[0]
+        if cmd_name not in self._command_map:
+            echo(f"Error: No such command '{cmd_name}'.", err=True)
+            echo(f"Try '{prog} --help' for help.", err=True)
+            return 2
+
+        cmd = self._command_map[cmd_name]
+        cmd_argv = argv[1:]
+
+        # Command help
+        if self.add_help_option and (("--help" in cmd_argv) or ("-h" in cmd_argv)):
+            self._print_command_help(prog, cmd)
+            return 0
+
+        try:
+            if self._callback is not None:
+                self._callback()
+            exit_code = self._invoke_command(prog, cmd, cmd_argv)
+            return int(exit_code)
+        except Exit as e:
+            return int(getattr(e, "exit_code", getattr(e, "code", 0)))
+        except SystemExit as e:
+            code = e.code
+            return int(code) if isinstance(code, int) else (0 if code is None else 1)
+
+    def _get_paramspecs(self, func: Callable) -> List[_ParamSpec]:
+        sig = inspect.signature(func)
+        hints = get_type_hints(func)
+        specs: List[_ParamSpec] = []
+
+        for p in sig.parameters.values():
+            ann = hints.get(p.name, p.annotation)
+            default = p.default
+
+            if isinstance(default, OptionInfo):
+                info: OptionInfo = default
+                flags = info.param_decls
+                if not flags:
+                    flags = (f"--{_to_kebab(p.name)}",)
+                specs.append(
+                    _ParamSpec(
+                        name=p.name,
+                        kind="option",
+                        default=info.default,
+                        required=info.required,
+                        help=info.help,
+                        flags=tuple(flags),
+                        type=ann,
+                    )
+                )
+            elif isinstance(default, ArgumentInfo):
+                info2: ArgumentInfo = default
+                # param_decls ignored for args in this minimal implementation
+                specs.append(
+                    _ParamSpec(
+                        name=p.name,
+                        kind="argument",
+                        default=info2.default,
+                        required=info2.required,
+                        help=info2.help,
+                        flags=(),
+                        type=ann,
+                    )
+                )
+            else:
+                # If a Python default exists, treat as an option for ergonomics (Typer-like)
+                if default is not inspect._empty:
+                    flags = (f"--{_to_kebab(p.name)}",)
+                    specs.append(
+                        _ParamSpec(
+                            name=p.name,
+                            kind="option",
+                            default=default,
+                            required=False,
+                            help=None,
+                            flags=flags,
+                            type=ann,
+                        )
+                    )
+                else:
+                    specs.append(
+                        _ParamSpec(
+                            name=p.name,
+                            kind="argument",
+                            default=_MISSING,
+                            required=True,
+                            help=None,
+                            flags=(),
+                            type=ann,
+                        )
+                    )
+
+        return specs
+
+    def _invoke_command(self, prog: str, cmd: _Command, argv: List[str]) -> int:
+        specs = self._get_paramspecs(cmd.func)
+        option_by_flag: Dict[str, _ParamSpec] = {}
+        option_specs: Dict[str, _ParamSpec] = {}
+        arg_specs: List[_ParamSpec] = []
+
+        for s in specs:
+            if s.kind == "option":
+                option_specs[s.name] = s
+                for fl in s.flags:
+                    option_by_flag[fl] = s
+            else:
+                arg_specs.append(s)
+
+        # Parse tokens
+        values: Dict[str, Any] = {}
+        provided: Dict[str, bool] = {}
+
+        positionals: List[str] = []
+        i = 0
+        while i < len(argv):
+            tok = argv[i]
+            if tok == "--":
+                positionals.extend(argv[i + 1 :])
+                break
+
+            if _is_option_token(tok):
+                # --opt=value
+                if tok.startswith("--") and "=" in tok:
+                    flag, val = tok.split("=", 1)
+                else:
+                    flag, val = tok, None
+
+                if flag not in option_by_flag:
+                    echo(f"Error: Unknown option '{flag}'.", err=True)
+                    return 2
+
+                spec = option_by_flag[flag]
+                # Boolean flag behavior: presence sets True if default False; else expects value if provided
+                if spec.type is bool or isinstance(spec.default, bool):
+                    if val is None:
+                        # Presence toggles to True unless default already True
+                        values[spec.name] = True if (spec.default in (_MISSING, False, ...)) else False
+                        provided[spec.name] = True
+                        i += 1
+                        continue
+                    values[spec.name] = _convert_value(val, bool)
+                    provided[spec.name] = True
+                    i += 1
+                    continue
+
+                # Non-bool requires a value either after space or via =
+                if val is None:
+                    if i + 1 >= len(argv):
+                        echo(f"Error: Option '{flag}' requires a value.", err=True)
+                        return 2
+                    val = argv[i + 1]
+                    i += 2
+                else:
+                    i += 1
+
+                values[spec.name] = _convert_value(val, spec.type)
+                provided[spec.name] = True
+                continue
+
+            # positional
+            positionals.append(tok)
+            i += 1
+
+        # Assign positional arguments in order
+        pos_i = 0
+        for s in arg_specs:
+            if pos_i < len(positionals):
+                values[s.name] = _convert_value(positionals[pos_i], s.type)
+                provided[s.name] = True
+                pos_i += 1
+            else:
+                # missing
+                if s.required:
+                    echo(f"Error: Missing argument '{s.name}'.", err=True)
+                    return 2
+                values[s.name] = None if s.default is _MISSING else s.default
+
+        # Extra positionals: error (simple)
+        if pos_i < len(positionals):
+            echo("Error: Got unexpected extra argument(s).", err=True)
+            return 2
+
+        # Fill defaults for options
+        for name, s in option_specs.items():
+            if name in values:
+                continue
+            if s.required:
+                # Special-case: required boolean option doesn't make much sense; still enforce
+                echo(f"Error: Missing option '{s.flags[0]}'.", err=True)
+                return 2
+            d = s.default
+            if d is _MISSING or d is ...:
+                # For bool options, default missing -> False
+                if s.type is bool:
+                    d = False
+                else:
+                    d = None
+            values[name] = d
+
+        # Call function
+        result = cmd.func(**values)
+        if isinstance(result, int):
+            return result
+        return 0
+
+    def _print_app_help(self, prog: str) -> None:
+        echo(f"Usage: {prog} [OPTIONS] COMMAND [ARGS]...")
+        if self.help:
+            echo("")
+            echo(self.help)
+        echo("")
+        echo("Commands:")
+        # stable order: registration order
+        for cmd in self._commands:
+            line = f"  {cmd.name}"
+            if cmd.help:
+                line += f"  {cmd.help}"
+            echo(line)
+
+    def _print_command_help(self, prog: str, cmd: _Command) -> None:
+        specs = self._get_paramspecs(cmd.func)
+        args = [s for s in specs if s.kind == "argument"]
+        opts = [s for s in specs if s.kind == "option"]
+
+        usage_parts = [f"Usage: {prog} {cmd.name}"]
+        if opts:
+            usage_parts.append("[OPTIONS]")
+        for a in args:
+            usage_parts.append(a.name.upper() if a.required else f"[{a.name.upper()}]")
+        echo(" ".join(usage_parts))
+
+        if cmd.help:
+            echo("")
+            echo(cmd.help)
+
+        if args:
+            echo("")
+            echo("Arguments:")
+            for a in args:
+                req = "required" if a.required else f"default={a.default!r}"
+                help_txt = f"  {a.name}  ({req})"
+                if a.help:
+                    help_txt += f"  {a.help}"
+                echo(help_txt)
+
+        if opts:
+            echo("")
+            echo("Options:")
+            if self.add_help_option:
+                echo("  -h, --help  Show this message and exit.")
+            for o in opts:
+                flags = ", ".join(o.flags) if o.flags else f"--{_to_kebab(o.name)}"
+                if o.required:
+                    meta = "required"
+                else:
+                    d = o.default
+                    if d is _MISSING or d is ...:
+                        d = None
+                    meta = f"default={d!r}"
+                help_txt = f"  {flags}  ({meta})"
+                if o.help:
+                    help_txt += f"  {o.help}"
+                echo(help_txt)
+</file>

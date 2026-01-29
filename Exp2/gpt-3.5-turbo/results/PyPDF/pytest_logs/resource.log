@@ -1,0 +1,47 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_large_document_split_and_merge _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-343/test_large_document_split_and_0')
+
+    def test_large_document_split_and_merge(tmp_path: Path) -> None:
+        """Integration test that splits and merges a larger PDF document."""
+        src = tmp_path / "large.pdf"
+        part1 = tmp_path / "part1.pdf"
+        part2 = tmp_path / "part2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+        _create_large_pdf(src, num_pages=30)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\resource_test.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x00000211262232B0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/resource_test.py::test_large_document_split_and_merge - At...
+1 failed in 0.35s

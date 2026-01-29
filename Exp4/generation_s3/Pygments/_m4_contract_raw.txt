@@ -1,0 +1,323 @@
+<contract>
+1) Repository layout (packages/modules/files that must exist)
+
+- pygments/__init__.py
+- pygments/lex.py
+- pygments/highlight.py
+- pygments/token.py
+- pygments/util.py
+- pygments/filters/__init__.py
+- pygments/lexers/__init__.py
+- pygments/lexers/python.py
+- pygments/lexers/json.py
+- pygments/lexers/ini.py
+- pygments/formatters/__init__.py
+- pygments/formatters/html.py
+- pygments/formatters/terminal.py
+- pygments/styles/__init__.py
+- pygments/styles/default.py
+
+Package expectations:
+- Import paths must work: import pygments, pygments.lexers, pygments.formatters, pygments.styles, pygments.token, pygments.util, pygments.filters
+- Must allow: from pygments import highlight; from pygments.lexers import get_lexer_by_name; from pygments.formatters import HtmlFormatter, TerminalFormatter
+
+2) Public API surface (core modules/classes/functions and key signatures)
+
+2.1 pygments/__init__.py
+- __all__ should expose at least: highlight
+- from pygments.highlight import highlight
+- Optional but compatible: __version__ (string)
+
+2.2 pygments/highlight.py
+- def highlight(code, lexer, formatter) -> str
+  - code: str (or bytes accepted; bytes decoded as utf-8 with errors="replace")
+  - lexer: Lexer instance with get_tokens() or get_tokens_unprocessed()
+  - formatter: Formatter instance with format(tokensource, outfile) method
+  - Returns: formatted string (captured output)
+
+2.3 pygments/lex.py
+- def lex(code, lexer) -> iterator
+  - Returns token stream: iterable of (tokentype, value) pairs
+- Optional compatibility helpers (expected by some tests/tools):
+  - def lexers() (not required)
+  - def get_tokens(code, lexer) alias to lex
+- Must accept code as str or bytes (same decoding rule as highlight)
+
+2.4 pygments/token.py
+Token model compatible with Pygments “Token” hierarchy and comparisons:
+- class _TokenType (or equivalent)
+  - supports attribute access to create subtypes: Token.Name, Token.Name.Function, etc.
+  - supports hashing and equality: token types are singletons per path
+  - supports “in” semantics used by pygments: (ttype in Token.Name) or (ttype in Token) should be True when ttype is a descendant
+- A root singleton: Token
+- Common token singletons must exist (at minimum):
+  - Text, Whitespace
+  - Error
+  - Other
+  - Keyword, Keyword.Constant, Keyword.Declaration, Keyword.Namespace, Keyword.Pseudo, Keyword.Reserved, Keyword.Type
+  - Name, Name.Builtin, Name.Function, Name.Class, Name.Namespace, Name.Exception, Name.Decorator, Name.Variable, Name.Constant, Name.Attribute, Name.Tag
+  - Literal, Literal.String, Literal.String.Double, Literal.String.Single, Literal.String.Backtick, Literal.String.Doc, Literal.String.Escape, Literal.Number, Literal.Number.Integer, Literal.Number.Float
+  - Operator, Operator.Word
+  - Punctuation
+  - Comment, Comment.Single, Comment.Multiline
+  - Generic (optional but helpful): Generic.Heading, Generic.Subheading, Generic.Emph, Generic.Strong, Generic.Traceback
+- Utility:
+  - def is_token_subtype(ttype, other) -> bool
+- __all__ should export Token and the above common names.
+
+2.5 pygments/util.py
+Minimal utility functions/exceptions used by lexers/formatters:
+- class ClassNotFound(Exception)
+- def get_bool_opt(options: dict, name: str, default=False) -> bool
+- def get_int_opt(options: dict, name: str, default=0) -> int
+- def get_list_opt(options: dict, name: str, default=None) -> list
+- def get_choice_opt(options: dict, name: str, allowed: (list|tuple|set), default=None) -> value
+Behavior:
+- Raise ValueError on invalid conversions/choices.
+- Treat missing option as default.
+- For booleans accept common strings: "1/0", "true/false", "yes/no", "on/off" (case-insensitive).
+
+2.6 pygments/filters/__init__.py
+- Provide a base Filter class for API-compatibility (minimal):
+  - class Filter:
+    - def __init__(self, **options)
+    - def filter(self, lexer, stream): returns stream iterator
+- Provide a way for lexers to apply filters:
+  - Lexers may keep self.filters list of Filter instances and wrap token stream through them.
+
+2.7 pygments/lexers/__init__.py
+- Export:
+  - class Lexer (base)
+    - name: str
+    - aliases: list[str]
+    - filenames: list[str]
+    - mimetypes: list[str]
+    - def __init__(self, **options)
+    - def get_tokens(self, text): iterator of (ttype, value)
+    - def get_tokens_unprocessed(self, text): iterator of (index, ttype, value)
+    - def add_filter(self, filter_, **options)
+  - def get_lexer_by_name(alias: str, **options) -> Lexer
+  - def guess_lexer_for_filename(filename, text, **options) optional (not required unless tests reference)
+- Must import/attach concrete lexers:
+  - PythonLexer in pygments.lexers.python
+  - JsonLexer in pygments.lexers.json
+  - IniLexer in pygments.lexers.ini
+
+2.8 pygments/lexers/python.py
+- class PythonLexer(Lexer)
+  - name = "Python"
+  - aliases includes "python", "py"
+  - filenames includes "*.py"
+  - Provides tokenization for:
+    - keywords (def, class, if, elif, else, for, while, try, except, finally, with, as, return, yield, import, from, pass, break, continue, raise, lambda, global, nonlocal, assert, del, or, and, not, in, is, match/case optional)
+    - builtins: True/False/None as Keyword.Constant
+    - identifiers: Name (or Name.Function after def, Name.Class after class)
+    - decorators: @name as Name.Decorator + Punctuation
+    - strings: single, double, triple (basic), recognize escape sequences minimally
+    - comments: #... to endline as Comment.Single
+    - numbers: integers, floats (simple regex) as Literal.Number.Integer/Float
+    - operators/punctuation
+    - whitespace/newlines as Text/Whitespace
+  - Must not crash on arbitrary text; unknown chars may be Text or Error.
+
+2.9 pygments/lexers/json.py
+- class JsonLexer(Lexer)
+  - name = "JSON"
+  - aliases includes "json"
+  - filenames includes "*.json"
+  - Tokenization:
+    - punctuation: { } [ ] : , as Punctuation
+    - strings: double-quoted JSON strings as Literal.String.Double
+    - numbers: JSON numbers as Literal.Number.Integer/Float
+    - constants: true/false/null as Keyword.Constant
+    - whitespace as Whitespace/Text
+    - Any invalid token can be Text or Error but must not raise.
+
+2.10 pygments/lexers/ini.py
+- class IniLexer(Lexer)
+  - name = "INI"
+  - aliases includes "ini", "cfg", "dosini"
+  - filenames includes "*.ini", "*.cfg"
+  - Tokenization:
+    - sections: [section] as Name.Namespace (or Keyword) with Punctuation brackets
+    - keys: key before '=' or ':' as Name.Attribute
+    - operators '=' ':' as Operator or Punctuation
+    - values as Literal.String or Text
+    - comments starting with ';' or '#' to endline as Comment.Single
+    - whitespace/newlines preserved
+
+2.11 pygments/formatters/__init__.py
+- Export:
+  - class Formatter (base)
+    - def __init__(self, **options)
+    - def format(self, tokensource, outfile): writes formatted output to a file-like with .write(str)
+  - def get_formatter_by_name(name: str, **options) -> Formatter (optional but helpful)
+  - HtmlFormatter and TerminalFormatter imported from submodules
+
+2.12 pygments/formatters/html.py
+- class HtmlFormatter(Formatter)
+  - __init__(self, **options) supports at minimum:
+    - nowrap: bool (default False) - if True, do not wrap in <div><pre>
+    - full: bool (default False) - if True, output a minimal full HTML document
+    - cssclass: str (default "highlight")
+    - noclasses: bool (default False) - if True, use inline style attributes instead of CSS classes
+    - linenos: bool or "table" (optional; may be ignored unless tested)
+  - def format(self, tokensource, outfile)
+    - Emits HTML with escaping (&, <, >, ").
+    - When noclasses=False, wrap token spans in <span class="..."> with CSS class derived from token type (e.g., "k" for Keyword). Mapping may be simplified but must be stable.
+    - When noclasses=True, use style="..." inline for known token categories based on style.
+  - def get_style_defs(self, arg: str = '') -> str
+    - Returns CSS definitions for the formatter, using cssclass selector prefix if arg empty.
+    - Must include rules for base container and token classes used.
+
+2.13 pygments/formatters/terminal.py
+- class TerminalFormatter(Formatter)
+  - __init__(self, **options) supports at minimum:
+    - bg: str ("dark" default) may influence chosen colors
+    - colorscheme: dict optional
+    - stripall: bool optional
+    - reset: bool (default True) - append reset code at end
+    - ansi: bool (default True) - if False, emit plain text
+  - def format(self, tokensource, outfile)
+    - When ansi=True, wraps token values with ANSI SGR sequences based on token type category.
+    - Must always preserve original text content (minus escape codes) and newlines.
+    - Must not emit ANSI codes when ansi=False.
+
+2.14 pygments/styles/__init__.py
+- Export:
+  - class Style (base)
+    - styles: dict mapping token type to style string (e.g., "bold #ff0000" or "#rrggbb")
+    - background_color: str optional
+    - default_style: str optional
+    - def style_for_token(ttype) -> dict with parsed fields (color, bgcolor, bold, italic, underline)
+  - def get_style_by_name(name: str) -> Style subclass/instance; must support "default"
+- Must import DefaultStyle from default.py
+
+2.15 pygments/styles/default.py
+- class DefaultStyle(Style)
+  - name = "default"
+  - styles dict includes at least mappings for common token groups used by lexers:
+    - Comment, Keyword, Name.Function, Name.Class, Literal.String, Literal.Number, Operator, Punctuation
+  - Provide reasonable colors (not required to match reference exactly; must be deterministic).
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+3.1 Lexing pipeline
+- pygments.lex.lex(code, lexer) must:
+  - accept code as str or bytes; bytes decoded utf-8 errors="replace"
+  - call lexer.get_tokens(code) and return iterator of (ttype, value)
+  - guarantee concatenation of all emitted values equals original decoded input exactly
+  - never raise for ordinary input; lexer errors should degrade to Text/Error tokens but still emit content
+
+- Lexer base behavior:
+  - Lexer.get_tokens(text):
+    - wraps get_tokens_unprocessed and strips index, yielding (ttype, value)
+    - applies any added filters in order (each filter receives stream and returns stream)
+  - Lexer.get_tokens_unprocessed(text):
+    - default implementation may yield entire text as (0, Text, text)
+    - concrete lexers override
+  - add_filter:
+    - accepts either a Filter instance or a Filter subclass/name (minimal: accept instance)
+    - stores filter in self.filters
+
+3.2 highlight(code, lexer, formatter)
+- Must:
+  - accept str/bytes code (bytes decoded as above)
+  - accept lexer/formatter instances
+  - create an in-memory text buffer, call formatter.format(lex(code, lexer), buffer), return buffer contents
+  - propagate exceptions from formatter.format (tests may expect failures for invalid options) but not from ordinary lexing
+
+3.3 get_lexer_by_name(alias, **options)
+- Must:
+  - match case-insensitively on registered lexer aliases
+  - support at least: "python", "py", "json", "ini", "cfg", "dosini"
+  - raise pygments.util.ClassNotFound if unknown
+
+3.4 HTML formatting
+- Must:
+  - HTML-escape token values
+  - produce deterministic output for a given token stream and options
+  - When full=True, include minimal document structure: <!DOCTYPE html> optional, <html><head><style>...</style></head><body>...</body></html>
+  - When nowrap=False and full=False: wrap in <div class="{cssclass}"><pre>...</pre></div> (or <pre class=...>)
+  - Provide get_style_defs that returns CSS including selectors matching produced classes
+- Token-to-class mapping:
+  - Must be consistent and stable. Minimal mapping acceptable:
+    - Keyword -> "k"
+    - Name -> "n", Name.Function -> "nf", Name.Class -> "nc", Name.Decorator -> "nd"
+    - Literal.String -> "s"
+    - Literal.Number -> "m"
+    - Comment -> "c"
+    - Operator -> "o"
+    - Punctuation -> "p"
+    - Text/Whitespace -> no span or "w"
+  - Unknown tokens may map to "x" or omitted.
+
+3.5 Terminal formatting
+- Must:
+  - Preserve text (excluding ANSI codes)
+  - For ansi=True, wrap values with SGR codes based on token type mapping; minimal mapping acceptable:
+    - Keyword: bold/blue; String: green; Comment: bright black; Number: cyan; Name.Function/Class: yellow; Error: red
+  - Must reset formatting at token boundaries or at least at end (reset=True adds \x1b[0m)
+  - When ansi=False: write plain concatenated values
+
+3.6 Token type semantics
+- Token types must form a tree:
+  - Token is root; Token.Name is parent of Token.Name.Function, etc.
+  - Descendant test must work via is_token_subtype and “in” operator semantics consistent with Pygments:
+    - is_token_subtype(Token.Name.Function, Token.Name) == True
+    - Token.Name.Function in Token.Name == True
+    - Token.Name in Token.Name.Function == False
+- Token types must be printable/repr-stable enough for debugging but not strictly required.
+
+3.7 Error handling and options
+- Unknown lexer name: raise ClassNotFound
+- Invalid formatter/lexer options passed through util getters: raise ValueError
+- Formatters should not crash on unknown token types; treat as Text/no style.
+
+4) Acceptance checklist (verifiable bullets, mapped to test intent)
+
+- Imports:
+  - All required modules import without error.
+  - from pygments import highlight works.
+  - from pygments.lexers import get_lexer_by_name, PythonLexer, JsonLexer, IniLexer works.
+  - from pygments.formatters import HtmlFormatter, TerminalFormatter works.
+  - from pygments.token import Token, Keyword, Name, String, Number, Comment, Text works (aliases acceptable if they resolve to correct token objects).
+
+- Lexing:
+  - lex("x=1", PythonLexer()) yields a stream of (tokentype, value) pairs whose values join to original input.
+  - PythonLexer recognizes comments, strings, numbers, keywords, def/class name contexts (basic).
+  - JsonLexer recognizes punctuation, strings, numbers, true/false/null.
+  - IniLexer recognizes sections, keys, comments, and preserves values.
+
+- Lexer resolution:
+  - get_lexer_by_name("python") returns PythonLexer instance.
+  - get_lexer_by_name("JSON") returns JsonLexer instance (case-insensitive).
+  - unknown name raises pygments.util.ClassNotFound.
+
+- Highlight integration:
+  - highlight(code, lexer, HtmlFormatter()) returns a str containing HTML with escaped content.
+  - highlight(code, lexer, TerminalFormatter(ansi=False)) returns plain text equal to original code.
+
+- HtmlFormatter:
+  - get_style_defs() returns non-empty CSS containing the cssclass selector.
+  - Output includes <span class="..."> wrappers when noclasses=False.
+  - Output uses inline styles when noclasses=True.
+  - nowrap/full options change wrapping as specified (nowrap removes outer wrapping; full produces full HTML document).
+
+- TerminalFormatter:
+  - ansi=True output contains \x1b[ sequences for styled tokens and ends with reset when reset=True.
+  - ansi=False output contains no \x1b[ sequences.
+
+- Token semantics:
+  - is_token_subtype(Name.Function, Name) is True.
+  - Name.Function in Name is True (via __contains__ on token types).
+  - Hashability: token types can be dict keys.
+
+5) Non-goals / constraints
+
+- Pure Python only; no C extensions; no external network/services.
+- Not required to implement full Pygments regex/state machine engine; only enough lexing/formatting to satisfy tests.
+- Not required to support all lexers, formatters, styles, or plugins.
+- Not required to exactly match Pygments’ HTML/CSS output; must be structurally and behaviorally compatible with tests (API presence, deterministic output, correct escaping, sensible tokenization).
+- Not required to implement advanced options like line numbering, encoding detection beyond utf-8 replace, or comprehensive Unicode category handling.
+</contract>

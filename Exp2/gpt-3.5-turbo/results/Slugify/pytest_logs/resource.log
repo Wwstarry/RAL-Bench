@@ -1,0 +1,98 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+________________________ test_slug_index_allow_unicode ________________________
+
+    def test_slug_index_allow_unicode() -> None:
+        """When allow_unicode is True, non-ASCII characters may be preserved."""
+        texts = [
+            "影師嗎",
+            "i love 影師嗎",
+            "ナルト 疾風伝",
+            "Компьютер",
+        ]
+    
+>       index = _build_slug_index(texts, allow_unicode=True)
+
+tests\Slugify\resource_test.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Slugify\resource_test.py:50: in _build_slug_index
+    s = slugify(name, allow_unicode=allow_unicode)
+generation\Slugify\slugify\slugify.py:69: in slugify
+    pattern = re.compile(r'[^\w\s\p{L}\p{N}\p{M}\p{Pc}\p{Pd}]', re.UNICODE)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:252: in compile
+    return _compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:304: in _compile
+    p = sre_compile.compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_compile.py:764: in compile
+    p = sre_parse.parse(p, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:948: in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:554: in _parse
+    code1 = _class_escape(source, this)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source = <sre_parse.Tokenizer object at 0x00000217433EE400>, escape = '\\p'
+
+    def _class_escape(source, escape):
+        # handle escape code inside character class
+        code = ESCAPES.get(escape)
+        if code:
+            return code
+        code = CATEGORIES.get(escape)
+        if code and code[0] is IN:
+            return code
+        try:
+            c = escape[1:2]
+            if c == "x":
+                # hexadecimal escape (exactly two digits)
+                escape += source.getwhile(2, HEXDIGITS)
+                if len(escape) != 4:
+                    raise source.error("incomplete escape %s" % escape, len(escape))
+                return LITERAL, int(escape[2:], 16)
+            elif c == "u" and source.istext:
+                # unicode escape (exactly four digits)
+                escape += source.getwhile(4, HEXDIGITS)
+                if len(escape) != 6:
+                    raise source.error("incomplete escape %s" % escape, len(escape))
+                return LITERAL, int(escape[2:], 16)
+            elif c == "U" and source.istext:
+                # unicode escape (exactly eight digits)
+                escape += source.getwhile(8, HEXDIGITS)
+                if len(escape) != 10:
+                    raise source.error("incomplete escape %s" % escape, len(escape))
+                c = int(escape[2:], 16)
+                chr(c) # raise ValueError for invalid code
+                return LITERAL, c
+            elif c == "N" and source.istext:
+                import unicodedata
+                # named unicode escape e.g. \N{EM DASH}
+                if not source.match('{'):
+                    raise source.error("missing {")
+                charname = source.getuntil('}', 'character name')
+                try:
+                    c = ord(unicodedata.lookup(charname))
+                except KeyError:
+                    raise source.error("undefined character name %r" % charname,
+                                       len(charname) + len(r'\N{}'))
+                return LITERAL, c
+            elif c in OCTDIGITS:
+                # octal escape (up to three digits)
+                escape += source.getwhile(2, OCTDIGITS)
+                c = int(escape[1:], 8)
+                if c > 0o377:
+                    raise source.error('octal escape value %s outside of '
+                                       'range 0-0o377' % escape, len(escape))
+                return LITERAL, c
+            elif c in DIGITS:
+                raise ValueError
+            if len(escape) == 2:
+                if c in ASCIILETTERS:
+>                   raise source.error('bad escape %s' % escape, len(escape))
+E                   re.error: bad escape \p at position 6
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:349: error
+=========================== short test summary info ===========================
+FAILED tests/Slugify/resource_test.py::test_slug_index_allow_unicode - re.err...
+1 failed, 1 passed in 0.54s

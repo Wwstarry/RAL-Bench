@@ -1,0 +1,76 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+self = <termgraph.data.Data object at 0x0000023224E018E0>
+labels = [[5.0], [10.0], [7.5], [2.5]]
+series = ['Item-0', 'Item-1', 'Item-2', 'Item-3']
+
+    def __init__(self, labels: Sequence[str], series: Sequence[Sequence[float]]):
+        self.labels = list(labels)
+        self.series = [list(row) for row in series]
+        if len(self.labels) != len(self.series):
+            raise ValueError("labels and series must have the same number of rows")
+        # Normalize None rows
+        for i, row in enumerate(self.series):
+            if row is None:
+                self.series[i] = []
+        # Ensure numbers
+        for i, row in enumerate(self.series):
+            new_row = []
+            for v in row:
+                try:
+                    if v is None:
+                        new_row.append(0.0)
+                    else:
+>                       new_row.append(float(v))
+E                       ValueError: could not convert string to float: 'I'
+
+generation\Termgraph\termgraph\data.py:30: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+>       data = Data(normalized, labels)
+
+tests\Termgraph\resource_test.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000023224E018E0>
+labels = [[5.0], [10.0], [7.5], [2.5]]
+series = ['Item-0', 'Item-1', 'Item-2', 'Item-3']
+
+    def __init__(self, labels: Sequence[str], series: Sequence[Sequence[float]]):
+        self.labels = list(labels)
+        self.series = [list(row) for row in series]
+        if len(self.labels) != len(self.series):
+            raise ValueError("labels and series must have the same number of rows")
+        # Normalize None rows
+        for i, row in enumerate(self.series):
+            if row is None:
+                self.series[i] = []
+        # Ensure numbers
+        for i, row in enumerate(self.series):
+            new_row = []
+            for v in row:
+                try:
+                    if v is None:
+                        new_row.append(0.0)
+                    else:
+                        new_row.append(float(v))
+                except Exception:
+>                   raise ValueError(f"Non-numeric value at row {i}: {v}")
+E                   ValueError: Non-numeric value at row 0: I
+
+generation\Termgraph\termgraph\data.py:32: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.33s

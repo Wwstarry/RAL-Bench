@@ -1,0 +1,191 @@
+<contract>
+1) Repository layout
+- Top-level package directory: mutagen/
+- Required modules/files:
+  - mutagen/__init__.py
+  - mutagen/easyid3.py
+  - mutagen/id3.py
+- Package must be importable with:
+  - import mutagen
+  - from mutagen.easyid3 import EasyID3
+  - from mutagen.id3 import ID3, TIT2, TPE1, COMM, APIC
+
+2) Public API surface
+2.1 mutagen/__init__.py
+- Expose package version constant (optional) and ensure submodules are importable.
+- Must not break: import mutagen.easyid3, import mutagen.id3
+
+2.2 mutagen.easyid3
+- Class EasyID3(collections.abc.MutableMapping behavior)
+  - Constructors:
+    - EasyID3()  -> empty tags, not bound to a filename
+    - EasyID3(filename: str) -> load tags from file, bind instance to filename
+  - Mapping interface (core used by tests):
+    - __getitem__(key: str) -> list[str]; raise KeyError if missing
+    - __setitem__(key: str, value: list[str]) -> store/replace list of strings
+    - __delitem__(key: str) -> delete; raise KeyError if missing
+    - __iter__() -> iterate keys
+    - __len__() -> number of keys
+    - items(), keys(), values() standard mapping views
+  - save(path: str | None = None) -> None
+    - If path is None, must write back to original file path loaded in constructor; if none, raise ValueError.
+    - If path is provided, write tags to that path; create a tag-only MP3 file if needed.
+
+- EasyID3 key mapping required by tests:
+  - "title" <-> ID3 frame "TIT2"
+  - "artist" <-> ID3 frame "TPE1"
+  - (If tests include it) "tracknumber" should be supported similarly via "TRCK" text frame; if not present, ignore.
+
+2.3 mutagen.id3
+- Class ID3
+  - Constructors:
+    - ID3() -> empty tag set, not bound to a filename
+    - ID3(filename: str) -> load tag set from file, bind instance to filename
+  - Methods:
+    - add(frame) -> None
+      - Append a frame instance to internal storage for its frame ID.
+    - __getitem__(frame_id: str) -> frame instance
+      - Return a single frame for that ID (the first/only one). If none, raise KeyError.
+    - getall(frame_id: str) -> list[frame]
+      - Return all frames for that ID (may be empty list).
+    - delall(frame_id: str) -> None
+      - Remove all frames for that ID (no error if none).
+    - setall(frame_id: str, frames: list[frame]) -> None
+      - Replace frames for that ID with provided list (frames must match ID).
+    - save(path: str | None = None) -> None
+      - If path is None, write back to original file path loaded in constructor; if none, raise ValueError.
+      - If path is provided, write tags to that path; create a tag-only MP3 file if needed.
+
+- Frame classes (defined in mutagen.id3):
+  - Base expectations for all frames:
+    - Have a stable frame identifier string (Frame ID) used for grouping, e.g. "TIT2".
+    - Must be serializable/deserializable by this library for roundtrip.
+  - TIT2(encoding, text=...)
+    - Attributes:
+      - encoding: int
+      - text: list[str] (normalize input to list[str])
+    - Frame ID: "TIT2"
+  - TPE1(encoding, text=...)
+    - Attributes:
+      - encoding: int
+      - text: list[str]
+    - Frame ID: "TPE1"
+  - COMM(encoding, lang, desc, text)
+    - Attributes:
+      - encoding: int
+      - lang: str
+      - desc: str
+      - text: list[str] or str (must roundtrip; normalize to list[str] internally but preserve meaning)
+    - Frame ID: "COMM"
+  - APIC(encoding, mime, type, desc, data)
+    - Attributes:
+      - encoding: int
+      - mime: str
+      - type: int
+      - desc: str
+      - data: bytes
+    - Frame ID: "APIC"
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+3.1 File format and persistence model
+- Must support writing and reading “tag-only MP3 files” used by tests.
+- Implementation may use a simplified internal container format rather than true MP3/ID3 parsing, provided it roundtrips for files it writes and does not depend on external libraries/services.
+- Save must be atomic enough for tests: after save, reopening must reflect new tags.
+- Must not keep global caches of file contents; load must read from disk; save must write to disk.
+
+3.2 EasyID3 behavior
+- Acts as a mapping from Easy keys to list[str].
+- Setting tags["key"] replaces any existing values for that key (not append).
+- Deleting removes the key completely; after save/reload, key must be absent.
+- Multiple values must roundtrip:
+  - Example: tags["artist"] = ["A1", "A2"] must reload exactly as ["A1", "A2"].
+- Accessing missing key must raise KeyError.
+- save(path):
+  - If path provided: write to that path regardless of original bound filename; subsequent loads from that path must match saved content.
+  - If path is None: require instance was created from a filename or previously saved with a filename; otherwise raise ValueError.
+
+3.3 ID3 behavior
+- ID3 stores frames grouped by frame ID.
+- add(frame):
+  - Adds frame to list for its ID without removing others.
+- __getitem__(frame_id):
+  - Returns a single frame for that ID; must raise KeyError if none exist.
+  - If multiple exist, return the first in stored order.
+- getall(frame_id):
+  - Returns list of all frames for that ID in insertion order.
+- delall(frame_id):
+  - Removes all frames for that ID (silent if none).
+- setall(frame_id, frames):
+  - Replaces all existing frames for that ID with frames.
+  - After setall for text frames, only new value visible after reload.
+- save semantics match EasyID3 (path optional with same constraints).
+
+3.4 Frame attribute roundtrip requirements
+- TIT2/TPE1:
+  - text content must persist across save/reload.
+  - Replacing value must be reflected and old must not remain.
+- COMM:
+  - lang, desc, text must persist across save/reload.
+  - getall("COMM") must return all comment frames (not collapsed).
+- APIC:
+  - mime, type, desc, data must persist across save/reload.
+  - getall("APIC") must return all picture frames.
+  - Binary data must be preserved exactly; tests require that data preserves the binary payload prefix used when writing (i.e., no transformations/compression/encoding changes that alter bytes).
+  - Adding/removing APIC via add/getall/delall must be consistent across cycles.
+
+3.5 Interop between EasyID3 and ID3
+- EasyID3 must store its data in the same underlying file representation as ID3 so that:
+  - EasyID3.save -> ID3(file) can read corresponding frames, and/or
+  - ID3.save -> EasyID3(file) can read equivalent easy keys for mapped frames.
+- At minimum, roundtrip within EasyID3 and within ID3 must work; if tests mix them, the mapping must function for title/artist/tracknumber.
+
+3.6 Performance/resource constraints
+- Creating/reading many small tag-only files must be efficient:
+  - Avoid O(file_count^2) behavior; per-file operations should be proportional to file size.
+- Repeated updates to ID3 frames on a single file must not degrade over time:
+  - Avoid accumulating stale data in memory or on disk (e.g., appending endlessly).
+- Memory:
+  - No unbounded global retention of tag data across files.
+  - Only keep per-instance data; allow it to be garbage-collected after use.
+
+3.7 Error handling
+- Opening a nonexistent file path should raise FileNotFoundError (or OSError) consistent with Python file open.
+- Loading a file that is not in this library’s written format may:
+  - Either raise a descriptive exception (ValueError) or treat as empty tag-only file, but behavior must be consistent and not crash tests.
+- save to invalid path should propagate underlying OSError.
+
+4) Acceptance checklist (verifiable, aligned with tests)
+- Import checks:
+  - import mutagen works
+  - from mutagen.easyid3 import EasyID3 works
+  - from mutagen.id3 import ID3, TIT2, TPE1, COMM, APIC works
+- EasyID3 tag-only lifecycle:
+  - EasyID3(); set title/artist; save("x.mp3"); EasyID3("x.mp3") returns same values.
+- EasyID3 overwrite/delete:
+  - Setting an existing key replaces values, not merges.
+  - del tags["title"] removes it; after save/reload, accessing raises KeyError.
+- EasyID3 multiple values:
+  - tags["artist"] = ["A1", "A2"] roundtrips exactly.
+- ID3 frame lifecycle:
+  - ID3(); add(TIT2(...)); add(TPE1(...)); save("x.mp3"); ID3("x.mp3") returns same frames and text.
+- ID3 getall/delall/setall:
+  - getall("COMM") returns all added comments, preserved across save/reload.
+  - getall("APIC") returns all added pictures, preserved across save/reload.
+  - delall("APIC") removes all pictures; after save/reload, getall("APIC") is empty.
+  - setall("TIT2",[new]) replaces prior TIT2; after save/reload, only new text visible via ["TIT2"].text.
+- Frame attribute preservation:
+  - COMM.lang/desc/text unchanged after save/reload.
+  - APIC.mime/type/desc/data unchanged after save/reload; data bytes preserved exactly.
+- Save semantics:
+  - save() without path writes back to originally loaded file; save() without bound filename raises ValueError.
+- Performance/resource:
+  - Repeated create/save/load for many small files completes under test time.
+  - Repeated ID3 comment updates does not cause runaway memory usage.
+
+5) Non-goals / constraints
+- No requirement to implement full MP3 audio parsing, MPEG frames, true ID3v2 binary spec, syncing, unsynchronisation, padding, or CRC.
+- No external dependencies; pure Python only.
+- No network or external services.
+- Do not implement the entire Mutagen API; only the specified modules/classes/methods/frames and minimal mapping behavior needed by tests.
+- Do not retain cross-file global registries/caches that grow with file count.
+</contract>

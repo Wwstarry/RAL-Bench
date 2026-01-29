@@ -1,0 +1,231 @@
+1) Repository layout and import graph
+   - Goal: Provide a top-level package named “dateutil” with submodules parser, relativedelta, rrule, tz, matching core python-dateutil public API used by tests.
+   - Layout under ./repositories/dateutil:
+     - dateutil/__init__.py
+       - Expose __version__ (string), and import commonly expected submodules minimally (parser, tz, relativedelta, rrule) to match typical import behavior.
+     - dateutil/parser/__init__.py
+       - from ._parser import parse
+       - optionally expose ParserError class
+     - dateutil/parser/_parser.py
+       - implementation of parse()
+     - dateutil/relativedelta.py
+       - implementation of relativedelta class
+     - dateutil/rrule.py
+       - implementation of rrule class, rruleset (optional if needed), constants, weekday helpers
+     - dateutil/tz/__init__.py
+       - expose UTC singleton, gettz(), tzutc/tzoffset/tzlocal-like minimal tzinfo classes
+     - dateutil/tz/_common.py (optional)
+       - shared tzinfo base helpers
+     - dateutil/tz/_tz.py (optional)
+       - actual tz implementations; keep in pure Python
+   - Import graph:
+     - dateutil/__init__.py imports dateutil.parser, dateutil.tz, dateutil.rrule, dateutil.relativedelta (avoid importing heavy modules at import time beyond what’s needed).
+     - dateutil/parser/_parser.py imports datetime, re, dateutil.tz for tz parsing/UTC/gettz.
+     - dateutil/rrule.py imports datetime, calendar, dateutil.tz for timezone handling of dtstart/until, and weekday constants.
+     - dateutil/relativedelta.py imports datetime, calendar.
+
+2) Public APIs to implement (modules/classes/functions)
+   A) dateutil.parser
+     - dateutil.parser.parse(timestr, default=None, ignoretz=False, tzinfos=None, dayfirst=False, yearfirst=False, fuzzy=False, **kwargs)
+       - Return datetime.datetime
+       - Must accept ISO-8601 (with Z, with ±HH:MM offsets) and common human formats used by tests.
+     - Exceptions:
+       - ParserError(ValueError subclass) exposed as dateutil.parser.ParserError (if tests reference it).
+   B) dateutil.relativedelta
+     - class relativedelta:
+       - Constructor signature compatible enough for tests:
+         - relativedelta(dt1=None, dt2=None, years=0, months=0, days=0, leapdays=0,
+                        weeks=0, hours=0, minutes=0, seconds=0, microseconds=0,
+                        year=None, month=None, day=None, weekday=None,
+                        yearday=None, nlyearday=None,
+                        hour=None, minute=None, second=None, microsecond=None)
+       - Support:
+         - Adding/subtracting relativedelta to date/datetime: __add__, __radd__, __sub__, __rsub__, __neg__
+         - Computing a delta from dt1, dt2 when given: relativedelta(dt1, dt2)
+         - Representation and equality likely not strict, but implement __repr__ and __eq__ reasonably.
+       - Behavior: calendar-aware month/year arithmetic (end-of-month clamping), preservation of time components when adding to datetime, handling date inputs.
+   C) dateutil.rrule
+     - Frequency constants:
+       - YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY, SECONDLY
+       - Also: MO, TU, WE, TH, FR, SA, SU weekday specifiers
+     - weekday class (or factory) to represent weekdays with optional ordinal (e.g., MO(+1), MO(-1)) though tests likely only use plain weekdays.
+     - class rrule:
+       - __init__(freq, dtstart=None, interval=1, wkst=MO, count=None, until=None,
+                  byweekday=None, bymonth=None, bymonthday=None, byhour=None,
+                  byminute=None, bysecond=None, bysetpos=None, byweekno=None,
+                  byyearday=None, byeaster=None, cache=False)
+       - Iteration protocol: __iter__, __next__ for generating occurrences
+       - Methods commonly used:
+         - between(after, before, inc=False)
+         - xafter(dt, count=None, inc=False) (optional)
+         - after(dt, inc=False)
+         - before(dt, inc=False)
+         - __getitem__ for indexing/slicing (optional; implement minimal indexing if tests require)
+       - Ensure stable recurrence generation for DAILY and WEEKLY with byweekday filters (core requirement).
+     - Optional but sometimes referenced:
+       - rruleset (support add/except rules and dates) only if tests cover it; otherwise omit.
+   D) dateutil.tz
+     - tz.UTC singleton tzinfo (like dateutil.tz.UTC)
+     - gettz(name=None)
+       - Return tzinfo for:
+         - None: local timezone (or UTC as safe fallback if local detection is too platform-specific)
+         - “UTC”, “GMT”, “Z”
+         - Fixed-offset strings like “+02:00”, “-0500”
+         - IANA names if available without external deps: implement limited support:
+           - Attempt to use Python’s stdlib zoneinfo.ZoneInfo when present (3.9+), wrapping it directly as tzinfo.
+           - If zoneinfo not available or zone missing, return None.
+     - tzoffset(name, offset_seconds) tzinfo for fixed offsets (internal or public; tests may use it indirectly via parsing)
+     - tzutc/tzlocal minimal classes (tzutc used for UTC; tzlocal optional).
+     - Ensure astimezone conversions work reliably between UTC and fixed offsets and zoneinfo zones if present.
+
+3) Key behaviors & edge cases
+   A) parser.parse behaviors
+     - Must parse at least:
+       - ISO dates: “YYYY-MM-DD”, “YYYYMMDD”
+       - ISO datetimes: “YYYY-MM-DDTHH:MM[:SS[.ffffff]]”
+       - Space-separated: “YYYY-MM-DD HH:MM:SS”
+       - With timezone:
+         - “Z” suffix => tz.UTC
+         - Offsets “±HH:MM”, “±HHMM”, “±HH” => tzoffset
+         - Named zones “UTC”, “GMT” => tz.UTC; other names via tzinfos mapping or gettz()
+       - Common human formats likely in tests:
+         - “Jan 2 2020”, “January 2, 2020”
+         - “02 Jan 2020”
+         - “1/2/2020” with dayfirst/yearfirst flags affecting interpretation
+         - Optional weekday words should be ignorable if fuzzy=True (implement minimal fuzzy token skipping).
+     - Strategy:
+       - First, try datetime.fromisoformat for near-ISO (but note it doesn’t accept “Z”); preprocess “Z” -> “+00:00”.
+       - If that fails, regex-based parsing:
+         - Detect and extract timezone suffix (Z/offset/abbrev)
+         - Tokenize remaining date/time parts
+         - Recognize numeric date patterns:
+           - Y-M-D, D-M-Y, M-D-Y with separators -, /, .
+           - Decide ordering using:
+             - If yearfirst or 4-digit first token => YMD
+             - Else if dayfirst => DMY
+             - Else default MDY
+         - Recognize textual month names (short/long, case-insensitive)
+         - Time parsing: HH:MM[:SS[.us]] with optional AM/PM
+       - Default handling:
+         - If default is None: default = datetime.now() with time=00:00:00? Reference dateutil uses current date/time for missing fields. For test stability, better to emulate dateutil: missing components taken from default=now; but tests typically pass default or provide full date. Implement: default=datetime.datetime.now() and then replace parsed fields.
+       - tzinfos:
+         - If tzinfos is dict mapping strings to tzinfo or offset seconds, apply when a tz name token matches.
+         - If ignoretz=True: return naive datetime.
+     - Equivalence requirement:
+       - Equivalent strings must parse to equal instants. Ensure offset handling creates aware datetimes with correct tzinfo so dt.astimezone(UTC) matches across variants.
+   B) relativedelta behaviors
+     - Adding years/months:
+       - Compute target year/month with carry.
+       - Clamp day-of-month to last valid day in target month (e.g., Jan 31 + 1 month => Feb 28/29).
+     - Adding days/weeks/hours/minutes/seconds/microseconds:
+       - Use datetime.timedelta for these after applying months/years adjustments.
+     - Setting absolute components (year=..., month=..., day=..., hour=..., etc):
+       - Apply “replace”-style overrides after relative adjustments, roughly matching dateutil order:
+         - First apply year/month (relative), then day clamp, then apply absolute replacements if provided.
+       - Weekday handling:
+         - If weekday is provided (e.g., MO, TU), shift date to that weekday; for minimal needs, implement only weekday without ordinal as “next occurrence on/after current date” if positive, or “on/nearest”? Reference behavior: weekday in relativedelta sets the date to the specified weekday, optionally nth occurrence. If tests use it, implement: if weekday is weekday instance with n:
+           - n > 0: move to nth weekday of month relative to current (complex)
+           - n == 0/None: move to that weekday in the same week? In reference, weekday acts relative. If not in tests, keep minimal: support weekday with optional n for “next/previous” within same month when combined with day/month/year.
+     - relativedelta(dt1, dt2):
+       - Compute years/months difference then remaining timedelta. Minimal: compute months difference based on year/month, adjust if overshoots, then remainder seconds.
+     - Timezone-aware datetimes:
+       - Preserve tzinfo on result (dt.replace(tzinfo=dt.tzinfo)) and rely on datetime arithmetic; avoid converting timezones.
+   C) rrule behaviors (focus on WEEKLY/DAILY)
+     - Construction:
+       - dtstart default: now (but tests likely pass explicit dtstart).
+       - until vs count: stop when reached; inclusive rules per reference:
+         - If until is aware, compare in same tz as generated datetimes; ensure consistent comparisons.
+     - DAILY:
+       - Generate dtstart (if it matches filters) then increment by interval days.
+       - Apply byweekday filter:
+         - If byweekday specified, include only dates whose weekday matches.
+     - WEEKLY:
+       - Define week start wkst (default MO).
+       - For each week step by interval:
+         - Determine the base week start date for current week.
+         - Determine candidate weekdays:
+           - If byweekday provided: use those weekdays; else use dtstart weekday.
+         - Generate occurrences within that week at the time-of-day of dtstart, in weekday order starting from wkst order (reference yields increasing datetime order).
+         - Ensure dtstart is included only if it falls on a candidate weekday and is >= dtstart boundary.
+       - Maintain stable ordering and no duplicates.
+     - Time components:
+       - If dtstart is datetime: keep hour/min/sec/us constant unless byhour/byminute/bysecond provided (ignore these unless tests require; implement minimal support for byhour/byminute/bysecond as exact-match filter or generator).
+       - If dtstart is date: return datetime at midnight (00:00).
+     - between(after, before, inc):
+       - Return list of occurrences between bounds; respect inc for inclusive endpoints.
+     - after(dt, inc):
+       - Return first occurrence after dt (or >= if inc).
+     - Performance:
+       - For tests, likely small ranges. Implement straightforward iteration with stop conditions; add a hard safety limit if neither until nor count provided and consumer calls between/after with large windows (but avoid breaking expected behavior).
+   D) tz behaviors
+     - UTC:
+       - tz.UTC should be a tzinfo with zero offset, name “UTC”.
+     - tzoffset:
+       - Fixed offset tzinfo, supports utcoffset, dst (0), tzname.
+     - gettz:
+       - If name is None: attempt local zone via time.tzname/zoneinfo; if unreliable, return tz.UTC as fallback to keep deterministic.
+       - If name matches “UTC”, “GMT”, “Z”: return tz.UTC
+       - If offset string: return tzoffset
+       - Else: attempt zoneinfo.ZoneInfo(name) and return it; if fails return None
+     - Conversions:
+       - Ensure tzinfo implementations interact correctly with datetime.astimezone.
+       - For fixed offsets, ensure fold handling not required for tests; dst always 0.
+
+4) Minimal internal test plan (what to test and why)
+   A) parser
+     - ISO parsing:
+       - “2020-01-02” -> 2020-01-02 00:00:00 naive
+       - “2020-01-02T03:04:05” -> correct naive datetime
+       - “2020-01-02T03:04:05Z” -> aware UTC
+       - “2020-01-02T03:04:05+02:00” and “...+0200” -> aware, equal offsets
+       - Ensure “Z” and “+00:00” parse to equal instants
+     - Human formats:
+       - “Jan 2, 2020 3:04 PM” -> 15:04
+       - “02/01/2020” with dayfirst False vs True
+     - tzinfos mapping:
+       - tzinfos={"EST": -18000} parse “2020-01-01 00:00 EST” -> tzoffset(-5h)
+     - ignoretz=True returns naive.
+   B) relativedelta
+     - End-of-month:
+       - datetime(2020,1,31)+relativedelta(months=1) == 2020-02-29 (leap year)
+       - datetime(2019,1,31)+relativedelta(months=1) == 2019-02-28
+     - Year increment:
+       - 2020-02-29 + relativedelta(years=1) == 2021-02-28
+     - Mixed units:
+       - dt + relativedelta(months=1, days=2, hours=3) matches expected
+     - dt1,dt2 difference:
+       - relativedelta(datetime(2020,3,1), datetime(2020,1,31)) yields months/days consistent (basic sanity; no need perfect for all).
+   C) rrule
+     - DAILY basic:
+       - rrule(DAILY, count=3, dtstart=2020-01-01) yields 1st,2nd,3rd
+     - DAILY with byweekday:
+       - Start on Monday; byweekday=[MO,WE,FR]; ensure sequence matches and ordering stable
+     - WEEKLY with byweekday:
+       - dtstart mid-week; ensure first week includes only occurrences >= dtstart, subsequent weeks include all specified weekdays
+     - until:
+       - until boundary inclusive/exclusive aligned with reference for inc behavior in between()
+     - Aware dtstart:
+       - dtstart with tzoffset; occurrences preserve tzinfo and correct local times.
+   D) tz
+     - tz.UTC:
+       - utcoffset==0, tzname “UTC”
+     - gettz offset strings:
+       - gettz("+02:00") returns tzinfo with +7200 offset
+     - Conversion:
+       - datetime(..., tzinfo=UTC).astimezone(gettz("+02:00")) has +2 hour time shift.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Parser breadth: python-dateutil parser is very feature-rich; tests may include formats beyond minimal implementation.
+     - Mitigation: Implement layered parsing:
+       1) ISO-focused fast path (fromisoformat with preprocessing)
+       2) Robust regex/token parser with month names, separators, AM/PM, optional commas
+       3) Fuzzy mode: drop unknown tokens and retry
+     - Add support incrementally based on failing tests; keep parser architecture extensible.
+   - Timezone name resolution: Real dateutil supports extensive tz database; pure Python without external data may not resolve IANA names on all platforms.
+     - Mitigation: Prefer stdlib zoneinfo when available; for systems lacking zoneinfo data, ensure tests either use UTC/offsets or ship zoneinfo. Provide deterministic fallback (return None) and ensure parser handles unknown tz names gracefully unless tzinfos provided.
+   - rrule correctness: Full RFC5545 recurrence is complex; tests likely cover only daily/weekly/byweekday/count/until.
+     - Mitigation: Implement only required subset but do it carefully: stable ordering, inclusivity rules, dtstart boundary handling, timezone-aware comparisons. Add defensive duplicate prevention and strict monotonicity.
+   - relativedelta nuances (weekday/absolute fields, dt1/dt2 diff exactness):
+     - Mitigation: Focus on month/year clamping and relative addition (most commonly tested). Implement dt1/dt2 diff in a reasonable way; if tests cover exact relativedelta decomposition, refine algorithm (month diff then remainder) to match reference more closely.
+   - Local timezone behavior (gettz(None)) differs across environments and may cause flaky tests.
+     - Mitigation: Default gettz(None) to UTC unless explicitly required; avoid reading system tz files. If tests demand local, implement tzlocal via time module offsets (non-DST or basic DST) but keep deterministic when possible.

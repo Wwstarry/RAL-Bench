@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+__________ test_performance_import_and_discover_rules_is_fast_enough __________
+
+    def test_performance_import_and_discover_rules_is_fast_enough() -> None:
+        t0 = time.time()
+        _ensure_repo_on_syspath()
+        importlib.import_module("thefuck")
+        names = _iter_rule_module_names(limit=200)
+        dt = time.time() - t0
+    
+>       assert len(names) >= 10
+E       AssertionError: assert 7 >= 10
+E        +  where 7 = len(['thefuck.rules.cd', 'thefuck.rules.grep_order', 'thefuck.rules.missing_hyphen', 'thefuck.rules.no_such_file', 'thefuck.rules.sudo', 'thefuck.rules.unknown_command', ...])
+
+tests\TheFuck\performance_test.py:45: AssertionError
+____________ test_performance_import_first_30_rules_is_fast_enough ____________
+
+    def test_performance_import_first_30_rules_is_fast_enough() -> None:
+        names = _iter_rule_module_names(limit=30)
+        t0 = time.time()
+        ok = 0
+        for n in names:
+            try:
+                importlib.import_module(n)
+                ok += 1
+            except Exception:
+                continue
+        dt = time.time() - t0
+    
+>       assert ok >= 10
+E       assert 7 >= 10
+
+tests\TheFuck\performance_test.py:61: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/TheFuck/performance_test.py::test_performance_import_and_discover_rules_is_fast_enough
+FAILED tests/TheFuck/performance_test.py::test_performance_import_first_30_rules_is_fast_enough
+2 failed in 0.38s

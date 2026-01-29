@@ -1,0 +1,42 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_pypdf_performance_smoke _________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-342/test_pypdf_performance_smoke0')
+
+    def test_pypdf_performance_smoke(tmp_path: Path) -> None:
+        """Smoke test to ensure that the performance benchmark runs successfully."""
+>       metrics = run_pypdf_performance_benchmark(tmp_path)
+
+tests\PyPDF\performance_test.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\performance_test.py:57: in run_pypdf_performance_benchmark
+    reader = PdfReader(str(path))
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x00000193BEE942E0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/performance_test.py::test_pypdf_performance_smoke - Attrib...
+1 failed in 0.36s

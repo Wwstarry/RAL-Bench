@@ -1,0 +1,175 @@
+<contract>
+1) Repository layout
+- Top-level package: loguru/
+  - loguru/__init__.py
+    - Exposes: logger (singleton), and optionally __all__ including "logger"
+    - Re-exports core types if needed by tests (minimal)
+  - loguru/_logger.py
+    - Contains the implementation of the Logger class (or compatible stub) and supporting internal classes/functions.
+- No other required modules, but implementation may include private helpers inside loguru/_logger.py only.
+
+2) Public API surface
+2.1 Module: loguru.__init__
+- from ._logger import logger
+- Optionally: from . import _logger as _logger (tests may import loguru._logger)
+
+2.2 Module: loguru._logger
+- A singleton instance: logger: Logger
+
+- Class Logger with at least the following methods/signatures (API-compatible subset):
+  - add(self, sink, *, level="DEBUG", format="{time} | {level} | {message}", filter=None, colorize=False,
+        serialize=False, backtrace=False, diagnose=False, enqueue=False, catch=True, **kwargs) -> int
+    - sink can be:
+      * callable(record_str_or_message) OR callable(message_obj) (implementation chooses, but must satisfy tests)
+      * file path (str/pathlike) to append text to
+      * file-like object with .write(str)
+    - returns an integer handler_id
+  - remove(self, handler_id=None) -> None
+    - if handler_id is None: remove all sinks
+    - else: remove the sink with this id; unknown id: no-op or raise depending on tests (prefer no-op for compatibility)
+  - bind(self, **kwargs) -> Logger
+    - returns a new Logger view with extra contextual values merged
+  - opt(self, *, depth=0, exception=None, record=False, lazy=False, colors=False, raw=False, capture=True, ansi=False) -> Logger
+    - returns a Logger view that affects the next log call options (at least exception/raw/lazy)
+  - log(self, level, message, *args, **kwargs) -> None
+  - debug/info/warning/error(self, message, *args, **kwargs) -> None
+  - exception(self, message, *args, **kwargs) -> None
+    - logs at "ERROR" with current exception info if within an except block
+  - enable(self, name) -> None and disable(self, name) -> None
+    - minimal: allow global enabling/disabling based on logger name/module (see behavior)
+  - level(self, name, no=None, color=None, icon=None) -> dict-like or object
+    - minimal: allow retrieving numeric severity for built-in levels used by tests
+  - configure(self, *, handlers=None, levels=None, extra=None, patcher=None, activation=None) -> None
+    - minimal: allow setting handlers in bulk and default extra; activation can drive enable/disable
+
+- Minimum levels recognized:
+  - "TRACE"(5), "DEBUG"(10), "INFO"(20), "SUCCESS"(25 optional), "WARNING"(30), "ERROR"(40), "CRITICAL"(50)
+  - Accept both name and numeric for handler level filtering and logger.log.
+
+- Record/Message structures (internal, no strict public requirement unless tests introspect):
+  - A record dict with keys at least: time, level, message, extra, exception
+  - A message wrapper for file-like sinks can be avoided; output string must match expectations.
+
+3) Behavioral contract
+3.1 Core logging flow
+- Logger maintains:
+  - A registry of handlers/sinks keyed by integer ids, preserving insertion order.
+  - A global "extra" context dict and per-Logger bound extra dict; bind() merges immutably.
+  - A per-call option state from opt() that applies to the next emitted message (returned Logger view) without mutating the base instance.
+
+- Emitting a log event:
+  - Determine if logging is enabled (global/module activation rules); if disabled, do nothing.
+  - Build a record:
+    - time: aware or naive datetime; formatting must be deterministic for tests (see formatting).
+    - level: an object/dict containing at least name and number.
+    - message: formatted from message + args/kwargs like str.format if braces present, else %-style is not required unless tests.
+      - Required: support logger.info("Hello {}", name) style OR logger.info("Hello {}", name) depending on tests; implement both:
+        * If message contains "{}", use .format(*args, **kwargs) with braces.
+        * Else if args present, fallback to message.format(*args, **kwargs).
+        * If formatting fails, fallback to str(message) + " " + repr(args) (do not crash).
+    - extra: merged dict from base extra, bound extra, and any kwargs that are meant to be captured:
+      - Minimal: bind() values appear in {extra[...]} formatting.
+    - exception: either None or a tuple/info used to render traceback if opt(exception=...) or logger.exception().
+
+  - For each handler, if record.level >= handler.level and filter passes:
+    - Render output string using handler.format (string template or callable formatter).
+    - Write to sink, ensuring ordering is preserved across handlers and calls.
+
+3.2 Formatting contract
+- Handler format can be:
+  - a format string containing placeholders in braces, at least:
+    - {time} : timestamp string
+    - {level} : level name
+    - {message} : the computed message
+    - {extra} : dict repr or ability to access keys via {extra[key]}
+    - {exception} : formatted exception text (including traceback) or empty string
+  - Support nested placeholders:
+    - {time:YYYY-MM-DD HH:mm:ss} style is NOT required unless tests; but must provide stable default formatting.
+- Default timestamp formatting:
+  - Use local time with milliseconds: "YYYY-MM-DD HH:MM:SS.mmm"
+  - Ensure fixed-width and deterministic (zero padded).
+- Line breaks:
+  - Each emitted log line ends with "\n" unless raw=True option is set via opt(raw=True) which suppresses automatic newline and formatting wrapping (message written as-is).
+  - Preserve message internal newlines; do not add extra indentation unless tests require none.
+- Exception formatting:
+  - If exception is present:
+    - Append a newline + traceback text after the formatted line OR include {exception} placeholder expansion.
+    - Traceback must be produced using Python traceback.format_exception.
+    - If handler format contains "{exception}", replace with rendered exception text (or "" if none). If not present, append exception text after message separated by "\n".
+  - logger.exception(msg) should capture current exception via sys.exc_info() and behave like error with exception.
+
+3.3 Sinks
+- Callable sink:
+  - Called with the final rendered string (including trailing newline unless raw=True).
+- File path sink (str/pathlike):
+  - Open in append mode with encoding="utf-8" and newline="" so written string is not altered; keep file handle open per handler.
+  - Close file handle on remove().
+- File-like sink:
+  - Must have write(str); call write with rendered string; flush if flush exists (best effort).
+- remove(None) closes all file handlers and clears handlers.
+
+3.4 Filtering, enabling/disabling, propagation
+- Handler-level filtering:
+  - By minimum severity.
+- filter parameter on add():
+  - If callable(record)->bool: use it.
+  - If string: treat as module name prefix; allow only records whose record["name"] startswith(filter).
+  - If dict-like mapping module->bool: use activation rules (minimal).
+- enable(name)/disable(name):
+  - Maintain an activation list that can enable/disable by prefix matching on record["name"] (logger name).
+  - If no explicit name is provided by tests, record["name"] can default to caller module derived from stack (inspect) with opt(depth) support.
+- bind():
+  - bound extra must propagate to derived Logger instances and be merged for subsequent calls.
+  - bind does not mutate base logger.
+- opt(depth=...):
+  - depth adjusts the stack frame used to compute caller context like module name, function, line (only needed if tests assert these fields).
+  - If not asserted, can still compute minimal record["name"] via inspect.stack()[depth+N].
+
+3.5 Ordering and determinism
+- Handler invocation order is the order they were added (ascending handler_id).
+- For a given log call, all handlers see the same computed record and same formatted content (except handler-specific format).
+- No asynchronous behavior (enqueue ignored or treated as False).
+- No colorization unless explicitly requested; colorize parameter can be accepted but ignored (must not emit ANSI codes unexpectedly).
+
+3.6 Error handling
+- Logging should not raise during normal operation:
+  - If a sink fails (exception during write/call), behavior depends on catch:
+    - If handler.catch is True (default): swallow exception (optionally print to stderr, but tests likely expect silence).
+    - If False: re-raise.
+- Invalid level names:
+  - On add(level=...) or log(level,...): raise ValueError if level cannot be resolved to a number (unless tests expect fallback).
+- remove(id) unknown:
+  - Prefer silent no-op for compatibility.
+
+4) Acceptance checklist
+- Import/structure:
+  - `import loguru; from loguru import logger` works.
+  - `import loguru._logger` works and exposes a `logger` object.
+- Sinks:
+  - `logger.add(callable_sink)` returns an int id; emitted messages call sink with expected text.
+  - `logger.add("file.log")` appends lines to file; `logger.remove(id)` stops writing and closes file.
+  - `logger.remove()` removes all handlers.
+- Levels:
+  - `logger.debug/info/warning/error("msg")` emit at correct severity and are filtered by handler level.
+  - `logger.log("INFO", "msg")` works; numeric levels also accepted if used by tests.
+- Formatting:
+  - Default output includes timestamp, level, message in the correct order per handler format.
+  - Trailing newline behavior matches snapshot expectations; raw=True suppresses extra newline/formatting.
+  - Bound extras from `logger.bind(a=1)` appear in formatting via `{extra[a]}` and propagate through chained binds.
+- opt/exception:
+  - `logger.opt(exception=True).error("x")` includes traceback when in exception context.
+  - `logger.exception("x")` logs with traceback inside an except block.
+- Determinism:
+  - Output ordering matches handler add order and call order.
+  - No unexpected ANSI codes, no extra spaces, no duplicated newlines.
+- Enable/disable:
+  - `logger.disable("module")` prevents emission for matching caller module name; `enable` restores.
+  - Activation is prefix-based and affects subsequent calls.
+
+5) Non-goals / constraints
+- Pure Python only; no external dependencies.
+- No multiprocessing/async queueing; ignore enqueue/backtrace/diagnose/serialize/colorize unless tests explicitly require acceptance of parameters (must not crash).
+- No full Loguru feature parity; only implement core behaviors described above and those exercised by black-box tests.
+- Do not emit to stderr/stdout unless user adds such a sink explicitly.
+- Avoid non-deterministic formatting (e.g., varying timezone abbreviations); use a consistent timestamp representation.
+</contract>

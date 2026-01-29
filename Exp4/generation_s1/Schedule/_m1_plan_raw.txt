@@ -1,0 +1,197 @@
+<plan>
+1) Repository layout and import graph
+- Repository tree (minimal):
+  - schedule/
+    - __init__.py
+- Import graph:
+  - schedule/__init__.py is the sole implementation module and exports:
+    - every (function)
+    - Job (class)
+    - Scheduler (class)
+    - plus convenience module-level functions delegating to a default Scheduler instance:
+      - run_pending, run_all, clear, cancel_job, next_run, idle_seconds, jobs (property-like list)
+- No external dependencies; only stdlib: datetime, time, functools, re, random (optional), typing.
+
+2) Public APIs to implement (modules/classes/functions)
+A) Top-level module `schedule` (schedule/__init__.py)
+- Public objects:
+  - class Scheduler
+  - class Job
+  - def every(interval: int = 1) -> Job  (bound to default scheduler)
+- Default scheduler instance:
+  - default_scheduler = Scheduler()
+- Module-level convenience wrappers (expected by many black-box tests for the reference project):
+  - def every(interval=1): return default_scheduler.every(interval)
+  - def run_pending(): return default_scheduler.run_pending()
+  - def run_all(delay_seconds: int = 0): return default_scheduler.run_all(delay_seconds=delay_seconds)
+  - def clear(tag=None): return default_scheduler.clear(tag=tag)
+  - def cancel_job(job): return default_scheduler.cancel_job(job)
+  - def get_jobs(tag=None): return default_scheduler.get_jobs(tag=tag)
+  - @property-like variable: jobs = default_scheduler.jobs (keep in sync by referencing the list)
+  - def next_run(): return default_scheduler.next_run
+  - def idle_seconds(): return default_scheduler.idle_seconds
+  - (Optional but commonly used) def repeat(job_func): decorator to schedule repeated callables; can be minimal.
+
+B) Scheduler class
+- Attributes:
+  - jobs: List[Job]
+- Methods:
+  - every(interval: int = 1) -> Job
+    - Create Job bound to this scheduler; append on .do(...) not at creation.
+  - run_pending() -> List[Any]
+    - Run all jobs whose should_run is True at “now”; do not run missed jobs multiple times.
+    - Return list of return values from executed jobs (reference behavior returns list).
+  - run_all(delay_seconds: int = 0) -> List[Any]
+    - Run all jobs regardless of schedule; between jobs sleep(delay_seconds) if > 0.
+    - Return list of return values.
+  - clear(tag=None) -> None
+    - If tag is None: remove all jobs.
+    - Else remove jobs that have tag.
+  - cancel_job(job: Job) -> None
+    - Remove job from jobs if present.
+  - get_jobs(tag=None) -> List[Job]
+    - Return copy of all jobs or those matching tag.
+- Properties:
+  - next_run -> Optional[datetime]
+    - Earliest job.next_run among scheduled jobs with next_run set.
+  - idle_seconds -> Optional[float]
+    - (next_run - now).total_seconds(); None if no jobs.
+- Internal time source:
+  - Use datetime.datetime.now() at call-time, but via a module-level indirection function (e.g., _datetime_now()) so monkeypatching schedule.datetime or schedule._datetime_now is deterministic.
+  - Do not store “now” globally; compute when needed.
+
+C) Job class
+- Construction: Job(interval: int, scheduler: Scheduler)
+- Fluent scheduling fields:
+  - interval: int
+  - latest: Optional[int] (for “to” range)
+  - unit: Optional[str] in {"seconds","minutes","hours","days","weeks"}
+  - start_day: Optional[str] in {"monday",...,"sunday"} (for weekly jobs)
+  - at_time: Optional[datetime.time] (for .at("HH:MM" or "HH:MM:SS"))
+  - at_time_zone: ignored (pure python minimal; not required for core tests)
+  - job_func: Optional[callable]
+  - job_func_args/kwargs
+  - tags: Set[Hashable]
+  - last_run: Optional[datetime]
+  - next_run: Optional[datetime]
+- Fluent API:
+  - Properties that set the unit and return self:
+    - .second / .seconds
+    - .minute / .minutes
+    - .hour / .hours
+    - .day / .days
+    - .week / .weeks
+  - Day-of-week properties that set start_day and unit="weeks":
+    - .monday .tuesday .wednesday .thursday .friday .saturday .sunday
+  - def at(time_str: str) -> Job
+    - Valid when unit in {"days","hours","minutes"} or when start_day is set (weekly).
+    - Parse "HH:MM" or "HH:MM:SS"; store datetime.time.
+  - def to(latest: int) -> Job
+    - Enables randomized interval: next interval is random between interval and latest inclusive.
+  - def tag(*tags) -> Job
+    - Add tags; return self.
+  - def do(job_func, *args, **kwargs) -> Job
+    - Bind function; store args; schedule first next_run via _schedule_next_run(); add job to scheduler.jobs if not already present.
+    - Return self.
+- Execution API:
+  - def run() -> Any
+    - Execute job_func(*args, **kwargs).
+    - Set last_run to now.
+    - Reschedule next_run via _schedule_next_run().
+    - If job_func returns CancelJob sentinel, remove self from scheduler.
+  - @property def should_run -> bool
+    - now >= next_run (and next_run not None)
+  - def __repr__ reasonably informative (not required but helpful)
+- Cancellation sentinel:
+  - Implement a CancelJob object/class in module scope (often used in reference schedule). If callable returns CancelJob, job is canceled.
+
+3) Key behaviors & edge cases
+- Time determinism / mocking:
+  - All “current time” acquisition goes through schedule.datetime.datetime.now() OR through a module-level function (preferred):
+    - def _now(): return datetime.datetime.now()
+  - In tests, monkeypatching schedule.datetime or schedule._now must affect scheduling; avoid “from datetime import datetime” because that bypasses monkeypatching.
+  - Use naive datetimes (no tz) unless tests force otherwise (core schedule uses naive local time).
+
+- next_run calculation rules (core expectations):
+  - For simple units (seconds/minutes/hours/days/weeks) without .at():
+    - next_run = now + period where period = interval (or random between interval..latest) * unit seconds.
+    - If interval == 1, accept schedule.every().day etc.
+  - .to(latest):
+    - Each time _schedule_next_run is called, choose a new interval value in [interval, latest]; do not mutate the original “interval”; store chosen interval in a temporary computed step or store in “_interval”.
+  - .at("HH:MM" / "HH:MM:SS"):
+    - For daily jobs: schedule at next occurrence of that clock time; if time today already passed, schedule tomorrow at that time; then apply interval days (>=1) by adding (interval-1) days if needed after finding base day.
+    - For hourly jobs: only minutes(:seconds) part matters in reference; but simplest: allow full HH:MM:SS and treat as minute/second within the hour; schedule within current/next hour accordingly. Many tests only cover hour.at(":MM") behavior in reference; implement permissive parsing:
+      - If unit is "hours", accept "MM:SS" or ":MM" is not required; but implement accepting "HH:MM" by ignoring HH and using MM. For simplicity for black-box tests: accept "HH:MM" too and use MM,SS from it.
+    - For minute jobs: accept "SS" or "MM:SS"? Minimal: accept "HH:MM(:SS)" and use SS; but black-box likely tests minute.at(":SS"). Implement parsing of:
+      - "HH:MM(:SS)" always; additionally allow "MM:SS" and ":SS" by normalizing.
+  - Weekly jobs with weekday (e.g., every().monday):
+    - unit becomes weeks, start_day is set.
+    - next_run is the next occurrence of that weekday at:
+      - at_time if provided else current time-of-day at scheduling moment (reference default is “now” time-of-day, effectively next Monday at current time, but since next_run must be in future, if today is Monday and time has already passed? For “every().monday” called at now, next is next Monday at same time unless it’s before now; reference typically schedules next Monday if weekday matches but time-of-day already passed then schedule one week ahead).
+    - Algorithm:
+      - Compute days_ahead = (target_weekday - now.weekday()) % 7
+      - candidate_date = now.date() + timedelta(days=days_ahead)
+      - candidate_dt = datetime(candidate_date, at_time if set else now.time())
+      - If candidate_dt <= now: candidate_dt += timedelta(weeks=1)
+      - Then apply interval in weeks: candidate_dt += timedelta(weeks=interval-1) if interval>1 (or multiply weeks by interval when start_day set).
+- Missed runs:
+  - run_pending executes each due job at most once per call, even if it was overdue by multiple intervals.
+- Ordering:
+  - run_pending should run jobs in order of next_run ascending (reference sorts due jobs to be deterministic).
+- Job addition:
+  - In reference, Job is created by scheduler.every but only appended to scheduler.jobs on .do(). Implement that to match typical tests checking len(jobs) after do().
+- Clearing by tag:
+  - Jobs can be tagged by any hashable; clear(tag) removes any job with that tag in job.tags.
+- job equality / identity:
+  - cancel_job uses object identity; safe.
+- Validation:
+  - Disallow invalid .at formats with ValueError (tests may check).
+  - Disallow .at on units not supporting it (e.g., seconds/weeks without weekday) with ScheduleValueError-like exception; implement custom ScheduleValueError(ValueError).
+- Sleeping:
+  - run_all(delay_seconds): call time.sleep(delay_seconds) between runs if delay_seconds > 0. Use time.sleep from module import (monkeypatchable by tests if they patch schedule.time.sleep; so import time module, call time.sleep).
+
+4) Minimal internal test plan (what to test and why)
+- API surface:
+  - from schedule import every, Job, Scheduler; module-level default scheduler functions work.
+- Basic scheduling:
+  - every(10).seconds.do(fn) sets unit, interval; next_run ~= now + 10s.
+  - every().hour.do(fn) interval=1.
+- .at parsing:
+  - day.at("10:30") schedules next 10:30; if now before 10:30 today then today else tomorrow.
+  - day.at("10:30:15") includes seconds.
+  - Invalid "25:00" raises.
+- Weekday scheduling:
+  - every().monday.do(fn) from a mocked Wednesday schedules upcoming Monday.
+  - every().monday.at("12:00").do(fn) time honored; if now is Monday 13:00 then next week.
+- run_pending semantics:
+  - When now < next_run, job not run.
+  - When now >= next_run, job runs once and reschedules.
+  - Overdue by multiple intervals still runs once.
+  - Due jobs execute in next_run order.
+- run_all:
+  - runs all jobs regardless of should_run, returns results list; delay_seconds calls sleep correct count.
+- Tagging/clearing:
+  - job.tag("x"); scheduler.clear("x") removes.
+  - scheduler.get_jobs("x") returns only tagged.
+- CancelJob:
+  - job function returns CancelJob => job removed and not rescheduled.
+- Deterministic time:
+  - Monkeypatch schedule._now (or schedule.datetime.datetime.now) to fixed times and verify next_run computations are stable and do not use cached datetime class.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: .at() format variants in reference schedule (supports ":MM", ":SS", "MM:SS", etc.) and tests may rely on them.
+  - Mitigation: Implement permissive parser that accepts:
+    - "HH:MM", "HH:MM:SS"
+    - "MM:SS"
+    - ":MM" and ":SS" (leading colon)
+    - Single number "SS"
+    Normalize into (hour, minute, second) depending on unit; validate ranges.
+- Risk: Weekly/day/hour/minute .at semantics differ subtly (reference uses specific normalization).
+  - Mitigation: Follow reference conceptual behavior: .day.at uses absolute clock time; .hour.at uses minute/second within hour; .minute.at uses second within minute. Implement unit-specific interpretation after parsing.
+- Risk: Monkeypatching datetime
+  - Mitigation: Avoid “from datetime import datetime”; always reference schedule.datetime module object. Provide _now indirection and ensure all code uses it.
+- Risk: Sorting stability and job list mutation during iteration (CancelJob removes current job).
+  - Mitigation: In run_pending, iterate over a snapshot of runnable jobs sorted by next_run; when running, handle self-removal safely.
+- Risk: next_run for interval>1 with weekday and .at
+  - Mitigation: Compute base next occurrence, then add (interval-1) weeks only after ensuring base is future; match reference behavior by using weeks * interval if start_day set.
+</plan>

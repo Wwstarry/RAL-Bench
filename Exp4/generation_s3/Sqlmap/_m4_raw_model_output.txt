@@ -1,0 +1,288 @@
+<file:name=sqlmap.py>
+#!/usr/bin/env python3
+import sys
+
+from lib.parse.cmdline import cmdLineParser
+from lib.core.option import initOptions, init
+from lib.controller.controller import start
+
+
+def main(argv=None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    try:
+        options = cmdLineParser(argv)
+    except SystemExit as ex:
+        # argparse uses SystemExit for -h/--help and for parsing errors.
+        # Let it propagate as a clean CLI exit.
+        return int(ex.code) if ex.code is not None else 0
+
+    # Initialize shared runtime state
+    initOptions(options)
+    init(options)
+
+    # If parser marked an early termination (e.g., -hh handled without argparse exit)
+    if getattr(options, "_earlyExit", False):
+        return 0
+
+    try:
+        ret = start()
+    except SystemExit as ex:
+        return int(ex.code) if ex.code is not None else 0
+    except Exception as ex:
+        # Defensive: never show a traceback in typical harness runs.
+        sys.stderr.write(f"ERROR: {ex}\n")
+        return 1
+
+    return 0 if ret is None else int(ret)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=lib/__init__.py>
+# Minimal package initializer for sqlmap-compatible layout.
+</file>
+
+<file:name=lib/parse/__init__.py>
+# parse package
+</file>
+
+<file:name=lib/parse/cmdline.py>
+import argparse
+import sys
+
+from lib.core.settings import VERSION, DESCRIPTION
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    """
+    Custom parser to keep behavior deterministic and informative, and to ensure
+    no tracebacks are emitted for invalid arguments.
+    """
+
+    def error(self, message):
+        # Match argparse convention: print usage then error message, exit code 2.
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: error: {message}\n")
+
+
+def _build_parser(advanced: bool = False) -> argparse.ArgumentParser:
+    epilog_lines = []
+    if advanced:
+        epilog_lines.extend(
+            [
+                "Advanced help:",
+                "  This is a lightweight, test-oriented, sqlmap-compatible CLI stub.",
+                "  It does not perform real SQL injection testing.",
+                "",
+                "Examples:",
+                "  python sqlmap.py -u http://example.invalid/?id=1",
+                "  python sqlmap.py --data \"id=1\" -u http://example.invalid/",
+            ]
+        )
+
+    parser = _ArgumentParser(
+        prog="sqlmap.py",
+        add_help=True,
+        description=DESCRIPTION,
+        formatter_class=argparse.RawTextHelpFormatter if advanced else argparse.HelpFormatter,
+        epilog="\n".join(epilog_lines) if epilog_lines else None,
+    )
+
+    # Core/basic options used by typical harness checks
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"sqlmap/{VERSION}",
+        help="Show program's version number and exit.",
+    )
+
+    # sqlmap accepts -hh for advanced help; handle explicitly.
+    parser.add_argument(
+        "-hh",
+        action="store_true",
+        dest="advancedHelp",
+        default=False,
+        help="Show advanced help message and exit.",
+    )
+
+    # Minimal target options (non-functional, but recognized)
+    parser.add_argument(
+        "-u",
+        "--url",
+        dest="url",
+        help="Target URL (e.g. \"http://www.site.com/vuln.php?id=1\")",
+    )
+    parser.add_argument(
+        "--data",
+        dest="data",
+        help="Data string to be sent through POST (e.g. \"id=1\")",
+    )
+
+    # A couple of common switches; accepted but not implemented.
+    parser.add_argument(
+        "--batch",
+        action="store_true",
+        default=False,
+        help="Never ask for user input, use default behavior.",
+    )
+    parser.add_argument(
+        "-v",
+        dest="verbose",
+        type=int,
+        default=1,
+        help="Verbosity level: 0-6 (default 1).",
+    )
+
+    return parser
+
+
+def cmdLineParser(argv=None):
+    """
+    Parse command line options.
+
+    Must support: -h, -hh, --version.
+    Must fail cleanly for invalid args (argparse handles that via SystemExit).
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
+    # If -hh is present, show advanced help and exit 0 (distinct from -h output).
+    if any(arg == "-hh" for arg in argv):
+        parser = _build_parser(advanced=True)
+        parser.print_help(sys.stdout)
+        ns = argparse.Namespace()
+        ns._earlyExit = True
+        ns.advancedHelp = True
+        return ns
+
+    parser = _build_parser(advanced=False)
+    options = parser.parse_args(argv)
+
+    # Normalize and sanity bounds
+    try:
+        if options.verbose is not None:
+            options.verbose = int(options.verbose)
+    except Exception:
+        parser.error("argument -v: invalid int value")
+
+    if options.verbose < 0 or options.verbose > 6:
+        parser.error("argument -v: expected a value in range 0..6")
+
+    # marker used by entrypoint
+    setattr(options, "_earlyExit", False)
+    return options
+</file>
+
+<file:name=lib/core/__init__.py>
+# core package
+</file>
+
+<file:name=lib/core/settings.py>
+VERSION = "0.0.0"
+DESCRIPTION = "sqlmap - automatic SQL injection and database takeover tool (stub)"
+</file>
+
+<file:name=lib/core/data.py>
+from types import SimpleNamespace
+
+# These must be importable and mutable, and safe at import time.
+cmdLineOptions = None
+
+# Runtime configuration and knowledge-base namespaces.
+conf = SimpleNamespace()
+kb = SimpleNamespace()
+</file>
+
+<file:name=lib/core/option.py>
+from types import SimpleNamespace
+
+from lib.core import data
+
+
+def _ensure_namespace(obj, name: str) -> SimpleNamespace:
+    if obj is None:
+        obj = SimpleNamespace()
+    if not hasattr(obj, "__dict__"):
+        # Fallback to a fresh namespace if some non-namespace was assigned.
+        obj = SimpleNamespace()
+    return obj
+
+
+def initOptions(options) -> None:
+    """
+    Populate global cmdLineOptions and conf defaults based on parsed options.
+    """
+    data.cmdLineOptions = options
+    data.conf = _ensure_namespace(getattr(data, "conf", None), "conf")
+    data.kb = _ensure_namespace(getattr(data, "kb", None), "kb")
+
+    # Copy a minimal set of parsed options into conf (sqlmap style).
+    # Tests may read/write these attributes.
+    for key in ("url", "data", "batch", "verbose"):
+        if hasattr(options, key):
+            setattr(data.conf, key, getattr(options, key))
+
+    # Derived/extra defaults expected to exist in some integrations
+    if not hasattr(data.conf, "target"):
+        data.conf.target = None
+    if not hasattr(data.conf, "threads"):
+        data.conf.threads = 1
+
+
+def init(options=None) -> None:
+    """
+    Ensure conf and kb exist and are initialized. Safe no-op if nothing provided.
+    """
+    data.conf = _ensure_namespace(getattr(data, "conf", None), "conf")
+    data.kb = _ensure_namespace(getattr(data, "kb", None), "kb")
+
+    if options is not None:
+        data.cmdLineOptions = options
+    elif data.cmdLineOptions is None:
+        # Nothing to do, but keep safe invariants
+        data.cmdLineOptions = None
+
+    # Ensure a couple of kb flags exist
+    if not hasattr(data.kb, "banner"):
+        data.kb.banner = None
+    if not hasattr(data.kb, "injectionTested"):
+        data.kb.injectionTested = False
+</file>
+
+<file:name=lib/controller/__init__.py>
+# controller package
+</file>
+
+<file:name=lib/controller/controller.py>
+import sys
+
+from lib.core.data import conf
+
+
+def start():
+    """
+    Main controller entry point.
+
+    This stub does not perform real testing; it just validates that a target is provided
+    and exits deterministically.
+    """
+    url = getattr(conf, "url", None)
+    data_str = getattr(conf, "data", None)
+
+    if not url and not data_str:
+        sys.stderr.write("No target provided. Use -u/--url and/or --data.\n")
+        return 1
+
+    # Deterministic, benign behavior
+    if url:
+        sys.stdout.write(f"Target: {url}\n")
+    if data_str:
+        sys.stdout.write("Data: (provided)\n")
+
+    sys.stdout.write("NOTE: This is a stub implementation; no real SQL injection tests are performed.\n")
+    return 0
+</file>

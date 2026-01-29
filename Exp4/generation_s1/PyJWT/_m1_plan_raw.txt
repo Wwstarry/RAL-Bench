@@ -1,0 +1,136 @@
+<plan>
+1) Repository layout and import graph
+- Files
+  - jwt/__init__.py
+    - Re-export public functions and exceptions:
+      - from .api_jwt import encode, decode
+      - from .exceptions import DecodeError, InvalidSignatureError, ExpiredSignatureError
+    - Provide __all__ accordingly.
+  - jwt/exceptions.py
+    - Define exception hierarchy compatible with core PyJWT usage in tests.
+  - jwt/api_jwt.py
+    - Implement encode/decode plus minimal helpers:
+      - base64url encode/decode
+      - JSON encode/decode
+      - HMAC-SHA256 signing/verification
+      - claim validation for exp with leeway/options
+
+- Import graph
+  - jwt/__init__.py imports jwt.api_jwt and jwt.exceptions
+  - jwt/api_jwt.py imports jwt.exceptions and stdlib modules only (json, base64, hmac, hashlib, time, datetime)
+
+2) Public APIs to implement (modules/classes/functions)
+- jwt.encode(payload, key, algorithm="HS256", **kwargs)
+  - Implemented in jwt/api_jwt.py and re-exported in jwt/__init__.py.
+  - Parameters:
+    - payload: dict (JSON object)
+    - key: str or bytes
+    - algorithm: only "HS256" required (others raise NotImplementedError or DecodeError; prefer DecodeError-like behavior only if tests expect)
+    - **kwargs: accept but ignore unsupported args used by PyJWT tests (e.g., headers=, json_encoder=) as needed. Implement headers= support if simple.
+  - Returns:
+    - compact JWT string: header.payload.signature (all base64url w/o padding), UTF-8 str.
+
+- jwt.decode(token, key, algorithms=["HS256"], options=None, leeway=0, **kwargs)
+  - Implemented in jwt/api_jwt.py and re-exported in jwt/__init__.py.
+  - Parameters:
+    - token: str or bytes
+    - key: str or bytes (required for verification in these tests)
+    - algorithms: list of allowed alg strings. If verification is expected and algorithms is None/empty -> raise DecodeError.
+    - options: dict controlling verification behavior. Support at least:
+      - verify_signature (default True)
+      - verify_exp (default True)
+    - leeway: int/float seconds or datetime.timedelta; used for exp validation.
+    - **kwargs: accept but ignore unsupported ones possibly passed by tests (e.g., audience, issuer); ensure they don’t crash.
+  - Returns:
+    - decoded payload as dict.
+
+- jwt.exceptions
+  - Define at least:
+    - class PyJWTError(Exception) (optional base)
+    - class DecodeError(PyJWTError)
+    - class InvalidSignatureError(DecodeError)
+    - class ExpiredSignatureError(DecodeError)
+  - Ensure these are importable as jwt.DecodeError etc via jwt/__init__.py.
+
+3) Key behaviors & edge cases
+- JWT construction (encode)
+  - Header:
+    - Default header: {"typ": "JWT", "alg": algorithm}
+    - If headers= is provided in kwargs, merge user headers over defaults, but ensure "alg" reflects selected algorithm.
+  - Payload:
+    - Must be JSON-serializable dict.
+    - Use json.dumps(payload, separators=(",", ":"), sort_keys=True, ensure_ascii=False) for stable output (tests may compare exact token strings). If exact ordering is not asserted, sort_keys still okay; but stable is safer.
+  - base64url:
+    - Use urlsafe_b64encode and strip "=" padding.
+    - For decoding, add required padding back.
+  - Signature:
+    - For HS256: HMAC-SHA256 over ASCII bytes of “base64url(header) + b'.' + base64url(payload)”.
+    - signature segment is base64url of raw digest bytes.
+
+- JWT parsing and verification (decode)
+  - Token format:
+    - Accept str/bytes; if bytes, decode as UTF-8.
+    - Split on "." into exactly 3 parts, else raise DecodeError.
+    - base64url-decode header and payload; json.loads to dict; failures raise DecodeError.
+  - Algorithm handling:
+    - Determine alg from header["alg"]; if missing raise DecodeError.
+    - If options.verify_signature is True:
+      - If algorithms is not provided (None) or empty, raise DecodeError (per requirement).
+      - If header alg not in algorithms, raise DecodeError.
+      - Only implement HS256; if alg != "HS256", raise DecodeError (or NotImplementedError; DecodeError is safer for tests).
+  - Signature verification:
+    - Recompute expected signature using provided key and compare with token signature using hmac.compare_digest.
+    - On mismatch raise InvalidSignatureError.
+  - Key handling:
+    - If key is str, encode to UTF-8 bytes; if bytes use directly. If key is None and verify_signature True, raise DecodeError.
+  - Exp claim validation:
+    - Controlled by options.get("verify_exp", True) (default True).
+    - If payload contains "exp":
+      - Accept int/float Unix timestamp, or datetime (if provided by tests); for datetime, convert to timestamp via exp.timestamp() assuming aware/naive treated as UTC-like (match simple behavior).
+      - Current time = time.time().
+      - Compute leeway seconds:
+        - If leeway is datetime.timedelta, use leeway.total_seconds()
+        - Else cast to float.
+      - If now > exp + leeway: raise ExpiredSignatureError.
+    - If "exp" missing: do nothing (no error).
+  - options defaults:
+    - options is None => {}.
+    - verify_signature default True
+    - verify_exp default True, but if verify_signature is False, still respect verify_exp (PyJWT typically allows independent controls; tests likely rely on verify_exp True when verifying).
+  - Robustness:
+    - Ensure all decoding errors (bad segments, unicode errors, json errors, missing required fields) raise DecodeError, not ValueError/KeyError.
+
+4) Minimal internal test plan (what to test and why)
+- Encode/Decode roundtrip
+  - payload={"a":1}, key="secret", alg HS256: decode(encode(...), key, algorithms=["HS256"]) returns same payload.
+- Signature verification
+  - Wrong key: decode(token, "wrong", algorithms=["HS256"]) raises InvalidSignatureError.
+  - Missing algorithms when verify_signature True: decode(token, key, algorithms=None) raises DecodeError; also algorithms=[] raises DecodeError.
+- Token structure errors
+  - Token with not 3 segments => DecodeError.
+  - Corrupted base64 in header/payload => DecodeError.
+  - Non-JSON payload => DecodeError.
+- exp validation
+  - payload with exp = now-10: decode raises ExpiredSignatureError (verify_exp default True).
+  - Same token with leeway=20: decode succeeds.
+  - exp in the future: decode succeeds.
+- Options behavior
+  - options={"verify_signature": False}: decode returns payload without requiring algorithms list (ensure doesn’t raise DecodeError for missing algorithms in this mode).
+  - options={"verify_exp": False} with expired token: decode succeeds.
+- Key types
+  - key bytes vs str produce same results.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Exact token string comparisons in tests (header/payload JSON ordering/spacing)
+  - Mitigation: use compact separators and sort_keys=True for deterministic JSON; stable header field inclusion (“typ” and “alg”).
+- Leeway type handling (int vs timedelta)
+  - Mitigation: explicitly detect timedelta and normalize to seconds; coerce numeric to float.
+- Exception types expected by tests
+  - Mitigation: ensure DecodeError/InvalidSignatureError/ExpiredSignatureError are defined and raised in correct scenarios; avoid leaking built-in exceptions.
+- Algorithm enforcement logic
+  - Mitigation: if verify_signature True, require algorithms explicitly; check header alg against allowed list; only HS256 supported.
+- Base64url padding and decode corner cases
+  - Mitigation: implement helper that restores padding to length multiple of 4; treat decode failures as DecodeError.
+- Time handling and timezone issues with datetime exp
+  - Mitigation: accept numeric exp primarily; if datetime appears, use .timestamp() and assume UTC-like; keep behavior simple and consistent with tests (likely numeric).
+</plan>

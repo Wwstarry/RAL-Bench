@@ -1,0 +1,187 @@
+<plan>
+1) Repository layout and import graph
+- thefuck/
+  - __init__.py
+    - expose __version__ and key helpers if tests import from package root
+  - __main__.py
+    - calls thefuck.main.main(); exits with returned code
+  - main.py
+    - CLI parsing; orchestrates loading rules and producing suggestions
+  - types.py
+    - Command dataclass (script, command string, stdout, stderr, return_code, env, timestamp optional)
+    - Rule dataclass/protocol (name, match, get_new_command, priority, enabled_by_default)
+  - corrector.py
+    - get_suggestions(command, rules, settings) -> list[str]
+    - get_best_suggestion(...) -> str|None
+  - rules/
+    - __init__.py
+      - discovery helpers; list of builtin rule modules
+    - command_not_found.py
+    - typo_in_command.py
+    - wrong_subcommand.py
+    - missing_argument.py
+    - option_order.py
+  - utils.py
+    - shell/token helpers: split_command, join_command, levenshtein/distance, stable sort keys
+    - deterministic “which-like” mockable lookup (no actual filesystem dependency unless required)
+  - settings.py
+    - Settings object with defaults; parse env vars; non-interactive flags
+- Import graph:
+  - __main__ -> main.main
+  - main -> settings + types.Command + rules.load_rules + corrector.get_suggestions
+  - corrector -> types + utils
+  - rules.* -> types.Rule + utils
+  - rules.__init__ -> imports builtin rules modules to register/export list
+
+2) Public APIs to implement (modules/classes/functions)
+- thefuck.main
+  - def main(argv: list[str] | None = None) -> int
+    - parses args; obtains “previous command” representation from args (tests likely pass explicit command data)
+    - prints suggestion(s) or chosen correction if tests expect stdout
+    - returns exit code or raises SystemExit(code)
+  - def get_parser() -> argparse.ArgumentParser (if tests import it)
+- thefuck.types
+  - @dataclass(frozen=True)
+    class Command:
+      - script: str (shell name like “bash”, optional)
+      - command: str (full command line)
+      - stdout: str
+      - stderr: str
+      - return_code: int
+    - properties:
+      - def parts(self) -> list[str] (tokenized)
+      - def name(self) -> str (first token or empty)
+  - @dataclass
+    class Rule:
+      - name: str
+      - match: Callable[[Command], bool]
+      - get_new_command: Callable[[Command], list[str] | str]
+      - priority: int = 1000 (lower is better)
+      - enabled_by_default: bool = True
+- thefuck.corrector
+  - def get_suggestions(command: Command, rules: list[Rule], settings: Settings | None = None) -> list[str]
+    - apply enabled rules, gather proposals, normalize to list[str], de-dupe, stable order
+  - def get_best_suggestion(...) -> str | None (first suggestion after ordering)
+- thefuck.rules
+  - def load_rules(settings: Settings | None = None) -> list[Rule]
+    - returns builtin rules in deterministic order
+  - def get_rule_names() -> list[str]
+- thefuck.settings
+  - @dataclass
+    class Settings:
+      - non_interactive: bool = True (default for tests)
+      - require_confirmation: bool = False
+      - max_suggestions: int = 3 or similar (match reference tests)
+      - enabled_rules: set[str] | None
+      - disabled_rules: set[str] | None
+    - def is_rule_enabled(name: str) -> bool
+- thefuck.__init__
+  - __version__ = “0.0.test”
+  - optionally: from .corrector import get_suggestions (only if tests use it)
+- CLI contract (minimal):
+  - python -m thefuck --help
+  - python -m thefuck --version
+  - python -m thefuck --command "<cmd>" --stdout "..." --stderr "..." --exit-code N
+  - python -m thefuck "<cmd>" (fallback: treat remaining args as previous command string)
+  - flags to ensure non-interactive behavior:
+    - -n/--no-confirm (default True)
+    - --suggest (print suggestions only; default in tests)
+    - --best (print only best suggestion)
+
+3) Key behaviors & edge cases
+- Deterministic rule discovery and ordering
+  - Do not scan filesystem at runtime; instead, ship a fixed list of builtin rules in rules.__init__ and return them in stable order.
+  - Sorting of suggestions:
+    1) rule priority (ascending)
+    2) within a rule, preserve the order returned by get_new_command
+    3) final tie-breaker: lexicographic of suggestion string to ensure deterministic output if needed
+  - De-dup exactly identical suggestion strings, preserving first occurrence.
+- Non-interactive behavior
+  - Never prompt in main(); if confirmation is part of reference behavior, expose flags but default to “no confirmation” for tests.
+  - Ensure main() returns 0 when a suggestion is printed, non-zero (e.g., 1) when no suggestions found or bad args.
+- Command representation
+  - Tokenization must be stable across platforms:
+    - use shlex.split for POSIX-like parsing; if it fails, fallback to simple .split().
+  - Keep original command string intact for printing.
+- Core correction scenarios (synthetic test coverage)
+  - Unknown command / typo in command name:
+    - Detect stderr patterns like:
+      - “command not found”
+      - “No such file or directory”
+      - “is not recognized as an internal or external command” (windows-like)
+    - Suggest closest known command among a small builtin vocabulary likely used in tests (e.g., git, ls, cd, cat, echo, python, pip) and also commands appearing in PATH-like fixture if tests monkeypatch utils.
+    - Use edit distance with threshold and stable selection.
+  - Wrong subcommand:
+    - For “git: ‘ststus’ is not a git command” suggest “git status”
+    - Similar for “pip: no such command” or “python -m pip …”
+    - Match stderr regexes: r"not a (git|pip) command" / r"no such command"
+    - Suggest closest subcommand from a small builtin map per tool (git: status, stash, commit, checkout, branch; pip: install, uninstall, list, show).
+  - Missing argument:
+    - Detect patterns:
+      - “missing operand”
+      - “expected one argument”
+      - “requires an argument”
+      - “too few arguments”
+      - argparse usage with “the following arguments are required”
+    - Suggest adding placeholder or common default:
+      - For “cd” with no args, suggest “cd ~”
+      - For commands like “mkdir” or “rm” with missing operand, suggest appending “<path>” only if tests expect literal placeholder; otherwise do not guess. Prefer conservative: only implement “cd” special-casing unless tests indicate more.
+  - Wrong option ordering / common option typo:
+    - Detect patterns from git/pip/argparse:
+      - “unknown option”
+      - “unrecognized arguments”
+    - If command contains combined short options in wrong place (e.g., “git commit -m” is correct; not much reorder needed). Instead implement minimal:
+      - if option token is close to a known option (e.g., “--hepl” -> “--help”), suggest replacement using edit distance from options found in stderr usage line if present.
+    - Argparse usage parsing:
+      - If stderr contains “usage:” line, extract options like “-h”, “--help”, “--version” and propose nearest replacement.
+- Output behavior
+  - If --best: print best suggestion exactly (no extra text) to stdout.
+  - If --suggest (default): print each suggestion on its own line.
+  - If no suggestions: print nothing (or a minimal message only if reference tests expect it); safest for tests: return code 1 and empty stdout.
+- Exit codes
+  - 0 when at least one suggestion is produced.
+  - 1 when none.
+  - 2 for CLI usage errors (argparse default) unless tests require otherwise.
+- Compatibility shims for reference TheFuck API surface
+  - Provide module/function names that tests might import:
+    - thefuck.main.main
+    - thefuck.corrector.get_suggestions
+    - thefuck.rules.load_rules
+    - thefuck.types.Command
+  - Keep signatures permissive; accept extra kwargs in internal functions where reference might pass them.
+
+4) Minimal internal test plan (what to test and why)
+- API/import tests
+  - import thefuck
+  - from thefuck.main import main
+  - from thefuck.types import Command
+  - from thefuck.corrector import get_suggestions
+  - python -m thefuck --version returns 0 and prints version
+- Determinism tests
+  - For identical Command input, get_suggestions returns same list order across multiple runs.
+  - De-dup preserves first occurrence.
+- Rule-specific behavior tests (synthetic)
+  - Unknown command:
+    - Command("bash", "gti status", "", "gti: command not found", 127) -> suggests “git status”
+  - Git wrong subcommand:
+    - stderr = "git: 'ststus' is not a git command. See 'git --help'." -> “git status”
+  - Argparse unknown option:
+    - command “python -m pip instal” with stderr “no such command 'instal'” -> “python -m pip install” (or “pip install” depending on input)
+  - Missing cd arg:
+    - command “cd” return_code nonzero with stderr indicating missing arg -> “cd ~”
+- CLI smoke tests
+  - main(["--command","gti status","--stderr","command not found","--exit-code","127","--best"]) prints “git status” and returns 0
+  - main(["--command","echo ok","--stderr","","--exit-code","0"]) returns 1 and prints nothing (since no correction needed)
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Tests expect closer parity with TheFuck’s exact module layout/names (e.g., thefuck.shell, thefuck.conf, thefuck.types.Command fields).
+  - Mitigation: Keep thin compatibility modules/aliases if needed (e.g., create thefuck/conf.py exporting settings; create thefuck/shell.py exporting split/join helpers) once test failures reveal imports.
+- Risk: Suggestion ordering differs from reference leading to assertion failures.
+  - Mitigation: Make ordering fully deterministic and based on explicit rule priority; tune priorities to match likely expectations (e.g., wrong_subcommand before typo_in_command).
+- Risk: Tests provide previous command context differently (environment variables, stdin, files).
+  - Mitigation: Support both explicit flags (--command/--stderr/--stdout/--exit-code) and positional passthrough; also allow reading JSON from stdin if argv is empty (optional) but keep non-interactive.
+- Risk: Over-guessing corrections (adding placeholders) could fail tests that expect no suggestion.
+  - Mitigation: Be conservative; only produce suggestions when match patterns are strong; keep thresholds strict for edit distance (e.g., <=2 for short tokens, normalized ratio for longer).
+- Risk: Platform-specific parsing (Windows quoting, cmd.exe errors).
+  - Mitigation: Pattern-match both POSIX and Windows “not recognized” messages; tokenization fallback to simple split; keep behavior independent of actual OS PATH by using a small builtin command list plus optionally injectable command list via settings for tests.
+</plan>

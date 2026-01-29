@@ -1,0 +1,70 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+self = <termgraph.data.Data object at 0x0000018170CF0820>
+labels = [[1], [2], [3]], series = ['A', 'B', 'C']
+
+    def __init__(self, labels: Sequence[str], series: Sequence[Sequence[float]]):
+        self.labels = list(labels)
+        self.series = [list(row) for row in series]
+        if len(self.labels) != len(self.series):
+            raise ValueError("labels and series must have the same number of rows")
+        # Normalize None rows
+        for i, row in enumerate(self.series):
+            if row is None:
+                self.series[i] = []
+        # Ensure numbers
+        for i, row in enumerate(self.series):
+            new_row = []
+            for v in row:
+                try:
+                    if v is None:
+                        new_row.append(0.0)
+                    else:
+>                       new_row.append(float(v))
+E                       ValueError: could not convert string to float: 'A'
+
+generation\Termgraph\termgraph\data.py:30: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\performance_test.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000018170CF0820>
+labels = [[1], [2], [3]], series = ['A', 'B', 'C']
+
+    def __init__(self, labels: Sequence[str], series: Sequence[Sequence[float]]):
+        self.labels = list(labels)
+        self.series = [list(row) for row in series]
+        if len(self.labels) != len(self.series):
+            raise ValueError("labels and series must have the same number of rows")
+        # Normalize None rows
+        for i, row in enumerate(self.series):
+            if row is None:
+                self.series[i] = []
+        # Ensure numbers
+        for i, row in enumerate(self.series):
+            new_row = []
+            for v in row:
+                try:
+                    if v is None:
+                        new_row.append(0.0)
+                    else:
+                        new_row.append(float(v))
+                except Exception:
+>                   raise ValueError(f"Non-numeric value at row {i}: {v}")
+E                   ValueError: Non-numeric value at row 0: A
+
+generation\Termgraph\termgraph\data.py:32: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.31s

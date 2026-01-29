@@ -1,0 +1,40 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_bulk_commands_performance ________________________
+
+    def test_bulk_commands_performance() -> None:
+>       app = PerfApp()
+
+tests\Cmd2\performance_test.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cmd2\performance_test.py:30: in __init__
+    super().__init__()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <performance_test.PerfApp object at 0x0000020C21308880>
+
+    def __init__(
+        self,
+        *,
+        use_readline: bool = True,
+        completekey: str = "tab",
+        stdin=None,
+        stdout=None,
+    ):
+        # The base ``cmd.Cmd`` accepts (completekey, stdin, stdout)
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
+        self.use_rawinput: bool = stdin is None  # `cmd`'s own default
+        self.use_readline: bool = use_readline
+        self.prompt: str = "cmd2> "
+        self.intro: Optional[str] = None
+    
+        # Expose the capture-output context manager on the instance so
+        # that existing patterns such as `self.capture_output()` work.
+        # (We just curry the generic utility so that `self` is bound.)
+>       self.capture_output = contextlib.partial(capture_output, self)
+E       AttributeError: module 'contextlib' has no attribute 'partial'
+
+generation\cmd2\cmd2\cmd2.py:75: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/performance_test.py::test_bulk_commands_performance - Attri...
+1 failed in 0.32s

@@ -1,0 +1,1 @@
+# Placeholder package for compatibility with the reference project layout.

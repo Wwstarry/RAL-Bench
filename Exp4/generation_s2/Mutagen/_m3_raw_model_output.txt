@@ -1,0 +1,486 @@
+<file:name=mutagen/__init__.py>
+"""
+A tiny, pure-Python subset of the Mutagen API required by the test suite.
+
+This is NOT a full implementation of the real mutagen project. It implements:
+- mutagen.easyid3.EasyID3 (mapping-like interface)
+- mutagen.id3.ID3 and a few frame types (TIT2, TPE1, COMM, APIC)
+
+Files written are "tag-only MP3" stubs: an ID3v2 header followed by serialized
+frames, with no MPEG audio frames required by the tests.
+"""
+
+from __future__ import annotations
+
+__all__ = ["easyid3", "id3", "EasyID3", "ID3"]
+
+from .easyid3 import EasyID3  # noqa: E402
+from .id3 import ID3  # noqa: E402
+
+__version__ = "0.0.teststub"
+</file>
+
+<file:name=mutagen/id3.py>
+from __future__ import annotations
+
+import io
+import os
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Optional, Union
+
+
+class ID3NoHeaderError(Exception):
+    """Raised by real mutagen when no ID3 header is present. Not used by tests."""
+    pass
+
+
+def _synchsafe_to_int(b: bytes) -> int:
+    # 4 bytes, 7 bits each
+    return ((b[0] & 0x7F) << 21) | ((b[1] & 0x7F) << 14) | ((b[2] & 0x7F) << 7) | (b[3] & 0x7F)
+
+
+def _int_to_synchsafe(n: int) -> bytes:
+    return bytes([(n >> 21) & 0x7F, (n >> 14) & 0x7F, (n >> 7) & 0x7F, n & 0x7F])
+
+
+def _read_u32_be(b: bytes) -> int:
+    return int.from_bytes(b, "big", signed=False)
+
+
+def _write_u32_be(n: int) -> bytes:
+    return int(n).to_bytes(4, "big", signed=False)
+
+
+def _decode_text(encoding_byte: int, data: bytes) -> List[str]:
+    if not data:
+        return [""]
+    if encoding_byte == 0:  # latin-1
+        s = data.decode("latin-1", errors="replace")
+    elif encoding_byte == 1:  # utf-16 with BOM
+        s = data.decode("utf-16", errors="replace")
+    elif encoding_byte == 2:  # utf-16be (no BOM)
+        s = data.decode("utf-16-be", errors="replace")
+    elif encoding_byte == 3:  # utf-8
+        s = data.decode("utf-8", errors="replace")
+    else:
+        s = data.decode("latin-1", errors="replace")
+    # v2.3 uses '/' sometimes, v2.4 uses '\x00'. We'll support both.
+    if "\x00" in s:
+        parts = s.split("\x00")
+    else:
+        parts = s.split("/")
+    # Filter trailing empty due to terminator (we don't add one for text frames)
+    parts = [p for p in parts if p != ""]
+    return parts if parts else [""]
+
+
+def _encode_text(encoding_byte: int, texts: List[str]) -> bytes:
+    sep = "\x00" if encoding_byte in (1, 2, 3) else "/"
+    s = sep.join(texts)
+    if encoding_byte == 0:
+        return s.encode("latin-1", errors="replace")
+    if encoding_byte == 1:
+        return s.encode("utf-16", errors="replace")
+    if encoding_byte == 2:
+        return s.encode("utf-16-be", errors="replace")
+    if encoding_byte == 3:
+        return s.encode("utf-8", errors="replace")
+    return s.encode("latin-1", errors="replace")
+
+
+def _split_terminated(data: bytes, encoding_byte: int) -> (bytes, bytes):
+    """
+    Split data into (before_terminator, after_terminator) according to encoding.
+    For utf-16/utf-16be, terminator is b'\\x00\\x00', aligned; for others b'\\x00'.
+    If no terminator found, returns (data, b'').
+    """
+    if encoding_byte in (1, 2):
+        term = b"\x00\x00"
+        idx = data.find(term)
+        if idx == -1:
+            return data, b""
+        return data[:idx], data[idx + 2 :]
+    else:
+        idx = data.find(b"\x00")
+        if idx == -1:
+            return data, b""
+        return data[:idx], data[idx + 1 :]
+
+
+@dataclass
+class Frame:
+    def __post_init__(self) -> None:
+        pass
+
+    @property
+    def FrameID(self) -> str:
+        raise NotImplementedError
+
+    def _serialize(self) -> bytes:
+        raise NotImplementedError
+
+
+@dataclass
+class TextFrame(Frame):
+    encoding: int = 3
+    text: Union[str, List[str]] = ""
+
+    @property
+    def FrameID(self) -> str:
+        raise NotImplementedError
+
+    def _serialize_payload(self) -> bytes:
+        if isinstance(self.text, str):
+            texts = [self.text]
+        else:
+            texts = [str(t) for t in self.text]
+        return bytes([int(self.encoding) & 0xFF]) + _encode_text(int(self.encoding) & 0xFF, texts)
+
+    def _serialize(self) -> bytes:
+        payload = self._serialize_payload()
+        header = self.FrameID.encode("ascii") + _write_u32_be(len(payload)) + b"\x00\x00"
+        return header + payload
+
+
+@dataclass
+class TIT2(TextFrame):
+    @property
+    def FrameID(self) -> str:
+        return "TIT2"
+
+
+@dataclass
+class TPE1(TextFrame):
+    @property
+    def FrameID(self) -> str:
+        return "TPE1"
+
+
+@dataclass
+class COMM(Frame):
+    encoding: int
+    lang: str
+    desc: str
+    text: Union[str, List[str]]
+
+    @property
+    def FrameID(self) -> str:
+        return "COMM"
+
+    def _serialize(self) -> bytes:
+        enc = int(self.encoding) & 0xFF
+        lang = (self.lang or "eng")[:3].ljust(3, " ").encode("latin-1", errors="replace")
+        desc_bytes = _encode_text(enc, [self.desc or ""])
+        # COMM description is terminated
+        if enc in (1, 2):
+            term = b"\x00\x00"
+        else:
+            term = b"\x00"
+        if isinstance(self.text, str):
+            texts = [self.text]
+        else:
+            texts = [str(t) for t in self.text]
+        text_bytes = _encode_text(enc, texts)
+        payload = bytes([enc]) + lang + desc_bytes + term + text_bytes
+        header = b"COMM" + _write_u32_be(len(payload)) + b"\x00\x00"
+        return header + payload
+
+
+@dataclass
+class APIC(Frame):
+    encoding: int
+    mime: str
+    type: int
+    desc: str
+    data: bytes
+
+    @property
+    def FrameID(self) -> str:
+        return "APIC"
+
+    def _serialize(self) -> bytes:
+        enc = int(self.encoding) & 0xFF
+        mime_b = (self.mime or "image/").encode("latin-1", errors="replace") + b"\x00"
+        pic_type = bytes([int(self.type) & 0xFF])
+        desc_b = _encode_text(enc, [self.desc or ""])
+        if enc in (1, 2):
+            term = b"\x00\x00"
+        else:
+            term = b"\x00"
+        payload = bytes([enc]) + mime_b + pic_type + desc_b + term + (self.data or b"")
+        header = b"APIC" + _write_u32_be(len(payload)) + b"\x00\x00"
+        return header + payload
+
+
+_FRAME_PARSERS = {"TIT2", "TPE1", "COMM", "APIC"}
+
+
+def _parse_frame(frame_id: str, payload: bytes) -> Frame:
+    if frame_id in ("TIT2", "TPE1"):
+        if not payload:
+            enc = 3
+            texts = [""]
+        else:
+            enc = payload[0]
+            texts = _decode_text(enc, payload[1:])
+        cls = TIT2 if frame_id == "TIT2" else TPE1
+        return cls(encoding=enc, text=texts)
+    if frame_id == "COMM":
+        if len(payload) < 4:
+            return COMM(encoding=3, lang="eng", desc="", text=[""])
+        enc = payload[0]
+        lang = payload[1:4].decode("latin-1", errors="replace")
+        rest = payload[4:]
+        desc_part, after = _split_terminated(rest, enc)
+        desc = (_decode_text(enc, desc_part) or [""])[0]
+        text_list = _decode_text(enc, after)
+        return COMM(encoding=enc, lang=lang, desc=desc, text=text_list)
+    if frame_id == "APIC":
+        if not payload:
+            return APIC(encoding=3, mime="", type=0, desc="", data=b"")
+        enc = payload[0]
+        rest = payload[1:]
+        mime_part, after_mime = _split_terminated(rest, 0)  # MIME is latin-1 null terminated
+        mime = mime_part.decode("latin-1", errors="replace")
+        if not after_mime:
+            return APIC(encoding=enc, mime=mime, type=0, desc="", data=b"")
+        pic_type = after_mime[0]
+        rest2 = after_mime[1:]
+        desc_part, after_desc = _split_terminated(rest2, enc)
+        desc = (_decode_text(enc, desc_part) or [""])[0]
+        data = after_desc
+        return APIC(encoding=enc, mime=mime, type=pic_type, desc=desc, data=data)
+
+    # Unknown: store raw-ish as a generic Frame? Tests won't hit.
+    tf = TextFrame(encoding=3, text=[""])
+    return tf
+
+
+class ID3:
+    """
+    Minimal ID3 tag container (ID3v2.3-like) with basic frame operations.
+    """
+
+    def __init__(self, filename: Optional[str] = None):
+        self.filename: Optional[str] = None
+        self._frames: Dict[str, List[Frame]] = {}
+        if filename is not None:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self.filename = filename
+        self._frames.clear()
+        try:
+            with open(filename, "rb") as f:
+                header = f.read(10)
+                if len(header) < 10 or header[0:3] != b"ID3":
+                    # No tag; treat as empty for this test stub
+                    return
+                size = _synchsafe_to_int(header[6:10])
+                tag_data = f.read(size)
+        except FileNotFoundError:
+            return
+
+        bio = io.BytesIO(tag_data)
+        while True:
+            fh = bio.read(10)
+            if len(fh) < 10:
+                break
+            frame_id = fh[0:4].decode("latin-1", errors="replace")
+            if frame_id.strip("\x00") == "":
+                break
+            frame_size = _read_u32_be(fh[4:8])
+            # flags = fh[8:10]
+            if frame_size <= 0:
+                continue
+            payload = bio.read(frame_size)
+            if len(payload) < frame_size:
+                break
+            if frame_id in _FRAME_PARSERS:
+                frame = _parse_frame(frame_id, payload)
+                self._frames.setdefault(frame_id, []).append(frame)
+            else:
+                # ignore unknown frames
+                continue
+
+    def add(self, frame: Frame) -> None:
+        fid = frame.FrameID
+        self._frames.setdefault(fid, []).append(frame)
+
+    def __getitem__(self, frame_id: str) -> Frame:
+        frames = self._frames.get(frame_id)
+        if not frames:
+            raise KeyError(frame_id)
+        return frames[0]
+
+    def getall(self, frame_id: str) -> List[Frame]:
+        return list(self._frames.get(frame_id, []))
+
+    def delall(self, frame_id: str) -> None:
+        self._frames.pop(frame_id, None)
+
+    def setall(self, frame_id: str, frames: Iterable[Frame]) -> None:
+        self._frames[frame_id] = list(frames)
+
+    def _render(self) -> bytes:
+        # Serialize frames in deterministic order: by frame_id, insertion order within list
+        body_parts: List[bytes] = []
+        for fid in sorted(self._frames.keys()):
+            for fr in self._frames[fid]:
+                body_parts.append(fr._serialize())
+        body = b"".join(body_parts)
+        header = b"ID3" + bytes([3, 0, 0]) + _int_to_synchsafe(len(body))
+        return header + body
+
+    def save(self, filename: Optional[str] = None) -> None:
+        path = filename or self.filename
+        if not path:
+            raise ValueError("No filename specified for save().")
+
+        tag_bytes = self._render()
+
+        # Preserve any existing non-ID3 content by stripping old ID3v2 header if present.
+        rest = b""
+        try:
+            with open(path, "rb") as f:
+                header = f.read(10)
+                if len(header) == 10 and header[0:3] == b"ID3":
+                    size = _synchsafe_to_int(header[6:10])
+                    f.seek(10 + size)
+                    rest = f.read()
+                else:
+                    f.seek(0)
+                    rest = f.read()
+        except FileNotFoundError:
+            rest = b""
+
+        tmp_path = path + ".tmp_mutagen_stub"
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with open(tmp_path, "wb") as out:
+            out.write(tag_bytes)
+            out.write(rest)
+        os.replace(tmp_path, path)
+</file>
+
+<file:name=mutagen/easyid3.py>
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import Dict, Iterator, List, Optional
+
+from .id3 import COMM, ID3, TPE1, TIT2
+
+
+_EASY_TO_FRAME = {
+    "title": "TIT2",
+    "artist": "TPE1",
+    # Not required by frame-class list, but EasyID3 tests may set it; store as COMM.
+    "tracknumber": "COMM",
+}
+
+
+class EasyID3(MutableMapping):
+    """
+    Minimal EasyID3 interface as a mutable mapping from keys to list[str].
+    Backed by an ID3 object.
+    """
+
+    def __init__(self, filename: Optional[str] = None):
+        self.filename: Optional[str] = None
+        self._id3 = ID3()
+        self._data: Dict[str, List[str]] = {}
+        if filename is not None:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self.filename = filename
+        self._id3 = ID3(filename)
+        self._sync_from_id3()
+
+    def _sync_from_id3(self) -> None:
+        self._data.clear()
+
+        # title
+        try:
+            fr = self._id3["TIT2"]
+            texts = fr.text if isinstance(fr.text, list) else [str(fr.text)]
+            self._data["title"] = [str(t) for t in texts]
+        except KeyError:
+            pass
+
+        # artist
+        try:
+            fr = self._id3["TPE1"]
+            texts = fr.text if isinstance(fr.text, list) else [str(fr.text)]
+            self._data["artist"] = [str(t) for t in texts]
+        except KeyError:
+            pass
+
+        # tracknumber stored as COMM with desc "tracknumber"
+        comms = self._id3.getall("COMM")
+        for c in comms:
+            if getattr(c, "desc", "") == "tracknumber":
+                texts = c.text if isinstance(c.text, list) else [str(c.text)]
+                self._data["tracknumber"] = [str(t) for t in texts]
+                break
+
+    def _sync_to_id3_key(self, key: str) -> None:
+        if key == "title":
+            self._id3.setall("TIT2", [TIT2(encoding=3, text=list(self._data[key]))])
+            return
+        if key == "artist":
+            self._id3.setall("TPE1", [TPE1(encoding=3, text=list(self._data[key]))])
+            return
+        if key == "tracknumber":
+            # replace/ensure a COMM desc tracknumber, but keep other COMM frames
+            comms = [c for c in self._id3.getall("COMM") if getattr(c, "desc", "") != "tracknumber"]
+            comms.append(COMM(encoding=3, lang="eng", desc="tracknumber", text=list(self._data[key])))
+            self._id3.setall("COMM", comms)
+            return
+        # ignore unsupported keys
+
+    def __getitem__(self, key: str) -> List[str]:
+        if key not in self._data:
+            raise KeyError(key)
+        return self._data[key]
+
+    def __setitem__(self, key: str, value) -> None:
+        if not isinstance(key, str):
+            raise TypeError("EasyID3 keys must be strings.")
+        if isinstance(value, str):
+            values = [value]
+        else:
+            values = [str(v) for v in value]
+        self._data[key] = values
+        if key in _EASY_TO_FRAME:
+            self._sync_to_id3_key(key)
+
+    def __delitem__(self, key: str) -> None:
+        if key not in self._data:
+            raise KeyError(key)
+        del self._data[key]
+        # reflect deletion in ID3
+        if key == "title":
+            self._id3.delall("TIT2")
+        elif key == "artist":
+            self._id3.delall("TPE1")
+        elif key == "tracknumber":
+            comms = [c for c in self._id3.getall("COMM") if getattr(c, "desc", "") != "tracknumber"]
+            if comms:
+                self._id3.setall("COMM", comms)
+            else:
+                self._id3.delall("COMM")
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def save(self, filename: Optional[str] = None) -> None:
+        path = filename or self.filename
+        if not path:
+            raise ValueError("No filename specified for save().")
+        self._id3.save(path)
+        self.filename = path
+</file>

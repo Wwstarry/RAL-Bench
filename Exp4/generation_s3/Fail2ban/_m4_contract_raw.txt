@@ -1,0 +1,161 @@
+<contract>
+1) Repository layout (packages/modules/files that must exist)
+
+- fail2ban/                      (python package root)
+  - __init__.py                  (may expose __version__ only; keep minimal)
+  - server/
+    - __init__.py
+    - jail.py                    (defines Jail)
+    - filter.py                  (IP parsing helpers + regex utilities)
+- bin/
+  - fail2ban-client              (executable script; offline; supports --help)
+  - fail2ban-server              (executable script; offline; supports --help)
+  - fail2ban-regex               (executable script; offline regex matching; supports --help)
+- config/
+  - jail.conf                    (must exist; canonical configuration entrypoint; content may be minimal but parseable)
+- Optional but allowed:
+  - pyproject.toml / setup.cfg / setup.py (packaging metadata if needed by tests; keep safe)
+  - README.* (not required)
+  - fail2ban/version.py (if used to store version)
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+A) fail2ban.server.jail
+- class Jail:
+  - __init__(self, name: str, *, filter=None, actions=None, backend: str | None = None)
+    - name: jail name identifier
+    - filter: filter-like object or None
+    - actions: list-like of action-like objects or None
+    - backend: accepted but ignored (for compatibility)
+  - getName(self) -> str
+  - setFilter(self, filter_obj) -> None
+  - getFilter(self)
+  - addAction(self, action_obj) -> None
+  - getActions(self) -> list
+  - processLine(self, line: str) -> list[str]
+    - returns list of offending IP strings matched in this line (may be empty)
+  - findFailure(self, line: str) -> list[str]
+    - alias to processLine (or delegate)
+  - __repr__(self) -> str
+
+Notes:
+- Jail must exist at fail2ban.server.jail.Jail and be importable.
+
+B) fail2ban.server.filter
+- def isValidIP(ip: str) -> bool
+  - true for valid IPv4 or IPv6 textual addresses; false otherwise; must not raise on weird strings.
+- def searchIP(text: str) -> str | None
+  - returns first IP (v4 or v6) found in text; None if none.
+- def findAllIP(text: str) -> list[str]
+  - returns all IPs found in text, in order of appearance; may return duplicates.
+- class RegexFilter (minimal helper to match log lines):
+  - __init__(self, failregex: list[str] | None = None, ignoreregex: list[str] | None = None, *, use_dns: bool = False)
+    - use_dns accepted but must not perform DNS.
+  - addFailRegex(self, pattern: str) -> None
+  - addIgnoreRegex(self, pattern: str) -> None
+  - matchLine(self, line: str) -> list[str]
+    - returns list of offending IPs extracted from line if any failregex matches and no ignoreregex matches.
+    - IP extraction uses search/find helpers (not capture groups requirement).
+  - getFailRegex(self) -> list[str]
+  - getIgnoreRegex(self) -> list[str]
+
+C) CLI entry scripts (bin/*)
+- bin/fail2ban-client:
+  - Must implement argument parsing with --help.
+  - Must not attempt to connect to a server/daemon.
+  - Accept and ignore typical args (e.g., “status”, “ping”) by printing a safe message and exit code 0 or 1 (tests likely only call --help).
+- bin/fail2ban-server:
+  - Must implement --help.
+  - Must not daemonize, bind sockets, or require root.
+- bin/fail2ban-regex:
+  - Must implement --help.
+  - Must support offline mode: given a log file path and one or more regex patterns, report number of matches and matched IPs.
+  - Minimal interface:
+    - fail2ban-regex <logfile> <regex> [<regex> ...]
+    - Optional flags may be accepted but not required beyond --help.
+  - Exit code: 0 on success; nonzero on usage errors or missing file.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+General safety/invariants:
+- Never modify firewall rules, never invoke iptables/nftables/pf, never require root.
+- Never start persistent daemons, background threads, or network listeners.
+- No external network calls (DNS lookups, HTTP, sockets). All behavior must be offline and deterministic.
+
+IP parsing:
+- isValidIP:
+  - Accepts IPv4 like “1.2.3.4”.
+  - Accepts IPv6 like “2001:db8::1”.
+  - Rejects invalid formats, extra characters, port suffixes (“1.2.3.4:22”), bracketed forms (“[::1]”) unless implementation strips brackets explicitly (either approach ok but must be consistent across helpers).
+  - Must not throw exceptions for None-like inputs; if input is not str, coerce to str or return False.
+- searchIP / findAllIP:
+  - Should find IPs inside typical log text.
+  - Should not match obviously invalid IP-like tokens (best-effort; use stdlib ipaddress validation after regex candidate extraction).
+  - Must handle both IPv4 and IPv6 in the same line.
+  - When multiple IPs exist, searchIP returns first by text order.
+
+Regex matching:
+- RegexFilter.matchLine:
+  - If any ignoreregex matches the line, return [] even if failregex would match.
+  - If no failregex configured, return [].
+  - For each failregex pattern:
+    - If it matches the line, extract IP(s) from the line using findAllIP; return those IPs (possibly empty if none found).
+  - Must compile regex patterns safely (re.compile) and raise ValueError on invalid patterns when adding them; matchLine should not crash the process—either propagate ValueError from add methods or treat invalid regex as configuration-time failure.
+
+Jail behavior:
+- Jail.processLine / findFailure:
+  - If no filter set, return [].
+  - If filter has matchLine, call it and return its list.
+  - Must not perform banning; only returns matched IPs and optionally record counts internally (optional).
+  - Must be idempotent for same input line (pure result) unless optional internal statistics are maintained; if stats exist, they must not affect returned IP list.
+
+Config artifact:
+- config/jail.conf must exist on disk.
+- Content constraints:
+  - Must be valid INI-like so basic parsers can read it (e.g., configparser).
+  - Must include at least [DEFAULT] and one example jail section (e.g., [sshd]) with placeholder values; values do not need to be functional.
+  - Must not reference real system paths in a way that tests would try to open them unless tests only check file presence/parseability.
+
+CLI scripts:
+- --help must print usage and exit 0 quickly.
+- fail2ban-regex must:
+  - Read the provided log file as text (utf-8 with errors=replace).
+  - For each line, test regex patterns (failregex) and count matches.
+  - Print a deterministic summary (at minimum: total lines, total matches, and unique IPs if any).
+  - Not require config files or system logs.
+
+Error handling:
+- Missing logfile in fail2ban-regex: print error to stderr and exit nonzero.
+- Invalid regex in fail2ban-regex: print error and exit nonzero.
+- All modules must be importable without side effects.
+
+4) Acceptance checklist (verifiable bullets mapping to test intent)
+
+- Imports:
+  - `from fail2ban.server.jail import Jail` works.
+  - `import fail2ban.server.filter as f` works.
+  - `f.isValidIP`, `f.searchIP` callable and behave deterministically.
+- Artifacts:
+  - File exists: config/jail.conf.
+  - Executable files exist: bin/fail2ban-client, bin/fail2ban-server, bin/fail2ban-regex.
+- Safety:
+  - Running bin/fail2ban-server --help does not start a server or require root.
+  - Running bin/fail2ban-client --help does not attempt IPC/network.
+  - No subprocess calls to firewall tooling; no privileged ops.
+- Offline regex behavior:
+  - fail2ban-regex can be run against a temporary log file and a regex pattern and returns match counts without external dependencies.
+  - RegexFilter + Jail can process a line containing an IP and a matching failure phrase and return that IP.
+- Edge cases:
+  - isValidIP returns False for junk strings and does not raise.
+  - searchIP returns None on no match.
+  - ignoreregex suppresses matches.
+
+5) Non-goals / constraints (what NOT to do)
+
+- Do NOT implement real Fail2Ban daemon, inter-process communication, sockets, inotify polling, or systemd integration.
+- Do NOT manipulate firewall rules, ipsets, hosts.deny, or any system configuration.
+- Do NOT require root privileges.
+- Do NOT access real system log locations by default; only operate on explicitly provided file paths.
+- Do NOT perform DNS lookups or any network operations.
+- Do NOT aim for full configuration compatibility; only minimal INI presence and minimal filter/jail coordination needed for offline tests.
+</contract>

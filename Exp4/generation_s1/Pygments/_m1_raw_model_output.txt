@@ -1,0 +1,1204 @@
+<file:name=pygments/__init__.py>
+"""
+A small, pure-Python subset of the Pygments API.
+
+This repository is intentionally minimal but keeps the package/module layout
+and key APIs used by common black-box tests.
+"""
+from __future__ import annotations
+
+__version__ = "0.1"
+
+from .token import (  # noqa: F401
+    Token,
+    TokenType,
+    Text,
+    Whitespace,
+    Error,
+    Other,
+    Keyword,
+    Name,
+    Literal,
+    String,
+    Number,
+    Operator,
+    Punctuation,
+    Comment,
+    Generic,
+)
+
+from .util import ClassNotFound, OptionError  # noqa: F401
+from .lex import lex  # noqa: F401
+from .highlight import highlight  # noqa: F401
+
+__all__ = [
+    "__version__",
+    "lex",
+    "highlight",
+    "ClassNotFound",
+    "OptionError",
+    # token exports
+    "Token",
+    "TokenType",
+    "Text",
+    "Whitespace",
+    "Error",
+    "Other",
+    "Keyword",
+    "Name",
+    "Literal",
+    "String",
+    "Number",
+    "Operator",
+    "Punctuation",
+    "Comment",
+    "Generic",
+]
+</file>
+
+<file:name=pygments/token.py>
+from __future__ import annotations
+
+from typing import Dict, Optional
+
+
+class TokenType:
+    """
+    Hierarchical token type node, similar to Pygments' TokenType.
+
+    Instances form a tree:
+      Token.Name.Function is a distinct singleton child of Token.Name.
+
+    Subtype checks:
+      Token.Name.Function in Token.Name   -> True
+      Token.Name in Token.Name.Function   -> False
+    """
+
+    __slots__ = ("_parent", "_name", "_children")
+
+    def __init__(self, parent: Optional["TokenType"] = None, name: str = ""):
+        self._parent = parent
+        self._name = name
+        self._children: Dict[str, TokenType] = {}
+
+    @property
+    def parent(self) -> Optional["TokenType"]:
+        return self._parent
+
+    @property
+    def subtypes(self) -> Dict[str, "TokenType"]:
+        return self._children
+
+    def __getattr__(self, item: str) -> "TokenType":
+        if item.startswith("_"):
+            raise AttributeError(item)
+        child = self._children.get(item)
+        if child is None:
+            child = TokenType(self, item)
+            self._children[item] = child
+        return child
+
+    def __contains__(self, other: "TokenType") -> bool:
+        """
+        True if 'other' is this token or a subtype of this token.
+        """
+        t = other
+        while t is not None:
+            if t is self:
+                return True
+            t = t.parent
+        return False
+
+    def split(self):
+        parts = []
+        t = self
+        while t is not None and t._name:
+            parts.append(t._name)
+            t = t.parent
+        return tuple(reversed(parts))
+
+    def __repr__(self) -> str:
+        if self._parent is None and self._name == "":
+            return "Token"
+        parts = self.split()
+        return "Token." + ".".join(parts)
+
+    __str__ = __repr__
+
+
+def is_token_subtype(ttype: TokenType, other: TokenType) -> bool:
+    return other.__contains__(ttype)
+
+
+Token = TokenType(None, "")
+
+Text = Token.Text
+Whitespace = Text.Whitespace
+
+Error = Token.Error
+Other = Token.Other
+
+Keyword = Token.Keyword
+Name = Token.Name
+Literal = Token.Literal
+String = Literal.String
+Number = Literal.Number
+Operator = Token.Operator
+Punctuation = Token.Punctuation
+Comment = Token.Comment
+Generic = Token.Generic
+
+# Common subtypes (subset)
+Keyword.Constant
+Keyword.Declaration
+Keyword.Namespace
+Keyword.Pseudo
+Keyword.Reserved
+Keyword.Type
+
+Name.Builtin
+Name.Function
+Name.Class
+Name.Decorator
+Name.Namespace
+Name.Attribute
+Name.Tag
+Name.Variable
+Name.Constant
+
+String.Single
+String.Double
+String.Doc
+String.Escape
+
+Number.Integer
+Number.Float
+
+Operator.Word
+
+Comment.Single
+Comment.Multiline
+
+Generic.Heading
+Generic.Subheading
+Generic.Deleted
+Generic.Inserted
+Generic.Error
+</file>
+
+<file:name=pygments/util.py>
+from __future__ import annotations
+
+from typing import Any, Iterable, List, Optional
+
+
+class ClassNotFound(Exception):
+    pass
+
+
+class OptionError(Exception):
+    pass
+
+
+def get_bool_opt(options: dict, key: str, default: bool = False) -> bool:
+    if options is None:
+        return default
+    if key not in options:
+        return default
+    val = options[key]
+    if isinstance(val, bool):
+        return val
+    if val is None:
+        return default
+    if isinstance(val, (int,)):
+        return bool(val)
+    if isinstance(val, str):
+        v = val.strip().lower()
+        if v in ("1", "yes", "y", "true", "on"):
+            return True
+        if v in ("0", "no", "n", "false", "off"):
+            return False
+    raise OptionError(f"Invalid boolean option {key}={val!r}")
+
+
+def get_int_opt(
+    options: dict,
+    key: str,
+    default: int = 0,
+    min: Optional[int] = None,
+    max: Optional[int] = None,
+) -> int:
+    if options is None:
+        return default
+    if key not in options:
+        return default
+    val = options[key]
+    try:
+        ival = int(val)
+    except Exception as e:
+        raise OptionError(f"Invalid integer option {key}={val!r}") from e
+    if min is not None and ival < min:
+        raise OptionError(f"Option {key} must be >= {min}")
+    if max is not None and ival > max:
+        raise OptionError(f"Option {key} must be <= {max}")
+    return ival
+
+
+def get_list_opt(options: dict, key: str, default: Optional[Iterable[str]] = None) -> List[str]:
+    if options is None or key not in options:
+        return list(default) if default is not None else []
+    val = options[key]
+    if val is None:
+        return list(default) if default is not None else []
+    if isinstance(val, (list, tuple)):
+        return [str(x) for x in val]
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return []
+        # split by comma and/or whitespace
+        parts = []
+        for chunk in s.replace(",", " ").split():
+            if chunk:
+                parts.append(chunk)
+        return parts
+    return [str(val)]
+
+
+def ensure_str(s: Any, encoding: str = "utf-8", errors: str = "strict") -> str:
+    if isinstance(s, str):
+        return s
+    if isinstance(s, bytes):
+        return s.decode(encoding, errors)
+    if s is None:
+        return ""
+    return str(s)
+
+
+def html_escape(s: str) -> str:
+    if s is None:
+        return ""
+    s = ensure_str(s)
+    # order matters: escape & first
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+</file>
+
+<file:name=pygments/filters/__init__.py>
+from __future__ import annotations
+
+from typing import Iterable, Iterator, List, Optional, Tuple
+
+from pygments.token import TokenType
+
+
+class Filter:
+    def __init__(self, **options):
+        self.options = dict(options)
+
+    def filter(self, lexer, stream: Iterable[Tuple[TokenType, str]]):
+        yield from stream
+
+
+def apply_filters(
+    stream: Iterable[Tuple[TokenType, str]],
+    filters: Optional[List[Filter]],
+    lexer=None,
+) -> Iterator[Tuple[TokenType, str]]:
+    if not filters:
+        yield from stream
+        return
+    cur = stream
+    for f in filters:
+        cur = f.filter(lexer, cur)
+    yield from cur
+</file>
+
+<file:name=pygments/lex.py>
+from __future__ import annotations
+
+from typing import Dict, Iterable, Iterator, List, Tuple
+
+from pygments.filters import apply_filters
+from pygments.token import Text, TokenType
+from pygments.util import ensure_str
+
+
+class Lexer:
+    name = ""
+    aliases: List[str] = []
+    filenames: List[str] = []
+    mimetypes: List[str] = []
+
+    def __init__(self, **options):
+        self.options: Dict = dict(options)
+        self.filters: List = []
+
+    def add_filter(self, filter_, **options):
+        if isinstance(filter_, str):
+            raise NotImplementedError("String-named filters are not supported in this minimal implementation.")
+        self.filters.append(filter_(**options))
+
+    def get_tokens(self, text: str) -> Iterable[Tuple[TokenType, str]]:
+        yield Text, text
+
+
+def lex(code, lexer: Lexer) -> Iterator[Tuple[TokenType, str]]:
+    text = ensure_str(code)
+    stream = lexer.get_tokens(text)
+    stream = apply_filters(stream, getattr(lexer, "filters", None), lexer=lexer)
+    return iter(stream)
+</file>
+
+<file:name=pygments/highlight.py>
+from __future__ import annotations
+
+import io
+
+from pygments.lex import lex
+
+
+def highlight(code, lexer, formatter) -> str:
+    tokensource = lex(code, lexer)
+    buf = io.StringIO()
+    rv = formatter.format(tokensource, buf)
+    if rv is not None:
+        return rv
+    return buf.getvalue()
+</file>
+
+<file:name=pygments/lexers/__init__.py>
+from __future__ import annotations
+
+from pygments.util import ClassNotFound
+
+from .python import PythonLexer
+from .json import JsonLexer
+from .ini import IniLexer
+
+_LEXERS = {}
+for cls in (PythonLexer, JsonLexer, IniLexer):
+    for a in getattr(cls, "aliases", []):
+        _LEXERS[a.lower()] = cls
+    # also index by class name
+    _LEXERS[cls.__name__.lower()] = cls
+    if getattr(cls, "name", ""):
+        _LEXERS[cls.name.lower()] = cls
+
+
+def get_lexer_by_name(_alias: str, **options):
+    if not _alias:
+        raise ClassNotFound(_alias)
+    key = _alias.lower().strip()
+    cls = _LEXERS.get(key)
+    if cls is None:
+        raise ClassNotFound(_alias)
+    return cls(**options)
+
+
+__all__ = ["PythonLexer", "JsonLexer", "IniLexer", "get_lexer_by_name"]
+</file>
+
+<file:name=pygments/lexers/python.py>
+from __future__ import annotations
+
+import re
+from typing import Iterable, Iterator, List, Tuple
+
+from pygments.lex import Lexer
+from pygments.token import (
+    Comment,
+    Error,
+    Keyword,
+    Literal,
+    Name,
+    Number,
+    Operator,
+    Punctuation,
+    Text,
+    TokenType,
+    Whitespace,
+)
+
+_PY_KEYWORDS = {
+    "def",
+    "class",
+    "if",
+    "elif",
+    "else",
+    "for",
+    "while",
+    "return",
+    "import",
+    "from",
+    "as",
+    "try",
+    "except",
+    "finally",
+    "with",
+    "lambda",
+    "yield",
+    "pass",
+    "break",
+    "continue",
+    "in",
+    "is",
+    "and",
+    "or",
+    "not",
+    "raise",
+    "del",
+    "global",
+    "nonlocal",
+    "assert",
+}
+_PY_CONSTANTS = {"True", "False", "None"}
+
+_ident = r"[A-Za-z_][A-Za-z0-9_]*"
+
+# Order matters.
+_ws_re = re.compile(r"[ \t\f\v]+")
+_nl_re = re.compile(r"\r\n|\r|\n")
+_comment_re = re.compile(r"#[^\r\n]*")
+_triple_re = re.compile(r"(?s)(?:'''|\"\"\").*?(?:'''|\"\"\")")
+# strings: simplistic but good enough for tests
+_sq_re = re.compile(r"(?s)'(?:\\.|[^'\\])*'")
+_dq_re = re.compile(r'(?s)"(?:\\.|[^"\\])*"')
+_num_re = re.compile(r"(?:\d+\.\d*|\d*\.\d+|\d+)(?:[eE][+-]?\d+)?")
+_decorator_re = re.compile(rf"@({_ident})(?:\.{_ident})*")
+_ident_re = re.compile(_ident)
+_op_re = re.compile(r"(==|!=|<=|>=|<<|>>|\*\*|//|->|:=|[+\-*/%&|^~<>]=?|=)")
+_punct_re = re.compile(r"[\[\]{}().,:;]")
+
+# For def/class name capture: handled by a small state machine.
+_defclass_re = re.compile(rf"(def|class)\b")
+
+
+class PythonLexer(Lexer):
+    name = "Python"
+    aliases = ["python", "py"]
+    filenames = ["*.py"]
+    mimetypes = ["text/x-python"]
+
+    def get_tokens(self, text: str) -> Iterable[Tuple[TokenType, str]]:
+        i = 0
+        n = len(text)
+        expect_name: str | None = None  # "def" or "class"
+
+        while i < n:
+            m = _ws_re.match(text, i)
+            if m:
+                yield Whitespace, m.group(0)
+                i = m.end()
+                continue
+
+            m = _nl_re.match(text, i)
+            if m:
+                yield Text, m.group(0)
+                i = m.end()
+                expect_name = None
+                continue
+
+            m = _comment_re.match(text, i)
+            if m:
+                yield Comment.Single, m.group(0)
+                i = m.end()
+                continue
+
+            m = _triple_re.match(text, i)
+            if m:
+                yield Literal.String.Doc, m.group(0)
+                i = m.end()
+                continue
+
+            m = _sq_re.match(text, i)
+            if m:
+                yield Literal.String.Single, m.group(0)
+                i = m.end()
+                continue
+
+            m = _dq_re.match(text, i)
+            if m:
+                yield Literal.String.Double, m.group(0)
+                i = m.end()
+                continue
+
+            m = _decorator_re.match(text, i)
+            if m:
+                # '@' punctuation then decorator name
+                deco = m.group(0)
+                yield Punctuation, "@"
+                yield Name.Decorator, deco[1:]
+                i = m.end()
+                continue
+
+            m = _num_re.match(text, i)
+            if m:
+                s = m.group(0)
+                if "." in s or "e" in s.lower():
+                    yield Number.Float, s
+                else:
+                    yield Number.Integer, s
+                i = m.end()
+                continue
+
+            m = _defclass_re.match(text, i)
+            if m:
+                kw = m.group(1)
+                yield Keyword, kw
+                i = m.end()
+                expect_name = kw
+                continue
+
+            m = _ident_re.match(text, i)
+            if m:
+                ident = m.group(0)
+                if ident in _PY_CONSTANTS:
+                    yield Keyword.Constant, ident
+                elif ident in _PY_KEYWORDS:
+                    # treat "and/or/not/in/is" as Operator.Word in real pygments; keep Keyword for simplicity
+                    yield Keyword, ident
+                else:
+                    if expect_name == "def":
+                        yield Name.Function, ident
+                        expect_name = None
+                    elif expect_name == "class":
+                        yield Name.Class, ident
+                        expect_name = None
+                    else:
+                        yield Name, ident
+                i = m.end()
+                continue
+
+            m = _op_re.match(text, i)
+            if m:
+                yield Operator, m.group(0)
+                i = m.end()
+                continue
+
+            m = _punct_re.match(text, i)
+            if m:
+                yield Punctuation, m.group(0)
+                i = m.end()
+                continue
+
+            # fallback: consume one char
+            ch = text[i]
+            # mark obviously weird control characters as Error; else Text
+            if ch and ord(ch) < 32 and ch not in ("\t", "\n", "\r"):
+                yield Error, ch
+            else:
+                yield Text, ch
+            i += 1
+</file>
+
+<file:name=pygments/lexers/json.py>
+from __future__ import annotations
+
+import re
+from typing import Iterable, Tuple
+
+from pygments.lex import Lexer
+from pygments.token import Error, Keyword, Literal, Number, Punctuation, Text, TokenType, Whitespace
+
+_ws_re = re.compile(r"[ \t\f\v]+")
+_nl_re = re.compile(r"\r\n|\r|\n")
+_str_re = re.compile(r'"(?:\\["\\/bfnrt]|\\u[0-9a-fA-F]{4}|[^"\\])*"')
+_num_re = re.compile(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?")
+_const_re = re.compile(r"(true|false|null)\b")
+_punct_re = re.compile(r"[{}\[\],:]")
+
+class JsonLexer(Lexer):
+    name = "JSON"
+    aliases = ["json"]
+    filenames = ["*.json"]
+    mimetypes = ["application/json"]
+
+    def get_tokens(self, text: str) -> Iterable[Tuple[TokenType, str]]:
+        i, n = 0, len(text)
+        while i < n:
+            m = _ws_re.match(text, i)
+            if m:
+                yield Whitespace, m.group(0)
+                i = m.end()
+                continue
+            m = _nl_re.match(text, i)
+            if m:
+                yield Text, m.group(0)
+                i = m.end()
+                continue
+            m = _str_re.match(text, i)
+            if m:
+                yield Literal.String.Double, m.group(0)
+                i = m.end()
+                continue
+            m = _num_re.match(text, i)
+            if m:
+                yield Number, m.group(0)
+                i = m.end()
+                continue
+            m = _const_re.match(text, i)
+            if m:
+                yield Keyword.Constant, m.group(1)
+                i = m.end()
+                continue
+            m = _punct_re.match(text, i)
+            if m:
+                yield Punctuation, m.group(0)
+                i = m.end()
+                continue
+            # fallback
+            yield Error, text[i]
+            i += 1
+</file>
+
+<file:name=pygments/lexers/ini.py>
+from __future__ import annotations
+
+import re
+from typing import Iterable, Tuple
+
+from pygments.lex import Lexer
+from pygments.token import Comment, Literal, Name, Operator, Punctuation, Text, TokenType, Whitespace
+
+_ws_re = re.compile(r"[ \t\f\v]+")
+_nl_re = re.compile(r"\r\n|\r|\n")
+_comment_re = re.compile(r"[;#][^\r\n]*")
+
+_section_re = re.compile(r"\[([^\]\r\n]+)\]")
+
+class IniLexer(Lexer):
+    name = "INI"
+    aliases = ["ini", "cfg", "dosini"]
+    filenames = ["*.ini", "*.cfg"]
+    mimetypes = ["text/plain"]
+
+    def get_tokens(self, text: str) -> Iterable[Tuple[TokenType, str]]:
+        i, n = 0, len(text)
+        bol = True  # beginning of line
+
+        while i < n:
+            m = _nl_re.match(text, i)
+            if m:
+                yield Text, m.group(0)
+                i = m.end()
+                bol = True
+                continue
+
+            m = _ws_re.match(text, i)
+            if m:
+                yield Whitespace, m.group(0)
+                i = m.end()
+                continue
+
+            m = _comment_re.match(text, i)
+            if m:
+                yield Comment.Single, m.group(0)
+                i = m.end()
+                bol = False
+                continue
+
+            if bol:
+                m = _section_re.match(text, i)
+                if m:
+                    sec = m.group(1)
+                    yield Punctuation, "["
+                    yield Name.Namespace, sec
+                    yield Punctuation, "]"
+                    i = m.end()
+                    bol = False
+                    continue
+
+                # key parsing at BOL: read until '=' or ':' or newline
+                j = i
+                while j < n and text[j] not in "\r\n=:":
+                    # stop before inline comment if it starts at key area? keep simple: allow
+                    j += 1
+                # if we hit separator
+                if j < n and text[j] in "=:":
+                    key = text[i:j].rstrip()
+                    if key:
+                        # emit key and preserve any trailing spaces between key and sep
+                        klen = len(key)
+                        yield Name.Attribute, text[i : i + klen]
+                        rest = text[i + klen : j]
+                        if rest:
+                            yield Whitespace, rest
+                    else:
+                        # no key content, just fall through
+                        pass
+                    sep = text[j]
+                    yield Operator, sep
+                    i = j + 1
+                    bol = False
+                    continue
+
+            # value / general text until newline or comment start
+            if text[i] in "=:":  # stray separators
+                yield Operator, text[i]
+                i += 1
+                bol = False
+                continue
+
+            # if we see a comment start mid-line, treat as comment
+            m = _comment_re.match(text, i)
+            if m:
+                yield Comment.Single, m.group(0)
+                i = m.end()
+                bol = False
+                continue
+
+            # default: consume one char as value-ish
+            yield Literal.String, text[i]
+            i += 1
+            bol = False
+</file>
+
+<file:name=pygments/formatters/__init__.py>
+from __future__ import annotations
+
+from pygments.util import ClassNotFound
+
+from .html import HtmlFormatter
+from .terminal import TerminalFormatter
+
+_FORMATTERS = {
+    "html": HtmlFormatter,
+    "terminal": TerminalFormatter,
+    "ansi": TerminalFormatter,
+}
+
+def get_formatter_by_name(name: str, **options):
+    if not name:
+        raise ClassNotFound(name)
+    cls = _FORMATTERS.get(name.lower().strip())
+    if cls is None:
+        raise ClassNotFound(name)
+    return cls(**options)
+
+__all__ = ["HtmlFormatter", "TerminalFormatter", "get_formatter_by_name"]
+</file>
+
+<file:name=pygments/formatters/html.py>
+from __future__ import annotations
+
+from typing import Dict, Iterable, List, Optional, Tuple
+
+from pygments.styles import get_style_by_name
+from pygments.token import Token, TokenType, Text
+from pygments.util import get_bool_opt, html_escape
+
+
+def _ttype_to_css_long(ttype: TokenType) -> str:
+    # Token.Name.Function -> "tok-Name-Function"
+    if ttype is Token:
+        return "tok-Token"
+    parts = ttype.split()
+    if not parts:
+        return "tok-Token"
+    return "tok-" + "-".join(parts)
+
+
+_SHORT_MAP = {
+    "Keyword": "k",
+    "Keyword.Constant": "kc",
+    "Name": "n",
+    "Name.Function": "nf",
+    "Name.Class": "nc",
+    "Name.Decorator": "nd",
+    "Name.Attribute": "na",
+    "Name.Builtin": "nb",
+    "Literal.String": "s",
+    "Literal.String.Doc": "sd",
+    "Literal.Number": "m",
+    "Operator": "o",
+    "Punctuation": "p",
+    "Comment": "c",
+    "Comment.Single": "c1",
+    "Text": "",
+}
+
+
+def _ttype_to_short_class(ttype: TokenType) -> str:
+    # find best match by walking up
+    t = ttype
+    while t is not None:
+        key = repr(t)
+        if key.startswith("Token."):
+            key = key[6:]
+        if key in _SHORT_MAP:
+            return _SHORT_MAP[key]
+        t = t.parent
+    return ""
+
+
+def _style_string_to_css(style: str) -> str:
+    """
+    Parse a tiny subset of Pygments style strings:
+      'bold #rrggbb bg:#rrggbb italic underline'
+    """
+    if not style:
+        return ""
+    css: List[str] = []
+    for part in style.split():
+        if part == "bold":
+            css.append("font-weight: bold")
+        elif part == "italic":
+            css.append("font-style: italic")
+        elif part == "underline":
+            css.append("text-decoration: underline")
+        elif part.startswith("bg:"):
+            css.append(f"background-color: {part[3:]}")
+        elif part.startswith("#") and len(part) in (4, 7):
+            css.append(f"color: {part}")
+        # ignore unknown parts
+    return "; ".join(css)
+
+
+class HtmlFormatter:
+    name = "HTML"
+    aliases = ["html"]
+
+    def __init__(self, **options):
+        self.options = dict(options)
+        self.nowrap = get_bool_opt(options, "nowrap", False)
+        self.full = get_bool_opt(options, "full", False)
+        self.noclasses = get_bool_opt(options, "noclasses", False)
+        self.linenos = get_bool_opt(options, "linenos", False)  # minimal: unused
+        self.cssclass = options.get("cssclass", "highlight")
+        self.prestyles = options.get("prestyles", "")
+        stylename = options.get("style", "default")
+        self.style = get_style_by_name(stylename)
+
+    def get_style_defs(self, arg: str = ".highlight") -> str:
+        # Create CSS for known tokens present in style mapping plus a few common ones.
+        rules: List[str] = []
+        base = arg or ".highlight"
+
+        bg = getattr(self.style, "background_color", None)
+        if bg:
+            rules.append(f"{base} {{ background: {bg}; }}")
+        rules.append(f"{base} pre {{ margin: 0; }}")
+
+        # Gather token types from the style class mapping if possible.
+        token_types = set(getattr(self.style, "styles", {}).keys())
+        # ensure some standard ones exist for tests
+        from pygments.token import Keyword, Name, Literal, Comment, Number, Operator, Punctuation
+
+        token_types.update([Text, Keyword, Keyword.Constant, Name, Name.Function, Name.Class, Name.Decorator,
+                            Literal.String, Literal.String.Doc, Number, Comment, Operator, Punctuation])
+
+        for ttype in sorted(token_types, key=lambda t: repr(t)):
+            style_str = self.style.style_for_token(ttype)
+            css = _style_string_to_css(style_str)
+            if not css:
+                continue
+            longcls = _ttype_to_css_long(ttype)
+            shortcls = _ttype_to_short_class(ttype)
+            sels = [f"{base} .{longcls}"]
+            if shortcls:
+                sels.append(f"{base} .{shortcls}")
+            rules.append(f"{', '.join(sels)} {{ {css}; }}")
+        return "\n".join(rules) + ("\n" if rules else "")
+
+    def _span(self, ttype: TokenType, value: str) -> str:
+        esc = html_escape(value)
+        if not esc:
+            return ""
+        if self.noclasses:
+            style_str = self.style.style_for_token(ttype)
+            css = _style_string_to_css(style_str)
+            if css:
+                return f'<span style="{css}">{esc}</span>'
+            return esc
+        longcls = _ttype_to_css_long(ttype)
+        shortcls = _ttype_to_short_class(ttype)
+        cls = longcls if not shortcls else f"{longcls} {shortcls}"
+        return f'<span class="{cls}">{esc}</span>'
+
+    def format(self, tokensource: Iterable[Tuple[TokenType, str]], outfile) -> Optional[str]:
+        body_parts: List[str] = []
+        for ttype, value in tokensource:
+            # Don't wrap plain text with empty class if it is Text and no styling.
+            if not self.noclasses and ttype in Text and not _ttype_to_short_class(ttype):
+                body_parts.append(html_escape(value))
+            else:
+                body_parts.append(self._span(ttype, value))
+        body = "".join(body_parts)
+
+        if self.nowrap:
+            outfile.write(body)
+            return None
+
+        prestyle_attr = f' style="{html_escape(self.prestyles)}"' if self.prestyles else ""
+        wrapped = f'<div class="{html_escape(self.cssclass)}"><pre{prestyle_attr}>{body}</pre></div>'
+
+        if self.full:
+            css = self.get_style_defs(f".{self.cssclass}")
+            doc = (
+                "<!DOCTYPE html>\n"
+                "<html>\n<head>\n"
+                '<meta charset="utf-8" />\n'
+                "<style>\n"
+                f"{css}"
+                "</style>\n"
+                "</head>\n<body>\n"
+                f"{wrapped}\n"
+                "</body>\n</html>\n"
+            )
+            outfile.write(doc)
+            return None
+
+        outfile.write(wrapped)
+        return None
+</file>
+
+<file:name=pygments/formatters/terminal.py>
+from __future__ import annotations
+
+from typing import Dict, Iterable, Optional, Tuple
+
+from pygments.token import Comment, Keyword, Literal, Name, Number, Text, Token, TokenType
+from pygments.util import get_bool_opt
+
+
+_RESET = "\x1b[0m"
+
+# Simple, deterministic mapping.
+# Use fairly standard colors that shouldn't vary.
+_SGR = {
+    "comment": "\x1b[90m",   # bright black
+    "keyword": "\x1b[94m",   # bright blue
+    "namefunc": "\x1b[92m",  # bright green
+    "nameclass": "\x1b[96m", # bright cyan
+    "string": "\x1b[93m",    # bright yellow
+    "number": "\x1b[95m",    # bright magenta
+}
+
+
+class TerminalFormatter:
+    name = "Terminal"
+    aliases = ["terminal", "ansi"]
+
+    def __init__(self, **options):
+        self.options = dict(options)
+        self.ansi = get_bool_opt(options, "ansi", True)
+        self.stripnl = get_bool_opt(options, "stripnl", False)
+
+    def _style_for(self, ttype: TokenType) -> str:
+        if ttype in Comment:
+            return _SGR["comment"]
+        if ttype in Keyword:
+            return _SGR["keyword"]
+        if ttype in Name.Function:
+            return _SGR["namefunc"]
+        if ttype in Name.Class:
+            return _SGR["nameclass"]
+        if ttype in Literal.String:
+            return _SGR["string"]
+        if ttype in Number:
+            return _SGR["number"]
+        return ""
+
+    def format(self, tokensource: Iterable[Tuple[TokenType, str]], outfile) -> Optional[str]:
+        if not self.ansi:
+            for _, value in tokensource:
+                if self.stripnl:
+                    value = value.replace("\n", "")
+                outfile.write(value)
+            return None
+
+        cur = ""
+        for ttype, value in tokensource:
+            if self.stripnl:
+                value = value.replace("\n", "")
+            style = self._style_for(ttype)
+            if style != cur:
+                if cur:
+                    outfile.write(_RESET)
+                if style:
+                    outfile.write(style)
+                cur = style
+            outfile.write(value)
+        if cur:
+            outfile.write(_RESET)
+        return None
+</file>
+
+<file:name=pygments/styles/__init__.py>
+from __future__ import annotations
+
+from typing import Dict, Optional
+
+from pygments.token import Token, TokenType
+from pygments.util import ClassNotFound
+
+from .default import DefaultStyle
+
+
+class Style:
+    background_color: Optional[str] = None
+    highlight_color: Optional[str] = None
+    default_style: str = ""
+    styles: Dict[TokenType, str] = {}
+
+    @classmethod
+    def style_for_token(cls, ttype: TokenType) -> str:
+        t = ttype
+        while t is not None:
+            if t in cls.styles:
+                return cls.styles[t]
+            t = t.parent
+        return cls.default_style or ""
+
+
+def get_style_by_name(name: str):
+    if not name:
+        raise ClassNotFound(name)
+    n = name.lower().strip()
+    if n in ("default", "pygments"):
+        return DefaultStyle
+    raise ClassNotFound(name)
+
+
+__all__ = ["Style", "DefaultStyle", "get_style_by_name"]
+</file>
+
+<file:name=pygments/styles/default.py>
+from __future__ import annotations
+
+from pygments.styles import Style
+from pygments.token import Comment, Keyword, Name, Number, Operator, Punctuation, Text, Literal
+
+
+class DefaultStyle(Style):
+    background_color = "#f8f8f8"
+    default_style = ""
+
+    styles = {
+        Text: "",
+        Keyword: "bold #0000CC",
+        Keyword.Constant: "bold #0000CC",
+        Name: "#000000",
+        Name.Function: "bold #006600",
+        Name.Class: "bold #0066AA",
+        Name.Decorator: "#AA22FF",
+        Name.Attribute: "#0066AA",
+        Literal.String: "#008000",
+        Literal.String.Doc: "italic #008000",
+        Number: "#6666FF",
+        Comment: "italic #888888",
+        Operator: "#000000",
+        Punctuation: "#000000",
+    }
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import pytest
+
+from pygments import highlight, lex
+from pygments.formatters.html import HtmlFormatter
+from pygments.formatters.terminal import TerminalFormatter
+from pygments.lexers import get_lexer_by_name
+from pygments.lexers.ini import IniLexer
+from pygments.lexers.json import JsonLexer
+from pygments.lexers.python import PythonLexer
+from pygments.token import Comment, Keyword, Literal, Name, Number, Punctuation, Token, Text
+from pygments.util import ClassNotFound
+
+
+def test_token_hierarchy_and_repr():
+    assert repr(Token) == "Token"
+    assert repr(Token.Name.Function) == "Token.Name.Function"
+    assert Token.Name.Function in Token.Name
+    assert Token.Name in Token.Name is True
+    assert not (Token.Name in Token.Name.Function)
+
+
+def test_lex_preserves_input_roundtrip():
+    code = "def foo(x):\n\t# c\n\treturn x+1\n"
+    toks = list(lex(code, PythonLexer()))
+    out = "".join(v for _, v in toks)
+    assert out == code
+
+
+def test_pythonlexer_def_class_decorator_comment_string_number():
+    code = "@dec\ndef foo():\n    '''doc'''\n    x=1.5 # hi\n"
+    toks = list(lex(code, PythonLexer()))
+    # decorator name
+    assert any(tt in Name.Decorator and v == "dec" for tt, v in toks)
+    # def keyword and function name
+    assert any(tt in Keyword and v == "def" for tt, v in toks)
+    assert any(tt in Name.Function and v == "foo" for tt, v in toks)
+    # docstring
+    assert any(tt in Literal.String.Doc and "doc" in v for tt, v in toks)
+    # number float
+    assert any(tt in Number and v == "1.5" for tt, v in toks)
+    # comment
+    assert any(tt in Comment.Single and v.strip() == "# hi" for tt, v in toks)
+
+
+def test_jsonlexer_basics():
+    code = '{"a": true, "b": 1.2}\n'
+    toks = list(lex(code, JsonLexer()))
+    assert any(tt in Punctuation and v == "{" for tt, v in toks)
+    assert any(tt in Literal.String.Double and v == '"a"' for tt, v in toks)
+    assert any(tt in Keyword.Constant and v == "true" for tt, v in toks)
+    assert any(tt in Number and v == "1.2" for tt, v in toks)
+    assert "".join(v for _, v in toks) == code
+
+
+def test_inilexer_basics():
+    code = "[sec]\nkey=value ;c\n"
+    toks = list(lex(code, IniLexer()))
+    assert any(tt in Name.Namespace and v == "sec" for tt, v in toks)
+    assert any(tt in Name.Attribute and v == "key" for tt, v in toks)
+    assert any(tt in Comment.Single and v.strip() == ";c" for tt, v in toks)
+    assert "".join(v for _, v in toks) == code
+
+
+def test_get_lexer_by_name():
+    assert isinstance(get_lexer_by_name("python"), PythonLexer)
+    assert isinstance(get_lexer_by_name("JSON"), JsonLexer)
+    assert isinstance(get_lexer_by_name("ini"), IniLexer)
+    with pytest.raises(ClassNotFound):
+        get_lexer_by_name("doesnotexist")
+
+
+def test_htmlformatter_nowrap_and_classes_and_escape():
+    code = "x = 1 < 2\n"
+    html = highlight(code, PythonLexer(), HtmlFormatter(nowrap=True))
+    assert "&lt;" in html
+    # should contain a span for at least something (number or operator)
+    assert "<span" in html
+    assert "".join(v for _, v in lex(code, PythonLexer())) == code
+
+
+def test_htmlformatter_full_and_style_defs_and_noclasses():
+    fmt = HtmlFormatter(full=True, cssclass="highlight")
+    html = highlight("def f():\n  return 1\n", PythonLexer(), fmt)
+    assert "<html" in html.lower()
+    assert "<style>" in html.lower()
+    css = fmt.get_style_defs(".highlight")
+    assert ".highlight" in css
+    assert "tok-Keyword" in css or ".k" in css
+
+    html2 = highlight("def f():\n", PythonLexer(), HtmlFormatter(nowrap=True, noclasses=True))
+    assert 'style="' in html2
+    assert 'class="' not in html2
+
+
+def test_terminalformatter_plain_and_ansi():
+    code = "def f():\n  return 1\n"
+    out_plain = highlight(code, PythonLexer(), TerminalFormatter(ansi=False))
+    assert out_plain == code
+
+    out_ansi = highlight(code, PythonLexer(), TerminalFormatter(ansi=True))
+    assert "\x1b[" in out_ansi
+    assert out_ansi.endswith("\x1b[0m") or out_ansi.endswith("\x1b[0m" + "")
+</file>

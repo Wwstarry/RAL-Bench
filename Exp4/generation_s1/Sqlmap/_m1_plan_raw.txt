@@ -1,0 +1,199 @@
+<plan>
+1) Repository layout and import graph
+- Goal: mirror the minimal sqlmap module layout and symbols that the black-box tests expect, while implementing a benign, pure-Python CLI that can print help/version and exit cleanly.
+
+- Files/directories to create (relative to repo root):
+  - sqlmap.py                              (CLI entrypoint)
+  - lib/__init__.py
+  - lib/core/__init__.py
+  - lib/core/settings.py                   (VERSION, DESCRIPTION)
+  - lib/core/data.py                       (cmdLineOptions, conf, kb)
+  - lib/core/option.py                     (init, initOptions)
+  - lib/parse/__init__.py
+  - lib/parse/cmdline.py                   (cmdLineParser)
+  - lib/controller/__init__.py
+  - lib/controller/controller.py           (start)
+
+- Import graph (keep simple and stable):
+  - sqlmap.py imports:
+    - from lib.core.settings import VERSION, DESCRIPTION
+    - from lib.parse.cmdline import cmdLineParser
+    - from lib.core.option import init, initOptions
+    - from lib.core.data import cmdLineOptions, conf, kb
+    - from lib.controller.controller import start
+  - lib.parse.cmdline imports:
+    - argparse, sys
+    - from lib.core.settings import VERSION, DESCRIPTION (for epilog/version text)
+  - lib.core.option imports:
+    - from lib.core.data import cmdLineOptions, conf, kb
+  - lib.controller.controller imports:
+    - sys
+    - from lib.core.data import conf, kb
+
+2) Public APIs to implement (modules/classes/functions)
+- lib.core.settings
+  - VERSION: string, semantic-like (e.g., "1.0.0")
+  - DESCRIPTION: string, short description (used in help header/--version)
+
+- lib.core.data
+  - cmdLineOptions: global container for raw parsed argparse Namespace (or similar)
+  - conf: global config object (dict-like or attribute-like)
+  - kb: global knowledge base object (dict-like or attribute-like)
+  - Implementation detail: use small attribute containers:
+    - class AttribDict(dict): supports attribute access; store config fields.
+
+- lib.parse.cmdline
+  - def cmdLineParser(argv=None):
+    - Returns an argparse.Namespace (or compatible object).
+    - Must support:
+      - -h / --help (basic help)
+      - -hh (advanced help)
+      - --version (version)
+    - Must robustly handle invalid args (argparse default behavior exits with code 2 and prints usage to stderr; acceptable).
+    - Must not require any network/target options to run help/version.
+    - Should accept arbitrary typical sqlmap-ish placeholders without failing tests if they pass benign common options. Add minimal commonly used flags as no-ops:
+      - -u/--url, --data, -p, --batch, -v, --risk, --level, --random-agent, --threads, --tamper
+    - -hh behavior:
+      - In reference sqlmap, -hh prints “advanced help”. Here implement by:
+        - If argv contains "-hh", print extended help text then exit(0), or return namespace with a flag (e.g., advancedHelp=True) and let sqlmap.py print it.
+      - Prefer handling in parser: custom action that prints advanced help and exits cleanly (SystemExit 0), avoiding later initialization.
+
+- lib.core.option
+  - def init(argv=None):
+    - Orchestrates early initialization:
+      - calls cmdLineParser(argv) to parse options
+      - stores results into lib.core.data.cmdLineOptions
+      - returns parsed options
+  - def initOptions(cmdLineOptions):
+    - Translates parsed options into global conf and kb defaults.
+    - Must be safe when only help/version were requested.
+    - Populate:
+      - conf.version = VERSION
+      - conf.description = DESCRIPTION
+      - conf.url, conf.data, conf.param, conf.batch, conf.verbose etc. from parsed options if present.
+      - kb flags for runtime (e.g., kb.multipleTargets=False), but keep minimal.
+
+- lib.controller.controller
+  - def start():
+    - Main controller entrypoint invoked by sqlmap.py after init/initOptions.
+    - For benign operation (no actual SQLi testing):
+      - If user provided no actionable target (e.g., no -u/--url), print a short informative message to stderr and exit with code 0 or 1 depending on desired test expectations. Safer: exit 0 with help hint to avoid “failure” classification in some harnesses.
+      - If user provided a URL, do NOT perform any network calls. Just print a message like “Target provided but this is a stub implementation.” and exit 0.
+    - Must never hang.
+
+- sqlmap.py (root entrypoint)
+  - Must be runnable via `python sqlmap.py ...`
+  - Behavior:
+    - If invoked with --version: print VERSION (optionally with DESCRIPTION) and exit 0
+      - Prefer argparse’s version action to ensure consistent behavior; but tests may call `python sqlmap.py --version` expecting clean output. Provide exact string format stable (e.g., "sqlmap/1.0.0").
+    - If invoked with -h: print basic help and exit 0 (argparse does this)
+    - If invoked with -hh: print advanced help and exit 0
+    - For other args:
+      - init(); initOptions(); start()
+    - Wrap main in try/except SystemExit to allow argparse exits to pass through without stack traces.
+    - Wrap unexpected exceptions to print a short error and exit(1), but avoid printing long tracebacks unless env var (optional).
+
+3) Key behaviors & edge cases
+- Help handling
+  - -h/--help:
+    - argparse default; ensure parser includes program name "sqlmap.py" in usage.
+  - -hh:
+    - Must be recognized as its own flag (not interpreted as -h -h).
+    - In argparse, define an option "-hh" explicitly (works as an option string) with action to print advanced help and exit 0.
+    - Advanced help content:
+      - Include a superset of options, grouped sections, and short explanations; not required to be exhaustive but must be informative.
+      - Ensure it doesn’t require any external context.
+
+- Version handling
+  - Provide --version via argparse action="version":
+    - version string recommended: f"sqlmap/{VERSION}"
+    - Keep stable and simple; avoid extra whitespace.
+  - Must exit 0 and not proceed to initOptions/start.
+
+- Invalid/nonsensical args
+  - argparse should:
+    - Print “usage:” + error to stderr
+    - exit code 2
+  - Ensure no Python traceback appears.
+  - Examples:
+    - unknown option: `--does-not-exist`
+    - missing value: `-u` alone
+
+- Robust non-target invocation
+  - Running with no args (just `python sqlmap.py`) should:
+    - Print basic help (or a short message plus help) and exit 0.
+    - To achieve: in sqlmap.py, if len(sys.argv)==1: call parser.print_help(); exit 0.
+  - Running with benign flags like `--batch` only should exit cleanly with message “no target provided”.
+
+- Global state and compatibility
+  - lib.core.data must expose the names exactly: cmdLineOptions, conf, kb at module scope.
+  - Ensure init/initOptions update these globals, since tests may import and inspect them.
+  - conf and kb should be attribute-accessible and mutable.
+
+- No external dependencies
+  - Use only Python standard library.
+  - No network I/O, no subprocess execution.
+
+4) Minimal internal test plan (what to test and why)
+- Import/interface tests (ensures module paths and symbol names match)
+  - python -c "from lib.parse.cmdline import cmdLineParser"
+  - python -c "from lib.core.option import init, initOptions"
+  - python -c "from lib.core.data import cmdLineOptions, conf, kb"
+  - python -c "from lib.core.settings import VERSION, DESCRIPTION"
+  - python -c "from lib.controller.controller import start"
+
+- CLI behavior tests (core black-box expectations)
+  - `python sqlmap.py -h`:
+    - exit code 0
+    - stdout contains "usage:" and at least one option line
+  - `python sqlmap.py -hh`:
+    - exit code 0
+    - stdout contains "Advanced help" (add explicit header) and shows extra option groups
+  - `python sqlmap.py --version`:
+    - exit code 0
+    - stdout equals or contains "sqlmap/" + VERSION
+
+- Robustness tests
+  - `python sqlmap.py --does-not-exist`:
+    - exit code 2
+    - stderr contains "unrecognized arguments"
+    - no traceback
+  - `python sqlmap.py -u`:
+    - exit code 2
+    - stderr indicates expected argument
+  - `python sqlmap.py`:
+    - exit code 0
+    - prints help (or a hint + help)
+  - `python sqlmap.py --batch`:
+    - exit code 0
+    - stderr or stdout contains "no target provided" and does not hang
+
+- State initialization tests (ensures globals set)
+  - python -c that calls init with sample argv and then initOptions, checks conf.url etc.:
+    - opts = cmdLineParser(["-u","http://example.com"])
+    - initOptions(opts)
+    - assert conf.url set
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: argparse treating "-hh" as "-h -h" rather than a single option
+  - Mitigation: explicitly define option_strings=["-hh"] with a custom argparse.Action; argparse matches exact option string before short option clustering behavior applies (Python’s argparse doesn’t combine short options like getopt by default unless defined; but "-hh" could be read as "-h" with "h" as its arg if -h accepted an arg, which it doesn’t). Explicit "-hh" avoids ambiguity.
+
+- Risk: tests expecting specific output formatting for version/help
+  - Mitigation: keep outputs minimal and stable:
+    - version: exactly "sqlmap/<VERSION>"
+    - help: default argparse usage with a clear description
+    - advanced help: deterministic plain text, no dynamic wrapping based on terminal width (use print with fixed strings rather than argparse formatter for the advanced section).
+
+- Risk: global state not initialized when tests import modules directly
+  - Mitigation: in lib.core.data initialize conf/kb to empty AttribDict objects at import time; cmdLineOptions initialized to None. init/initOptions should be idempotent.
+
+- Risk: controller.start being called without conf set
+  - Mitigation: controller.start should handle missing attributes safely (use getattr with defaults).
+
+- Risk: unintended hangs or external I/O
+  - Mitigation: ensure start() does no network; it only prints and exits. Avoid reading stdin.
+
+- Risk: exit codes causing harness failures (some harnesses treat non-zero as failure even for “no target”)
+  - Mitigation: use exit code 0 for “no target provided” and for stub “target provided” completion. Reserve non-zero for parser errors (argparse already uses 2) and unexpected internal errors (1).
+
+</plan>

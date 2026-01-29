@@ -1,0 +1,239 @@
+1) Repository layout
+- Package: tinydb
+  - tinydb/__init__.py
+  - tinydb/database.py
+  - tinydb/table.py
+  - tinydb/queries.py
+  - tinydb/storages.py
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+2.1 tinydb/__init__.py
+- Expose (re-export) primary API:
+  - from .database import TinyDB
+  - from .storages import JSONStorage
+  - from .queries import Query, where
+  - from .table import Document
+
+2.2 tinydb/storages.py
+- class Storage: (minimal base)
+  - def read(self) -> dict | None
+  - def write(self, data: dict) -> None
+  - def close(self) -> None
+- class JSONStorage(Storage):
+  - def __init__(self, path: str, *, create_dirs: bool = True, encoding: str = "utf-8") -> None
+  - def read(self) -> dict | None
+  - def write(self, data: dict) -> None
+  - def close(self) -> None
+  - Attributes (public/expected): path: str
+  - Behavior: file-based JSON document store.
+
+2.3 tinydb/database.py
+- class TinyDB:
+  - def __init__(self, path: str, *, storage: type[Storage] = JSONStorage, default_table: str = "_default", **storage_kwargs) -> None
+  - def table(self, name: str) -> Table
+  - def tables(self) -> set[str]
+  - def drop_tables(self) -> None
+  - def drop_table(self, name: str) -> None
+  - def close(self) -> None
+  - Context manager:
+    - def __enter__(self) -> "TinyDB"
+    - def __exit__(self, exc_type, exc, tb) -> None
+  - Properties/attributes used by internals:
+    - storage: Storage
+    - default_table_name: str
+
+2.4 tinydb/table.py
+- class Document(dict):
+  - def __init__(self, value: dict, doc_id: int) -> None
+  - Property:
+    - doc_id: int
+  - Must behave like dict for field access/iteration; doc_id must be retrievable.
+- class Table:
+  - def __init__(self, db: TinyDB, name: str) -> None
+  - def name(self) -> str  (or property .name; choose one consistent usage; if property, name: str)
+  - CRUD:
+    - def insert(self, document: dict) -> int
+    - def insert_multiple(self, documents: list[dict]) -> list[int]
+    - def get(self, *, doc_id: int | None = None, cond: Query | None = None) -> Document | None
+    - def all(self) -> list[Document]
+    - def search(self, cond: Query) -> list[Document]
+    - def update(self, fields: dict | callable, cond: Query | None = None, *, doc_ids: list[int] | None = None) -> list[int]
+    - def remove(self, cond: Query | None = None, *, doc_ids: list[int] | None = None) -> list[int]
+    - def truncate(self) -> None
+    - def contains(self, *, doc_id: int | None = None, cond: Query | None = None) -> bool
+  - Convenience/analytics-like:
+    - def count(self, cond: Query) -> int
+  - Insertion/updating must persist to storage via owning TinyDB.
+
+2.5 tinydb/queries.py
+- class Query:
+  - Construction:
+    - def __init__(self, path: tuple[str, ...] = ()) -> None
+  - Field selection:
+    - def __getattr__(self, item: str) -> "Query"    (build path)
+    - def __getitem__(self, item: str) -> "Query"    (alternate path builder)
+  - Comparisons returning predicate objects (callables):
+    - def __eq__(self, other) -> Query
+    - def __ne__(self, other) -> Query
+    - def __lt__(self, other) -> Query
+    - def __le__(self, other) -> Query
+    - def __gt__(self, other) -> Query
+    - def __ge__(self, other) -> Query
+  - Additional operators:
+    - def exists(self) -> Query              (field exists)
+    - def one_of(self, values: list | set | tuple) -> Query
+    - def matches(self, pattern: str) -> Query  (regex over string value)
+    - def test(self, func: callable) -> Query   (apply func(value)->bool)
+  - Boolean composition:
+    - def __and__(self, other: Query) -> Query
+    - def __or__(self, other: Query) -> Query
+    - def __invert__(self) -> Query
+  - Evaluation:
+    - def __call__(self, document: dict) -> bool
+- Helper:
+  - def where(key: str) -> Query   (equivalent to Query().__getattr__/__getitem__ for root key)
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+3.1 Storage format and persistence
+- Database file stores a single JSON object (dict) with shape:
+  {
+    "_default": {
+      "1": { ...document fields... },
+      "2": { ... }
+    },
+    "projects": { ... },
+    "_meta": {
+      "_default": { "last_id": 2 },
+      "projects": { "last_id": 10 }
+    }
+  }
+- Table documents are stored keyed by doc_id as strings in JSON for compatibility.
+- Each table maintains monotonically increasing integer doc_ids starting at 1.
+- last_id per table stored under _meta[table]["last_id"].
+- JSONStorage.read():
+  - If file does not exist or is empty: return None.
+  - If file exists and contains valid JSON dict: return that dict.
+- JSONStorage.write(data):
+  - Must write valid JSON atomically enough for tests (simple overwrite is acceptable).
+  - Ensure parent directory exists when create_dirs=True.
+- TinyDB initialization:
+  - Opens storage immediately.
+  - Loads data lazily or eagerly; but all Table operations must see persisted state.
+- close():
+  - Must call storage.close(); operations after close may raise ValueError or operate undefined; tests expect close exists.
+
+3.2 TinyDB and tables lifecycle
+- TinyDB.table(name):
+  - Returns a Table instance bound to this DB and table name.
+  - Creating a table does not require explicit creation; first insert creates entries.
+- TinyDB.tables():
+  - Returns set of table names present in stored data (excluding "_meta" if present).
+- drop_table(name):
+  - Removes table data and associated _meta; if not existing, no error.
+- drop_tables():
+  - Removes all tables and meta; leaves empty database structure (can be {} or {"_meta":{}}; but subsequent operations must work).
+- default_table:
+  - Any operations without explicit table should happen through db.table(default_table_name) (not required to provide shortcuts unless tests require; but keep default_table_name stored).
+
+3.3 Table CRUD semantics
+- insert(document):
+  - document must be a mapping (dict-like). If not dict, raise TypeError.
+  - Assign next doc_id; persist; return doc_id (int).
+  - Store a shallow copy so external mutation does not affect DB.
+- insert_multiple(documents):
+  - Insert all; if any element invalid, raise TypeError and do not partially commit if feasible; for simplicity, may commit up to failure only if tests do not check atomicity. Prefer all-or-nothing by validating first.
+  - Returns list of doc_ids in insertion order.
+- all():
+  - Returns list of Document objects for all rows in table, sorted by doc_id ascending.
+- get(doc_id=...):
+  - Returns Document if exists else None.
+- get(cond=...):
+  - Returns first matching Document in ascending doc_id order, else None.
+- search(cond):
+  - Returns all matching in ascending doc_id order.
+- contains(doc_id=.../cond=...):
+  - True if get would find any; if neither provided, raise ValueError.
+- update(fields, cond=None, doc_ids=None):
+  - Exactly one of (cond, doc_ids) must be provided; if neither, raise ValueError; if both, apply union (update those matching cond plus doc_ids) OR raise ValueError. Prefer strict: if both provided raise ValueError.
+  - If fields is dict: merge keys into existing documents (set/overwrite).
+  - If fields is callable: called as fields(document_dict) and must return None or a dict of updates; contract: support in-place mutation (callable may mutate passed dict) and/or return dict; implement by copying doc then applying.
+  - Returns list of updated doc_ids.
+  - Updating a missing doc_id is ignored (no error).
+- remove(cond=None, doc_ids=None):
+  - Same selection rules as update.
+  - Removes matching documents; returns list of removed doc_ids.
+- truncate():
+  - Removes all documents from table and resets last_id to 0 (or keeps last_id but inserts must still produce increasing ids per contract). Prefer reset to 0 for predictable tests (next insert returns 1).
+- count(cond):
+  - Return number of documents matching cond.
+
+3.4 Query semantics
+- Queries are predicates over documents (dicts).
+- Path resolution:
+  - Query built via where("a").b.c resolves nested dict keys: document["a"]["b"]["c"].
+  - If any intermediate key missing or non-dict when traversing, treat as missing value.
+- Comparisons:
+  - If value missing: all comparisons except exists() return False.
+  - __eq__/__ne__ compare using Python equality on resolved value.
+  - Ordering comparisons return False if types not comparable or missing.
+- exists():
+  - True if full path exists in document (regardless of value, including None).
+- one_of(values):
+  - True if resolved value is in values.
+- matches(pattern):
+  - If resolved value is a string, apply re.search(pattern, value) truthiness; else False.
+- test(func):
+  - Apply func(resolved_value) if exists else func(None)? Prefer: if missing, pass None; tests may expect missing to be False; implement: if missing return False unless func explicitly handles None; simplest: pass resolved value if exists else None.
+- Boolean composition:
+  - and/or/invert combine predicates with short-circuit logic.
+- Query objects must be callable: cond(document)->bool.
+
+3.5 Document wrapper
+- Document behaves like dict but additionally has immutable doc_id attribute.
+- When returned from Table methods, each result is a Document with doc_id set to integer id.
+- Document must serialize as dict when stored; doc_id is not stored inside the dict unless user explicitly stores it.
+
+3.6 Error handling and edge cases
+- Invalid JSON on read: raise ValueError (or json.JSONDecodeError) to surface corruption.
+- where(key) with non-str: raise TypeError.
+- Query attribute access for private names (starting with "_") should raise AttributeError to avoid conflicts, or allow but not required; prefer raising AttributeError for "_" prefixed.
+- All methods should be deterministic and stable ordering.
+- No concurrency guarantees required.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Import surface works:
+  - from tinydb import TinyDB, JSONStorage, Query, where, Document succeeds.
+- Creating DB and inserting persists to file:
+  - Insert in one process instance, reopen TinyDB on same path, data present with same doc_id and content.
+- Projects/tasks use-case supported by schema-agnostic documents:
+  - Can create separate tables like "projects" and "tasks".
+  - Can update task status/estimate fields and query by project/status via where().
+- CRUD correctness:
+  - insert returns incremental ids starting at 1 (per table; after truncate resets to 1).
+  - get(doc_id) returns Document with correct doc_id; missing returns None.
+  - all/search return Document list sorted by doc_id.
+  - update with dict overwrites/adds keys; returns updated ids.
+  - remove deletes and returns removed ids; subsequent get returns None.
+- Query operators:
+  - where("status") == "open" filters correctly.
+  - Combined queries with & and | work; ~ inverts.
+  - exists, one_of, matches operate as specified.
+  - Nested fields where("a").b works.
+- Analytics-like:
+  - count(where("done") == False) returns number of unfinished tasks per project when combined with project filter, e.g. table.count((where("project")=="X") & (where("status")!="done")).
+- Table management:
+  - db.tables() lists created tables.
+  - drop_table removes table and metadata without error if missing.
+  - drop_tables clears database.
+- Storage behavior:
+  - Missing file returns empty DB state without crashing.
+  - Writing produces valid JSON with required structure including _meta last_id tracking.
+
+5) Non-goals / constraints
+- No external services, servers, or non-standard dependencies; only Python standard library.
+- Not required to implement indexing, advanced transactions, locking, concurrency safety, or high performance.
+- Not required to mirror full upstream TinyDB API; only the contract above.
+- No CLI required; library-only.
+- Do not use sqlite or any non-JSON persistence layer.

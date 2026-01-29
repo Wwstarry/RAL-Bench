@@ -1,0 +1,575 @@
+<file:name=petl/__init__.py>
+"""
+A lightweight, pure-Python subset of the petl API.
+
+This package implements a small lazy ETL (Extract-Transform-Load) toolkit with
+table semantics compatible with the core behaviors exercised by the tests.
+
+Table protocol:
+- A table is any iterable yielding rows.
+- The first row is a header (sequence of field names).
+- Subsequent rows are data rows (sequences).
+"""
+
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
+Field = Union[int, str]
+Row = Tuple[Any, ...]
+Header = Tuple[Any, ...]
+
+
+def _as_tuple(row: Sequence[Any]) -> Tuple[Any, ...]:
+    if isinstance(row, tuple):
+        return row
+    return tuple(row)
+
+
+def _as_field_index(header: Sequence[Any], field: Field) -> int:
+    if isinstance(field, int):
+        if field < 0 or field >= len(header):
+            raise IndexError(field)
+        return field
+    else:
+        try:
+            return list(header).index(field)
+        except ValueError as e:
+            raise KeyError(field) from e
+
+
+def _iter_table(table: Iterable[Sequence[Any]]) -> Iterator[Tuple[Any, ...]]:
+    for row in table:
+        yield _as_tuple(row)
+
+
+def fromdicts(records: Iterable[Dict[str, Any]], header: Optional[Sequence[str]] = None):
+    """
+    Create a table from an iterable of dictionaries.
+
+    If header is provided, fields are taken in that order. Missing keys yield None.
+    If header is None, header is inferred from the first record's keys (in insertion order).
+    The records are materialized into a list to ensure re-iterability.
+    """
+    recs = list(records)
+
+    if header is None:
+        if recs:
+            header = list(recs[0].keys())
+        else:
+            header = []
+
+    header_t = tuple(header)
+
+    class DictsView:
+        def __iter__(self) -> Iterator[Row]:
+            yield header_t
+            for rec in recs:
+                yield tuple(rec.get(f, None) for f in header_t)
+
+    return DictsView()
+
+
+def addfield(table: Iterable[Sequence[Any]], fieldname: str, func: Callable, index: Optional[int] = None):
+    """
+    Add a derived field computed per row.
+
+    func is called with (row) first; if that fails due to TypeError, it is called
+    with a dict mapping field->value.
+    """
+
+    class AddFieldView:
+        def __iter__(self) -> Iterator[Row]:
+            it = _iter_table(table)
+            header = next(it)
+            if index is None:
+                new_header = header + (fieldname,)
+                insert_at = len(header)
+            else:
+                insert_at = index
+                if insert_at < 0:
+                    insert_at = max(0, len(header) + 1 + insert_at)
+                if insert_at > len(header):
+                    insert_at = len(header)
+                new_header = header[:insert_at] + (fieldname,) + header[insert_at:]
+            yield new_header
+
+            # Precompute for dict fallback
+            hdr_list = list(header)
+
+            for row in it:
+                try:
+                    v = func(row)
+                except TypeError:
+                    v = func(dict(zip(hdr_list, row)))
+                out = row[:insert_at] + (v,) + row[insert_at:]
+                yield out
+
+    return AddFieldView()
+
+
+# Re-export public API from submodules
+from .io.csv import fromcsv, tocsv  # noqa: E402
+from .transform.conversions import convert  # noqa: E402
+from .transform.selects import select, selectge, selectgt  # noqa: E402
+from .transform.sort import sort  # noqa: E402
+from .transform.joins import join  # noqa: E402
+
+__all__ = [
+    "fromcsv",
+    "tocsv",
+    "fromdicts",
+    "convert",
+    "select",
+    "selectge",
+    "selectgt",
+    "sort",
+    "addfield",
+    "join",
+]
+</file>
+
+<file:name=petl/io/csv.py>
+from __future__ import annotations
+
+import csv
+from typing import Any, Iterable, Iterator, Sequence, Tuple
+
+
+def fromcsv(path: str, encoding: str = "utf-8", dialect: str = "excel", **csv_kwargs):
+    """
+    Lazy CSV source. Each iteration re-opens the file.
+    Yields tuples of strings (as returned by csv.reader).
+    """
+
+    class CsvView:
+        def __iter__(self) -> Iterator[Tuple[str, ...]]:
+            with open(path, "r", encoding=encoding, newline="") as f:
+                reader = csv.reader(f, dialect=dialect, **csv_kwargs)
+                for row in reader:
+                    yield tuple(row)
+
+    return CsvView()
+
+
+def tocsv(
+    table: Iterable[Sequence[Any]],
+    path: str,
+    encoding: str = "utf-8",
+    dialect: str = "excel",
+    write_header: bool = True,
+    **csv_kwargs,
+) -> None:
+    """
+    CSV sink. Iterates the table and writes rows.
+    """
+    it = iter(table)
+    with open(path, "w", encoding=encoding, newline="") as f:
+        writer = csv.writer(f, dialect=dialect, **csv_kwargs)
+        try:
+            header = next(it)
+        except StopIteration:
+            return
+
+        if write_header:
+            writer.writerow(list(header))
+
+        for row in it:
+            writer.writerow(list(row))
+</file>
+
+<file:name=petl/transform/conversions.py>
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, Iterator, Sequence, Tuple, Union
+
+Field = Union[int, str]
+
+
+def _as_tuple(row: Sequence[Any]) -> Tuple[Any, ...]:
+    return row if isinstance(row, tuple) else tuple(row)
+
+
+def _as_field_index(header: Sequence[Any], field: Field) -> int:
+    if isinstance(field, int):
+        if field < 0 or field >= len(header):
+            raise IndexError(field)
+        return field
+    try:
+        return list(header).index(field)
+    except ValueError as e:
+        raise KeyError(field) from e
+
+
+def convert(
+    table: Iterable[Sequence[Any]],
+    field: Field,
+    func: Callable[[Any], Any],
+    failonerror: bool = False,
+    default: Any = None,
+):
+    """
+    Convert values in a field/column using func(value), streaming rows.
+
+    If failonerror is False and func raises, uses `default` if provided (default is None);
+    otherwise keeps the original value.
+    """
+
+    class ConvertView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            it = iter(table)
+            header = _as_tuple(next(it))
+            idx = _as_field_index(header, field)
+            yield header
+
+            for row0 in it:
+                row = _as_tuple(row0)
+                old = row[idx] if idx < len(row) else None
+                try:
+                    new = func(old)
+                except Exception:
+                    if failonerror:
+                        raise
+                    if default is not None:
+                        new = default
+                    else:
+                        new = old
+                if idx >= len(row):
+                    # pad (unlikely in tests)
+                    padded = list(row) + [None] * (idx + 1 - len(row))
+                    padded[idx] = new
+                    yield tuple(padded)
+                else:
+                    yield row[:idx] + (new,) + row[idx + 1 :]
+
+    return ConvertView()
+</file>
+
+<file:name=petl/transform/selects.py>
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, Iterable, Iterator, Sequence, Tuple, Union
+
+Field = Union[int, str]
+
+
+def _as_tuple(row: Sequence[Any]) -> Tuple[Any, ...]:
+    return row if isinstance(row, tuple) else tuple(row)
+
+
+def _as_field_index(header: Sequence[Any], field: Field) -> int:
+    if isinstance(field, int):
+        if field < 0 or field >= len(header):
+            raise IndexError(field)
+        return field
+    try:
+        return list(header).index(field)
+    except ValueError as e:
+        raise KeyError(field) from e
+
+
+def select(table: Iterable[Sequence[Any]], predicate: Callable):
+    """
+    Filter rows based on predicate.
+
+    predicate is attempted as predicate(row); if that raises TypeError, it is
+    attempted as predicate(rowdict).
+    """
+
+    class SelectView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            it = iter(table)
+            header = _as_tuple(next(it))
+            yield header
+            hdr_list = list(header)
+
+            for r0 in it:
+                row = _as_tuple(r0)
+                try:
+                    ok = predicate(row)
+                except TypeError:
+                    ok = predicate(dict(zip(hdr_list, row)))
+                if ok:
+                    yield row
+
+    return SelectView()
+
+
+def _cmp_safe(op: Callable[[Any, Any], bool], value: Any, threshold: Any) -> bool:
+    if threshold is None:
+        return False
+    if value is None:
+        return False
+    if value == "":
+        return False
+    try:
+        return op(value, threshold)
+    except TypeError:
+        return False
+
+
+def selectge(table: Iterable[Sequence[Any]], field: Field, threshold: Any):
+    class SelectGeView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            it = iter(table)
+            header = _as_tuple(next(it))
+            idx = _as_field_index(header, field)
+            yield header
+            for r0 in it:
+                row = _as_tuple(r0)
+                v = row[idx] if idx < len(row) else None
+                if _cmp_safe(lambda a, b: a >= b, v, threshold):
+                    yield row
+
+    return SelectGeView()
+
+
+def selectgt(table: Iterable[Sequence[Any]], field: Field, threshold: Any):
+    class SelectGtView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            it = iter(table)
+            header = _as_tuple(next(it))
+            idx = _as_field_index(header, field)
+            yield header
+            for r0 in it:
+                row = _as_tuple(r0)
+                v = row[idx] if idx < len(row) else None
+                if _cmp_safe(lambda a, b: a > b, v, threshold):
+                    yield row
+
+    return SelectGtView()
+</file>
+
+<file:name=petl/transform/sort.py>
+from __future__ import annotations
+
+from typing import Any, Iterable, Iterator, List, Sequence, Tuple, Union
+
+Field = Union[int, str]
+
+
+def _as_tuple(row: Sequence[Any]) -> Tuple[Any, ...]:
+    return row if isinstance(row, tuple) else tuple(row)
+
+
+def _as_field_index(header: Sequence[Any], field: Field) -> int:
+    if isinstance(field, int):
+        if field < 0 or field >= len(header):
+            raise IndexError(field)
+        return field
+    try:
+        return list(header).index(field)
+    except ValueError as e:
+        raise KeyError(field) from e
+
+
+def sort(table: Iterable[Sequence[Any]], field: Field, reverse: bool = False):
+    """
+    Sort rows by a field. This is a blocking operation (materializes all data rows).
+    """
+
+    class SortView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            it = iter(table)
+            header = _as_tuple(next(it))
+            idx = _as_field_index(header, field)
+            rows: List[Tuple[Any, ...]] = [_as_tuple(r) for r in it]
+
+            def keyfunc(r: Tuple[Any, ...]):
+                v = r[idx] if idx < len(r) else None
+                return (v is None, v)
+
+            rows.sort(key=keyfunc, reverse=reverse)
+            yield header
+            for r in rows:
+                yield r
+
+    return SortView()
+</file>
+
+<file:name=petl/transform/joins.py>
+from __future__ import annotations
+
+from typing import Any, Dict, Iterable, Iterator, List, Sequence, Tuple, Union
+
+Field = Union[int, str]
+
+
+def _as_tuple(row: Sequence[Any]) -> Tuple[Any, ...]:
+    return row if isinstance(row, tuple) else tuple(row)
+
+
+def _as_field_index(header: Sequence[Any], field: Field) -> int:
+    if isinstance(field, int):
+        if field < 0 or field >= len(header):
+            raise IndexError(field)
+        return field
+    try:
+        return list(header).index(field)
+    except ValueError as e:
+        raise KeyError(field) from e
+
+
+def join(left: Iterable[Sequence[Any]], right: Iterable[Sequence[Any]], key: Field = "id"):
+    """
+    Inner join on a key (field name or index). Right side is indexed in memory.
+    """
+
+    class JoinView:
+        def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+            # index right
+            it_r = iter(right)
+            r_header = _as_tuple(next(it_r))
+            r_key_idx = _as_field_index(r_header, key)
+            r_rows_by_key: Dict[Any, List[Tuple[Any, ...]]] = {}
+            for r0 in it_r:
+                r = _as_tuple(r0)
+                k = r[r_key_idx] if r_key_idx < len(r) else None
+                r_rows_by_key.setdefault(k, []).append(r)
+
+            # iterate left and produce
+            it_l = iter(left)
+            l_header = _as_tuple(next(it_l))
+            l_key_idx = _as_field_index(l_header, key)
+
+            # Build output header: left header + right fields excluding join key if same name exists
+            l_fields = list(l_header)
+            r_fields = list(r_header)
+
+            r_out_indices: List[int] = []
+            out_r_names: List[Any] = []
+            for i, name in enumerate(r_fields):
+                if i == r_key_idx:
+                    # exclude right key if left already has that field name
+                    if (isinstance(key, str) and key in l_fields) or (i == r_key_idx and r_fields[r_key_idx] in l_fields):
+                        continue
+                out_name = name
+                if out_name in l_fields:
+                    out_name = f"{out_name}_right"
+                out_r_names.append(out_name)
+                r_out_indices.append(i)
+
+            out_header = tuple(l_fields + out_r_names)
+            yield out_header
+
+            for l0 in it_l:
+                lrow = _as_tuple(l0)
+                lk = lrow[l_key_idx] if l_key_idx < len(lrow) else None
+                matches = r_rows_by_key.get(lk)
+                if not matches:
+                    continue
+                for rrow in matches:
+                    extra = tuple(rrow[i] if i < len(rrow) else None for i in r_out_indices)
+                    yield lrow + extra
+
+    return JoinView()
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import os
+import time
+import petl
+
+
+def test_fromdicts_convert_select_sort_addfield():
+    t = petl.fromdicts(
+        [
+            {"id": "2", "amount": "10"},
+            {"id": "1", "amount": "2"},
+            {"id": "3", "amount": "7"},
+        ],
+        header=["id", "amount"],
+    )
+    t2 = petl.convert(t, "amount", int)
+    t3 = petl.selectgt(t2, "amount", 5)
+    t4 = petl.addfield(t3, "double", lambda r: r[1] * 2)
+    t5 = petl.sort(t4, "id")
+
+    rows = list(t5)
+    assert rows[0] == ("id", "amount", "double")
+    assert rows[1:] == [("2", 10, 20), ("3", 7, 14)]
+
+
+def test_select_predicate_rowdict_fallback():
+    t = [
+        ("id", "x"),
+        ("a", "1"),
+        ("b", "2"),
+        ("c", "3"),
+    ]
+    out = list(petl.select(t, lambda rec: int(rec["x"]) >= 2))
+    assert out == [("id", "x"), ("b", "2"), ("c", "3")]
+
+
+def test_join_inner_and_header_key_dedup_and_one_to_many():
+    left = petl.fromdicts(
+        [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}],
+        header=["id", "name"],
+    )
+    right = petl.fromdicts(
+        [{"id": 1, "color": "red"}, {"id": 1, "color": "blue"}, {"id": 3, "color": "green"}],
+        header=["id", "color"],
+    )
+    j = petl.join(left, right, key="id")
+    rows = list(j)
+    assert rows[0] == ("id", "name", "color")
+    assert rows[1:] == [(1, "a", "red"), (1, "a", "blue")]
+
+
+def test_csv_roundtrip(tmp_path):
+    p = tmp_path / "x.csv"
+    t = [
+        ("id", "val"),
+        ("1", "a"),
+        ("2", "b"),
+    ]
+    petl.tocsv(t, str(p))
+    r = petl.fromcsv(str(p))
+    assert list(r) == [("id", "val"), ("1", "a"), ("2", "b")]
+
+
+def test_streaming_select_does_not_preconsume_all():
+    class CountingTable:
+        def __init__(self, n):
+            self.n = n
+            self.count = 0
+
+        def __iter__(self):
+            yield ("i",)
+            for i in range(self.n):
+                self.count += 1
+                yield (i,)
+
+    src = CountingTable(1000000)
+    out = petl.selectgt(src, "i", 10)
+
+    it = iter(out)
+    assert next(it) == ("i",)
+    # consume only a few rows; upstream count should not approach full size
+    for _ in range(5):
+        next(it)
+    assert src.count < 1000
+
+
+def test_performance_sanity_bulk_pipeline(tmp_path):
+    # coarse check: avoid egregious slowness for moderate size
+    p = tmp_path / "bulk.csv"
+    n = 20000
+    with open(p, "w", encoding="utf-8", newline="") as f:
+        f.write("id,x\n")
+        for i in range(n):
+            f.write(f"{i},{i%100}\n")
+
+    t0 = time.time()
+    t = petl.fromcsv(str(p))
+    t = petl.convert(t, "x", int)
+    t = petl.selectge(t, "x", 50)
+    t = petl.addfield(t, "y", lambda r: r[1] + 1)
+    # force evaluation
+    rows = list(t)
+    dt = time.time() - t0
+
+    assert rows[0] == ("id", "x", "y")
+    assert len(rows) > 1
+    assert dt < 2.5
+</file>

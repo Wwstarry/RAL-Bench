@@ -1,0 +1,588 @@
+<file:name=celery/__init__.py>
+"""
+A tiny, pure-Python subset of Celery's public API sufficient for local testing.
+
+This is NOT the real Celery project.
+"""
+from __future__ import annotations
+
+from .app.base import Celery
+
+__all__ = ["Celery", "__version__"]
+
+__version__ = "0.0.0-agent"
+</file>
+
+<file:name=celery/app/__init__.py>
+from .base import Celery
+
+__all__ = ["Celery"]
+</file>
+
+<file:name=celery/app/base.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional
+
+from ..backends import get_backend_by_url
+from ..brokers import get_broker_by_url
+from ..exceptions import ImproperlyConfigured
+from ..utils.uuid import uuid as uuidgen
+from .task import Task
+
+
+class Conf(dict):
+    """Dict-like configuration with attribute access."""
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        try:
+            del self[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+
+@dataclass
+class _AppTaskSpec:
+    fun: Callable[..., Any]
+    name: str
+    bind: bool
+
+
+class Celery:
+    """
+    Minimal Celery-like application.
+
+    Supported:
+      - app.task decorator with name= and bind=
+      - sending tasks by name: app.send_task
+      - eager execution mode: conf.task_always_eager
+      - in-memory broker and backend: memory://
+    """
+
+    def __init__(
+        self,
+        main: Optional[str] = None,
+        broker: Optional[str] = None,
+        backend: Optional[str] = None,
+        broker_url: Optional[str] = None,
+        result_backend: Optional[str] = None,
+        include: Optional[list[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        self.main = main or "__main__"
+        self.tasks: Dict[str, Task] = {}
+
+        # Normalize aliases
+        broker_url = broker_url or broker or kwargs.get("broker_url") or kwargs.get("broker")
+        result_backend = result_backend or backend or kwargs.get("result_backend") or kwargs.get("backend")
+
+        # Defaults
+        broker_url = broker_url or "memory://"
+        result_backend = result_backend or "memory://"
+
+        self.conf = Conf()
+        self.conf.update(
+            {
+                "broker_url": broker_url,
+                "broker": broker_url,
+                "result_backend": result_backend,
+                "backend": result_backend,
+                "task_always_eager": False,
+                "task_eager_propagates": True,
+                "task_store_eager_result": True,
+            }
+        )
+
+        # Create backend first (AsyncResult uses it)
+        self.backend = get_backend_by_url(self.conf.result_backend)
+
+        # Broker with a dispatch callback
+        self.broker = get_broker_by_url(self.conf.broker_url, dispatch=self._dispatch_message)
+
+        # include is ignored; exists for compatibility
+        self.include = include or []
+
+    def _task_name_from_fun(self, fun: Callable[..., Any]) -> str:
+        mod = getattr(fun, "__module__", None) or "__main__"
+        name = getattr(fun, "__name__", None) or fun.__class__.__name__
+        return f"{mod}.{name}"
+
+    def register_task(self, task: Task) -> Task:
+        if not task.name:
+            raise ImproperlyConfigured("Task must have a name before registration")
+        task.app = self
+        self.tasks[task.name] = task
+        return task
+
+    def task(self, *dargs: Any, **dkwargs: Any):
+        """
+        Decorator to register a function as a task.
+
+        Supports:
+          @app.task
+          @app.task()
+          @app.task(name="x", bind=True)
+        """
+        name_opt = dkwargs.pop("name", None)
+        bind_opt = bool(dkwargs.pop("bind", False))
+        if dkwargs:
+            # ignore extra options for minimal compatibility
+            pass
+
+        def _decorate(fun: Callable[..., Any]) -> Task:
+            tname = name_opt or self._task_name_from_fun(fun)
+            task_obj = Task(fun=fun, name=tname, app=self, bind=bind_opt)
+            self.register_task(task_obj)
+            return task_obj
+
+        # If used as @app.task without parentheses
+        if dargs and callable(dargs[0]) and len(dargs) == 1 and not name_opt and not bind_opt:
+            return _decorate(dargs[0])
+
+        return _decorate
+
+    def send_task(self, name: str, args: Optional[tuple] = None, kwargs: Optional[dict] = None, **options: Any):
+        args = tuple(args or ())
+        kwargs = dict(kwargs or {})
+        try:
+            task = self.tasks[name]
+        except KeyError as e:
+            raise KeyError(f"Unknown task: {name}") from e
+        return task.apply_async(args=args, kwargs=kwargs, **options)
+
+    def _dispatch_message(self, message: dict) -> None:
+        """
+        Called by the broker worker thread to execute a queued task message.
+        """
+        task_name = message["task"]
+        task_id = message["id"]
+        args = tuple(message.get("args") or ())
+        kwargs = dict(message.get("kwargs") or {})
+
+        task = self.tasks.get(task_name)
+        if task is None:
+            # If unknown, mark failure so AsyncResult.get() raises
+            self.backend.store_result(
+                task_id,
+                result=None,
+                state="FAILURE",
+                exception=KeyError(f"Unknown task: {task_name}"),
+                traceback=None,
+            )
+            return
+
+        task._execute(task_id=task_id, args=args, kwargs=kwargs, eager=False)
+</file>
+
+<file:name=celery/app/task.py>
+from __future__ import annotations
+
+import traceback as _traceback
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
+
+from ..result import AsyncResult
+from ..states import FAILURE, SUCCESS
+from ..utils.uuid import uuid as uuidgen
+
+
+@dataclass
+class _Request:
+    id: str
+    args: tuple
+    kwargs: dict
+
+
+class Task:
+    """
+    Minimal Celery-like Task wrapper around a Python callable.
+    """
+
+    def __init__(self, fun: Callable[..., Any], name: str, app: Any, bind: bool = False) -> None:
+        self.fun = fun
+        self.name = name
+        self.app = app
+        self.bind = bind
+        self.request: Optional[_Request] = None
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        if self.bind:
+            return self.fun(self, *args, **kwargs)
+        return self.fun(*args, **kwargs)
+
+    def delay(self, *args: Any, **kwargs: Any) -> AsyncResult:
+        return self.apply_async(args=args, kwargs=kwargs)
+
+    def apply_async(
+        self,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+        task_id: Optional[str] = None,
+        **options: Any,
+    ) -> AsyncResult:
+        args = tuple(args or ())
+        kwargs = dict(kwargs or {})
+        tid = task_id or uuidgen()
+        res = AsyncResult(tid, backend=self.app.backend)
+
+        if bool(self.app.conf.get("task_always_eager", False)):
+            try:
+                self._execute(task_id=tid, args=args, kwargs=kwargs, eager=True)
+            except Exception:
+                if bool(self.app.conf.get("task_eager_propagates", True)):
+                    raise
+            return res
+
+        # Broker path (memory worker thread)
+        message = {"task": self.name, "id": tid, "args": args, "kwargs": kwargs}
+        self.app.broker.publish(message)
+        return res
+
+    def _execute(self, task_id: str, args: tuple, kwargs: dict, eager: bool) -> Any:
+        # Provide minimal request for bind=True.
+        prev_request = self.request
+        self.request = _Request(id=task_id, args=args, kwargs=kwargs)
+        try:
+            result = self(*args, **kwargs)
+        except Exception as exc:
+            tb = _traceback.format_exc()
+            # Always store failure for consistency; in eager mode may be suppressed by config.
+            self.app.backend.store_result(task_id, result=None, state=FAILURE, exception=exc, traceback=tb)
+            raise
+        finally:
+            self.request = prev_request
+
+        if (not eager) or bool(self.app.conf.get("task_store_eager_result", True)):
+            self.app.backend.store_result(task_id, result=result, state=SUCCESS, exception=None, traceback=None)
+        return result
+</file>
+
+<file:name=celery/result.py>
+from __future__ import annotations
+
+import time
+from typing import Any, Optional
+
+from .exceptions import TimeoutError
+from .states import FAILURE, PENDING, SUCCESS
+
+
+class AsyncResult:
+    def __init__(self, id: str, backend: Any) -> None:
+        self.id = id
+        self.backend = backend
+
+    @property
+    def state(self) -> str:
+        return self.backend.get_state(self.id)
+
+    @property
+    def status(self) -> str:
+        return self.state
+
+    def ready(self) -> bool:
+        return self.state in (SUCCESS, FAILURE)
+
+    def successful(self) -> bool:
+        return self.state == SUCCESS
+
+    def failed(self) -> bool:
+        return self.state == FAILURE
+
+    def get(self, timeout: Optional[float] = None, propagate: bool = True, interval: float = 0.01) -> Any:
+        deadline = None if timeout is None else (time.monotonic() + float(timeout))
+        while True:
+            meta = self.backend.get_task_meta(self.id)
+            status = meta.get("status", PENDING)
+            if status in (SUCCESS, FAILURE):
+                if status == SUCCESS:
+                    return meta.get("result")
+                exc = meta.get("exception")
+                if propagate and exc is not None:
+                    raise exc
+                return exc
+            if deadline is not None and time.monotonic() >= deadline:
+                raise TimeoutError(f"Result for {self.id} not ready within {timeout}s")
+            time.sleep(interval)
+</file>
+
+<file:name=celery/states.py>
+PENDING = "PENDING"
+STARTED = "STARTED"
+SUCCESS = "SUCCESS"
+FAILURE = "FAILURE"
+RETRY = "RETRY"
+</file>
+
+<file:name=celery/exceptions.py>
+class CeleryError(Exception):
+    pass
+
+
+class TimeoutError(CeleryError):
+    pass
+
+
+class ImproperlyConfigured(CeleryError):
+    pass
+
+
+class TaskRevokedError(CeleryError):
+    pass
+</file>
+
+<file:name=celery/utils/__init__.py>
+__all__ = []
+</file>
+
+<file:name=celery/utils/uuid.py>
+from __future__ import annotations
+
+import uuid as _uuid
+
+
+def uuid() -> str:
+    return _uuid.uuid4().hex
+</file>
+
+<file:name=celery/backends/__init__.py>
+from __future__ import annotations
+
+from .memory import MemoryBackend
+
+
+def get_backend_by_url(url: str):
+    # Minimal: only memory backend supported
+    if not url or url.startswith("memory://"):
+        return MemoryBackend()
+    # Fallback to memory for unknown schemes in this minimal implementation
+    return MemoryBackend()
+</file>
+
+<file:name=celery/backends/base.py>
+from __future__ import annotations
+
+from typing import Any, Dict
+
+
+class BaseBackend:
+    def store_result(self, task_id: str, result: Any, state: str, exception: Exception | None = None, traceback: str | None = None) -> None:
+        raise NotImplementedError
+
+    def get_task_meta(self, task_id: str) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def get_state(self, task_id: str) -> str:
+        return self.get_task_meta(task_id).get("status", "PENDING")
+</file>
+
+<file:name=celery/backends/memory.py>
+from __future__ import annotations
+
+import threading
+from typing import Any, Dict
+
+from ..states import PENDING
+from .base import BaseBackend
+
+
+class MemoryBackend(BaseBackend):
+    def __init__(self) -> None:
+        self._data: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
+
+    def store_result(self, task_id: str, result: Any, state: str, exception: Exception | None = None, traceback: str | None = None) -> None:
+        meta = {"status": state, "result": result, "exception": exception, "traceback": traceback}
+        with self._lock:
+            self._data[task_id] = meta
+
+    def get_task_meta(self, task_id: str) -> Dict[str, Any]:
+        with self._lock:
+            meta = self._data.get(task_id)
+            if meta is None:
+                return {"status": PENDING, "result": None, "exception": None, "traceback": None}
+            return dict(meta)
+</file>
+
+<file:name=celery/brokers/__init__.py>
+from __future__ import annotations
+
+from typing import Callable, Optional
+
+from .memory import MemoryBroker
+
+
+def get_broker_by_url(url: str, dispatch: Optional[Callable[[dict], None]] = None):
+    if not url or url.startswith("memory://"):
+        return MemoryBroker(dispatch=dispatch)
+    # Fallback to memory for unknown schemes in this minimal implementation
+    return MemoryBroker(dispatch=dispatch)
+</file>
+
+<file:name=celery/brokers/base.py>
+from __future__ import annotations
+
+from typing import Callable, Optional
+
+
+class BaseBroker:
+    def __init__(self, dispatch: Optional[Callable[[dict], None]] = None) -> None:
+        self.dispatch = dispatch
+
+    def publish(self, message: dict) -> None:
+        raise NotImplementedError
+</file>
+
+<file:name=celery/brokers/memory.py>
+from __future__ import annotations
+
+import queue
+import threading
+from typing import Callable, Optional
+
+from .base import BaseBroker
+
+
+class MemoryBroker(BaseBroker):
+    """
+    In-memory broker with a single background worker thread.
+    """
+
+    def __init__(self, dispatch: Optional[Callable[[dict], None]] = None) -> None:
+        super().__init__(dispatch=dispatch)
+        self._q: queue.Queue[dict] = queue.Queue()
+        self._worker = threading.Thread(target=self._run, name="celery-memory-broker", daemon=True)
+        self._worker.start()
+
+    def publish(self, message: dict) -> None:
+        self._q.put(message)
+
+    def _run(self) -> None:
+        while True:
+            msg = self._q.get()
+            try:
+                if self.dispatch is not None:
+                    self.dispatch(msg)
+            finally:
+                self._q.task_done()
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import time
+import pytest
+
+import celery
+from celery import Celery
+from celery.exceptions import TimeoutError
+
+
+def test_imports():
+    assert hasattr(celery, "Celery")
+    assert Celery is celery.Celery
+
+
+def test_task_decorator_and_registry_default_name():
+    app = Celery("t1", broker_url="memory://", result_backend="memory://")
+
+    @app.task
+    def add(x, y):
+        return x + y
+
+    assert add.name in app.tasks
+    r = add.delay(2, 3)
+    assert r.get(timeout=2) == 5
+    assert r.successful()
+
+
+def test_task_decorator_custom_name_and_send_task():
+    app = Celery("t2", broker="memory://", backend="memory://")
+
+    @app.task(name="custom.mul")
+    def mul(x, y):
+        return x * y
+
+    r = app.send_task("custom.mul", args=(6, 7))
+    assert r.get(timeout=2) == 42
+
+
+def test_bind_true_sets_request_and_app():
+    app = Celery("t3", broker_url="memory://", result_backend="memory://")
+
+    @app.task(bind=True, name="custom.bound")
+    def bound(self, x):
+        assert self.app is app
+        assert self.request is not None
+        assert self.request.id
+        return (self.request.id, x)
+
+    res = bound.delay(10)
+    tid, val = res.get(timeout=2)
+    assert val == 10
+    assert tid == res.id
+
+
+def test_eager_execution_success_and_store_result_default_true():
+    app = Celery("t4", broker_url="memory://", result_backend="memory://")
+    app.conf.task_always_eager = True
+
+    @app.task
+    def inc(x):
+        return x + 1
+
+    r = inc.delay(1)
+    assert r.successful()
+    assert r.get(timeout=0.1) == 2
+
+
+def test_eager_propagates_exception_when_enabled():
+    app = Celery("t5", broker_url="memory://", result_backend="memory://")
+    app.conf.task_always_eager = True
+    app.conf.task_eager_propagates = True
+
+    @app.task
+    def boom():
+        raise ValueError("nope")
+
+    with pytest.raises(ValueError):
+        boom.delay()
+
+
+def test_eager_does_not_propagate_when_disabled_but_get_raises():
+    app = Celery("t6", broker_url="memory://", result_backend="memory://")
+    app.conf.task_always_eager = True
+    app.conf.task_eager_propagates = False
+
+    @app.task
+    def boom2():
+        raise RuntimeError("bad")
+
+    r = boom2.delay()
+    assert r.failed()
+    with pytest.raises(RuntimeError):
+        r.get(timeout=0.1)
+
+
+def test_non_eager_timeout_and_eventual_success():
+    app = Celery("t7", broker_url="memory://", result_backend="memory://")
+    app.conf.task_always_eager = False
+
+    @app.task
+    def sleepy(t):
+        time.sleep(t)
+        return "ok"
+
+    r = sleepy.delay(0.2)
+    with pytest.raises(TimeoutError):
+        r.get(timeout=0.05, interval=0.01)
+    assert r.get(timeout=2) == "ok"
+</file>

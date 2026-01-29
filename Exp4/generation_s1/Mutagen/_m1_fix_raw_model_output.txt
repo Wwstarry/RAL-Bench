@@ -1,0 +1,370 @@
+<file:name=mutagen/id3.py>
+from __future__ import annotations
+
+import base64
+import io
+import json
+import os
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+_MAGIC = b"MTGL"
+_FOOTER_SIZE = 4 + 8  # magic + uint64 length
+
+
+def _to_list_str(v: Any) -> List[str]:
+    if v is None:
+        return []
+    if isinstance(v, (list, tuple)):
+        return [str(x) for x in v]
+    return [str(v)]
+
+
+class _Frame:
+    FrameID: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "_Frame":
+        raise NotImplementedError
+
+
+@dataclass
+class TIT2(_Frame):
+    encoding: int
+    text: List[str]
+    FrameID: str = "TIT2"
+
+    def __init__(self, encoding: int, text: Any = None):
+        self.encoding = int(encoding)
+        self.text = _to_list_str(text)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"id": "TIT2", "encoding": self.encoding, "text": list(self.text)}
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "TIT2":
+        return cls(d.get("encoding", 3), d.get("text", []))
+
+
+@dataclass
+class TPE1(_Frame):
+    encoding: int
+    text: List[str]
+    FrameID: str = "TPE1"
+
+    def __init__(self, encoding: int, text: Any = None):
+        self.encoding = int(encoding)
+        self.text = _to_list_str(text)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"id": "TPE1", "encoding": self.encoding, "text": list(self.text)}
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "TPE1":
+        return cls(d.get("encoding", 3), d.get("text", []))
+
+
+@dataclass
+class COMM(_Frame):
+    encoding: int
+    lang: str
+    desc: str
+    text: List[str]
+    FrameID: str = "COMM"
+
+    def __init__(self, encoding: int, lang: str, desc: str, text: Any):
+        self.encoding = int(encoding)
+        self.lang = str(lang)
+        self.desc = str(desc)
+        self.text = _to_list_str(text)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": "COMM",
+            "encoding": self.encoding,
+            "lang": self.lang,
+            "desc": self.desc,
+            "text": list(self.text),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "COMM":
+        return cls(d.get("encoding", 3), d.get("lang", "eng"), d.get("desc", ""), d.get("text", []))
+
+
+@dataclass
+class APIC(_Frame):
+    encoding: int
+    mime: str
+    type: int
+    desc: str
+    data: bytes
+    FrameID: str = "APIC"
+
+    def __init__(self, encoding: int, mime: str, type: int, desc: str, data: bytes):
+        self.encoding = int(encoding)
+        self.mime = str(mime)
+        self.type = int(type)
+        self.desc = str(desc)
+        if not isinstance(data, (bytes, bytearray)):
+            raise TypeError("APIC.data must be bytes")
+        self.data = bytes(data)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": "APIC",
+            "encoding": self.encoding,
+            "mime": self.mime,
+            "type": self.type,
+            "desc": self.desc,
+            "data_b64": base64.b64encode(self.data).decode("ascii"),
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "APIC":
+        b64 = d.get("data_b64", "")
+        try:
+            data = base64.b64decode(b64.encode("ascii"), validate=False)
+        except Exception:
+            data = b""
+        return cls(d.get("encoding", 3), d.get("mime", ""), d.get("type", 0), d.get("desc", ""), data)
+
+
+_FRAME_CLASSES = {
+    "TIT2": TIT2,
+    "TPE1": TPE1,
+    "COMM": COMM,
+    "APIC": APIC,
+}
+
+
+def _serialize_frames(frames_by_id: Dict[str, List[_Frame]]) -> bytes:
+    frames: List[Dict[str, Any]] = []
+    for fid, lst in frames_by_id.items():
+        for fr in lst:
+            frames.append(fr.to_dict())
+    payload = json.dumps({"frames": frames}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return _MAGIC + len(payload).to_bytes(8, "big") + payload
+
+
+def _try_read_tag_block(f: io.BufferedReader) -> Optional[Tuple[int, bytes]]:
+    """
+    Returns (prefix_len, payload_bytes) if a valid MTGL block exists at EOF, else None.
+    """
+    f.seek(0, os.SEEK_END)
+    size = f.tell()
+    if size < _FOOTER_SIZE:
+        return None
+
+    # Read footer at end: MAGIC + length
+    f.seek(size - _FOOTER_SIZE)
+    footer = f.read(_FOOTER_SIZE)
+    if len(footer) != _FOOTER_SIZE:
+        return None
+
+    magic = footer[:4]
+    if magic != _MAGIC:
+        return None
+
+    length = int.from_bytes(footer[4:], "big", signed=False)
+    payload_start = size - _FOOTER_SIZE - length
+    if payload_start < 0:
+        return None
+
+    f.seek(payload_start)
+    payload = f.read(length)
+    if len(payload) != length:
+        return None
+
+    # Validate that payload is JSON with expected top-level dict/frames.
+    try:
+        obj = json.loads(payload.decode("utf-8"))
+        if not isinstance(obj, dict):
+            return None
+        if "frames" not in obj or not isinstance(obj["frames"], list):
+            return None
+    except Exception:
+        return None
+
+    return payload_start, payload
+
+
+def _load_frames_from_payload(payload: bytes) -> Dict[str, List[_Frame]]:
+    frames_by_id: Dict[str, List[_Frame]] = {}
+    try:
+        obj = json.loads(payload.decode("utf-8"))
+        frames_list = obj.get("frames", [])
+        if not isinstance(frames_list, list):
+            return {}
+        for item in frames_list:
+            if not isinstance(item, dict):
+                continue
+            fid = item.get("id")
+            if not isinstance(fid, str):
+                continue
+            cls = _FRAME_CLASSES.get(fid)
+            if cls is None:
+                continue
+            try:
+                fr = cls.from_dict(item)
+            except Exception:
+                continue
+            frames_by_id.setdefault(fid, []).append(fr)
+    except Exception:
+        return {}
+    return frames_by_id
+
+
+def _copy_prefix_and_write(path: str, prefix_len: int, tag_block: bytes) -> None:
+    d = os.path.dirname(os.path.abspath(path)) or "."
+    tmp = os.path.join(d, os.path.basename(path) + ".tmp")
+
+    with open(path, "rb") as src, open(tmp, "wb") as dst:
+        remaining = prefix_len
+        bufsize = 64 * 1024
+        while remaining > 0:
+            chunk = src.read(min(bufsize, remaining))
+            if not chunk:
+                break
+            dst.write(chunk)
+            remaining -= len(chunk)
+        dst.write(tag_block)
+
+    os.replace(tmp, path)
+
+
+class ID3:
+    def __init__(self, filename: Optional[str] = None):
+        self.filename: Optional[str] = None
+        self._frames: Dict[str, List[_Frame]] = {}
+        if filename is not None:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self.filename = filename
+        self._frames = {}
+        with open(filename, "rb") as f:
+            found = _try_read_tag_block(f)
+            if not found:
+                return
+            _, payload = found
+        self._frames = _load_frames_from_payload(payload)
+
+    def add(self, frame: _Frame) -> None:
+        fid = getattr(frame, "FrameID", None) or getattr(frame, "id", None)
+        if not fid:
+            raise ValueError("Frame has no FrameID")
+        self._frames.setdefault(str(fid), []).append(frame)
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+            raise KeyError(frame_id)
+        return frames[0]
+
+    def getall(self, frame_id: str) -> List[Any]:
+        return list(self._frames.get(frame_id, []))
+
+    def delall(self, frame_id: str) -> None:
+        self._frames.pop(frame_id, None)
+
+    def setall(self, frame_id: str, frames: List[Any]) -> None:
+        self._frames[frame_id] = list(frames)
+
+    def save(self, filename: Optional[str] = None) -> None:
+        if filename is None:
+            if not self.filename:
+                raise ValueError("No filename specified for save()")
+            filename = self.filename
+        else:
+            self.filename = filename
+
+        tag_block = _serialize_frames(self._frames)
+
+        if not os.path.exists(filename):
+            # tag-only file
+            d = os.path.dirname(os.path.abspath(filename)) or "."
+            os.makedirs(d, exist_ok=True)
+            with open(filename, "wb") as f:
+                f.write(tag_block)
+            return
+
+        with open(filename, "rb") as f:
+            found = _try_read_tag_block(f)
+            if found:
+                prefix_len, _payload = found
+            else:
+                f.seek(0, os.SEEK_END)
+                prefix_len = f.tell()
+
+        _copy_prefix_and_write(filename, prefix_len, tag_block)
+</file>
+
+<file:name=mutagen/easyid3.py>
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import Any, Dict, Iterator, List, Optional
+
+from .id3 import ID3, TIT2, TPE1
+
+
+def _norm_list(v: Any) -> List[str]:
+    if isinstance(v, (list, tuple)):
+        return [str(x) for x in v]
+    return [str(v)]
+
+
+_KEY_TO_FID = {
+    "title": "TIT2",
+    "artist": "TPE1",
+}
+
+
+class EasyID3(MutableMapping):
+    def __init__(self, filename: Optional[str] = None):
+        self._id3 = ID3(filename) if filename is not None else ID3()
+
+    def __getitem__(self, key: str) -> List[str]:
+        fid = _KEY_TO_FID.get(key)
+        if fid is None:
+            raise KeyError(key)
+        fr = self._id3[fid]
+        # Frames store .text as list[str]
+        return list(getattr(fr, "text", []))
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        fid = _KEY_TO_FID.get(key)
+        if fid is None:
+            raise KeyError(key)
+        vals = _norm_list(value)
+        if fid == "TIT2":
+            self._id3.setall(fid, [TIT2(3, text=vals)])
+        elif fid == "TPE1":
+            self._id3.setall(fid, [TPE1(3, text=vals)])
+        else:
+            raise KeyError(key)
+
+    def __delitem__(self, key: str) -> None:
+        fid = _KEY_TO_FID.get(key)
+        if fid is None:
+            raise KeyError(key)
+        # Raise KeyError if missing
+        if not self._id3.getall(fid):
+            raise KeyError(key)
+        self._id3.delall(fid)
+
+    def __iter__(self) -> Iterator[str]:
+        for k, fid in _KEY_TO_FID.items():
+            if self._id3.getall(fid):
+                yield k
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self.__iter__())
+
+    def save(self, filename: Optional[str] = None) -> None:
+        self._id3.save(filename)
+</file>

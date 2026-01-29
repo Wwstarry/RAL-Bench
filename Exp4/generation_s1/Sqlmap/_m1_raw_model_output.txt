@@ -1,0 +1,387 @@
+<file:name=sqlmap.py>
+#!/usr/bin/env python3
+import sys
+
+from lib.core.settings import VERSION, DESCRIPTION
+from lib.parse.cmdline import cmdLineParser
+from lib.core.option import init, initOptions
+from lib.controller.controller import start
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    # Mirror typical CLI behavior: show help when no args were supplied
+    if not argv:
+        parser = cmdLineParser(build_only=True)
+        parser.print_help(sys.stdout)
+        return 0
+
+    # Normal flow: parse/initialize/start
+    init(argv)
+    initOptions()
+    start()
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        # argparse and internal clean exits should propagate without tracebacks
+        raise
+    except KeyboardInterrupt:
+        sys.stderr.write("Interrupted by user\n")
+        raise SystemExit(130)
+    except Exception as ex:
+        sys.stderr.write(f"Critical error: {ex}\n")
+        raise SystemExit(1)
+</file>
+
+<file:name=lib/__init__.py>
+# Minimal package marker for sqlmap-compatible layout.
+</file>
+
+<file:name=lib/core/__init__.py>
+# Minimal package marker for sqlmap-compatible layout.
+</file>
+
+<file:name=lib/core/settings.py>
+VERSION = "1.0.0"
+DESCRIPTION = "sqlmap (stub) - CLI-compatible SQL injection testing tool (no network operations)"
+</file>
+
+<file:name=lib/core/data.py>
+class AttribDict(dict):
+    """
+    Small dict subclass with attribute access (similar to sqlmap's AttribDict).
+    """
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError as e:
+            raise AttributeError(item) from e
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def __delattr__(self, item):
+        try:
+            del self[item]
+        except KeyError as e:
+            raise AttributeError(item) from e
+
+
+# Global containers (expected by tests/importers)
+cmdLineOptions = None  # raw parsed argparse Namespace (or compatible)
+conf = AttribDict()
+kb = AttribDict()
+</file>
+
+<file:name=lib/core/option.py>
+from __future__ import annotations
+
+from lib.core.data import cmdLineOptions as _cmdLineOptions_global, conf, kb
+from lib.core.data import AttribDict
+from lib.core.settings import VERSION, DESCRIPTION
+from lib.parse.cmdline import cmdLineParser
+
+# We will update lib.core.data.cmdLineOptions by importing the module (not just the name)
+import lib.core.data as data
+
+
+def init(argv=None):
+    """
+    Early initialization: parse command line and store into global cmdLineOptions.
+    """
+    opts = cmdLineParser(argv)
+    data.cmdLineOptions = opts
+    return opts
+
+
+def initOptions(cmdLineOptions=None):
+    """
+    Initialize global configuration (conf) and knowledge base (kb) from parsed options.
+    Safe to call even for help/version paths (though those exit before reaching here).
+    """
+    if cmdLineOptions is None:
+        cmdLineOptions = getattr(data, "cmdLineOptions", None)
+
+    # Reset/ensure basic metadata
+    conf.version = VERSION
+    conf.description = DESCRIPTION
+
+    # Initialize a few common fields with safe defaults
+    if cmdLineOptions is None:
+        # Keep conf/kb usable even if called without parsing
+        conf.url = None
+        conf.data = None
+        conf.param = None
+        conf.batch = False
+        conf.verbose = 0
+        conf.risk = 1
+        conf.level = 1
+        conf.randomAgent = False
+        conf.threads = 1
+        conf.tamper = None
+    else:
+        conf.url = getattr(cmdLineOptions, "url", None)
+        conf.data = getattr(cmdLineOptions, "data", None)
+        conf.param = getattr(cmdLineOptions, "param", None)
+        conf.batch = bool(getattr(cmdLineOptions, "batch", False))
+        conf.verbose = int(getattr(cmdLineOptions, "verbose", 0) or 0)
+        conf.risk = int(getattr(cmdLineOptions, "risk", 1) or 1)
+        conf.level = int(getattr(cmdLineOptions, "level", 1) or 1)
+        conf.randomAgent = bool(getattr(cmdLineOptions, "random_agent", False))
+        conf.threads = int(getattr(cmdLineOptions, "threads", 1) or 1)
+        conf.tamper = getattr(cmdLineOptions, "tamper", None)
+
+    # Minimal knowledge base placeholders
+    kb.multipleTargets = False
+    kb.stopped = False
+    kb.errors = []
+
+    return conf
+</file>
+
+<file:name=lib/parse/__init__.py>
+# Minimal package marker for sqlmap-compatible layout.
+</file>
+
+<file:name=lib/parse/cmdline.py>
+from __future__ import annotations
+
+import argparse
+import sys
+
+from lib.core.settings import VERSION, DESCRIPTION
+
+
+class _AdvancedHelpAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        # Print basic help first, then an advanced section.
+        parser.print_help(sys.stdout)
+        sys.stdout.write("\n")
+        sys.stdout.write("Advanced help (stub)\n")
+        sys.stdout.write("====================\n")
+        sys.stdout.write(
+            "This is a lightweight, interface-compatible stub of sqlmap.\n"
+            "It supports CLI parsing and benign execution without performing\n"
+            "any network requests or SQL injection testing.\n\n"
+        )
+        sys.stdout.write("Common options:\n")
+        sys.stdout.write("  -u, --url URL           Target URL (no network calls will be made)\n")
+        sys.stdout.write("  --data DATA             Data string to be sent through POST\n")
+        sys.stdout.write("  -p PARAM                Testable parameter(s)\n")
+        sys.stdout.write("  --batch                 Never ask for user input\n")
+        sys.stdout.write("  -v VERBOSE              Verbosity level (0-6)\n")
+        sys.stdout.write("  --risk RISK             Risk of tests to perform (1-3)\n")
+        sys.stdout.write("  --level LEVEL           Level of tests to perform (1-5)\n")
+        sys.stdout.write("  --random-agent          Use a random HTTP User-Agent header\n")
+        sys.stdout.write("  --threads THREADS       Max number of concurrent threads\n")
+        sys.stdout.write("  --tamper TAMPER         Tamper scripts (comma-separated)\n\n")
+        sys.stdout.write("Examples:\n")
+        sys.stdout.write("  python sqlmap.py -u http://example.com/page?id=1 --batch\n")
+        sys.stdout.write("  python sqlmap.py -u http://example.com/login --data \"u=a&p=b\" -p u\n")
+        raise SystemExit(0)
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="sqlmap.py",
+        description=DESCRIPTION,
+        formatter_class=argparse.RawTextHelpFormatter,
+        add_help=True,
+    )
+
+    # Special flags expected by tests
+    parser.add_argument(
+        "-hh",
+        dest="advanced_help",
+        nargs=0,
+        action=_AdvancedHelpAction,
+        help="Show advanced help message and exit",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"sqlmap/{VERSION}",
+        help="Show program's version number and exit",
+    )
+
+    # Minimal set of common sqlmap-ish options (no-ops for this stub)
+    parser.add_argument("-u", "--url", dest="url", help="Target URL")
+    parser.add_argument("--data", dest="data", help="Data string to be sent through POST")
+    parser.add_argument("-p", dest="param", help="Testable parameter(s)")
+    parser.add_argument("--batch", dest="batch", action="store_true", help="Never ask for user input")
+    parser.add_argument("-v", dest="verbose", type=int, default=0, help="Verbosity level (0-6)")
+    parser.add_argument("--risk", dest="risk", type=int, default=1, help="Risk of tests to perform (1-3)")
+    parser.add_argument("--level", dest="level", type=int, default=1, help="Level of tests to perform (1-5)")
+    parser.add_argument("--random-agent", dest="random_agent", action="store_true", help="Use a random User-Agent")
+    parser.add_argument("--threads", dest="threads", type=int, default=1, help="Max number of threads")
+    parser.add_argument("--tamper", dest="tamper", help="Tamper scripts (comma-separated)")
+
+    return parser
+
+
+def cmdLineParser(argv=None, build_only: bool = False):
+    """
+    Parse command line arguments.
+
+    If build_only=True, returns the ArgumentParser instance without parsing.
+    """
+    parser = _build_parser()
+    if build_only:
+        return parser
+    return parser.parse_args(args=argv)
+</file>
+
+<file:name=lib/controller/__init__.py>
+# Minimal package marker for sqlmap-compatible layout.
+</file>
+
+<file:name=lib/controller/controller.py>
+import sys
+
+from lib.core.data import conf, kb
+
+
+def start():
+    """
+    Main controller entry point (stub).
+    Does not perform any network I/O or SQL injection testing.
+    """
+    url = getattr(conf, "url", None)
+    if not url:
+        sys.stderr.write("No target provided. Use -u/--url to specify a target. (stub implementation)\n")
+        return 0
+
+    sys.stdout.write("Target provided, but this is a stub implementation. No network calls were made.\n")
+    sys.stdout.write(f"Target: {url}\n")
+    return 0
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import os
+import sys
+import subprocess
+import re
+
+import pytest
+
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def run_cli(args):
+    proc = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "sqlmap.py"), *args],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    return proc
+
+
+def test_import_surface():
+    from lib.parse.cmdline import cmdLineParser  # noqa: F401
+    from lib.core.option import init, initOptions  # noqa: F401
+    from lib.core.data import cmdLineOptions, conf, kb  # noqa: F401
+    from lib.core.settings import VERSION, DESCRIPTION  # noqa: F401
+    from lib.controller.controller import start  # noqa: F401
+
+
+def test_help_basic():
+    p = run_cli(["-h"])
+    assert p.returncode == 0
+    assert "usage:" in p.stdout.lower()
+    assert "--version" in p.stdout
+
+
+def test_help_advanced_hh():
+    p = run_cli(["-hh"])
+    assert p.returncode == 0
+    assert "advanced help" in p.stdout.lower()
+    assert "-u, --url" in p.stdout
+
+
+def test_version():
+    from lib.core.settings import VERSION
+    p = run_cli(["--version"])
+    assert p.returncode == 0
+    out = p.stdout.strip()
+    assert out == f"sqlmap/{VERSION}"
+
+
+def test_invalid_argument_exits_cleanly():
+    p = run_cli(["--does-not-exist"])
+    assert p.returncode == 2
+    assert "unrecognized arguments" in p.stderr.lower()
+    assert "traceback" not in (p.stderr.lower() + p.stdout.lower())
+
+
+def test_missing_value_exits_cleanly():
+    p = run_cli(["-u"])
+    assert p.returncode == 2
+    assert "expected one argument" in p.stderr.lower()
+    assert "traceback" not in (p.stderr.lower() + p.stdout.lower())
+
+
+def test_no_args_prints_help():
+    p = run_cli([])
+    assert p.returncode == 0
+    assert "usage:" in p.stdout.lower()
+
+
+def test_batch_only_exits_cleanly_with_hint():
+    p = run_cli(["--batch"])
+    assert p.returncode == 0
+    assert "no target provided" in p.stderr.lower()
+    assert "traceback" not in (p.stderr.lower() + p.stdout.lower())
+
+
+def test_state_initialization_sets_conf_url():
+    from lib.core.option import initOptions
+    from lib.parse.cmdline import cmdLineParser
+    from lib.core.data import conf
+
+    opts = cmdLineParser(["-u", "http://example.com/?id=1", "--batch", "-v", "2"])
+    initOptions(opts)
+    assert conf.url == "http://example.com/?id=1"
+    assert conf.batch is True
+    assert conf.verbose == 2
+</file>
+
+<file:name=_agent_tests/test_agent_controller.py>
+import os
+import sys
+import subprocess
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+def run_cli(args):
+    proc = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "sqlmap.py"), *args],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        timeout=10,
+    )
+    return proc
+
+
+def test_target_provided_no_network_stub_message():
+    p = run_cli(["-u", "http://example.com/?id=1"])
+    assert p.returncode == 0
+    assert "stub implementation" in p.stdout.lower()
+    assert "target:" in p.stdout.lower()
+</file>
+
+<file:name=pytest.ini>
+[pytest]
+addopts = -q
+testpaths = _agent_tests
+</file>

@@ -1,0 +1,694 @@
+<file:name=cmd2/__init__.py>
+"""
+Lightweight, pure-Python compatibility subset of the cmd2 project.
+
+This package provides the minimal public API needed by the agent tests and
+common black-box tests: Cmd2, parsing utilities, output capture, and transcript
+testing support.
+"""
+
+from .cmd2 import Cmd2, Cmd2ArgumentParser
+from .exceptions import Cmd2ArgparseError, CommandError
+from .parsing import Statement, parse_statement, tokenize, shlex_split, quote_string_if_needed
+from .transcript import TranscriptRunner, TranscriptResult, run_transcript_tests
+from .utils import (
+    strip_ansi,
+    ensure_str,
+    redirect_std,
+    capture_std,
+    capture_output,
+)
+
+__all__ = [
+    "Cmd2",
+    "Cmd2ArgumentParser",
+    "Cmd2ArgparseError",
+    "CommandError",
+    "Statement",
+    "parse_statement",
+    "tokenize",
+    "shlex_split",
+    "quote_string_if_needed",
+    "TranscriptRunner",
+    "TranscriptResult",
+    "run_transcript_tests",
+    "strip_ansi",
+    "ensure_str",
+    "redirect_std",
+    "capture_std",
+    "capture_output",
+]
+
+__version__ = "0.0.test"
+</file>
+
+<file:name=cmd2/exceptions.py>
+class CommandError(Exception):
+    """Generic command error."""
+
+
+class Cmd2ArgparseError(CommandError):
+    """Raised instead of argparse exiting the process."""
+
+    def __init__(self, message: str = "", *, usage: str | None = None, status: int = 2):
+        super().__init__(message)
+        self.message = message
+        self.usage = usage
+        self.status = status
+
+    def __str__(self) -> str:
+        if self.usage and self.message:
+            return f"{self.usage}{self.message}"
+        if self.usage:
+            return self.usage
+        return self.message or super().__str__()
+</file>
+
+<file:name=cmd2/parsing.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+import shlex
+from typing import List
+
+
+@dataclass
+class Statement:
+    raw: str
+    command: str
+    args: str
+    arg_list: List[str]
+    tokens: List[str]
+    terminator: str = ""
+
+    @property
+    def is_empty(self) -> bool:
+        return not self.raw.strip()
+
+
+def tokenize(line: str) -> list[str]:
+    """Split a command line into tokens using shell-like syntax."""
+    if line is None:
+        return []
+    stripped = line.strip()
+    if not stripped:
+        return []
+    return shlex.split(line, posix=True)
+
+
+def parse_statement(line: str) -> Statement:
+    raw = "" if line is None else line.rstrip("\n")
+    tokens = tokenize(raw)
+    if not tokens:
+        return Statement(raw=raw, command="", args="", arg_list=[], tokens=[], terminator="")
+    command = tokens[0]
+    # args is the remainder of the raw line after the command token (preserve spacing reasonably)
+    # We'll find the first occurrence of command in raw after leading whitespace.
+    lstripped = raw.lstrip()
+    # If the command in raw has quotes etc, token[0] is unquoted; but for our tests we keep it simple.
+    if lstripped.startswith(command):
+        remainder = lstripped[len(command) :]
+        args = remainder.lstrip()
+    else:
+        # fallback: reconstruct from tokens
+        args = " ".join(tokens[1:])
+    arg_list = tokens[1:]
+    return Statement(raw=raw, command=command, args=args, arg_list=arg_list, tokens=tokens, terminator="")
+
+
+def shlex_split(line: str) -> list[str]:
+    return tokenize(line)
+
+
+def quote_string_if_needed(s: str) -> str:
+    if s is None:
+        return ""
+    # Minimal quoting: if whitespace present, wrap in double-quotes and escape existing quotes/backslashes.
+    if any(ch.isspace() for ch in s) or any(ch in s for ch in ['"', "\\"]):
+        escaped = s.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    return s
+</file>
+
+<file:name=cmd2/utils.py>
+from __future__ import annotations
+
+import contextlib
+import io
+import re
+import sys
+from typing import Iterator, Tuple
+
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def strip_ansi(text: str) -> str:
+    if text is None:
+        return ""
+    return _ANSI_RE.sub("", text)
+
+
+def ensure_str(s) -> str:
+    if s is None:
+        return ""
+    if isinstance(s, bytes):
+        return s.decode(errors="replace")
+    return str(s)
+
+
+@contextlib.contextmanager
+def redirect_std(target_stdout, target_stderr=None) -> Iterator[None]:
+    """Redirect sys.stdout and sys.stderr within context."""
+    if target_stderr is None:
+        target_stderr = target_stdout
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = target_stdout, target_stderr
+    try:
+        yield
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+
+@contextlib.contextmanager
+def capture_std() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
+    out = io.StringIO()
+    err = io.StringIO()
+    with redirect_std(out, err):
+        yield out, err
+
+
+@contextlib.contextmanager
+def capture_output() -> Iterator[Tuple[io.StringIO, io.StringIO]]:
+    # alias for capture_std
+    with capture_std() as pair:
+        yield pair
+</file>
+
+<file:name=cmd2/cmd2.py>
+from __future__ import annotations
+
+import argparse
+import cmd
+import io
+import sys
+import traceback
+from typing import Any, Optional
+
+from .exceptions import Cmd2ArgparseError
+from .parsing import parse_statement
+
+
+class Cmd2ArgumentParser(argparse.ArgumentParser):
+    """ArgumentParser that raises Cmd2ArgparseError instead of exiting."""
+
+    def __init__(self, *args, **kwargs):
+        # keep argparse defaults unless overridden
+        super().__init__(*args, **kwargs)
+
+    def exit(self, status: int = 0, message: Optional[str] = None):
+        usage = ""
+        try:
+            usage = self.format_usage()
+        except Exception:
+            usage = ""
+        raise Cmd2ArgparseError(message or "", usage=usage, status=status)
+
+    def error(self, message: str):
+        usage = ""
+        try:
+            usage = self.format_usage()
+        except Exception:
+            usage = ""
+        raise Cmd2ArgparseError(message, usage=usage, status=2)
+
+
+class Cmd2(cmd.Cmd):
+    """
+    Minimal cmd2-compatible command application.
+
+    - Uses do_<command> dispatch (via cmd.Cmd.onecmd)
+    - Adds parsing helpers and poutput/perror convenience methods
+    - Disables "repeat last command on empty line" behavior
+    """
+
+    prompt = "> "
+
+    def __init__(
+        self,
+        *,
+        stdin=None,
+        stdout=None,
+        stderr=None,
+        completekey: str = "tab",
+        use_ipython: bool = False,
+        allow_cli_args: bool = True,
+        **kwargs: Any,
+    ):
+        # cmd.Cmd accepts stdin/stdout in Python 3.11+, but for compatibility set manually too.
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
+        self.use_ipython = use_ipython
+        self.allow_cli_args = allow_cli_args
+
+        self.stdin = stdin if stdin is not None else sys.stdin
+        self.stdout = stdout if stdout is not None else sys.stdout
+        self.stderr = stderr if stderr is not None else sys.stderr
+
+        # Match cmd2 behavior more closely: do not repeat last command on empty line
+        self.lastcmd = ""
+
+    # ---------- output helpers ----------
+    def poutput(self, *args, sep: str = " ", end: str = "\n"):
+        text = sep.join(str(a) for a in args) + end
+        self.stdout.write(text)
+        try:
+            self.stdout.flush()
+        except Exception:
+            pass
+
+    def perror(self, *args, sep: str = " ", end: str = "\n"):
+        stream = self.stderr if self.stderr is not None else self.stdout
+        text = sep.join(str(a) for a in args) + end
+        stream.write(text)
+        try:
+            stream.flush()
+        except Exception:
+            pass
+
+    def pfeedback(self, *args, sep: str = " ", end: str = "\n"):
+        # In cmd2, feedback is typically on stdout.
+        self.poutput(*args, sep=sep, end=end)
+
+    # ---------- parsing / dispatch ----------
+    def emptyline(self):
+        # cmd2: do nothing on empty line
+        return False
+
+    def onecmd(self, line: str) -> bool:
+        # Keep cmd.Cmd dispatch for compatibility, but pre-parse to support tests and consistent behavior.
+        stmt = parse_statement(line)
+        if stmt.is_empty:
+            return self.emptyline() or False
+        # cmd.Cmd.onecmd expects raw line string, not Statement.
+        return bool(super().onecmd(stmt.raw))
+
+    def default(self, line: str):
+        # cmd.Cmd uses stdout by default; cmd2 generally reports errors.
+        self.perror(f"*** Unknown syntax: {line}")
+
+    # ---------- help ----------
+    def do_help(self, arg: str):
+        # Provide deterministic listing, avoid terminal column formatting.
+        arg = (arg or "").strip()
+        if not arg:
+            names = self.get_names()
+            cmds = []
+            for name in names:
+                if not name.startswith("do_"):
+                    continue
+                cmdname = name[3:]
+                if cmdname.startswith("_"):
+                    continue
+                if cmdname == "EOF":
+                    continue
+                cmds.append(cmdname)
+            cmds = sorted(set(cmds))
+            for c in cmds:
+                self.poutput(c)
+            return
+        # help <command>
+        func = getattr(self, "help_" + arg, None)
+        if func is not None:
+            func()
+            return
+        do_func = getattr(self, "do_" + arg, None)
+        if do_func is None:
+            self.perror(f"No help on {arg}")
+            return
+        doc = do_func.__doc__ or ""
+        doc = doc.strip("\n")
+        if not doc:
+            self.perror(f"No help on {arg}")
+            return
+        for line in doc.splitlines():
+            self.poutput(line.rstrip())
+
+    # ---------- completion ----------
+    def completedefault(self, *ignored):
+        return []
+
+    def complete_help(self, text, line, begidx, endidx):
+        # complete command names for "help <cmd>"
+        names = self.get_names()
+        cmds = sorted({n[3:] for n in names if n.startswith("do_") and not n[3:].startswith("_")})
+        if not text:
+            return cmds
+        return [c for c in cmds if c.startswith(text)]
+
+    # ---------- argparse integration ----------
+    def parse_args(self, parser: argparse.ArgumentParser, args):
+        from .parsing import tokenize
+
+        if isinstance(args, str):
+            argv = tokenize(args)
+        else:
+            argv = list(args)
+        # Ensure cmd2-like behavior: raise rather than exit if parser is our Cmd2ArgumentParser.
+        try:
+            return parser.parse_args(argv)
+        except SystemExit as e:
+            # If a plain argparse parser is used, convert to Cmd2ArgparseError for compatibility.
+            usage = ""
+            try:
+                usage = parser.format_usage()
+            except Exception:
+                usage = ""
+            raise Cmd2ArgparseError("", usage=usage, status=getattr(e, "code", 2))
+
+    # ---------- loop ----------
+    def cmdloop(self, intro: Optional[str] = None):
+        # Wrap base cmdloop to keep interactive loop alive on exceptions, printing traceback.
+        if intro is not None:
+            self.intro = intro
+        # Implement our own loop for consistent behavior with custom stdin/stdout.
+        if self.intro:
+            self.poutput(self.intro)
+        stop = False
+        while not stop:
+            try:
+                # cmd.Cmd uses self.stdout for prompt output; ensure that is set.
+                prompt = self.prompt
+                self.stdout.write(prompt)
+                try:
+                    self.stdout.flush()
+                except Exception:
+                    pass
+                line = self.stdin.readline()
+                if line == "":
+                    line = "EOF"
+                line = line.rstrip("\n")
+                try:
+                    line = self.precmd(line)
+                    stop = self.onecmd(line)
+                    stop = self.postcmd(stop, line)
+                except Exception:
+                    # Print traceback and continue
+                    traceback.print_exc(file=self.stderr if self.stderr is not None else self.stdout)
+                    stop = False
+            except KeyboardInterrupt:
+                self.perror("^C")
+                stop = False
+        return stop
+</file>
+
+<file:name=cmd2/transcript.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List, Optional, Sequence, Union
+
+from .utils import strip_ansi, ensure_str, capture_output
+
+
+@dataclass
+class TranscriptFailure:
+    command: str
+    expected: str
+    actual: str
+    diff: str
+
+
+@dataclass
+class TranscriptResult:
+    path: Path
+    passed: bool
+    failures: List[TranscriptFailure]
+
+
+class TranscriptRunner:
+    def __init__(self, app, *, strip_ansi_codes: bool = True, prompt: Optional[str] = None, merge_streams: bool = True):
+        self.app = app
+        self.strip_ansi_codes = strip_ansi_codes
+        self.prompt = prompt if prompt is not None else getattr(app, "prompt", "> ")
+        self.merge_streams = merge_streams
+
+    def _norm(self, s: str) -> str:
+        s = ensure_str(s).replace("\r\n", "\n").replace("\r", "\n")
+        if self.strip_ansi_codes:
+            s = strip_ansi(s)
+        return s
+
+    def _parse_transcript(self, text: str):
+        """
+        Minimal transcript format:
+          <prompt><command>
+          <expected output line 1>
+          ...
+          <prompt><next command>
+          ...
+
+        Returns list of (command, expected_output_block_string).
+        """
+        prompt = self.prompt
+        lines = text.splitlines()
+        items = []
+        cur_cmd = None
+        cur_out = []
+        for line in lines:
+            if line.startswith(prompt):
+                if cur_cmd is not None:
+                    items.append((cur_cmd, "\n".join(cur_out).rstrip("\n")))
+                cur_cmd = line[len(prompt) :].lstrip()
+                cur_out = []
+            else:
+                # expected output
+                cur_out.append(line)
+        if cur_cmd is not None:
+            items.append((cur_cmd, "\n".join(cur_out).rstrip("\n")))
+        return items
+
+    def run(self, transcript_path: Union[str, Path]) -> TranscriptResult:
+        path = Path(transcript_path)
+        text = path.read_text(encoding="utf-8")
+        text = self._norm(text)
+        script = self._parse_transcript(text)
+
+        failures: List[TranscriptFailure] = []
+        for command, expected in script:
+            with capture_output() as (out, err):
+                # route app output to sys.std* redirection via capture_output; but app may use self.stdout/self.stderr
+                # So temporarily point app streams at these buffers.
+                old_out, old_err = getattr(self.app, "stdout", None), getattr(self.app, "stderr", None)
+                try:
+                    self.app.stdout = out
+                    self.app.stderr = err
+                    self.app.onecmd(command)
+                finally:
+                    self.app.stdout = old_out
+                    self.app.stderr = old_err
+
+            actual_out = out.getvalue()
+            actual_err = err.getvalue()
+            actual = actual_out + (actual_err if self.merge_streams else "")
+            actual = self._norm(actual).rstrip("\n")
+
+            exp = expected.rstrip("\n")
+            if actual != exp:
+                diff = self._simple_diff(exp, actual)
+                failures.append(TranscriptFailure(command=command, expected=exp, actual=actual, diff=diff))
+
+        return TranscriptResult(path=path, passed=(len(failures) == 0), failures=failures)
+
+    @staticmethod
+    def _simple_diff(expected: str, actual: str) -> str:
+        exp_lines = expected.splitlines()
+        act_lines = actual.splitlines()
+        out = []
+        maxn = max(len(exp_lines), len(act_lines))
+        for i in range(maxn):
+            e = exp_lines[i] if i < len(exp_lines) else ""
+            a = act_lines[i] if i < len(act_lines) else ""
+            if e == a:
+                out.append("  " + e)
+            else:
+                out.append("- " + e)
+                out.append("+ " + a)
+        return "\n".join(out)
+
+
+def run_transcript_tests(app, transcript_files: Sequence[Union[str, Path]], *, fail_on_exception: bool = True, strip_ansi_codes: bool = True):
+    # fail_on_exception kept for signature compatibility; this minimal runner doesn't suppress exceptions from app.onecmd.
+    runner = TranscriptRunner(app, strip_ansi_codes=strip_ansi_codes)
+    results = []
+    for p in transcript_files:
+        results.append(runner.run(p))
+    return results
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import io
+import textwrap
+from pathlib import Path
+
+import pytest
+
+import cmd2
+from cmd2 import Cmd2, Statement, parse_statement
+from cmd2.exceptions import Cmd2ArgparseError
+from cmd2.cmd2 import Cmd2ArgumentParser
+from cmd2.transcript import TranscriptRunner
+
+
+class App(Cmd2):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.prompt = "> "
+
+    def do_echo(self, arg):
+        """Echo the arguments."""
+        self.poutput(arg)
+
+    def do_fail(self, arg):
+        raise RuntimeError("boom")
+
+    def do_quit(self, arg):
+        return True
+
+    def do_args(self, arg):
+        parser = Cmd2ArgumentParser(prog="args")
+        parser.add_argument("x")
+        ns = self.parse_args(parser, arg)
+        self.poutput(f"x={ns.x}")
+
+
+def test_imports_and_public_api():
+    assert hasattr(cmd2, "Cmd2")
+    assert hasattr(cmd2, "Statement")
+    assert cmd2.__version__
+
+
+def test_parse_statement_quotes():
+    st = parse_statement('cmd "a b" c')
+    assert isinstance(st, Statement)
+    assert st.command == "cmd"
+    assert st.arg_list == ["a b", "c"]
+    assert st.raw == 'cmd "a b" c'
+
+
+def test_command_dispatch_and_unknown(capsys):
+    out = io.StringIO()
+    err = io.StringIO()
+    app = App(stdout=out, stderr=err)
+
+    app.onecmd("echo hi")
+    assert out.getvalue().splitlines()[-1] == "hi"
+
+    app.onecmd("doesnotexist 1 2")
+    assert "*** Unknown syntax:" in err.getvalue()
+    assert "doesnotexist 1 2" in err.getvalue()
+
+
+def test_emptyline_does_not_repeat():
+    out = io.StringIO()
+    err = io.StringIO()
+    app = App(stdout=out, stderr=err)
+    app.onecmd("echo hi")
+    before = out.getvalue()
+    app.onecmd("")  # should not repeat
+    after = out.getvalue()
+    assert after == before
+
+
+def test_help_lists_commands_deterministically():
+    out = io.StringIO()
+    err = io.StringIO()
+    app = App(stdout=out, stderr=err)
+
+    app.onecmd("help")
+    lines = [ln.strip() for ln in out.getvalue().splitlines() if ln.strip()]
+    # at least these exist
+    for name in ["args", "echo", "fail", "help", "quit"]:
+        assert name in lines
+    assert lines == sorted(lines)
+
+
+def test_help_for_command_uses_docstring():
+    out = io.StringIO()
+    err = io.StringIO()
+    app = App(stdout=out, stderr=err)
+
+    app.onecmd("help echo")
+    assert "Echo the arguments." in out.getvalue()
+
+
+def test_argparse_missing_arg_raises():
+    app = App(stdout=io.StringIO(), stderr=io.StringIO())
+    parser = Cmd2ArgumentParser(prog="t")
+    parser.add_argument("x")
+    with pytest.raises(Cmd2ArgparseError):
+        app.parse_args(parser, "")
+
+
+def test_capture_output_context_manager():
+    from cmd2.utils import capture_output
+
+    with capture_output() as (out, err):
+        print("A")
+        print("B", file=sys.stderr)
+    assert out.getvalue().strip() == "A"
+    assert err.getvalue().strip() == "B"
+
+
+def test_transcript_runner_pass_and_fail(tmp_path: Path):
+    out = io.StringIO()
+    err = io.StringIO()
+    app = App(stdout=out, stderr=err)
+    tr_path = tmp_path / "t.transcript"
+    tr_path.write_text(
+        textwrap.dedent(
+            """\
+            > echo hi
+            hi
+            > doesnotexist
+            *** Unknown syntax: doesnotexist
+            """
+        ),
+        encoding="utf-8",
+    )
+    runner = TranscriptRunner(app, prompt="> ")
+    res = runner.run(tr_path)
+    assert res.passed, f"failures: {res.failures}"
+
+    tr_path2 = tmp_path / "t2.transcript"
+    tr_path2.write_text(
+        textwrap.dedent(
+            """\
+            > echo hi
+            bye
+            """
+        ),
+        encoding="utf-8",
+    )
+    res2 = runner.run(tr_path2)
+    assert not res2.passed
+    assert res2.failures
+    assert "echo hi" in res2.failures[0].command
+
+
+def test_cmdloop_smoke():
+    out = io.StringIO()
+    err = io.StringIO()
+    inp = io.StringIO("echo hi\nquit\n")
+    app = App(stdin=inp, stdout=out, stderr=err)
+    app.cmdloop(intro=None)
+    assert "hi" in out.getvalue()
+</file>
+
+<file:name=_agent_tests/conftest.py>
+# Empty conftest for future expansion.
+</file>
+
+<file:name=cmd2/cmd2.pyi>
+# Stub file (optional for editors). Not used by runtime.
+</file>

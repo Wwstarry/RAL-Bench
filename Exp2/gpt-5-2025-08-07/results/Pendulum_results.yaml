@@ -1,0 +1,294 @@
+project_name: Pendulum
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Pendulum\pendulum.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Pendulum
+timestamp: '2025-12-31 22:57:18'
+functional_score: 0.1538
+non_functional_score: 0.8795
+non_functional_subscores:
+  maintainability: 0.9987
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FF.F.FFFFsFFF                                                       \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_parse_and_timezone_conversion ______________________\n\
+      \n    def test_parse_and_timezone_conversion() -> None:\n        \"\"\"Parse\
+      \ an ISO string and convert between timezones.\"\"\"\n        dt_utc = pendulum.parse(\"\
+      2020-01-01T12:00:00+00:00\")\n    \n        assert dt_utc.year == 2020\n   \
+      \     assert dt_utc.month == 1\n        assert dt_utc.day == 1\n    \n>    \
+      \   offset_utc = dt_utc.utcoffset()\nE       AttributeError: 'DateTime' object\
+      \ has no attribute 'utcoffset'\n\ntests\\Pendulum\\functional_test.py:72: AttributeError\n\
+      ____________________ test_datetime_arithmetic_and_duration ____________________\n\
+      \n    def test_datetime_arithmetic_and_duration() -> None:\n        \"\"\"Basic\
+      \ arithmetic with pendulum.datetime and pendulum.duration.\"\"\"\n        base\
+      \ = pendulum.datetime(2021, 3, 15, 10, 30, 0, tz=\"UTC\")\n    \n        shifted\
+      \ = base.add(days=2, hours=5, minutes=15)\n        delta = shifted - base\n\
+      \    \n>       assert delta.days == 2\nE       AttributeError: 'Duration' object\
+      \ has no attribute 'days'\n\ntests\\Pendulum\\functional_test.py:92: AttributeError\n\
+      _____________________ test_parse_date_only_to_date_string _____________________\n\
+      \n    def test_parse_date_only_to_date_string() -> None:\n        \"\"\"Parse\
+      \ a date-only string and verify normalized date output.\"\"\"\n        d = pendulum.parse(\"\
+      2020-02-29\")\n        assert d.year == 2020\n        assert d.month == 2\n\
+      \        assert d.day == 29\n>       assert d.to_date_string() == \"2020-02-29\"\
+      \nE       AttributeError: 'DateTime' object has no attribute 'to_date_string'\n\
+      \ntests\\Pendulum\\functional_test.py:121: AttributeError\n_____________________\
+      \ test_formatting_with_custom_pattern _____________________\n\n    def test_formatting_with_custom_pattern()\
+      \ -> None:\n        \"\"\"Verify formatting with a custom pattern is stable\
+      \ for a fixed datetime.\"\"\"\n        dt = pendulum.datetime(2021, 12, 31,\
+      \ 23, 59, 58, tz=\"UTC\")\n>       s = dt.format(\"YYYY/MM/DD HH:mm:ss\")\n\
+      E       AttributeError: 'DateTime' object has no attribute 'format'\n\ntests\\\
+      Pendulum\\functional_test.py:136: AttributeError\n__________________________\
+      \ test_start_of_end_of_day ___________________________\n\n    def test_start_of_end_of_day()\
+      \ -> None:\n        \"\"\"Check start_of and end_of for a day boundary.\"\"\"\
+      \n        dt = pendulum.datetime(2020, 5, 20, 13, 14, 15, tz=\"UTC\")\n    \n\
+      >       sod = dt.start_of(\"day\")\nE       AttributeError: 'DateTime' object\
+      \ has no attribute 'start_of'\n\ntests\\Pendulum\\functional_test.py:144: AttributeError\n\
+      _____________________ test_weekday_and_isoweekday_values ______________________\n\
+      \n    def test_weekday_and_isoweekday_values() -> None:\n        \"\"\"Validate\
+      \ weekday values for a known date (2020-01-01 is Wednesday).\"\"\"\n>      \
+      \ dt = pendulum.date(2020, 1, 1)\nE       AttributeError: module 'pendulum'\
+      \ has no attribute 'date'\n\ntests\\Pendulum\\functional_test.py:155: AttributeError\n\
+      _________________ test_duration_total_seconds_and_components __________________\n\
+      \n    def test_duration_total_seconds_and_components() -> None:\n        \"\"\
+      \"Verify duration reports correct total seconds and has component attributes.\"\
+      \"\"\n        dur = pendulum.duration(days=1, hours=2, minutes=3, seconds=4)\n\
+      \    \n        # Total seconds is the most stable cross-version contract.\n\
+      \        assert dur.total_seconds() == 1 * 86400 + 2 * 3600 + 3 * 60 + 4\n \
+      \   \n        # Component attributes commonly exist; assert them when present.\n\
+      >       assert dur.days == 1\nE       AttributeError: 'Duration' object has\
+      \ no attribute 'days'\n\ntests\\Pendulum\\functional_test.py:168: AttributeError\n\
+      _____________________ test_in_timezone_preserves_instant ______________________\n\
+      \n    def test_in_timezone_preserves_instant() -> None:\n        \"\"\"Converting\
+      \ timezones should preserve the instant (timestamp).\"\"\"\n        dt_utc =\
+      \ pendulum.datetime(2020, 6, 1, 0, 0, 0, tz=\"UTC\")\n        dt_ny = dt_utc.in_timezone(\"\
+      America/New_York\")\n    \n        assert int(dt_utc.timestamp()) == int(dt_ny.timestamp())\n\
+      >       assert dt_ny.to_date_string() in (\"2020-05-31\", \"2020-06-01\")\n\
+      E       AttributeError: 'DateTime' object has no attribute 'to_date_string'\n\
+      \ntests\\Pendulum\\functional_test.py:202: AttributeError\n________________________\
+      \ test_diff_in_days_is_integer _________________________\n\n    def test_diff_in_days_is_integer()\
+      \ -> None:\n        \"\"\"Compute diff in days between two dates.\"\"\"\n> \
+      \      a = pendulum.date(2020, 1, 1)\nE       AttributeError: module 'pendulum'\
+      \ has no attribute 'date'\n\ntests\\Pendulum\\functional_test.py:207: AttributeError\n\
+      ____________________ test_add_months_across_year_boundary _____________________\n\
+      \n    def test_add_months_across_year_boundary() -> None:\n        \"\"\"Add\
+      \ months and verify year boundary transitions.\"\"\"\n>       dt = pendulum.date(2019,\
+      \ 12, 15)\nE       AttributeError: module 'pendulum' has no attribute 'date'\n\
+      \ntests\\Pendulum\\functional_test.py:217: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Pendulum/functional_test.py::test_parse_and_timezone_conversion\n\
+      FAILED tests/Pendulum/functional_test.py::test_datetime_arithmetic_and_duration\n\
+      FAILED tests/Pendulum/functional_test.py::test_parse_date_only_to_date_string\n\
+      FAILED tests/Pendulum/functional_test.py::test_formatting_with_custom_pattern\n\
+      FAILED tests/Pendulum/functional_test.py::test_start_of_end_of_day - Attribut...\n\
+      FAILED tests/Pendulum/functional_test.py::test_weekday_and_isoweekday_values\n\
+      FAILED tests/Pendulum/functional_test.py::test_duration_total_seconds_and_components\n\
+      FAILED tests/Pendulum/functional_test.py::test_in_timezone_preserves_instant\n\
+      FAILED tests/Pendulum/functional_test.py::test_diff_in_days_is_integer - Attr...\n\
+      FAILED tests/Pendulum/functional_test.py::test_add_months_across_year_boundary\n\
+      10 failed, 2 passed, 1 skipped in 0.68s\n"
+    elapsed_time_s: 1.95882
+    avg_memory_mb: 32.59
+    avg_cpu_percent: 98.3
+    passed: 2
+    failed: 10
+    skipped: 1
+    total: 13
+    score_inputs_passed: 2
+    score_inputs_failed: 10
+    score_inputs_total: 13
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.26s
+
+      '
+    elapsed_time_s: 1.494422
+    avg_memory_mb: 31.3
+    avg_cpu_percent: 97.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.322455
+    score_inputs_actual_time_s: 1.494422
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________ test_generate_recurring_schedule_and_group_by_day ______________\n\
+      \n    def test_generate_recurring_schedule_and_group_by_day() -> None:\n   \
+      \     \"\"\"\n        Integration-style test: build a recurring schedule, convert\
+      \ to another\n        timezone, and group events by local calendar day.\n  \
+      \      \"\"\"\n        # Start from a fixed UTC anchor.\n        start = pendulum.datetime(2022,\
+      \ 1, 1, 8, 0, 0, tz=\"UTC\")\n    \n        # Create a small weekly schedule\
+      \ with three \"meetings\" per day.\n        meetings_utc = []\n        for day\
+      \ in range(7):\n            for hour in (9, 13, 17):\n                meetings_utc.append(start.add(days=day,\
+      \ hours=hour))\n    \n        tz_tokyo = pendulum.timezone(\"Asia/Tokyo\")\n\
+      \        meetings_local = [m.in_timezone(tz_tokyo) for m in meetings_utc]\n\
+      \    \n        # Group by local date string.\n        grouped: dict[str, list[pendulum.DateTime]]\
+      \ = {}\n        for m in meetings_local:\n>           key = m.to_date_string()\n\
+      E           AttributeError: 'DateTime' object has no attribute 'to_date_string'\n\
+      \ntests\\Pendulum\\resource_test.py:52: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day\n\
+      1 failed in 0.41s\n"
+    elapsed_time_s: 1.788922
+    avg_memory_mb: 31.59
+    avg_cpu_percent: 97.2
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 32.89
+    score_inputs_baseline_cpu_pct: 101.3
+    score_inputs_actual_mem_mb: 31.59
+    score_inputs_actual_cpu_pct: 97.2
+  robustness:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.520194
+    avg_memory_mb: 31.38
+    avg_cpu_percent: 96.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=555.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.407998
+    avg_memory_mb: 31.85
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 555.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.8808 files_scanned=6.0 total_loc=555.0 max_cc=12.0
+
+      .
+
+      1 passed in 0.20s
+
+      '
+    elapsed_time_s: 1.496912
+    avg_memory_mb: 31.64
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.8808
+      files_scanned: 6.0
+      total_loc: 555.0
+      max_cc: 12.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.029
+    score_inputs_generated_mi_min: 21.8808
+    score_inputs_ratio_g_over_b: 754.5103448275862
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.322455
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.330804
+    resource_tests_total: 1
+    avg_memory_mb: 32.89
+    avg_cpu_percent: 101.3
+  functional:
+    functional_suite_time_s: 1.368165
+    functional_tests_total: 13
+  robustness:
+    robustness_suite_time_s: 1.390624
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.430329
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 119.0
+      total_loc: 11757.0
+  maintainability:
+    maintainability_suite_time_s: 3.35882
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.029
+      files_scanned: 172.0
+      total_loc: 19627.0
+      max_cc: 44.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Pendulum\pytest_logs

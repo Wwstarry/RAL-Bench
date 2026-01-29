@@ -1,0 +1,264 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+
+- requests/
+  - __init__.py
+    - Expose public symbols: request, get, post, put, delete, head, options, patch
+    - Expose Session
+    - Expose Request, Response
+    - Expose exceptions namespace (at least RequestException and common subclasses)
+    - Expose auth helpers (at least HTTPBasicAuth)
+  - api.py
+    - High-level request() and method helpers (get/post/etc.)
+  - sessions.py
+    - Session class implementing request lifecycle, cookie persistence, adapters
+  - models.py
+    - Request, PreparedRequest, Response classes; minimal preparation pipeline
+  - auth.py
+    - HTTPBasicAuth callable auth handler
+  - exceptions.py
+    - Exception hierarchy compatible with core usage
+  - cookies.py (can be minimal)
+    - cookie-jar wrapper utilities used by Session/Response
+  - adapters.py (can be minimal)
+    - HTTPAdapter stub used by Session.mount and request dispatch
+  - status_codes.py (optional/minimal)
+  - utils.py (optional/minimal)
+  - structures.py (optional/minimal)
+- Tests will run against a local HTTP server; implementation must not rely on external network calls.
+- Packaging: repository root should allow `import requests` to resolve to this implementation (not the third-party requests).
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+2.1 requests.api
+- def request(method, url, **kwargs) -> requests.models.Response
+  - kwargs supported (minimum):
+    - params: dict|list[tuple]|bytes|str|None
+    - data: dict|list[tuple]|bytes|str|None
+    - json: any JSON-serializable|None
+    - headers: dict|None
+    - cookies: dict|CookieJar|None
+    - files: dict|None (minimal: can be ignored unless tests require)
+    - auth: tuple(user, pass)|callable|None
+    - timeout: float|tuple(connect, read)|None (may be accepted but not enforced)
+    - allow_redirects: bool (default True for GET/OPTIONS/HEAD?; ok to implement minimal)
+    - stream: bool (may be accepted; default False)
+    - verify: any (accept but may ignore)
+- def get(url, params=None, **kwargs) -> Response
+- def post(url, data=None, json=None, **kwargs) -> Response
+- def put(url, data=None, **kwargs) -> Response
+- def delete(url, **kwargs) -> Response
+- def head(url, **kwargs) -> Response
+- def options(url, **kwargs) -> Response
+- def patch(url, data=None, **kwargs) -> Response
+
+2.2 requests.sessions
+- class Session:
+  - attributes:
+    - headers: dict (default empty)
+    - cookies: CookieJar-like (persisted across requests)
+    - auth: default auth for session (optional)
+    - adapters: dict scheme->adapter (at least "http://" and "https://" accepted; tests likely use http)
+  - def __init__(self)
+  - def request(self, method, url, **kwargs) -> Response
+    - same kwargs as api.request plus:
+      - hooks: dict (accept; may ignore)
+  - def get/post/put/delete/head/options/patch (same shape as api helpers)
+  - def close(self) -> None
+  - def mount(self, prefix: str, adapter) -> None
+- def session() -> Session (optional convenience; not required unless tests reference it)
+
+2.3 requests.models
+- class Request:
+  - def __init__(self, method=None, url=None, headers=None, files=None, data=None, params=None, auth=None, cookies=None, json=None)
+  - def prepare(self) -> PreparedRequest
+- class PreparedRequest:
+  - attributes:
+    - method: str
+    - url: str (final URL with params encoded)
+    - headers: dict
+    - body: bytes|str|None
+  - def prepare(self, method=None, url=None, headers=None, files=None, data=None, params=None, auth=None, cookies=None, json=None) -> None
+- class Response:
+  - attributes:
+    - status_code: int
+    - headers: case-insensitive mapping interface (at least dict-like with .get())
+    - url: str
+    - reason: str|None
+    - content: bytes (eagerly populated unless stream True is supported)
+    - encoding: str|None
+    - request: PreparedRequest|None
+    - cookies: CookieJar-like
+    - history: list[Response] (for redirects; can be empty)
+  - properties/methods:
+    - @property def ok(self) -> bool (True if 200<=status_code<400)
+    - @property def text(self) -> str (decode content using encoding or apparent/default utf-8 with errors="replace")
+    - def json(self) -> any (parse as JSON; raise ValueError on invalid)
+    - def raise_for_status(self) -> None (raise HTTPError for 4xx/5xx)
+- Header handling:
+  - A minimal CaseInsensitiveDict implementation is acceptable if tests check header casing; otherwise normalize internally.
+
+2.4 requests.auth
+- class AuthBase (optional)
+  - def __call__(self, r: PreparedRequest) -> PreparedRequest
+- class HTTPBasicAuth(AuthBase):
+  - def __init__(self, username: str, password: str)
+  - def __call__(self, r: PreparedRequest) -> PreparedRequest
+    - Adds Authorization: Basic <base64(user:pass)> if not already present
+- Support passing auth as:
+  - (username, password) tuple in request()/Session.request()
+  - callable with signature (prepared_request)->prepared_request
+
+2.5 requests.exceptions
+- class RequestException(Exception)
+- class InvalidURL(RequestException)
+- class MissingSchema(InvalidURL)
+- class InvalidSchema(InvalidURL)
+- class URLRequired(RequestException)
+- class ConnectionError(RequestException)
+- class Timeout(RequestException)
+- class TooManyRedirects(RequestException)
+- class HTTPError(RequestException)
+  - used by Response.raise_for_status()
+- class JSONDecodeError(ValueError) (optional; may reuse ValueError)
+- All public APIs should raise these types where appropriate; tests may only require a subset but hierarchy must exist.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+3.1 URL handling
+- request(method, url, ...) requires a non-empty URL string.
+  - If url is None/"" -> raise URLRequired.
+- URL must include scheme ("http://" or "https://") or else raise MissingSchema.
+- Unsupported schemes -> raise InvalidSchema.
+- For local server tests, http:// is sufficient; https can be accepted but may be unimplemented (raise InvalidSchema unless tests need it).
+
+3.2 Method normalization
+- method is required; normalize to uppercase in PreparedRequest.method.
+- Helpers (get/post/etc.) must pass correct method.
+
+3.3 Query params
+- params, if provided, must be encoded onto the URL query string.
+- Accept dict or list of tuples.
+- If URL already has a query string, merge by appending new params.
+- Encode using urllib.parse.urlencode with doseq=True for lists/tuples and list values.
+
+3.4 Request body construction
+- If json is not None:
+  - Serialize using json.dumps(json) to UTF-8 bytes.
+  - Set Content-Type to "application/json" if not already set.
+  - Ignore/override data only if tests expect requests-like behavior (preferred: if json is provided, use it as body; data still allowed but json takes precedence).
+- If data is dict or list of tuples:
+  - Encode as application/x-www-form-urlencoded (utf-8), set Content-Type if not already set.
+- If data is bytes/str:
+  - Use as body (str encoded as utf-8 bytes); do not set Content-Type unless explicitly provided.
+- Body stored in PreparedRequest.body; adapters should send it.
+
+3.5 Headers
+- Merge headers from:
+  - session.headers (base) then per-request headers override.
+- If Host/User-Agent not needed by tests, can omit; but should not break server behavior.
+- If body is bytes and Content-Length not explicitly set, adapter may set it.
+- Header lookup in Response.headers should be case-insensitive (at least for .get()).
+
+3.6 Cookies
+- Session maintains a cookie jar across requests.
+- Per-request cookies provided via cookies= should be merged with session cookies for that request.
+- Response should parse Set-Cookie headers and update:
+  - response.cookies
+  - session.cookies (if request executed via Session)
+- Minimal cookie support acceptable:
+  - handle simple "Set-Cookie: name=value" (ignore attributes) and send back as "Cookie: name=value" on subsequent requests to same host.
+- Cookies returned by Response.cookies should at least allow dict-like access by key.
+
+3.7 Auth
+- If auth is (user, pass) tuple, treat as HTTPBasicAuth.
+- If auth is callable, call it with PreparedRequest before sending.
+- Session.auth default applies if request auth not provided.
+- Auth should set Authorization header.
+
+3.8 Sending requests / adapters
+- Session must route URL by prefix matching in adapters; simplest:
+  - adapters keys can be "http://" and "https://".
+  - choose adapter by scheme.
+- Provide a minimal HTTPAdapter that uses Python standard library (http.client or urllib.request) to send requests.
+- Must support:
+  - methods: GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS
+  - sending headers
+  - sending body
+  - reading response status, headers, body
+- On connection failures (refused, DNS failure in local env), raise ConnectionError.
+- timeout may be accepted and passed to underlying library if feasible; otherwise ignore but must not crash.
+
+3.9 Response handling
+- Response.content is bytes of entire body unless stream support is explicitly implemented; for tests, eager read is usually fine.
+- Response.text decodes using:
+  - charset from Content-Type header if present (e.g., "text/plain; charset=utf-8")
+  - else utf-8 with replacement.
+- Response.json parses Response.text as JSON; raise ValueError (or JSONDecodeError subclass) if invalid.
+- Response.ok is True for status_code in [200, 400).
+- Response.raise_for_status:
+  - if 400<=status_code<600 raise HTTPError with message containing status code and reason if present.
+
+3.10 Redirects (if tests cover)
+- If allow_redirects True (default True for GET/OPTIONS, False for HEAD is acceptable but may differ):
+  - Follow 301/302/303/307/308 responses with Location header.
+  - Maintain Response.history list of intermediate responses.
+  - Enforce a max redirect count (e.g., 30) else raise TooManyRedirects.
+- For minimal compliance, it is acceptable to not implement redirects unless tests assert it; but if server endpoints include redirects, implement basic behavior.
+
+3.11 PreparedRequest / Request preparation invariants
+- Request.prepare returns a PreparedRequest with:
+  - url including params
+  - method uppercase
+  - headers merged and normalized to plain dict internally
+  - body as bytes or None
+- PreparedRequest used by Session sending path; Response.request should be set to the PreparedRequest used.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+
+- Import surface:
+  - `import requests` works and exposes requests.get/post/... and requests.Session.
+  - `from requests.auth import HTTPBasicAuth` works.
+  - `from requests.exceptions import RequestException, HTTPError, ConnectionError, InvalidURL` works.
+
+- Basic request helpers:
+  - requests.get(local_url).status_code matches server response.
+  - requests.post(local_url, data={"a":"b"}) sends form-encoded body and server sees expected payload.
+  - requests.post(local_url, json={"a":1}) sends JSON and sets Content-Type appropriately.
+
+- Query params:
+  - requests.get(url, params={"q":"x"}) results in server receiving query string q=x.
+  - Existing query parameters are preserved and merged.
+
+- Session behavior:
+  - Session headers persist across requests and can be overridden per request.
+  - Session cookies persist: server sets cookie via Set-Cookie on first request; second request includes Cookie header.
+  - Session.mount can replace adapter for "http://" prefix and is used for subsequent calls.
+
+- Auth:
+  - Passing auth=("user","pass") sends correct Basic Authorization header.
+  - HTTPBasicAuth instance works when passed as auth=HTTPBasicAuth(...).
+
+- Response API:
+  - response.content is bytes; response.text is decoded string.
+  - response.json() returns parsed object for JSON responses; raises ValueError for invalid JSON.
+  - response.raise_for_status() raises HTTPError for 4xx/5xx and does nothing for 2xx/3xx.
+
+- Error taxonomy:
+  - Missing scheme URL ("example.com") raises MissingSchema (or InvalidURL subtype).
+  - None/empty URL raises URLRequired.
+  - Connection problems raise ConnectionError (wrapped from underlying exception).
+
+- Redirects (only if tests exercise it):
+  - GET with allow_redirects=True follows Location and populates history.
+  - Too many redirects raises TooManyRedirects.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+
+- Do not call external internet resources; only interact with URLs provided by tests (local server).
+- Do not depend on the real third-party `requests` package; implementation must be self-contained.
+- No need to implement the full requests feature set (streaming uploads, multipart encoding, proxies, SSL verification, complex cookie domain/path matching) unless tests explicitly require it.
+- Avoid heavy dependencies; standard library only is sufficient.
+- Thread-safety is not required.
+- Exact parity with upstream requests formatting/messages is not required; exception types and core behavior must match the contract above.
+</contract>

@@ -1,0 +1,167 @@
+1) Repository layout and import graph
+- typer/
+  - __init__.py
+    - Re-export: Typer, Option, Argument, echo, Exit
+    - Provide __all__ matching these symbols (+ testing if needed)
+  - main.py
+    - Implements Typer app object, command registration, callback dispatch, help generation, parsing
+  - params.py
+    - Defines OptionInfo/ArgumentInfo containers and Option()/Argument() factory functions
+  - utils.py
+    - echo() implementation, small helpers (name normalization, type conversion, formatting)
+  - exceptions.py
+    - Exit exception class
+  - testing.py
+    - CliRunner helper that can invoke Typer apps capturing stdout/stderr and exit codes
+  - _compat.py (optional)
+    - Minimal compatibility shims (e.g., Python version helpers)
+- Import graph (simple, avoid circulars):
+  - typer/__init__.py imports from .main, .params, .utils, .exceptions, .testing
+  - main.py imports params.OptionInfo/ArgumentInfo, utils.echo, exceptions.Exit
+  - testing.py imports exceptions.Exit and main.Typer (or uses duck-typing on app callable)
+
+2) Public APIs to implement (modules/classes/functions)
+- typer.Typer (class)
+  - Constructor: Typer(name=None, help=None, add_help_option=True, invoke_without_command=False, no_args_is_help=False)
+    - Only store name/help; flags used for help behavior.
+  - .command(name: str | None = None, help: str | None = None)
+    - Decorator registering a function as a command.
+  - .callback(...) (optional; implement minimal for compatibility)
+    - Decorator registering a “root” callback executed when no command (or before command) if tests require; otherwise no-op.
+  - .add_typer(other: Typer, name: str | None = None) (optional; minimal support for sub-apps if tests cover)
+  - __call__(self, args: list[str] | None = None, prog_name: str | None = None) -> int
+    - Execute CLI with given args (defaults to sys.argv[1:]); returns exit code.
+  - .main(args=None, prog_name=None, standalone_mode=True) -> None|int
+    - Typer-like entry; in standalone_mode raises SystemExit, else returns code.
+- typer.Option(default=..., *param_decls, **kwargs)
+  - Factory returning an OptionInfo instance used as function default.
+  - Support subset: default, help, show_default (ignored), prompt (ignored), envvar (ignored), callback (ignored), is_flag (auto if bool default or explicitly), count (ignored), hidden (ignored), case_sensitive (ignored)
+  - Support multiple declarations: (“--foo”, “-f”) and derive option name from decls or function parameter name if none given.
+- typer.Argument(default=..., **kwargs)
+  - Factory returning an ArgumentInfo instance used as function default.
+  - Support subset: help, metavar (ignored), nargs (ignored), envvar (ignored)
+- typer.echo(message: str|bytes|Any = "", nl: bool = True, err: bool = False)
+  - Write to stdout by default, stderr if err=True; coerce to str; respect nl.
+- typer.Exit (exception)
+  - Signature: Exit(code: int = 0)
+  - Attribute: exit_code or code; ensure tests can access .code (Typer uses .exit_code; Click uses .exit_code). Provide both for safety.
+- typer.testing.CliRunner
+  - .invoke(app: Typer|callable, args: str|list[str], input: str|None = None, catch_exceptions: bool = True, env: dict|None = None)
+    - Returns result object with .exit_code, .stdout, .stderr, .output (stdout+stderr in Typer/Click style), .exception
+  - Provide Result class with these attributes.
+  - Capture output via contextlib.redirect_stdout/redirect_stderr and io.StringIO.
+  - If input provided, patch sys.stdin via io.StringIO (even if prompts not supported).
+- Minimal additional compatibility exports if tests import them:
+  - typer.__version__ (string) optional
+  - typer.run(func) optional convenience: create Typer, register func as command, execute (only if tests expect)
+
+3) Key behaviors & edge cases
+- Command registration and naming
+  - Default command name: function.__name__.replace("_", "-") to match common Typer behavior.
+  - Decorator supports explicit name=..., overrides default.
+  - Store per-command metadata: name, help (from decorator arg or function.__doc__ first line), function object.
+- Parameter introspection
+  - Use inspect.signature(func) to enumerate parameters in order.
+  - For each parameter:
+    - If default is OptionInfo => option parameter
+    - If default is ArgumentInfo or no default => argument parameter (positional)
+  - Determine type converter from annotation:
+    - Support: str, int, float, bool
+    - If annotation is Optional[T] or Union[T, None]: treat as T with default None allowed.
+    - If no annotation: treat as str.
+  - Boolean flags:
+    - If option annotation is bool or default is bool: accept “--flag/--no-flag” behavior is complex; implement minimal:
+      - If default False: “--flag” sets True
+      - If default True: “--flag” sets True, and also accept “--no-flag” to set False if we can derive it; if not required by tests, skip “--no-…”.
+    - If user passes explicit value (“--flag true/false/1/0”), optionally support; but for minimal, support only presence toggling.
+- Parsing CLI arguments
+  - Recognize help: “--help” and “-h” at app level or command level.
+  - App-level parsing:
+    - If args empty:
+      - If no_args_is_help: print app help and exit 0
+      - Else if invoke_without_command and callback exists: run callback
+      - Else print app help? (Typer typically shows help only if no_args_is_help). For safety with tests, implement no_args_is_help default False.
+    - If first token is a known command name: dispatch to command.
+    - If first token is “--help/-h”: show app help.
+    - Unknown command: print error to stderr and show app help snippet; exit code 2.
+  - Command-level parsing:
+    - Options:
+      - Long form: --name value, --name=value
+      - Short form: -n value (single letter); no bundling required unless tests cover.
+      - Stop parsing options after “--” and treat remaining as positionals.
+      - Missing option value: error, exit 2.
+      - Unknown option: error, exit 2.
+    - Positionals:
+      - Map remaining non-option tokens to positional parameters in order.
+      - If too few: error, exit 2.
+      - If too many: error, exit 2 (unless function has *args; can ignore support if not needed).
+  - Default values:
+    - For OptionInfo/ArgumentInfo default of ... (Ellipsis) means required; error if not provided.
+    - Otherwise use given default.
+- Invocation and exit code propagation
+  - Normal function return:
+    - If returns int: treat as exit code (0 if 0 else non-zero) only if tests expect; otherwise ignore and return 0. Implement: if isinstance(result, int): use it as code.
+    - Else exit code 0.
+  - If function raises typer.Exit(code): exit with that code, no stack trace.
+  - If function raises SystemExit: propagate its code similarly.
+  - Other exceptions:
+    - In Typer/Click, these usually show traceback only in testing if catch_exceptions=False. Implement:
+      - In Typer.main(standalone_mode=True): print exception message to stderr and exit code 1, unless it’s Exit/SystemExit.
+      - In CliRunner.invoke(catch_exceptions=True): capture exception and set exit_code=1, store exception; do not raise.
+      - In CliRunner.invoke(catch_exceptions=False): re-raise.
+- Help output generation
+  - App help:
+    - Usage: “Usage: {prog_name} [OPTIONS] COMMAND [ARGS]...”
+      - Keep simple but stable; tests likely check for presence of “Usage:” and “Commands:”.
+    - If app.help provided: show it.
+    - Commands section listing registered command names in registration order.
+    - Options: include “--help  Show this message and exit.”
+  - Command help:
+    - Usage: “Usage: {prog_name} {command} [OPTIONS] {ARGS}”
+      - Show positional argument placeholders (uppercased parameter names).
+    - Show command help text (docstring first line or provided help=).
+    - Arguments section: list positional args with help if provided via ArgumentInfo(help=...)
+    - Options section: list options with their flags, help, and default if not required and not None (basic).
+- Observable console behavior
+  - echo() should not add extra spaces; should handle non-str by str().
+  - Ensure newlines match nl flag.
+  - Ensure stderr vs stdout correct for errors and for echo(err=True).
+- API compatibility surface
+  - Ensure module paths: import typer; from typer.testing import CliRunner should work; typer.testing.CliRunner should work.
+  - Ensure Option/Argument callable signature accepts the typical kwargs even if ignored to avoid TypeError in user code/tests.
+
+4) Minimal internal test plan (what to test and why)
+- Basic command execution
+  - Register single command, invoke with CliRunner, ensure stdout and exit_code 0.
+- Options parsing
+  - --name value and --name=value; short -n value; default values applied; required option (default=...) triggers exit 2.
+  - Bool flag default False toggles true when present.
+- Arguments parsing
+  - Required positional arg, missing triggers exit 2; extra args triggers exit 2.
+  - Type conversion int/float/bool errors -> exit 2 with message.
+- Multiple commands
+  - Two commands registered, app --help lists both.
+  - Unknown command returns exit 2 and includes “Commands:” in output.
+- Help output
+  - app --help includes “Usage:” and “Commands:”
+  - command --help includes “Usage:” and lists its options/args.
+- Exit code propagation
+  - Command raises typer.Exit(3) => exit_code 3.
+  - Command returns 5 => exit_code 5.
+- Stderr capturing
+  - echo(err=True) goes to stderr; errors go to stderr; result.output includes both (stdout+stderr).
+- catch_exceptions behavior
+  - catch_exceptions=True returns Result with exception set and exit_code 1.
+  - catch_exceptions=False re-raises.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Tests expect Click-like formatting details (spacing, section headers).
+  - Mitigation: Mirror common Click/Typer strings (“Usage:”, “Options:”, “Commands:”, “Show this message and exit.”) and keep output deterministic; avoid extra blank lines; stable ordering.
+- Risk: Tests rely on additional Typer APIs not listed (typer.run, typer.Context, typer.BadParameter, etc.).
+  - Mitigation: Provide lightweight stubs for commonly imported symbols if tests fail; keep public surface minimal but extensible; accept unused kwargs widely.
+- Risk: Complex option behaviors (multiple values, lists, enums, Path, Rich, shell completion) not implemented.
+  - Mitigation: Only implement types exercised by tests; implement graceful “unsupported” errors if encountered; keep parsing code modular so new converters can be added quickly.
+- Risk: Subcommand groups via add_typer might be required.
+  - Mitigation: Implement minimal add_typer that merges commands under a prefix name and shows in help; dispatch accordingly.
+- Risk: Differences in exit behavior between standalone_mode and runner invocation.
+  - Mitigation: Centralize execution in Typer._run(..., standalone_mode) and have __call__/main/CliRunner.invoke use it consistently.

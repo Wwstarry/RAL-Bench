@@ -1,0 +1,221 @@
+.F.F..FFFF                                                               [100%]
+================================== FAILURES ===================================
+__________________ test_gif_multiframe_roundtrip_with_imiter __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_multiframe_roundtrip_0')
+
+    def test_gif_multiframe_roundtrip_with_imiter(tmp_path: Path) -> None:
+        """Write a small animated GIF and iterate frames using imiter."""
+        frames = _make_grayscale_frames(num_frames=6, height=24, width=24)
+        path = tmp_path / "anim.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+uri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_multiframe_roundtrip_0/anim.gif')
+image = array([[[175,  48,   5, ..., 108, 239,  95],
+        [239,  95,  27, ..., 228,  72, 250],
+        [155, 220,  51, ...,...99, 236, 251],
+        [120, 166, 247, ..., 100, 131,  54],
+        [ 79, 139,  45, ..., 112, 215,  45]]], dtype=uint8)
+
+    def imwrite(uri, image):
+        """
+        Write an image or an animated image to the specified URI.
+    
+        Parameters:
+            uri (str or pathlib.Path): The file path to write the image to.
+            image (numpy.ndarray): The image data to write. Can be 2D, 3D, or 4D.
+        """
+        uri = Path(uri)
+        if image.ndim == 2:  # Grayscale image
+            img = Image.fromarray(image)
+            img.save(uri, format="PNG")
+        elif image.ndim == 3:
+            if image.shape[2] == 1:  # Grayscale image with single channel
+                img = Image.fromarray(image.squeeze(-1))
+                img.save(uri, format="PNG")
+            elif image.shape[2] == 3:  # RGB image
+                img = Image.fromarray(image)
+                img.save(uri, format="PNG")
+            else:
+>               raise ValueError("Unsupported 3D array shape for imwrite.")
+E               ValueError: Unsupported 3D array shape for imwrite.
+
+generation\Imageio\imageio\v3.py:27: ValueError
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+E       TypeError: imwrite() got an unexpected keyword argument 'extension'
+
+tests\Imageio\functional_test.py:139: TypeError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+uri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_imread_returns_stack_0/stack.gif')
+image = array([[[175,  48,   5, ..., 173,  66,  93],
+        [108, 239,  95, ...,  84,  50,  73],
+        [  3,  59, 140, ...,...18,  26, 217],
+        [255, 220, 204, ...,  46,  65,  79],
+        [235, 162, 251, ..., 155,  10, 108]]], dtype=uint8)
+
+    def imwrite(uri, image):
+        """
+        Write an image or an animated image to the specified URI.
+    
+        Parameters:
+            uri (str or pathlib.Path): The file path to write the image to.
+            image (numpy.ndarray): The image data to write. Can be 2D, 3D, or 4D.
+        """
+        uri = Path(uri)
+        if image.ndim == 2:  # Grayscale image
+            img = Image.fromarray(image)
+            img.save(uri, format="PNG")
+        elif image.ndim == 3:
+            if image.shape[2] == 1:  # Grayscale image with single channel
+                img = Image.fromarray(image.squeeze(-1))
+                img.save(uri, format="PNG")
+            elif image.shape[2] == 3:  # RGB image
+                img = Image.fromarray(image)
+                img.save(uri, format="PNG")
+            else:
+>               raise ValueError("Unsupported 3D array shape for imwrite.")
+E               ValueError: Unsupported 3D array shape for imwrite.
+
+generation\Imageio\imageio\v3.py:27: ValueError
+___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_imread_index0_matches0')
+
+    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path: Path) -> None:
+        """Read first GIF frame using both index=0 and imiter; verify consistent spatial shape."""
+        frames = _make_grayscale_frames(num_frames=4, height=19, width=23)
+        path = tmp_path / "index0.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+uri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_gif_imread_index0_matches0/index0.gif')
+image = array([[[175,  48,   5, ...,  93, 108, 239],
+        [ 95, 239,  95, ...,  59, 140, 228],
+        [ 72, 250, 155, ...,...57, 165, 255],
+        [ 18,  28,  29, ..., 155, 216, 213],
+        [219, 124,  59, ..., 250, 200, 138]]], dtype=uint8)
+
+    def imwrite(uri, image):
+        """
+        Write an image or an animated image to the specified URI.
+    
+        Parameters:
+            uri (str or pathlib.Path): The file path to write the image to.
+            image (numpy.ndarray): The image data to write. Can be 2D, 3D, or 4D.
+        """
+        uri = Path(uri)
+        if image.ndim == 2:  # Grayscale image
+            img = Image.fromarray(image)
+            img.save(uri, format="PNG")
+        elif image.ndim == 3:
+            if image.shape[2] == 1:  # Grayscale image with single channel
+                img = Image.fromarray(image.squeeze(-1))
+                img.save(uri, format="PNG")
+            elif image.shape[2] == 3:  # RGB image
+                img = Image.fromarray(image)
+                img.save(uri, format="PNG")
+            else:
+>               raise ValueError("Unsupported 3D array shape for imwrite.")
+E               ValueError: Unsupported 3D array shape for imwrite.
+
+generation\Imageio\imageio\v3.py:27: ValueError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+____________ test_improps_for_gif_has_expected_spatial_dimensions _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_improps_for_gif_has_expec0')
+
+    def test_improps_for_gif_has_expected_spatial_dimensions(tmp_path: Path) -> None:
+        """improps on a GIF should include the written frame height/width in its reported shape.
+    
+        In practice, different plugins/paths can report shapes like:
+          - (T, H, W)
+          - (T, H, W, C)
+          - (H, W, C)
+          - (W, H, C)
+        Therefore we validate that the expected H and W appear somewhere in props.shape,
+        without assuming their exact positions.
+        """
+        frames = _make_grayscale_frames(num_frames=3, height=17, width=19)
+        path = tmp_path / "props.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+uri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-269/test_improps_for_gif_has_expec0/props.gif')
+image = array([[[175,  48,   5,  97, 162,  98,  32, 180, 237, 234,  27, 119,
+         129, 130, 192, 109,  49,  37, 173],
+    ...193, 108,  94, 224, 102,  31,  61, 217, 175, 231, 194, 199,
+          97, 107,  97,  61, 152,  69, 111]]], dtype=uint8)
+
+    def imwrite(uri, image):
+        """
+        Write an image or an animated image to the specified URI.
+    
+        Parameters:
+            uri (str or pathlib.Path): The file path to write the image to.
+            image (numpy.ndarray): The image data to write. Can be 2D, 3D, or 4D.
+        """
+        uri = Path(uri)
+        if image.ndim == 2:  # Grayscale image
+            img = Image.fromarray(image)
+            img.save(uri, format="PNG")
+        elif image.ndim == 3:
+            if image.shape[2] == 1:  # Grayscale image with single channel
+                img = Image.fromarray(image.squeeze(-1))
+                img.save(uri, format="PNG")
+            elif image.shape[2] == 3:  # RGB image
+                img = Image.fromarray(image)
+                img.save(uri, format="PNG")
+            else:
+>               raise ValueError("Unsupported 3D array shape for imwrite.")
+E               ValueError: Unsupported 3D array shape for imwrite.
+
+generation\Imageio\imageio\v3.py:27: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_gif_multiframe_roundtrip_with_imiter
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+FAILED tests/Imageio/functional_test.py::test_improps_for_gif_has_expected_spatial_dimensions
+6 failed, 4 passed in 0.82s

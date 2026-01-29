@@ -1,0 +1,598 @@
+FFFFFF..FFFF                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'hello world', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x00000246AC653EB0>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+__________________ test_lsb_hide_and_reveal_long_ascii_text ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_lsb_hide_and_reveal_long_0')
+
+    def test_lsb_hide_and_reveal_long_ascii_text(tmp_path: Path) -> None:
+        """LSB should roundtrip a longer ASCII text message (still < typical capacity)."""
+        _ensure_image_samples_exist()
+    
+        secret = "This is a longer secret message with punctuation: 12345, hello-world!"
+        output = tmp_path / "lsb_long.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'This is a longer secret message with punctuation: 12345, hello-world!'
+generator = None, shift = 0, encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+______________________ test_lsb_reveal_from_image_object ______________________
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+>       img_obj = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'object input', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+________________________ test_red_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_red_hide_and_reveal_text0')
+
+    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:
+        """red.hide(..., str) then red.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "red secret"
+        output = tmp_path / "red_lenna.png"
+    
+>       encoded_img = red.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'red secret'
+
+    def hide(image: Image.Image, message: str) -> Image.Image:
+        """
+        Hide a text message using only the red channel.
+        :param image: PIL Image to use as cover (RGB or RGBA ideally).
+        :param message: The text message to hide.
+        :return: A new PIL Image with the hidden message.
+        """
+>       if image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\red\red.py:18: AttributeError
+________________ test_red_hide_and_reveal_extended_latin_text _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_red_hide_and_reveal_exten0')
+
+    def test_red_hide_and_reveal_extended_latin_text(tmp_path: Path) -> None:
+        """Red backend stores per-char ord() into a byte channel; Latin-1 chars like 'é' are valid."""
+        _ensure_image_samples_exist()
+    
+        secret = "Café au lait"
+        output = tmp_path / "red_latin.png"
+    
+>       encoded_img = red.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'Café au lait'
+
+    def hide(image: Image.Image, message: str) -> Image.Image:
+        """
+        Hide a text message using only the red channel.
+        :param image: PIL Image to use as cover (RGB or RGBA ideally).
+        :param message: The text message to hide.
+        :return: A new PIL Image with the hidden message.
+        """
+>       if image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\red\red.py:18: AttributeError
+________________________ test_wav_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_wav_hide_and_reveal_text0')
+
+    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:
+        """wav.hide writes output WAV; wav.reveal returns the same string."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "wav secret"
+        output = tmp_path / "out.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input_file = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'
+message = 'wav secret'
+output_file = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-489\\test_wav_hide_and_reveal_text0\\out.wav'
+kwargs = {}
+f_in = <_io.BufferedReader name='D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'>
+wav_data = b'RIFF\xdai\x1a\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00@\x1f\x00\x00\x80>\x00\x00\x02\x00\x10\x00data\xb6i\x1a\x00...fe\xd4\xfd\xb6\xfd\xe6\xfd\xc2\xfe\xf6\xfe\xf7\xfe\xb9\xff\xd9\x00\xe7\x01\xdc\x01\xa7\x01F\x01\xb3\x00;\x00M\xffR\xfe'
+offset = 36, fmt_offset = 12, data_offset = 44, data_size = 1730998
+chunk_id = b'data'
+
+    def hide(input_file, message, output_file, **kwargs):
+        """
+        Hide a message string in a 16-bit PCM WAV file, in the LSB of each sample.
+        Writes a new file to output_file.
+        :param input_file: path to the cover WAV file.
+        :param message: the text message to embed.
+        :param output_file: output path for the modified WAV.
+        :param kwargs: additional arguments (ignored for signature compatibility).
+        """
+        with open(input_file, "rb") as f_in:
+            wav_data = f_in.read()
+    
+        # Parse header
+        if not wav_data.startswith(b"RIFF") or not wav_data[8:12] == b"WAVE":
+            raise ValueError("Not a valid WAV file (missing RIFF/WAVE).")
+    
+        # Search for 'fmt ' chunk, 'data' chunk
+        # We'll do a simple pass to find them
+        offset = 12  # skip RIFF header
+        fmt_offset = None
+        data_offset = None
+        data_size = None
+    
+        while offset < len(wav_data):
+            chunk_id = wav_data[offset:offset+4]
+            chunk_size = struct.unpack("<I", wav_data[offset+4:offset+8])[0]
+            if chunk_id == b"fmt ":
+                fmt_offset = offset
+            elif chunk_id == b"data":
+                data_offset = offset + 8
+                data_size = chunk_size
+                break
+            offset += 8 + chunk_size
+    
+        if fmt_offset is None or data_offset is None or data_size is None:
+            raise ValueError("Could not find required chunks in WAV file.")
+    
+        # Check if it's 16-bit PCM
+        # Format code is at fmt_offset+8 (2 bytes)
+        audio_format, num_channels, sample_rate, byte_rate, block_align, bits_per_sample = struct.unpack(
+            "<HHIIHH", wav_data[fmt_offset+8:fmt_offset+8+16]
+        )
+        if audio_format != 1 or bits_per_sample != 16:
+            raise ValueError("Only 16-bit PCM WAV is supported by this simple steganography.")
+    
+        # Get the sample data
+        audio_data = bytearray(wav_data[data_offset:data_offset+data_size])
+    
+        # Convert message to bits
+        # We'll store len(message) as 4 bytes + message
+        message_bytes = message.encode("utf-8")
+        msg_len = len(message_bytes)
+        length_bytes = struct.pack("<I", msg_len)
+        full_payload = length_bytes + message_bytes
+    
+        # Each sample is 2 bytes => we can store 1 bit per sample (LSB).
+        num_samples = len(audio_data) // 2
+    
+        total_bits = len(full_payload) * 8
+        if total_bits > num_samples:
+            raise ValueError("Message is too large to fit in the given WAV.")
+    
+        # Hide bits
+        bit_idx = 0
+        for i in range(len(full_payload)):
+            byte_val = full_payload[i]
+            for b in range(8):
+                bit = (byte_val >> b) & 1
+                # replace LSB of sample
+                sample_idx = bit_idx
+                sample_bytes = audio_data[sample_idx*2:(sample_idx*2)+2]
+                sample_val = struct.unpack("<h", sample_bytes)[0]
+                sample_val = (sample_val & 0xFFFE) | bit
+>               audio_data[sample_idx*2:(sample_idx*2)+2] = struct.pack("<h", sample_val)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:82: error
+_____________________ test_wav_hide_and_reveal_short_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_wav_hide_and_reveal_short0')
+
+    def test_wav_hide_and_reveal_short_text(tmp_path: Path) -> None:
+        """A short message should also roundtrip."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "ok"
+        output = tmp_path / "out_short.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input_file = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'
+message = 'ok'
+output_file = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-489\\test_wav_hide_and_reveal_short0\\out_short.wav'
+kwargs = {}
+f_in = <_io.BufferedReader name='D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'>
+wav_data = b'RIFF\xdai\x1a\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00@\x1f\x00\x00\x80>\x00\x00\x02\x00\x10\x00data\xb6i\x1a\x00...fe\xd4\xfd\xb6\xfd\xe6\xfd\xc2\xfe\xf6\xfe\xf7\xfe\xb9\xff\xd9\x00\xe7\x01\xdc\x01\xa7\x01F\x01\xb3\x00;\x00M\xffR\xfe'
+offset = 36, fmt_offset = 12, data_offset = 44, data_size = 1730998
+chunk_id = b'data'
+
+    def hide(input_file, message, output_file, **kwargs):
+        """
+        Hide a message string in a 16-bit PCM WAV file, in the LSB of each sample.
+        Writes a new file to output_file.
+        :param input_file: path to the cover WAV file.
+        :param message: the text message to embed.
+        :param output_file: output path for the modified WAV.
+        :param kwargs: additional arguments (ignored for signature compatibility).
+        """
+        with open(input_file, "rb") as f_in:
+            wav_data = f_in.read()
+    
+        # Parse header
+        if not wav_data.startswith(b"RIFF") or not wav_data[8:12] == b"WAVE":
+            raise ValueError("Not a valid WAV file (missing RIFF/WAVE).")
+    
+        # Search for 'fmt ' chunk, 'data' chunk
+        # We'll do a simple pass to find them
+        offset = 12  # skip RIFF header
+        fmt_offset = None
+        data_offset = None
+        data_size = None
+    
+        while offset < len(wav_data):
+            chunk_id = wav_data[offset:offset+4]
+            chunk_size = struct.unpack("<I", wav_data[offset+4:offset+8])[0]
+            if chunk_id == b"fmt ":
+                fmt_offset = offset
+            elif chunk_id == b"data":
+                data_offset = offset + 8
+                data_size = chunk_size
+                break
+            offset += 8 + chunk_size
+    
+        if fmt_offset is None or data_offset is None or data_size is None:
+            raise ValueError("Could not find required chunks in WAV file.")
+    
+        # Check if it's 16-bit PCM
+        # Format code is at fmt_offset+8 (2 bytes)
+        audio_format, num_channels, sample_rate, byte_rate, block_align, bits_per_sample = struct.unpack(
+            "<HHIIHH", wav_data[fmt_offset+8:fmt_offset+8+16]
+        )
+        if audio_format != 1 or bits_per_sample != 16:
+            raise ValueError("Only 16-bit PCM WAV is supported by this simple steganography.")
+    
+        # Get the sample data
+        audio_data = bytearray(wav_data[data_offset:data_offset+data_size])
+    
+        # Convert message to bits
+        # We'll store len(message) as 4 bytes + message
+        message_bytes = message.encode("utf-8")
+        msg_len = len(message_bytes)
+        length_bytes = struct.pack("<I", msg_len)
+        full_payload = length_bytes + message_bytes
+    
+        # Each sample is 2 bytes => we can store 1 bit per sample (LSB).
+        num_samples = len(audio_data) // 2
+    
+        total_bits = len(full_payload) * 8
+        if total_bits > num_samples:
+            raise ValueError("Message is too large to fit in the given WAV.")
+    
+        # Hide bits
+        bit_idx = 0
+        for i in range(len(full_payload)):
+            byte_val = full_payload[i]
+            for b in range(8):
+                bit = (byte_val >> b) & 1
+                # replace LSB of sample
+                sample_idx = bit_idx
+                sample_bytes = audio_data[sample_idx*2:(sample_idx*2)+2]
+                sample_val = struct.unpack("<h", sample_bytes)[0]
+                sample_val = (sample_val & 0xFFFE) | bit
+>               audio_data[sample_idx*2:(sample_idx*2)+2] = struct.pack("<h", sample_val)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:82: error
+____________________ test_wav_hide_and_reveal_longer_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_wav_hide_and_reveal_longe0')
+
+    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:
+        """Roundtrip a longer ASCII message via WAV backend."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "WAV backend long message: 1234567890 abcdefghijklmnopqrstuvwxyz"
+        output = tmp_path / "out_long.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input_file = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'
+message = 'WAV backend long message: 1234567890 abcdefghijklmnopqrstuvwxyz'
+output_file = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-489\\test_wav_hide_and_reveal_longe0\\out_long.wav'
+kwargs = {}
+f_in = <_io.BufferedReader name='D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\free-software-song.wav'>
+wav_data = b'RIFF\xdai\x1a\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00@\x1f\x00\x00\x80>\x00\x00\x02\x00\x10\x00data\xb6i\x1a\x00...fe\xd4\xfd\xb6\xfd\xe6\xfd\xc2\xfe\xf6\xfe\xf7\xfe\xb9\xff\xd9\x00\xe7\x01\xdc\x01\xa7\x01F\x01\xb3\x00;\x00M\xffR\xfe'
+offset = 36, fmt_offset = 12, data_offset = 44, data_size = 1730998
+chunk_id = b'data'
+
+    def hide(input_file, message, output_file, **kwargs):
+        """
+        Hide a message string in a 16-bit PCM WAV file, in the LSB of each sample.
+        Writes a new file to output_file.
+        :param input_file: path to the cover WAV file.
+        :param message: the text message to embed.
+        :param output_file: output path for the modified WAV.
+        :param kwargs: additional arguments (ignored for signature compatibility).
+        """
+        with open(input_file, "rb") as f_in:
+            wav_data = f_in.read()
+    
+        # Parse header
+        if not wav_data.startswith(b"RIFF") or not wav_data[8:12] == b"WAVE":
+            raise ValueError("Not a valid WAV file (missing RIFF/WAVE).")
+    
+        # Search for 'fmt ' chunk, 'data' chunk
+        # We'll do a simple pass to find them
+        offset = 12  # skip RIFF header
+        fmt_offset = None
+        data_offset = None
+        data_size = None
+    
+        while offset < len(wav_data):
+            chunk_id = wav_data[offset:offset+4]
+            chunk_size = struct.unpack("<I", wav_data[offset+4:offset+8])[0]
+            if chunk_id == b"fmt ":
+                fmt_offset = offset
+            elif chunk_id == b"data":
+                data_offset = offset + 8
+                data_size = chunk_size
+                break
+            offset += 8 + chunk_size
+    
+        if fmt_offset is None or data_offset is None or data_size is None:
+            raise ValueError("Could not find required chunks in WAV file.")
+    
+        # Check if it's 16-bit PCM
+        # Format code is at fmt_offset+8 (2 bytes)
+        audio_format, num_channels, sample_rate, byte_rate, block_align, bits_per_sample = struct.unpack(
+            "<HHIIHH", wav_data[fmt_offset+8:fmt_offset+8+16]
+        )
+        if audio_format != 1 or bits_per_sample != 16:
+            raise ValueError("Only 16-bit PCM WAV is supported by this simple steganography.")
+    
+        # Get the sample data
+        audio_data = bytearray(wav_data[data_offset:data_offset+data_size])
+    
+        # Convert message to bits
+        # We'll store len(message) as 4 bytes + message
+        message_bytes = message.encode("utf-8")
+        msg_len = len(message_bytes)
+        length_bytes = struct.pack("<I", msg_len)
+        full_payload = length_bytes + message_bytes
+    
+        # Each sample is 2 bytes => we can store 1 bit per sample (LSB).
+        num_samples = len(audio_data) // 2
+    
+        total_bits = len(full_payload) * 8
+        if total_bits > num_samples:
+            raise ValueError("Message is too large to fit in the given WAV.")
+    
+        # Hide bits
+        bit_idx = 0
+        for i in range(len(full_payload)):
+            byte_val = full_payload[i]
+            for b in range(8):
+                bit = (byte_val >> b) & 1
+                # replace LSB of sample
+                sample_idx = bit_idx
+                sample_bytes = audio_data[sample_idx*2:(sample_idx*2)+2]
+                sample_val = struct.unpack("<h", sample_bytes)[0]
+                sample_val = (sample_val & 0xFFFE) | bit
+>               audio_data[sample_idx*2:(sample_idx*2)+2] = struct.pack("<h", sample_val)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:82: error
+_____________________ test_lsb_and_red_outputs_are_files ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-489/test_lsb_and_red_outputs_are_f0')
+
+    def test_lsb_and_red_outputs_are_files(tmp_path: Path) -> None:
+        """Ensure image-encoding backends produce files that can be written to disk."""
+        _ensure_image_samples_exist()
+    
+        out_lsb = tmp_path / "lsb_file.png"
+        out_red = tmp_path / "red_file.png"
+    
+>       lsb.hide(str(LENNA_PNG), "x").save(str(out_lsb))
+
+tests\Stegano\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'x', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_text - Attr...
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_long_ascii_text
+FAILED tests/Stegano/functional_test.py::test_lsb_reveal_from_image_object - ...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_text - Attr...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_extended_latin_text
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - stru...
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_short_text
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text
+FAILED tests/Stegano/functional_test.py::test_lsb_and_red_outputs_are_files
+10 failed, 2 passed in 45.49s

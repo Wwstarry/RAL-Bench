@@ -1,0 +1,260 @@
+<plan>
+1) Repository layout and import graph
+   - Repository layout (minimal, pure Python):
+     - click/
+       - __init__.py
+       - core.py
+       - decorators.py
+       - utils.py
+       - termui.py
+       - testing.py
+   - Import graph goals:
+     - click/__init__.py re-exports the public surface from core/decorators/termui/testing to match “import click” usage.
+     - click/decorators.py depends on click.core for Command/Group/Parameter construction.
+     - click/core.py depends on click.utils and click.termui for I/O helpers (echo/secho/prompt) and formatting.
+     - click/testing.py depends on click.core and click.termui (echo behavior), and uses stdlib io/contextlib/os/sys.
+     - click/utils.py should be low-level and not import click.core (avoid cycles).
+     - click/termui.py should not import click.core (avoid cycles); it provides echo/secho/prompt used by core and tests.
+
+2) Public APIs to implement (modules/classes/functions)
+   - click/__init__.py
+     - Expose:
+       - decorators: command, group, option, argument
+       - termui: echo, secho
+       - core: Context, Command, Group, UsageError, BadParameter, Abort, ClickException
+       - testing: CliRunner
+     - Provide __all__ consistent with above.
+
+   - click/core.py (core invocation/parsing model)
+     - Exceptions:
+       - ClickException(Exception): has message, show(file=None), format_message(); exit_code=1
+       - UsageError(ClickException): for usage/parsing errors; exit_code=2; has ctx; show includes “Error: …” + “Try ‘cmd --help’…” when ctx exists
+       - BadParameter(UsageError): message tied to parameter
+       - Abort(ClickException): used for ^C or abort; message “Aborted!”; exit_code=1
+     - Parameter system:
+       - Parameter base:
+         - name, param_type_name (“option”/“argument”), required, default, nargs (int), type (callable/coercer), callback, expose_value, hidden, metavar, envvar (optional)
+         - process_value(ctx, value) -> coerced
+       - Option(Parameter):
+         - opts (e.g. ["--foo"]), secondary_opts (e.g. ["-f"]) if desired; boolean flags via is_flag
+         - flag_value for is_flag options
+         - multiple (bool): collect multiple occurrences
+         - count (bool): -v -vv style increments if implemented; optional but common
+         - prompt (str|bool), prompt_required (bool), hide_input, confirmation_prompt, value_proc to handle prompt
+         - default can be callable evaluated at parse-time with ctx
+       - Argument(Parameter):
+         - nargs supports -1 (consume all remaining), 1, >1
+         - default, required derived from nargs and default
+     - Type system (minimal core set):
+       - A “ParamType” protocol:
+         - convert(value, param, ctx) -> python value or raise BadParameter
+         - name attribute for help text
+       - Implement minimal types commonly required by tests:
+         - STRING (default): pass-through
+         - INT: int conversion with BadParameter
+         - FLOAT: float conversion with BadParameter
+         - BOOL: accept typical true/false strings when used for non-flag options
+         - Choice: accepts a set of strings; case_sensitive option
+         - Path (optional if tests expect): validates path-like values, maybe exists/file_okay/dir_okay; keep minimal
+     - Command model:
+       - Command:
+         - name, callback, params (list[Parameter]), help/short_help, epilog
+         - add_parameter(param)
+         - get_help(ctx): format usage + options/args help
+         - make_context(info_name, args, parent=None, **extra): returns Context and parses args into ctx.params and ctx.args leftovers
+         - parse_args(ctx, args): core parser producing values dict, leftover args
+         - invoke(ctx): call callback(**ctx.params) with correct argument order mapping; return result
+         - main(args=None, prog_name=None, standalone_mode=True, **extra): entrypoint; handles exceptions; returns value or exits
+       - Group(Command):
+         - commands dict name->Command
+         - add_command(cmd, name=None)
+         - command()/group() decorator methods (optional)
+         - get_command(ctx, name): lookup
+         - list_commands(ctx): sorted keys
+         - parse_args should parse own params then subcommand name then delegate remaining args to subcommand via Context.invoke
+         - invoke(ctx): if subcommand present, invoke it; else invoke group callback (if any) or show help/error per behavior
+     - Context:
+       - info_name, parent, command, params dict, args list, resilient_parsing bool
+       - obj arbitrary user object; ensure ctx.obj inherits from parent if not set
+       - default_map support (optional if tests)
+       - color setting: ctx.color (None/True/False) influences secho
+       - find_root(), find_object(type), ensure_object(type)
+       - fail(message): raise UsageError(message, ctx=self)
+       - exit(code=0): raise SystemExit(code)
+       - invoke(callback_or_command, **kwargs): supports calling subcommands or raw callables with param injection
+       - forward(cmd, **kwargs): forwards remaining params
+       - to_info_dict minimal (optional)
+     - Help formatting:
+       - Build usage line: “Usage: prog [OPTIONS] ARGS…”
+       - Options section: list each option with its flags, metavar, help, default display
+       - Arguments section: argument metavar display
+       - “--help” option implicit? Implement automatic help option for commands/groups unless add_help_option=False is supported; minimal: always provide --help/-h handling.
+       - Ensure error messages include “Error: …” prefix and exit code 2 for usage errors.
+
+   - click/decorators.py (decorator API)
+     - option(*param_decls, **attrs):
+       - create Option and attach to function via __click_params__ list (append in declaration order)
+       - support: type, default, required, help, is_flag, flag_value, multiple, count, prompt, show_default, metavar
+     - argument(*param_decls, **attrs):
+       - create Argument and attach to function
+       - support: nargs, type, required, default
+     - command(name=None, cls=Command, **attrs):
+       - convert function into Command:
+         - gather params from function.__click_params__ in reverse decoration order? Click applies decorators bottom-up; ensure final param order matches Click: options/args are appended as decorators are applied, then reversed at command creation. Plan: decorators append to list; command() reads list and reverses to restore source order.
+         - set callback=function
+         - set name from function.__name__.replace('_','-') if not provided
+     - group(name=None, cls=Group, **attrs):
+       - like command but cls defaults to Group
+       - attach .command and .group methods on returned Group object for nested declarations (core Group can implement these, but simplest: decorator returns Group instance with methods already)
+     - pass_context (if needed by tests):
+       - wraps callback injecting ctx as first arg; Context should be retrievable via a thread-local “current context” stack or explicit ctx passed by Command.invoke. Plan: maintain click.core._local.stack and click.core.get_current_context().
+     - Additional commonly used decorators if tests reference them (minimal stubs):
+       - pass_obj, make_pass_decorator (optional; implement if referenced).
+
+   - click/utils.py (small helpers used by core/termui/testing)
+     - echo/printing utilities may live in termui, but utils can provide:
+       - make_str(value): ensure text
+       - get_text_stream(name): sys.stdout/err with encoding
+       - safecall for default callables
+       - split_arg_string (optional)
+       - should_strip_ansi(stream, color): used by CliRunner/make_output
+     - ANSI stripping helper for testing output comparison.
+
+   - click/termui.py (console output + prompt)
+     - echo(message=None, file=None, nl=True, err=False, color=None):
+       - write text to file (stdout by default; stderr if err=True)
+       - if message is bytes decode as utf-8 with errors=replace
+       - if nl append newline
+       - flush
+     - secho(message=None, file=None, nl=True, err=False, fg=None, bg=None, bold=None, dim=None, underline=None, blink=None, reverse=None, reset=True, color=None):
+       - if color is False: behave like echo without styles
+       - if color is None: enable styles when file is a tty; for CliRunner, force color based on runner.mix_stderr/color settings.
+       - minimal ANSI: map fg/bg plus bold/underline/reverse; wrap with \x1b[…m … \x1b[0m
+     - style(text, **styles) helper used by secho/help
+     - prompt(text, default=None, hide_input=False, confirmation_prompt=False, type=str, value_proc=None, err=False, show_default=True):
+       - read from stdin (sys.stdin) and return coerced type
+       - if default and user enters empty string -> default
+       - if confirmation_prompt -> ask twice and compare; on mismatch repeat with error message
+       - for hide_input, use getpass.getpass
+       - raise Abort on EOF/KeyboardInterrupt
+
+   - click/testing.py (black-box runner)
+     - Result object:
+       - output (combined), stdout, stderr (if separate), exit_code, exception, exc_info
+       - return_value (if not standalone_mode)
+     - CliRunner:
+       - __init__(self, echo_stdin=False, mix_stderr=True, env=None):
+         - mix_stderr determines whether stderr is merged into output
+       - isolated_filesystem(temp_dir=None): context manager that chdir’s into temp dir and cleans up
+       - invoke(cli, args=None, input=None, env=None, catch_exceptions=True, color=False, standalone_mode=True, mix_stderr=None, prog_name=None):
+         - args can be string (split like shell) or list
+         - input can be str/bytes; feed via io.StringIO/BytesIO
+         - patch sys.stdin/out/err with io.StringIO capturing; if mix_stderr False keep two streams
+         - patch os.environ with given env merged
+         - ensure click.termui echo/secho writes to patched streams
+         - call cli.main(args=args, prog_name=prog_name, standalone_mode=standalone_mode)
+         - if standalone_mode True: SystemExit captured, exit_code from code; exceptions -> if catch_exceptions True store exception and set exit_code=1, else re-raise
+         - if color False: strip ANSI from captured output; if color True keep ANSI
+         - return Result
+
+3) Key behaviors & edge cases
+   - Decorator parameter order:
+     - Ensure option/argument decorators applied bottom-up but stored such that final parsing order matches Click: parameters should appear in the order they were written in source (top-to-bottom). Implementation approach:
+       - decorators append to function.__click_params__.
+       - command()/group() reverses the list when constructing Command.params.
+   - Parsing semantics:
+     - Support:
+       - Long options: --name value, --name=value
+       - Short options: -n value, -nvalue (optional), combined flags -abc for boolean flags (if implemented); at least support -n value
+       - Boolean flags: --flag sets True; if flag_value provided set that; allow --no-flag for default True? (optional; implement if tests)
+       - Multiple options: repeated occurrences accumulate tuple/list
+       - Count options: -v -vv increments
+       - End of options marker: “--” stops option parsing; rest are arguments
+       - Unknown options -> UsageError with “No such option: …”
+       - Missing option value -> UsageError “Option ‘--x’ requires an argument.”
+       - Required options/args missing -> UsageError with correct message
+   - Defaults and evaluation order:
+     - Option/argument default:
+       - If default is callable, evaluate at parse time (after ctx exists), not at decoration time.
+       - For multiple options with default, default should be () or [] consistent; choose tuple for immutability.
+     - Parameter callbacks:
+       - If callback is provided, call after type conversion and before storing in ctx.params.
+     - Prompting:
+       - If option has prompt and value not provided, prompt unless ctx.resilient_parsing or value from envvar/default_map.
+       - Prompt should display default when show_default and default not None.
+   - Environment variables:
+     - If envvar set on Option and option not provided, read os.environ[envvar] (support multiple envvars list/tuple optionally).
+   - Help handling:
+     - Automatic --help (and -h) option:
+       - If present anywhere, print help and exit 0 (SystemExit(0) in standalone mode).
+     - Help text formatting:
+       - Include command short help and full help
+       - For groups, show subcommands list in “Commands:” section
+       - Keep formatting stable: indentation, option metavars, defaults display (“[default: X]”) when show_default True
+   - Nested commands:
+     - Group parsing:
+       - Parse group options first, then subcommand name, then pass remaining args to subcommand.
+       - Unknown subcommand -> UsageError “No such command ‘x’.”
+       - If no subcommand and group has no callback, show help and exit 0 or error depending on invoke_without_command; default is error? In Click, default is show help and exit 0 when run with no args? Actually Click raises missing command only if required; simplest: show help and exit 0 unless tests require otherwise. Provide invoke_without_command attribute to configure; default False but behavior: if no subcommand and invoke_without_command False, show help and exit 0 (common in tests).
+   - Error handling / exit codes:
+     - Usage/parsing errors: exit code 2, message to stderr by default.
+     - ClickException.show writes to stderr.
+     - Non-Click exceptions: if standalone_mode True, propagate as exit code 1 with traceback suppressed (Click prints traceback only if env var? ignore). For tests, store exception in Result when catch_exceptions True.
+   - Output and color:
+     - echo: correct newline behavior; message None prints just newline.
+     - secho/style: ANSI only when color enabled; CliRunner’s color parameter should force on/off regardless of tty detection.
+     - When mix_stderr True, stderr goes into same captured buffer as stdout, matching Click’s default testing behavior.
+   - Context stack:
+     - Provide click.core.get_current_context(silent=False) using thread-local stack; push in Command.main/invoke and pop in finally.
+     - pass_context decorator uses get_current_context.
+
+4) Minimal internal test plan (what to test and why)
+   - Decorators and parameter order:
+     - Define command with stacked @option and @argument; assert help shows in correct order and parsing maps correctly.
+   - Basic invocation:
+     - command returns value; runner.invoke captures exit_code 0 and output.
+     - standalone_mode=False returns return_value without SystemExit.
+   - Option parsing:
+     - --opt value, --opt=value, -o value
+     - missing value error
+     - unknown option error
+     - boolean flags default False -> True; flag_value behavior
+     - multiple=True collects occurrences
+     - count=True increments with repeated -v
+     - “--” terminator causes following “-x” treated as argument
+   - Arguments:
+     - required arg missing error
+     - nargs=-1 collects all remaining
+   - Defaults:
+     - static default and callable default evaluation timing (callable sees ctx.params existing)
+   - Prompt:
+     - prompt for missing option; default accepted on empty input; confirmation prompt mismatch loops; EOF triggers Abort
+   - Group/nesting:
+     - group with subcommands; invoke “grp sub --opt”; ensure group help lists commands; unknown subcommand error
+   - Help:
+     - --help prints usage/options/commands; exit_code 0; no exception
+   - echo/secho:
+     - echo(nl=False) no newline
+     - secho with color=False no ANSI
+     - runner.invoke(color=True) preserves ANSI; color=False strips ANSI
+   - CliRunner env:
+     - env override visible in option envvar parsing and inside callback
+   - mix_stderr:
+     - error printed to stderr appears in output when mixed; otherwise only in result.stderr.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Risk: Help and error message formatting mismatches (most common in black-box tests).
+     - Mitigation: Mirror Click’s phrasing for core errors (“No such option”, “Missing option”, “Got unexpected extra argument”), stable indentation, and usage prefix. Keep strings centralized and match reference as closely as possible.
+   - Risk: Parameter decoration order subtlety.
+     - Mitigation: Explicitly reverse collected params at command construction; add tests verifying order with multiple stacked decorators.
+   - Risk: Group behavior when no subcommand/invoke_without_command differences.
+     - Mitigation: Implement invoke_without_command attribute; default False; if no subcommand and no args, show help and exit 0; if extra args present, error. Adjust once tests reveal expectation.
+   - Risk: Color handling differs between tty detection and test runner expectations.
+     - Mitigation: In CliRunner, force color setting into context (ctx.color) and/or into termui functions via a global override so secho deterministically includes/excludes ANSI based on invoke(color=...).
+   - Risk: Prompting/input handling (getpass vs stdin) and echo_stdin behavior.
+     - Mitigation: For CliRunner, implement echo_stdin by writing provided input back to stdout capture as Click does. For hide_input, fall back to stdin reading in runner mode (since getpass may bypass patched stdin); detect non-tty and use stdin.
+   - Risk: Option parsing completeness (combined short options, -ovalue).
+     - Mitigation: Implement minimal combined short flag parsing for sequences of single-letter flags when is_flag True; support -ovalue for single short option expecting a value. Add internal tests.
+   - Risk: Exception handling differences (tracebacks, abort).
+     - Mitigation: For catch_exceptions, store exc_info; for standalone_mode, wrap main to convert ClickException to printed message and SystemExit; for Abort, print “Aborted!” to stderr and exit 1.
+</plan>

@@ -1,0 +1,572 @@
+project_name: Termgraph
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Termgraph\termgraph.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m1\Termgraph
+timestamp: '2026-01-14 23:46:00'
+functional_score: 0.0
+non_functional_score: 0.6244
+non_functional_subscores:
+  maintainability: 0.6232
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_simple_horizontal_bar_chart _______________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x000002573D3729A0>\n\n\
+      \    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"A\", \"B\", \"C\"]\n        values = [[3], [5],\
+      \ [2]]\n    \n>       data = Data(values, labels)\n\ntests\\Termgraph\\functional_test.py:90:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\data.py:62: in __init__\n  \
+      \  self.values = self._normalize_values(self.labels, vals)\n_ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlabels\
+      \ = [[3], [5], [2]], vals = [['A'], ['B'], ['C']]\n\n    @staticmethod\n   \
+      \ def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'A'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n_____________________ test_stacked_chart_multiple_series\
+      \ ______________________\n\ncapsys = <_pytest.capture.CaptureFixture object\
+      \ at 0x000002573D353CA0>\n\n    def test_stacked_chart_multiple_series(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"X\", \"Y\"]\n  \
+      \      values = [[1, 2], [3, 4]]\n    \n>       data = Data(values, labels)\n\
+      \ntests\\Termgraph\\functional_test.py:107: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\\
+      termgraph\\data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[1, 2], [3, 4]], vals = [['X'], ['Y']]\n\n    @staticmethod\n\
+      \    def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'X'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n_______________________ test_bar_chart_object_interface\
+      \ _______________________\n\ncapsys = <_pytest.capture.CaptureFixture object\
+      \ at 0x000002573D37D2E0>\n\n    def test_bar_chart_object_interface(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"D\", \"E\"]\n  \
+      \      values = [[4], [1]]\n    \n>       data = Data(values, labels)\n\ntests\\\
+      Termgraph\\functional_test.py:123: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\\
+      data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[4], [1]], vals = [['D'], ['E']]\n\n    @staticmethod\n\
+      \    def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'D'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n___________________ test_bar_chart_respects_no_values_flag\
+      \ ____________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x000002573D366490>\n\n    def test_bar_chart_respects_no_values_flag(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"A\", \"B\"]\n  \
+      \      values = [[2], [7]]\n    \n>       data = Data(values, labels)\n\ntests\\\
+      Termgraph\\functional_test.py:139: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\\
+      data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[2], [7]], vals = [['A'], ['B']]\n\n    @staticmethod\n\
+      \    def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'A'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n___________________ test_bar_chart_respects_no_labels_flag\
+      \ ____________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x000002573D3DE790>\n\n    def test_bar_chart_respects_no_labels_flag(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"L1\", \"L2\", \"\
+      L3\"]\n        values = [[1], [2], [3]]\n    \n>       data = Data(values, labels)\n\
+      \ntests\\Termgraph\\functional_test.py:155: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\\
+      termgraph\\data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[1], [2], [3]], vals = [['L', '1'], ['L', '2'], ['L',\
+      \ '3']]\n\n    @staticmethod\n    def _normalize_values(labels: List[str], vals:\
+      \ List[List[Number]]) -> List[List[Number]]:\n        if not labels:\n     \
+      \       # With no labels, accept any vals but keep empty (no rows to draw).\n\
+      \            return []\n    \n        n_labels = len(labels)\n    \n       \
+      \ if vals == []:\n            return [[] for _ in range(n_labels)]\n    \n \
+      \       # Heuristic shape detection:\n        # - If len(vals) == n_labels:\
+      \ assume row-major.\n        # - Else if all series lengths match n_labels:\
+      \ assume series-major.\n        if len(vals) == n_labels:\n            row_major\
+      \ = vals\n        else:\n            if all(isinstance(s, (list, tuple)) and\
+      \ len(s) == n_labels for s in vals):\n                row_major = _transpose(vals)\n\
+      \            else:\n                raise ValueError(\n                    \"\
+      values shape not understood; expected row-major (len(values)==len(labels)) \"\
+      \n                    \"or series-major (each series len == len(labels))\"\n\
+      \                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'L'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n__________________ test_bar_chart_suffix_appended_to_values\
+      \ ___________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x000002573D3539A0>\n\n    def test_bar_chart_suffix_appended_to_values(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"CPU\", \"RAM\"]\n\
+      \        values = [[12.5], [7.0]]\n    \n>       data = Data(values, labels)\n\
+      \ntests\\Termgraph\\functional_test.py:172: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\\
+      termgraph\\data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[12.5], [7.0]], vals = [['C', 'P', 'U'], ['R', 'A',\
+      \ 'M']]\n\n    @staticmethod\n    def _normalize_values(labels: List[str], vals:\
+      \ List[List[Number]]) -> List[List[Number]]:\n        if not labels:\n     \
+      \       # With no labels, accept any vals but keep empty (no rows to draw).\n\
+      \            return []\n    \n        n_labels = len(labels)\n    \n       \
+      \ if vals == []:\n            return [[] for _ in range(n_labels)]\n    \n \
+      \       # Heuristic shape detection:\n        # - If len(vals) == n_labels:\
+      \ assume row-major.\n        # - Else if all series lengths match n_labels:\
+      \ assume series-major.\n        if len(vals) == n_labels:\n            row_major\
+      \ = vals\n        else:\n            if all(isinstance(s, (list, tuple)) and\
+      \ len(s) == n_labels for s in vals):\n                row_major = _transpose(vals)\n\
+      \            else:\n                raise ValueError(\n                    \"\
+      values shape not understood; expected row-major (len(values)==len(labels)) \"\
+      \n                    \"or series-major (each series len == len(labels))\"\n\
+      \                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'C'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n___________ test_bar_chart_custom_format_changes_numeric_rendering\
+      \ ____________\n\ncapsys = <_pytest.capture.CaptureFixture object at 0x000002573D3DF130>\n\
+      \n    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"P\", \"Q\"]\n        values = [[3.14159], [2.71828]]\n\
+      \    \n>       data = Data(values, labels)\n\ntests\\Termgraph\\functional_test.py:188:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\data.py:62: in __init__\n  \
+      \  self.values = self._normalize_values(self.labels, vals)\n_ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlabels\
+      \ = [[3.14159], [2.71828]], vals = [['P'], ['Q']]\n\n    @staticmethod\n   \
+      \ def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'P'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n____________________ test_stacked_chart_renders_all_labels\
+      \ ____________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x000002573D3EDE80>\n\n    def test_stacked_chart_renders_all_labels(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"S1\", \"S2\", \"\
+      S3\"]\n        values = [[1, 1], [2, 1], [1, 3]]\n    \n>       data = Data(values,\
+      \ labels)\n\ntests\\Termgraph\\functional_test.py:204: \n_ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[1, 1], [2, 1], [1, 3]], vals = [['S', '1'], ['S',\
+      \ '2'], ['S', '3']]\n\n    @staticmethod\n    def _normalize_values(labels:\
+      \ List[str], vals: List[List[Number]]) -> List[List[Number]]:\n        if not\
+      \ labels:\n            # With no labels, accept any vals but keep empty (no\
+      \ rows to draw).\n            return []\n    \n        n_labels = len(labels)\n\
+      \    \n        if vals == []:\n            return [[] for _ in range(n_labels)]\n\
+      \    \n        # Heuristic shape detection:\n        # - If len(vals) == n_labels:\
+      \ assume row-major.\n        # - Else if all series lengths match n_labels:\
+      \ assume series-major.\n        if len(vals) == n_labels:\n            row_major\
+      \ = vals\n        else:\n            if all(isinstance(s, (list, tuple)) and\
+      \ len(s) == n_labels for s in vals):\n                row_major = _transpose(vals)\n\
+      \            else:\n                raise ValueError(\n                    \"\
+      values shape not understood; expected row-major (len(values)==len(labels)) \"\
+      \n                    \"or series-major (each series len == len(labels))\"\n\
+      \                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'S'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n____________ test_stacked_chart_no_values_still_renders_structure\
+      \ _____________\n\ncapsys = <_pytest.capture.CaptureFixture object at 0x000002573D3DF550>\n\
+      \n    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"A\", \"B\"]\n        values = [[1, 2, 3], [3,\
+      \ 2, 1]]\n    \n>       data = Data(values, labels)\n\ntests\\Termgraph\\functional_test.py:219:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\data.py:62: in __init__\n  \
+      \  self.values = self._normalize_values(self.labels, vals)\n_ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlabels\
+      \ = [[1, 2, 3], [3, 2, 1]], vals = [['A'], ['B']]\n\n    @staticmethod\n   \
+      \ def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'A'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n__________________ test_title_none_does_not_break_rendering\
+      \ ___________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x000002573D3825E0>\n\n    def test_title_none_does_not_break_rendering(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"U\", \"V\"]\n  \
+      \      values = [[4], [6]]\n    \n>       data = Data(values, labels)\n\ntests\\\
+      Termgraph\\functional_test.py:235: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration_m1\\Termgraph\\termgraph\\\
+      data.py:62: in __init__\n    self.values = self._normalize_values(self.labels,\
+      \ vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nlabels = [[4], [6]], vals = [['U'], ['V']]\n\n    @staticmethod\n\
+      \    def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:\n\
+      \        if not labels:\n            # With no labels, accept any vals but keep\
+      \ empty (no rows to draw).\n            return []\n    \n        n_labels =\
+      \ len(labels)\n    \n        if vals == []:\n            return [[] for _ in\
+      \ range(n_labels)]\n    \n        # Heuristic shape detection:\n        # -\
+      \ If len(vals) == n_labels: assume row-major.\n        # - Else if all series\
+      \ lengths match n_labels: assume series-major.\n        if len(vals) == n_labels:\n\
+      \            row_major = vals\n        else:\n            if all(isinstance(s,\
+      \ (list, tuple)) and len(s) == n_labels for s in vals):\n                row_major\
+      \ = _transpose(vals)\n            else:\n                raise ValueError(\n\
+      \                    \"values shape not understood; expected row-major (len(values)==len(labels))\
+      \ \"\n                    \"or series-major (each series len == len(labels))\"\
+      \n                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'U'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n________________ test_width_parameter_affects_output_presence\
+      \ _________________\n\ncapsys = <_pytest.capture.CaptureFixture object at 0x000002573D3FE100>\n\
+      \n    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"W\"]\n        values = [[9]]\n    \n>      \
+      \ data = Data(values, labels)\n\ntests\\Termgraph\\functional_test.py:250: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration_m1\\Termgraph\\termgraph\\data.py:62: in __init__\n    self.values\
+      \ = self._normalize_values(self.labels, vals)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlabels = [[9]], vals\
+      \ = [['W']]\n\n    @staticmethod\n    def _normalize_values(labels: List[str],\
+      \ vals: List[List[Number]]) -> List[List[Number]]:\n        if not labels:\n\
+      \            # With no labels, accept any vals but keep empty (no rows to draw).\n\
+      \            return []\n    \n        n_labels = len(labels)\n    \n       \
+      \ if vals == []:\n            return [[] for _ in range(n_labels)]\n    \n \
+      \       # Heuristic shape detection:\n        # - If len(vals) == n_labels:\
+      \ assume row-major.\n        # - Else if all series lengths match n_labels:\
+      \ assume series-major.\n        if len(vals) == n_labels:\n            row_major\
+      \ = vals\n        else:\n            if all(isinstance(s, (list, tuple)) and\
+      \ len(s) == n_labels for s in vals):\n                row_major = _transpose(vals)\n\
+      \            else:\n                raise ValueError(\n                    \"\
+      values shape not understood; expected row-major (len(values)==len(labels)) \"\
+      \n                    \"or series-major (each series len == len(labels))\"\n\
+      \                )\n    \n        # Validate rectangularity and numeric-like\
+      \ contents.\n        # Determine n_series as max row length; then require all\
+      \ rows same length.\n        n_series = 0\n        for r in row_major:\n   \
+      \         n_series = max(n_series, len(r))\n        for idx, r in enumerate(row_major):\n\
+      \            if len(r) != n_series:\n                raise ValueError(\"values\
+      \ must be rectangular (each row must have the same number of series)\")\n  \
+      \          for x in r:\n                if not _is_number(x):\n>           \
+      \        raise ValueError(f\"non-numeric value at row {idx}: {x!r}\")\nE   \
+      \                ValueError: non-numeric value at row 0: 'W'\n\ngeneration_m1\\\
+      Termgraph\\termgraph\\data.py:109: ValueError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface -\
+      \ ...\nFAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure\n\
+      FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering\n\
+      FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence\n\
+      11 failed in 47.60s\n"
+    elapsed_time_s: 48.90591
+    avg_memory_mb: 32.77
+    avg_cpu_percent: 0.25
+    passed: 0
+    failed: 11
+    skipped: 0
+    total: 11
+    score_inputs_passed: 0
+    score_inputs_failed: 11
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ____________ ERROR collecting tests/Termgraph/performance_test.py _____________\n\
+      tests\\Termgraph\\performance_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Target repository does not exist: {REPO_ROOT}\")\nE   RuntimeError: Target repository\
+      \ does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Termgraph\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/Termgraph/performance_test.py - RuntimeError: Target repository\
+      \ d...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.43s\n"
+    elapsed_time_s: 1.692256
+    avg_memory_mb: 35.05
+    avg_cpu_percent: 99.9
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.899932
+    score_inputs_actual_time_s: 1.692256
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ______________ ERROR collecting tests/Termgraph/resource_test.py ______________\n\
+      tests\\Termgraph\\resource_test.py:17: in <module>\n    raise RuntimeError(f\"\
+      Target repository does not exist: {REPO_ROOT}\")\nE   RuntimeError: Target repository\
+      \ does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Termgraph\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/Termgraph/resource_test.py - RuntimeError: Target repository does...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.44s\n"
+    elapsed_time_s: 1.681336
+    avg_memory_mb: 35.66
+    avg_cpu_percent: 99.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.12
+    score_inputs_baseline_cpu_pct: 96.6
+    score_inputs_actual_mem_mb: 35.66
+    score_inputs_actual_cpu_pct: 99.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.346327
+    avg_memory_mb: 31.15
+    avg_cpu_percent: 100.0
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=420.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.453952
+    avg_memory_mb: 31.83
+    avg_cpu_percent: 98.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 420.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=19.5864 files_scanned=5.0 total_loc=420.0 max_cc=32.0
+
+      .
+
+      1 passed in 0.20s
+
+      '
+    elapsed_time_s: 1.465241
+    avg_memory_mb: 31.77
+    avg_cpu_percent: 97.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 19.5864
+      files_scanned: 5.0
+      total_loc: 420.0
+      max_cc: 32.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 11.8403
+    score_inputs_generated_mi_min: 19.5864
+    score_inputs_ratio_g_over_b: 1.654214842529328
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.899932
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.487286
+    resource_tests_total: 1
+    avg_memory_mb: 31.12
+    avg_cpu_percent: 96.6
+  functional:
+    functional_suite_time_s: 1.609595
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.807216
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.441997
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 8.0
+      total_loc: 1034.0
+  maintainability:
+    maintainability_suite_time_s: 1.642721
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 11.8403
+      files_scanned: 8.0
+      total_loc: 1034.0
+      max_cc: 24.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Termgraph\pytest_logs

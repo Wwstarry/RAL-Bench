@@ -1,0 +1,145 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- pyproject.toml or setup.cfg/setup.py (minimal packaging so `pip install -e .` works in tests)
+- pypdf/
+  - __init__.py                       (exports PdfReader, PdfWriter, PageObject; sets __all__)
+  - reader.py                         (PdfReader implementation)
+  - writer.py                         (PdfWriter implementation)
+  - page.py                           (PageObject implementation)
+  - generic.py                         (minimal PDF object model: NameObject, DictionaryObject, ArrayObject, IndirectObject, etc., only as needed internally)
+  - _parser.py                         (tokenizer and parser for basic PDF syntax used in tests)
+  - _serializer.py                     (PDF writer/serializer: xref, trailer, object streams not required)
+  - _crypt.py                          (basic password-based encryption/decryption used in tests; can be simplified)
+  - errors.py                          (exception types matching what tests expect, at least PdfReadError)
+  - _utils.py                          (small helpers; stream handling, bytes/str conversions)
+- tests are external; repository must match import/module paths used by reference tests:
+  - Must support: `from pypdf import PdfReader, PdfWriter`
+
+2) Public API surface (modules/classes/functions and key signatures)
+- pypdf.__init__
+  - PdfReader = pypdf.reader.PdfReader
+  - PdfWriter = pypdf.writer.PdfWriter
+  - PageObject = pypdf.page.PageObject
+  - __all__ = ["PdfReader", "PdfWriter", "PageObject"]
+
+- pypdf.reader
+  - class PdfReader:
+    - __init__(self, stream_or_path, strict: bool = False, password: str | bytes | None = None)
+      - Accepts filesystem path (str/pathlib.Path) or file-like object with .read(), .seek()
+    - @property pages(self) -> Sequence[PageObject]
+      - Must be indexable and iterable; supports len(reader.pages)
+    - @property metadata(self) -> dict
+      - keys like "/Title", "/Author" with string values (or None if missing)
+    - @property is_encrypted(self) -> bool
+    - decrypt(self, password: str | bytes) -> int
+      - Returns truthy int on success; falsy (0) on failure (match pypdf behavior used by tests)
+    - (Optional for internal use) close(), get_page(i)
+
+- pypdf.writer
+  - class PdfWriter:
+    - __init__(self)
+    - add_page(self, page: PageObject) -> None
+    - add_blank_page(self, width: float = 612, height: float = 792) -> PageObject
+    - write(self, stream) -> None
+      - stream is file-like with .write(bytes); also accept path (str/Path) for convenience if tests do so
+    - encrypt(self, user_password: str | bytes, owner_password: str | bytes | None = None, use_128bit: bool = True) -> None
+      - Only one password required by tests; store encryption config to apply at write-time
+    - add_metadata(self, metadata: dict) -> None
+      - metadata keys are PDF name strings (e.g., "/Title"); values are strings
+    - (Optional for internal use) append_pages_from_reader(reader)
+
+- pypdf.page
+  - class PageObject:
+    - __init__(self, pdf=None, indirect_ref=None, dictionary=None)
+    - rotate(self, angle: int) -> "PageObject"
+      - angle in degrees; normalize to multiples of 90 as reference does; update rotation state
+    - @property rotation(self) -> int
+      - Effective rotation (0/90/180/270) from /Rotate entry; default 0
+    - (Optional) mediabox/cropbox width/height access if required by tests; at least store width/height for blank pages.
+
+- pypdf.errors
+  - class PdfReadError(Exception)
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+Core PDF support scope:
+- Must read PDFs produced by this library and typical simple PDFs used in tests (multi-page, standard xref table, trailer, catalog/pages tree, page objects, content streams possibly ignored).
+- Must write valid PDF 1.4+ with:
+  - Header %PDF-1.4
+  - Indirect objects with numeric IDs
+  - xref table with byte offsets
+  - trailer with /Size, /Root, optional /Info, optional /Encrypt, and startxref
+- Pages:
+  - PdfReader.pages must preserve order from document’s /Pages tree /Kids traversal.
+  - PageObject must represent a page dictionary; rotation stored in /Rotate.
+  - Copying pages: PdfWriter.add_page(page_from_reader) must result in a new output file with same number of pages and same rotation values as the input pages.
+  - When writing, writer must build a valid /Catalog, /Pages tree, and page objects referencing a shared /Resources if minimal; for blank pages, create minimal page dictionary with /Type /Page, /Parent, /MediaBox, and empty /Contents (can be empty stream or omitted if acceptable to readers).
+- Splitting/merging:
+  - Iterating reader.pages and adding to writer must yield output with pages in the added order.
+  - Adding subset of pages must yield correct count and order.
+- Metadata:
+  - PdfWriter.add_metadata accepts mapping; keys must remain as provided (e.g., "/Title").
+  - On write, create /Info dictionary and include in trailer.
+  - PdfReader.metadata returns a dict with at least the keys written; if missing, return empty dict.
+  - Round-trip: writing then reading should return same string values for tested keys.
+- Encryption:
+  - Writer.encrypt(password) marks output as encrypted.
+  - Reader.is_encrypted must be True when opening encrypted PDF.
+  - Reader.pages access on encrypted PDFs:
+    - Must not allow page access until decrypt succeeds (either raise PdfReadError or behave like pypdf by requiring decrypt first). Tests likely call decrypt before accessing pages; ensure that works.
+  - Reader.decrypt(password):
+    - If password matches, enable decryption and return 1.
+    - If not, return 0 and keep encrypted state.
+  - Encryption algorithm requirements:
+    - Implement a minimal, test-sufficient Standard Security Handler flow. Acceptable simplifications:
+      - Use RC4-based V=1/2 with 40-bit or 128-bit key, or implement a custom reversible scheme ONLY if the test PDFs are always produced by this library (black-box tests likely encrypt with writer then read back with reader; thus symmetric custom scheme embedded in /Encrypt is acceptable as long as reader/writer interoperate and produce a structurally valid PDF with /Encrypt entry).
+    - However, to maximize compatibility, prefer implementing standard RC4-based encryption for strings and streams with /Filter /Standard, /V 2, /R 3, /Length 128, with proper /O, /U, /P values. If full spec is too large, implement the subset necessary for user-password open produced by this same writer.
+  - When encrypted, all string literals and stream bytes in relevant objects should be encrypted on write; on read, decrypt those objects when accessed after decrypt().
+  - For tests, it is sufficient if:
+    - Reader can parse encrypted file, report is_encrypted, decrypt(password) succeeds, and then pages count/iteration works.
+- File handling:
+  - Reader must accept path or file-like. If path, open in binary mode and manage lifecycle (close when no longer needed or on __del__).
+  - Writer.write accepts file-like; if path provided, open binary and write.
+- Error handling:
+  - If input is not a PDF or is truncated, raise PdfReadError (or ValueError) when initializing or when parsing essential structures.
+  - If accessing pages on encrypted PDF before decrypt, raise PdfReadError.
+  - rotate(angle): if angle not multiple of 90, either round to nearest multiple of 90 or raise ValueError; align with pypdf core behavior (commonly it accepts any int but normalizes modulo 360, while many users use multiples of 90). Contract: normalize modulo 360 and keep exact if multiple of 90; if not multiple of 90, raise ValueError (safer for tests).
+- Invariants:
+  - len(reader.pages) equals the number of /Page leaf nodes.
+  - After copying pages into writer and writing, reading back yields same len(pages).
+  - PageObject.rotation always in {0,90,180,270}.
+  - Writer maintains internal list of pages added, in order.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Imports:
+  - `from pypdf import PdfReader, PdfWriter` succeeds.
+- Reader basics:
+  - PdfReader can open a PDF from a filesystem path and from a BytesIO/file handle.
+  - reader.pages is iterable, indexable, and has correct length.
+  - Each element of reader.pages is a PageObject.
+- Writer basics:
+  - PdfWriter() constructs.
+  - add_blank_page(width,height) increases page count by 1 and returns a PageObject with correct /MediaBox.
+  - add_page(page) appends page, preserving order.
+  - write(file_obj or path) produces a valid PDF that PdfReader can open.
+- Split/merge:
+  - Given an input PDF with N pages, creating a new writer, adding selected pages via iteration, writing, and reading back yields correct page count and order.
+- Rotation:
+  - PageObject.rotate(90) updates rotation; rotation property reflects the effective value.
+  - Rotations persist through writing and re-reading.
+- Metadata:
+  - writer.add_metadata({"/Title": "...", "/Author": "..."}) then write; reading back returns reader.metadata with those fields equal to written values.
+- Encryption:
+  - writer.encrypt("pw") then write; PdfReader(output).is_encrypted is True.
+  - Calling decrypt("pw") returns truthy and allows accessing pages.
+  - Calling decrypt("wrong") returns falsy and does not allow accessing pages.
+- Structural validity:
+  - Output PDFs include correct xref/trailer and can be reopened by this library at minimum; ideally also by common PDF viewers.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Pure Python only; no external binary dependencies.
+- Do not depend on the reference repository at runtime; must be standalone.
+- Not required: full PDF specification coverage, incremental updates, object streams, xref streams, forms, annotations, images, font parsing, content rendering.
+- Not required: perfect compatibility with all third-party PDFs; only the subset needed for the tests and for round-tripping PDFs produced by this library.
+- Avoid network calls and external services.
+- Keep module/class/function names aligned with core pypdf usage in tests; additional APIs may exist but must not break these names/signatures.
+</contract>

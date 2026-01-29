@@ -1,0 +1,30 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_resource_build_medium_map_rss_cpu ____________________
+
+    def test_resource_build_medium_map_rss_cpu():
+        sys.path.insert(0, str(_resolve_repo_root()))
+        import folium
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+        _ = proc.cpu_percent(interval=None)
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        for i in range(500):
+            folium.CircleMarker([0 + i * 1e-3, 0 + i * 1e-3], radius=3).add_to(m)
+>       _ = m.get_root().render()
+
+tests\Folium\resource_test.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+generation\Folium\folium\map.py:103: in render
+    return fig.render(**kwargs)
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+E   RecursionError: maximum recursion depth exceeded while calling a Python object
+!!! Recursion detected (same locals & position)
+=========================== short test summary info ===========================
+FAILED tests/Folium/resource_test.py::test_resource_build_medium_map_rss_cpu
+1 failed in 5.21s

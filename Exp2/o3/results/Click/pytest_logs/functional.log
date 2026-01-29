@@ -1,0 +1,170 @@
+.F.FF.FFFFF                                                              [100%]
+================================== FAILURES ===================================
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+        def cli(flag: bool) -> None:
+            click.echo(f"FLAG={flag}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["--flag"])
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result 1>.exit_code
+
+tests\Click\functional_test.py:157: AssertionError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+        def cli() -> None:
+            pass
+    
+        @cli.command(help="Say hello")
+        @click.option("--shout/--no-shout", default=False)
+        @click.argument("name")
+        def hello(name: str, shout: bool) -> None:
+            msg = f"Hello {name}"
+            if shout:
+                msg = msg.upper()
+            click.echo(msg)
+    
+        runner = CliRunner()
+    
+        group_help = runner.invoke(cli, ["--help"])
+        assert group_help.exit_code == 0
+        assert "Top level group" in group_help.output
+        assert "hello" in group_help.output
+    
+        cmd_help = runner.invoke(cli, ["hello", "--help"])
+        assert cmd_help.exit_code == 0
+        assert "Say hello" in cmd_help.output
+>       assert "--shout" in cmd_help.output
+E       AssertionError: assert '--shout' in 'Usage: cli COMMAND [ARGS]...\n\nTop level group\n\nCommands:\n  hello  Say hello\n'
+E        +  where 'Usage: cli COMMAND [ARGS]...\n\nTop level group\n\nCommands:\n  hello  Say hello\n' = <Result 0>.output
+
+tests\Click\functional_test.py:215: AssertionError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+        def cli(config: str) -> None:
+            ctx = click.get_current_context()
+            ctx.obj = {"config": config}
+    
+        @cli.command()
+        def show() -> None:
+            ctx = click.get_current_context()
+            cfg = ctx.obj.get("config")
+            click.echo(f"CONFIG={cfg}")
+    
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--config", "custom.cfg", "show"])
+    
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result 1>.exit_code
+
+tests\Click\functional_test.py:235: AssertionError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+>       def cli(name: str) -> None:
+
+tests\Click\functional_test.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:34: in decorator
+    _attach_param(f, Option(param_decls, **attrs))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x000001A2D33794F0>
+param_decls = ('--name',), is_flag = False
+attrs = {'default': 'fallback', 'envvar': 'CLICK_TEST_NAME'}, name = 'name'
+
+    def __init__(
+        self,
+        param_decls: Sequence[str],
+        is_flag: bool = False,
+        **attrs: Any,
+    ) -> None:
+        if not param_decls:
+            raise TypeError("At least one option string is required.")
+        self.param_decls = list(param_decls)
+        name = self._infer_name()
+>       super().__init__(name, param_type="option", **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+generation\Click\click\core.py:207: TypeError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+        def cli(token: str) -> None:
+            click.echo(f"TOKEN={token}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, [], input="secret-token\n")
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result 1>.exit_code
+
+tests\Click\functional_test.py:285: AssertionError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+        @cli.command()
+        @click.option("--count", type=int, default=1)
+        def run(count: int) -> None:
+            click.echo(f"COUNT={count}")
+    
+        runner = CliRunner()
+>       r = runner.invoke(cli, ["run"], default_map={"run": {"count": 7}})
+E       TypeError: invoke() got an unexpected keyword argument 'default_map'
+
+tests\Click\functional_test.py:300: TypeError
+_______________ test_parameter_type_validation_error_exit_code ________________
+
+    def test_parameter_type_validation_error_exit_code():
+        @click.command()
+        @click.option("--count", type=int, required=True)
+        def cli(count: int) -> None:
+            click.echo(f"COUNT={count}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, ["--count", "not-an-int"])
+        assert r.exit_code != 0
+>       assert ("Invalid value" in r.output) or ("Error" in r.output)
+E       AssertionError: assert ('Invalid value' in '' or 'Error' in '')
+E        +  where '' = <Result 1>.output
+E        +  and   '' = <Result 1>.output
+
+tests\Click\functional_test.py:314: AssertionError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - T...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+8 failed, 3 passed in 2.94s

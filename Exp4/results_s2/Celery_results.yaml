@@ -1,0 +1,325 @@
+project_name: Celery
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Celery\celery.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m3\Celery
+timestamp: '2026-01-15 10:56:09'
+functional_score: 0.5
+non_functional_score: 0.3467
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.6667
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "F..FFF..F.                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_001_import_celery_and_core_symbols ___________________\n\
+      \n    def test_001_import_celery_and_core_symbols() -> None:\n        _ensure_celery_importable()\n\
+      \        import celery  # noqa: F401\n    \n        from celery import Celery\
+      \  # noqa: F401\n>       from celery import chain, chord, group, signature \
+      \ # noqa: F401\nE       ImportError: cannot import name 'chain' from 'celery'\
+      \ (D:\\桌面\\RealAppCodeBench_generic_eval\\generation_m3\\Celery\\celery\\__init__.py)\n\
+      \ntests\\Celery\\functional_test.py:61: ImportError\n__________________ test_004_group_collects_results_in_order\
+      \ ___________________\n\n    def test_004_group_collects_results_in_order()\
+      \ -> None:\n        app = _make_app()\n>       from celery import group\nE \
+      \      ImportError: cannot import name 'group' from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation_m3\\Celery\\celery\\__init__.py)\n\ntests\\Celery\\functional_test.py:90:\
+      \ ImportError\n____________________ test_005_chain_passes_previous_result ____________________\n\
+      \n    def test_005_chain_passes_previous_result() -> None:\n        app = _make_app()\n\
+      >       from celery import chain\nE       ImportError: cannot import name 'chain'\
+      \ from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\generation_m3\\Celery\\\
+      celery\\__init__.py)\n\ntests\\Celery\\functional_test.py:104: ImportError\n\
+      _______________ test_006_chord_runs_callback_over_group_results _______________\n\
+      \n    def test_006_chord_runs_callback_over_group_results() -> None:\n     \
+      \   app = _make_app()\n>       from celery import chord, group\nE       ImportError:\
+      \ cannot import name 'chord' from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation_m3\\Celery\\celery\\__init__.py)\n\ntests\\Celery\\functional_test.py:117:\
+      \ ImportError\n_______________ test_009_signature_freeze_has_id_and_task_name\
+      \ ________________\n\n    def test_009_signature_freeze_has_id_and_task_name()\
+      \ -> None:\n        app = _make_app()\n>       from celery import signature\n\
+      E       ImportError: cannot import name 'signature' from 'celery' (D:\\桌面\\\
+      RealAppCodeBench_generic_eval\\generation_m3\\Celery\\celery\\__init__.py)\n\
+      \ntests\\Celery\\functional_test.py:191: ImportError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Celery/functional_test.py::test_001_import_celery_and_core_symbols\n\
+      FAILED tests/Celery/functional_test.py::test_004_group_collects_results_in_order\n\
+      FAILED tests/Celery/functional_test.py::test_005_chain_passes_previous_result\n\
+      FAILED tests/Celery/functional_test.py::test_006_chord_runs_callback_over_group_results\n\
+      FAILED tests/Celery/functional_test.py::test_009_signature_freeze_has_id_and_task_name\n\
+      5 failed, 5 passed in 0.60s\n"
+    elapsed_time_s: 2.012783
+    avg_memory_mb: 32.78
+    avg_cpu_percent: 95.9
+    passed: 5
+    failed: 5
+    skipped: 0
+    total: 10
+    score_inputs_passed: 5
+    score_inputs_failed: 5
+    score_inputs_total: 10
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "FF                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ____________ test_performance_001_many_small_tasks_finish_quickly _____________\n\
+      \n    @pytest.mark.performance\n    def test_performance_001_many_small_tasks_finish_quickly()\
+      \ -> None:\n        \"\"\"\n        Absolute threshold is intentionally conservative\
+      \ to avoid false failures on slow CI.\n        \"\"\"\n        app = _make_app()\n\
+      \    \n        @app.task(name=\"celery_perf.noop\")\n        def noop(x: int)\
+      \ -> int:\n            return x\n    \n        n = 5000\n        t0 = time.perf_counter()\n\
+      \        for i in range(n):\n            r = noop.delay(i)\n>           _ =\
+      \ r.get(timeout=2)\n\ntests\\Celery\\performance_test.py:62: \n_ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself\
+      \ = <AsyncResult: 4b939dd2-bbb3-4b94-b1ae-247bd0b27893 state=PENDING>\ntimeout\
+      \ = 2, propagate = True, interval = 0.01\n\n    def get(self, timeout=None,\
+      \ propagate=True, interval=0.01):\n        \"\"\"\n        Wait for and return\
+      \ the task result.\n    \n        If task failed and propagate=True, re-raise\
+      \ the stored exception.\n        \"\"\"\n        deadline = None if timeout\
+      \ is None else (time.time() + timeout)\n        while True:\n            meta\
+      \ = self.backend.get_meta(self.id)\n            status = meta.get(\"status\"\
+      , PENDING)\n            if status == SUCCESS:\n                return meta.get(\"\
+      result\")\n            if status == FAILURE:\n                exc = meta.get(\"\
+      exception\")\n                if propagate and exc is not None:\n          \
+      \          raise exc\n                return meta.get(\"result\")\n        \
+      \    if deadline is not None and time.time() >= deadline:\n>               raise\
+      \ TimeoutError(f\"Result {self.id} not ready within {timeout} seconds\")\nE\
+      \               celery.exceptions.TimeoutError: Result 4b939dd2-bbb3-4b94-b1ae-247bd0b27893\
+      \ not ready within 2 seconds\n\ngeneration_m3\\Celery\\celery\\result.py:55:\
+      \ TimeoutError\n______________ test_performance_002_group_batching_is_reasonable\
+      \ ______________\n\n    @pytest.mark.performance\n    def test_performance_002_group_batching_is_reasonable()\
+      \ -> None:\n        app = _make_app()\n>       from celery import group\nE \
+      \      ImportError: cannot import name 'group' from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation_m3\\Celery\\celery\\__init__.py)\n\ntests\\Celery\\performance_test.py:72:\
+      \ ImportError\n============================== warnings summary ===============================\n\
+      tests\\Celery\\performance_test.py:47\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Celery\\performance_test.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.performance\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.performance\n\
+      \ntests\\Celery\\performance_test.py:69\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Celery\\performance_test.py:69: PytestUnknownMarkWarning: Unknown pytest.mark.performance\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.performance\n\
+      \n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Celery/performance_test.py::test_performance_001_many_small_tasks_finish_quickly\n\
+      FAILED tests/Celery/performance_test.py::test_performance_002_group_batching_is_reasonable\n\
+      2 failed, 2 warnings in 2.46s\n"
+    elapsed_time_s: 3.786144
+    avg_memory_mb: 31.82
+    avg_cpu_percent: 43.6
+    passed: 0
+    failed: 2
+    skipped: 0
+    total: 2
+    score_inputs_passed: 0
+    score_inputs_failed: 2
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 3.769039
+    score_inputs_actual_time_s: 3.786144
+  resource:
+    returncode: 1
+    stdout: "F.                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______ test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks ________\n\
+      \n    @pytest.mark.resource\n    def test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks()\
+      \ -> None:\n        \"\"\"\n        Use tracemalloc (stdlib) so the test stays\
+      \ portable.\n        We only check that memory growth is not pathological.\n\
+      \        \"\"\"\n        app = _make_app()\n    \n        @app.task(name=\"\
+      celery_resource.small\")\n        def small(x: int) -> int:\n            return\
+      \ x + 1\n    \n        gc.collect()\n        tracemalloc.start()\n        snap0\
+      \ = tracemalloc.take_snapshot()\n    \n        n = 8000\n        for i in range(n):\n\
+      \            r = small.delay(i)\n>           _ = r.get(timeout=2)\n\ntests\\\
+      Celery\\resource_test.py:67: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <AsyncResult: 43b0f585-9c54-4c03-8fdc-53b6e57ad29d\
+      \ state=PENDING>\ntimeout = 2, propagate = True, interval = 0.01\n\n    def\
+      \ get(self, timeout=None, propagate=True, interval=0.01):\n        \"\"\"\n\
+      \        Wait for and return the task result.\n    \n        If task failed\
+      \ and propagate=True, re-raise the stored exception.\n        \"\"\"\n     \
+      \   deadline = None if timeout is None else (time.time() + timeout)\n      \
+      \  while True:\n            meta = self.backend.get_meta(self.id)\n        \
+      \    status = meta.get(\"status\", PENDING)\n            if status == SUCCESS:\n\
+      \                return meta.get(\"result\")\n            if status == FAILURE:\n\
+      \                exc = meta.get(\"exception\")\n                if propagate\
+      \ and exc is not None:\n                    raise exc\n                return\
+      \ meta.get(\"result\")\n            if deadline is not None and time.time()\
+      \ >= deadline:\n>               raise TimeoutError(f\"Result {self.id} not ready\
+      \ within {timeout} seconds\")\nE               celery.exceptions.TimeoutError:\
+      \ Result 43b0f585-9c54-4c03-8fdc-53b6e57ad29d not ready within 2 seconds\n\n\
+      generation_m3\\Celery\\celery\\result.py:55: TimeoutError\n==============================\
+      \ warnings summary ===============================\ntests\\Celery\\resource_test.py:48\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Celery\\resource_test.py:48:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.resource - is this a typo? \
+      \ You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.resource\n\ntests\\Celery\\resource_test.py:85\n  D:\\桌面\\\
+      RealAppCodeBench_generic_eval\\tests\\Celery\\resource_test.py:85: PytestUnknownMarkWarning:\
+      \ Unknown pytest.mark.resource - is this a typo?  You can register custom marks\
+      \ to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.resource\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Celery/resource_test.py::test_resource_001_tracemalloc_growth_is_bounded_for_many_tasks\n\
+      1 failed, 1 passed, 2 warnings in 2.62s\n"
+    elapsed_time_s: 4.136586
+    avg_memory_mb: 32.6
+    avg_cpu_percent: 50.0
+    passed: 1
+    failed: 1
+    skipped: 0
+    total: 2
+    score_inputs_passed: 1
+    score_inputs_failed: 1
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 44.36
+    score_inputs_baseline_cpu_pct: 99.2
+    score_inputs_actual_mem_mb: 32.6
+    score_inputs_actual_cpu_pct: 50.0
+  robustness:
+    returncode: 1
+    stdout: ".F.F..                                                              \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________ test_002_unknown_task_name_signature_errors_cleanly _____________\n\
+      \n    def test_002_unknown_task_name_signature_errors_cleanly() -> None:\n \
+      \       app = _make_app()\n>       from celery import signature\nE       ImportError:\
+      \ cannot import name 'signature' from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation_m3\\Celery\\celery\\__init__.py)\n\ntests\\Celery\\robustness_test.py:59:\
+      \ ImportError\n_____________ test_004_chord_with_empty_header_behaves_reasonably\
+      \ _____________\n\n    def test_004_chord_with_empty_header_behaves_reasonably()\
+      \ -> None:\n        app = _make_app()\n>       from celery import chord, group\n\
+      E       ImportError: cannot import name 'chord' from 'celery' (D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation_m3\\Celery\\celery\\__init__.py)\n\ntests\\Celery\\robustness_test.py:80:\
+      \ ImportError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Celery/robustness_test.py::test_002_unknown_task_name_signature_errors_cleanly\n\
+      FAILED tests/Celery/robustness_test.py::test_004_chord_with_empty_header_behaves_reasonably\n\
+      2 failed, 4 passed in 0.43s\n"
+    elapsed_time_s: 1.886892
+    avg_memory_mb: 32.55
+    avg_cpu_percent: 100.9
+    passed: 4
+    failed: 2
+    skipped: 0
+    total: 6
+    score_inputs_passed: 4
+    score_inputs_failed: 2
+    score_inputs_total: 6
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=17.0 total_loc=309.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.483428
+    avg_memory_mb: 31.54
+    avg_cpu_percent: 95.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 17.0
+      total_loc: 309.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 4.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=25.9830 files_scanned=16.0 total_loc=309.0 max_cc=18.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.451286
+    avg_memory_mb: 31.72
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 25.983
+      files_scanned: 16.0
+      total_loc: 309.0
+      max_cc: 18.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 25.983
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.734527
+    functional_tests_total: 10
+  performance:
+    performance_suite_time_s: 3.769039
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 9.788972
+    resource_tests_total: 2
+    avg_memory_mb: 44.36
+    avg_cpu_percent: 99.2
+  robustness:
+    robustness_suite_time_s: 4.859838
+    robustness_tests_total: 6
+  security:
+    security_suite_time_s: 2.146028
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 4.0
+      files_scanned: 161.0
+      total_loc: 32227.0
+  maintainability:
+    maintainability_suite_time_s: 4.314273
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 156.0
+      total_loc: 32227.0
+      max_cc: 66.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Celery\pytest_logs

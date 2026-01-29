@@ -1,0 +1,158 @@
+FF.F.FFF...                                                              [100%]
+================================== FAILURES ===================================
+_________________________ test_sun_times_basic_sanity _________________________
+
+    def test_sun_times_basic_sanity() -> None:
+        """sun() returns expected keys and times are in a plausible order."""
+        loc = _london_location()
+        d = dt.date(2020, 6, 1)
+    
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = 22.164779321292222, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+______________________ test_sun_time_changes_across_days ______________________
+
+    def test_sun_time_changes_across_days() -> None:
+        """Sunrise and sunset should change slightly between consecutive days."""
+        loc = _london_location()
+        d1 = dt.date(2020, 1, 1)
+        d2 = d1 + dt.timedelta(days=1)
+    
+>       s1 = sun(_observer_from_location(loc), date=d1, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = -23.001823663166522, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+______________ test_locationinfo_has_lat_lon_fields_or_observer _______________
+
+    def test_locationinfo_has_lat_lon_fields_or_observer() -> None:
+        loc = _london_location()
+    
+        if hasattr(loc, "observer"):
+            obs = _observer_from_location(loc)
+            lat = getattr(obs, "latitude", None)
+            lon = getattr(obs, "longitude", None)
+        else:
+            lat = getattr(loc, "latitude", None)
+            lon = getattr(loc, "longitude", None)
+    
+>       assert isinstance(lat, (int, float))
+E       AssertionError: assert False
+E        +  where False = isinstance('Europe/London', (<class 'int'>, <class 'float'>))
+
+tests\Astral\functional_test.py:169: AssertionError
+_________________________ test_sun_returns_datetimes __________________________
+
+    def test_sun_returns_datetimes() -> None:
+        loc = _london_location()
+        d = dt.date(2020, 6, 1)
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = 22.164779321292222, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+_________________ test_sun_noon_is_between_sunrise_and_sunset _________________
+
+    def test_sun_noon_is_between_sunrise_and_sunset() -> None:
+        loc = _london_location()
+        d = dt.date(2020, 3, 1)
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = -7.911536766486016, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+_______ test_sun_times_differ_between_locations_same_date_or_one_raises _______
+
+    def test_sun_times_differ_between_locations_same_date_or_one_raises() -> None:
+        """
+        Some generated implementations have edge-case bugs for certain longitudes that can
+        yield out-of-range hours (e.g., hour < 0 or > 23) and raise ValueError.
+        This test remains targeted (different locations) while being compatible across
+        implementations by accepting either:
+          - both computations succeed and differ, OR
+          - one implementation raises a clear exception for the second location.
+        """
+        london = _london_location()
+        nyc = _new_york_location()
+        d = dt.date(2020, 6, 1)
+    
+>       s_l = sun(_observer_from_location(london), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = 22.164779321292222, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Astral/functional_test.py::test_sun_times_basic_sanity - TypeErr...
+FAILED tests/Astral/functional_test.py::test_sun_time_changes_across_days - T...
+FAILED tests/Astral/functional_test.py::test_locationinfo_has_lat_lon_fields_or_observer
+FAILED tests/Astral/functional_test.py::test_sun_returns_datetimes - TypeErro...
+FAILED tests/Astral/functional_test.py::test_sun_noon_is_between_sunrise_and_sunset
+FAILED tests/Astral/functional_test.py::test_sun_times_differ_between_locations_same_date_or_one_raises
+6 failed, 5 passed in 0.46s

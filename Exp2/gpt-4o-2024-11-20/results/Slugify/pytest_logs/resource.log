@@ -1,0 +1,77 @@
+F.                                                                       [100%]
+================================== FAILURES ===================================
+________________________ test_slug_index_for_filenames ________________________
+
+    def test_slug_index_for_filenames() -> None:
+        """Integration-style test: build a slug index for a set of filenames."""
+        filenames = [
+            "My Document.txt",
+            "My Document (final).txt",
+            "Résumé 2025.pdf",
+            "影師嗎.png",
+            "project-plan_v1.0.docx",
+            "project plan v1.0.docx",
+            "C'est déjà l'été.md",
+            "10 | 20 %.csv",
+            "README",
+            "README (copy).md",
+        ]
+    
+>       index = _build_slug_index(filenames)
+
+tests\Slugify\resource_test.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Slugify\resource_test.py:50: in _build_slug_index
+    s = slugify(name, allow_unicode=allow_unicode)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'My Document.txt', allow_unicode = False, max_length = None
+word_boundary = False, separator = '-', regex_pattern = None, stopwords = None
+lowercase = True, replacements = None, kwargs = {}
+
+    def slugify(
+        text,
+        allow_unicode=False,
+        max_length=None,
+        word_boundary=False,
+        separator='-',
+        regex_pattern=None,
+        stopwords=None,
+        lowercase=True,
+        replacements=None,
+        **kwargs
+    ):
+        """
+        Generate a slug for the given text.
+    
+        Parameters:
+            text (str): The input text to slugify.
+            allow_unicode (bool): Whether to allow Unicode characters in the slug.
+            max_length (int): Maximum length of the slug.
+            word_boundary (bool): Ensure truncation happens at word boundaries.
+            separator (str): Separator to use for the slug.
+            regex_pattern (str): Custom regex pattern for filtering characters.
+            stopwords (list): Words to exclude from the slug.
+            lowercase (bool): Whether to convert the slug to lowercase.
+            replacements (list): List of (search, replace) tuples for custom replacements.
+    
+        Returns:
+            str: The generated slug.
+        """
+        if not isinstance(text, str):
+            raise TypeError("Input text must be a string.")
+    
+        # Apply custom replacements if provided
+        if replacements:
+            for search, replace in replacements:
+                text = text.replace(search, replace)
+    
+        # Normalize text to NFKD form for consistent processing
+        if not allow_unicode:
+>           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')
+E           TypeError: normalize expected 2 arguments, got 1
+
+generation\Slugify\slugify\slugify.py:43: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/resource_test.py::test_slug_index_for_filenames - TypeEr...
+1 failed, 1 passed in 0.31s

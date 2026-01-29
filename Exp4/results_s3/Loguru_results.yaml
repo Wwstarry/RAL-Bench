@@ -1,0 +1,253 @@
+project_name: Loguru
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Loguru\loguru.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m4\Loguru
+timestamp: '2026-01-14 19:38:25'
+functional_score: 0.6364
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "....F..FFF.                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ____________________ test_contextualize_adds_extra_fields _____________________\n\
+      \n    def test_contextualize_adds_extra_fields() -> None:\n        log, buf\
+      \ = make_buffer_logger(fmt=\"{message} user={extra[user]}\")\n    \n>      \
+      \ with log.contextualize(user=\"bob\"):\nE       AttributeError: 'Logger' object\
+      \ has no attribute 'contextualize'\n\ntests\\Loguru\\functional_test.py:149:\
+      \ AttributeError\n______________ test_serialize_output_contains_message_and_level\
+      \ _______________\n\n    def test_serialize_output_contains_message_and_level()\
+      \ -> None:\n        # serialize=True should emit JSON per record into the sink\n\
+      \        log, buf = make_buffer_logger(level=\"INFO\", serialize=True)\n   \
+      \ \n        log.info(\"json-msg\")\n    \n        raw_lines = _lines(buf)\n\
+      \        assert len(raw_lines) >= 1\n    \n>       record = json.loads(raw_lines[-1])\n\
+      \ntests\\Loguru\\functional_test.py:199: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\nC:\\Users\\86152\\AppData\\\
+      Local\\Programs\\Python\\Python39\\lib\\json\\__init__.py:346: in loads\n  \
+      \  return _default_decoder.decode(s)\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\json\\decoder.py:337: in decode\n    obj, end = self.raw_decode(s,\
+      \ idx=_w(s, 0).end())\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <json.decoder.JSONDecoder object at 0x00000170BC90ACD0>\n\
+      s = 'INFO:json-msg', idx = 0\n\n    def raw_decode(self, s, idx=0):\n      \
+      \  \"\"\"Decode a JSON document from ``s`` (a ``str`` beginning with\n     \
+      \   a JSON document) and return a 2-tuple of the Python\n        representation\
+      \ and the index in ``s`` where the document ended.\n    \n        This can be\
+      \ used to decode a JSON document from a string that may\n        have extraneous\
+      \ data at the end.\n    \n        \"\"\"\n        try:\n            obj, end\
+      \ = self.scan_once(s, idx)\n        except StopIteration as err:\n>        \
+      \   raise JSONDecodeError(\"Expecting value\", s, err.value) from None\nE  \
+      \         json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char\
+      \ 0)\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\\
+      json\\decoder.py:355: JSONDecodeError\n_____________________ test_patch_can_enrich_record_extra\
+      \ ______________________\n\n    def test_patch_can_enrich_record_extra() ->\
+      \ None:\n        # patch() lets us enrich record data in a typical usage pattern\n\
+      \        log, buf = make_buffer_logger(fmt=\"{message} patched={extra[patched]}\"\
+      )\n    \n>       patched = log.patch(lambda r: r[\"extra\"].update({\"patched\"\
+      : \"yes\"}))\nE       AttributeError: 'Logger' object has no attribute 'patch'\n\
+      \ntests\\Loguru\\functional_test.py:211: AttributeError\n________________ test_filter_callable_allows_subset_of_records\
+      \ ________________\n\n    def test_filter_callable_allows_subset_of_records()\
+      \ -> None:\n        def only_info(record) -> bool:\n            return record[\"\
+      level\"].name == \"INFO\"\n    \n        log, buf = make_buffer_logger(fmt=\"\
+      {level}:{message}\", level=\"DEBUG\", filter_=only_info)\n    \n        log.debug(\"\
+      nope\")\n        log.info(\"yep\")\n    \n        out = buf.getvalue()\n>  \
+      \     assert \"nope\" not in out\nE       AssertionError: assert 'nope' not\
+      \ in 'DEBUG:nope\\nINFO:yep\\n'\nE         \nE         'nope' is contained here:\n\
+      E           DEBUG:nope\nE         ?       ++++\nE           INFO:yep\n\ntests\\\
+      Loguru\\functional_test.py:229: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields\n\
+      FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level\n\
+      FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra -\
+      \ ...\nFAILED tests/Loguru/functional_test.py::test_filter_callable_allows_subset_of_records\n\
+      4 failed, 7 passed in 0.94s\n"
+    elapsed_time_s: 2.257125
+    avg_memory_mb: 33.66
+    avg_cpu_percent: 98.6
+    passed: 7
+    failed: 4
+    skipped: 0
+    total: 11
+    score_inputs_passed: 7
+    score_inputs_failed: 4
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 124
+    stdout: '.                                                                        [100%]
+
+      '
+    elapsed_time_s: 426.875505
+    avg_memory_mb: 34.55
+    avg_cpu_percent: 99.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    timeout: true
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 124
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.524903
+    score_inputs_actual_time_s: 426.875505
+  resource:
+    returncode: 124
+    stdout: '.                                                                        [100%]
+
+      '
+    elapsed_time_s: 529.536391
+    avg_memory_mb: 36.18
+    avg_cpu_percent: 98.7
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    timeout: true
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 124
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 37.9
+    score_inputs_baseline_cpu_pct: 99.4
+    score_inputs_actual_mem_mb: 36.18
+    score_inputs_actual_cpu_pct: 98.7
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.50s
+
+      '
+    elapsed_time_s: 1.722879
+    avg_memory_mb: 31.94
+    avg_cpu_percent: 99.0
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=452.0
+
+      .
+
+      1 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.269491
+    avg_memory_mb: 31.91
+    avg_cpu_percent: 101.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 452.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 1.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=10.5858 files_scanned=2.0 total_loc=452.0 max_cc=25.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.335947
+    avg_memory_mb: 32.16
+    avg_cpu_percent: 98.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 10.5858
+      files_scanned: 2.0
+      total_loc: 452.0
+      max_cc: 25.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 10.5858
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.524903
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 2.683393
+    resource_tests_total: 1
+    avg_memory_mb: 37.9
+    avg_cpu_percent: 99.4
+  functional:
+    functional_suite_time_s: 1.656537
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.560491
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416348
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 1.0
+      files_scanned: 19.0
+      total_loc: 4015.0
+  maintainability:
+    maintainability_suite_time_s: 1.770687
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 19.0
+      total_loc: 4015.0
+      max_cc: 56.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Loguru\pytest_logs

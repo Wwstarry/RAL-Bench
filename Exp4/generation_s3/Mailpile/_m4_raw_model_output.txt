@@ -1,0 +1,509 @@
+<file:name=mailpile/__init__.py>
+"""
+A small, self-contained subset of Mailpile core utilities.
+
+This repository intentionally includes only a few modules required by tests:
+- safe_popen: safe subprocess helpers
+- util: general utilities (text cleaning, base36, cache, filesystem helpers)
+- vcard: basic vCard line parsing/serialization
+- i18n: gettext passthrough helpers
+"""
+
+from .i18n import gettext as _  # Common Mailpile convention
+
+__all__ = ['_']
+</file>
+
+<file:name=mailpile/safe_popen.py>
+import os
+import subprocess
+from typing import Iterator, List, Tuple, Optional
+
+
+class Safe_Popen(subprocess.Popen):
+    """
+    A thin wrapper around subprocess.Popen with safer defaults.
+
+    - shell defaults to False (never implicitly enabled)
+    - close_fds defaults to True where supported (POSIX)
+    """
+
+    def __init__(self, args, *popenargs, **kwargs):
+        # Never implicitly enable shell=True
+        kwargs.setdefault('shell', False)
+
+        # Safer default on POSIX; on Windows close_fds has constraints when
+        # redirecting handles. Let caller override if needed.
+        if os.name == 'posix':
+            kwargs.setdefault('close_fds', True)
+
+        # Support subprocess.run-like "check=" kwarg without breaking Popen init
+        self._check = bool(kwargs.pop('check', False))
+
+        super().__init__(args, *popenargs, **kwargs)
+
+    def communicate(self, input=None, **kwargs):
+        out, err = super().communicate(input=input, **kwargs)
+        if self._check:
+            rc = self.poll()
+            if rc:
+                raise subprocess.CalledProcessError(rc, self.args, output=out, stderr=err)
+        return out, err
+
+
+def safe_popen(*args, **kwargs) -> Safe_Popen:
+    """
+    Convenience wrapper returning a Safe_Popen instance.
+    """
+    return Safe_Popen(*args, **kwargs)
+
+
+def make_pipes(n: int = 2) -> List[Tuple[int, int]]:
+    pipes = []
+    for _ in range(int(n)):
+        r, w = os.pipe()
+        pipes.append((r, w))
+    return pipes
+
+
+def close_pipes(pipes) -> None:
+    if not pipes:
+        return
+    for p in pipes:
+        if not p:
+            continue
+        for fd in p:
+            if fd is None:
+                continue
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+
+
+def pipe_reader(fd, decode: bool = True, encoding: str = 'utf-8', errors: str = 'replace') -> Iterator:
+    """
+    Yield lines from an OS-level file descriptor until EOF.
+
+    If decode=True yields str, else yields bytes.
+    Closes the file descriptor when done.
+    """
+    f = None
+    try:
+        # Use binary mode always; decode per-line if requested.
+        f = os.fdopen(fd, 'rb', closefd=True)
+        for line in f:
+            if decode:
+                yield line.decode(encoding, errors)
+            else:
+                yield line
+    finally:
+        # fdopen with closefd=True should close automatically, but be explicit.
+        try:
+            if f is not None:
+                f.close()
+        except Exception:
+            pass
+</file>
+
+<file:name=mailpile/util.py>
+import errno
+import hashlib
+import json
+import os
+import re
+import time
+from typing import Any
+
+
+_CONTROL_DEFAULT_RE = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]')
+
+
+def CleanText(text, banned=None, replacement: str = '', collapse_whitespace: bool = True) -> str:
+    """
+    Remove/replace unsafe characters and normalize whitespace.
+
+    - If text is None => ''
+    - If banned is None: remove ASCII control chars except tab/newline/CR, and DEL.
+    - If banned is iterable/string: replace any of those characters with replacement.
+    - If banned is callable: called per-character; if True => replace.
+    """
+    if text is None:
+        text = ''
+    if not isinstance(text, str):
+        text = str(text)
+
+    if banned is None:
+        text = _CONTROL_DEFAULT_RE.sub(replacement, text)
+    else:
+        if callable(banned):
+            text = ''.join((replacement if banned(ch) else ch) for ch in text)
+        else:
+            banned_set = set(banned)
+            text = ''.join((replacement if ch in banned_set else ch) for ch in text)
+
+    if collapse_whitespace:
+        text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+
+_B36_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+_B36_MAP = {c: i for i, c in enumerate(_B36_ALPHABET)}
+
+
+def b36(num: int) -> str:
+    if not isinstance(num, int):
+        raise TypeError('b36 expects int')
+    if num < 0:
+        raise ValueError('b36 expects non-negative int')
+    if num == 0:
+        return '0'
+    n = num
+    out = []
+    while n:
+        n, r = divmod(n, 36)
+        out.append(_B36_ALPHABET[r])
+    return ''.join(reversed(out))
+
+
+def intb36(s: str) -> int:
+    if s is None:
+        raise ValueError('Invalid base36')
+    if not isinstance(s, str):
+        s = str(s)
+    t = s.strip().lower()
+    if t == '':
+        raise ValueError('Invalid base36')
+    val = 0
+    for ch in t:
+        if ch not in _B36_MAP:
+            raise ValueError('Invalid base36')
+        val = val * 36 + _B36_MAP[ch]
+    return val
+
+
+def strhash(s, length: int = 8) -> str:
+    """
+    Deterministic hash -> lowercase base36 string of exactly `length` chars.
+    """
+    if s is None:
+        s = ''
+    if isinstance(s, str):
+        b = s.encode('utf-8', 'replace')
+    elif isinstance(s, (bytes, bytearray)):
+        b = bytes(s)
+    else:
+        b = str(s).encode('utf-8', 'replace')
+
+    # Use SHA1 for determinism and availability.
+    digest = hashlib.sha1(b).digest()
+    num = int.from_bytes(digest, 'big')
+    out = b36(num)
+
+    if len(out) < length:
+        out = ('0' * (length - len(out))) + out
+    return out[-length:]
+
+
+def safe_remove(path: str) -> bool:
+    try:
+        os.remove(path)
+        return True
+    except FileNotFoundError:
+        return False
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            return False
+        raise
+
+
+def safe_mkdirs(path: str, mode: int = 0o700) -> None:
+    if not path:
+        return
+    # exist_ok=True prevents raising if already exists.
+    os.makedirs(path, mode=mode, exist_ok=True)
+
+
+def json_helper(obj: Any):
+    """
+    Helper for json.dumps(default=...).
+    """
+    if hasattr(obj, '__json__') and callable(getattr(obj, '__json__')):
+        return obj.__json__()
+    if isinstance(obj, (bytes, bytearray)):
+        return bytes(obj).decode('utf-8', 'replace')
+    if isinstance(obj, (set, tuple)):
+        return list(obj)
+    raise TypeError('%r is not JSON serializable' % (type(obj),))
+
+
+class TimedCache(object):
+    def __init__(self, ttl: float = 60.0):
+        self.ttl = float(ttl)
+        self._data = {}  # key -> (expires_at, value)
+
+    def expire(self) -> None:
+        now = time.time()
+        dead = [k for k, (exp, _v) in self._data.items() if exp <= now]
+        for k in dead:
+            self._data.pop(k, None)
+
+    def set(self, key, value) -> None:
+        self._data[key] = (time.time() + self.ttl, value)
+
+    def get(self, key, default=None):
+        self.expire()
+        item = self._data.get(key)
+        if not item:
+            return default
+        exp, val = item
+        if exp <= time.time():
+            self._data.pop(key, None)
+            return default
+        return val
+
+    def __contains__(self, key) -> bool:
+        self.expire()
+        item = self._data.get(key)
+        if not item:
+            return False
+        exp, _val = item
+        if exp <= time.time():
+            self._data.pop(key, None)
+            return False
+        return True
+</file>
+
+<file:name=mailpile/vcard.py>
+from typing import Dict, List, Optional, Union
+
+
+def vcard_escape(text: str) -> str:
+    if text is None:
+        text = ''
+    if not isinstance(text, str):
+        text = str(text)
+    # Escape backslash first.
+    text = text.replace('\\', '\\\\')
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    text = text.replace('\n', '\\n')
+    text = text.replace(';', r'\;')
+    text = text.replace(',', r'\,')
+    return text
+
+
+def vcard_unescape(text: str) -> str:
+    if text is None:
+        return ''
+    if not isinstance(text, str):
+        text = str(text)
+
+    out = []
+    i = 0
+    L = len(text)
+    while i < L:
+        ch = text[i]
+        if ch != '\\' or i + 1 >= L:
+            out.append(ch)
+            i += 1
+            continue
+
+        nxt = text[i + 1]
+        if nxt in ('n', 'N'):
+            out.append('\n')
+            i += 2
+        elif nxt in ('\\', ',', ';'):
+            out.append(nxt)
+            i += 2
+        else:
+            # Unknown escape: drop backslash, keep char (best-effort)
+            out.append(nxt)
+            i += 2
+
+    return ''.join(out)
+
+
+def _find_unescaped_colon(s: str) -> int:
+    esc = False
+    for i, ch in enumerate(s):
+        if esc:
+            esc = False
+            continue
+        if ch == '\\':
+            esc = True
+            continue
+        if ch == ':':
+            return i
+    return -1
+
+
+def _split_unescaped(s: str, sep: str) -> List[str]:
+    out = []
+    buf = []
+    esc = False
+    for ch in s:
+        if esc:
+            buf.append(ch)
+            esc = False
+            continue
+        if ch == '\\':
+            buf.append(ch)
+            esc = True
+            continue
+        if ch == sep:
+            out.append(''.join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    out.append(''.join(buf))
+    return out
+
+
+class VCardLine(object):
+    def __init__(
+        self,
+        name: str = None,
+        value: str = '',
+        attrs: Optional[Dict[str, bool]] = None,
+        params: Optional[Dict[str, List[str]]] = None,
+        line: Optional[Union[str, bytes]] = None
+    ):
+        self.name = ''
+        self.value = ''
+        self.attrs: Dict[str, bool] = {}
+        self.params: Dict[str, List[str]] = {}
+
+        if line is not None:
+            parsed = self.Parse(line)
+            self.name = parsed.name
+            self.value = parsed.value
+            self.attrs = dict(parsed.attrs)
+            self.params = {k: list(v) for k, v in parsed.params.items()}
+        else:
+            if name is not None:
+                self.name = str(name).upper()
+            self.value = '' if value is None else str(value)
+            self.attrs = {} if attrs is None else dict(attrs)
+            # Normalize keys to uppercase, values to lists of strings
+            if params is None:
+                self.params = {}
+            else:
+                p = {}
+                for k, v in params.items():
+                    ku = str(k).upper()
+                    if v is None:
+                        p[ku] = []
+                    elif isinstance(v, (list, tuple)):
+                        p[ku] = [str(x) for x in v]
+                    else:
+                        p[ku] = [str(v)]
+                self.params = p
+
+    @classmethod
+    def Parse(cls, line: Union[str, bytes]) -> "VCardLine":
+        if isinstance(line, (bytes, bytearray)):
+            s = bytes(line).decode('utf-8', 'replace')
+        else:
+            s = str(line)
+
+        s = s.strip('\r\n')
+        cpos = _find_unescaped_colon(s)
+        if cpos < 0:
+            raise ValueError('Malformed vCard line (missing colon)')
+
+        header = s[:cpos]
+        value = s[cpos + 1:]
+
+        parts = _split_unescaped(header, ';')
+        if not parts or parts[0] == '':
+            raise ValueError('Malformed vCard line (missing name)')
+
+        name = parts[0].upper()
+        attrs: Dict[str, bool] = {}
+        params: Dict[str, List[str]] = {}
+
+        for seg in parts[1:]:
+            if seg == '':
+                continue
+            if '=' in seg:
+                k, v = seg.split('=', 1)
+                ku = k.strip().upper()
+                # v may have comma-separated values, possibly escaped
+                raw_vals = _split_unescaped(v, ',')
+                vals = [vcard_unescape(rv) for rv in raw_vals if rv != '']
+                params[ku] = vals
+            else:
+                attrs[seg.strip().upper()] = True
+
+        obj = cls(name=name, value=vcard_unescape(value), attrs=attrs, params=params)
+        return obj
+
+    def as_vcardline(self) -> str:
+        name = (self.name or '').upper()
+        if not name:
+            raise ValueError('VCardLine has no name')
+
+        chunks = [name]
+
+        # Emit params first (sorted) then attrs (sorted) for deterministic output.
+        for pk in sorted(self.params.keys()):
+            vals = self.params.get(pk) or []
+            ev = ','.join(vcard_escape(v) for v in vals)
+            chunks.append('%s=%s' % (pk.upper(), ev))
+        for ak in sorted(self.attrs.keys()):
+            if self.attrs.get(ak):
+                chunks.append(ak.upper())
+
+        return '%s:%s' % (';'.join(chunks), vcard_escape(self.value))
+
+    def __str__(self) -> str:
+        return self.as_vcardline()
+</file>
+
+<file:name=mailpile/i18n.py>
+import gettext as _gettext
+from typing import Optional
+
+
+_translator = None
+
+
+def gettext(msg: str) -> str:
+    if msg is None:
+        return ''
+    if _translator is None:
+        return str(msg)
+    return _translator.gettext(str(msg))
+
+
+def ngettext(singular: str, plural: str, n: int) -> str:
+    if singular is None:
+        singular = ''
+    if plural is None:
+        plural = ''
+    if _translator is None:
+        return str(singular) if n == 1 else str(plural)
+    return _translator.ngettext(str(singular), str(plural), n)
+
+
+def ActivateTranslation(language: Optional[str] = None,
+                        localedir: Optional[str] = None,
+                        domain: Optional[str] = None) -> None:
+    """
+    Attempt to activate gettext translations. Safe no-op if catalogs missing.
+    """
+    global _translator
+    if domain is None:
+        domain = 'mailpile'
+
+    try:
+        # fallback=False would raise if missing; we want safe no-op.
+        trans = _gettext.translation(domain=domain,
+                                     localedir=localedir,
+                                     languages=([language] if language else None),
+                                     fallback=True)
+        _translator = trans
+    except Exception:
+        _translator = None
+</file>

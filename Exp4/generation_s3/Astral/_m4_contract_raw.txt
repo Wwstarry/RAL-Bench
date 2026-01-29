@@ -1,0 +1,134 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- Top-level package directory: astral/
+  - astral/__init__.py
+  - astral/location.py
+  - astral/sun.py
+  - astral/moon.py
+  - astral/types.py (or equivalent small internal module for dataclasses/typing helpers)
+  - astral/utils.py (internal math/time helpers)
+- Optional but allowed: astral/errors.py for custom exceptions (keep minimal; not required by tests unless referenced)
+- No compiled extensions; pure Python only.
+
+2) Public API surface (modules/classes/functions and key signatures)
+- astral.__init__
+  - Must allow: import astral
+  - Must expose (via imports/re-exports) at least:
+    - LocationInfo (class)
+- astral.location
+  - class LocationInfo:
+    - __init__(self, name: str = "", region: str = "", timezone: str = "UTC", latitude: float = 0.0, longitude: float = 0.0)
+      - Store attributes: name, region, timezone, latitude, longitude
+    - attribute: observer
+      - An object with attributes: latitude (float), longitude (float), elevation (float)
+      - Must be compatible with reference “Observer” concept; elevation defaults to 0.0 meters.
+- astral.types (or astral/location may define it)
+  - class Observer (dataclass or simple class):
+    - fields: latitude: float, longitude: float, elevation: float = 0.0
+- astral.sun
+  - function sun(observer, date=None, tzinfo=None, dawn_dusk_depression: float = 6.0) -> dict
+    - Returns dict with keys at minimum: "dawn", "sunrise", "noon", "sunset", "dusk"
+    - Values are timezone-aware datetime objects in tzinfo (or derived timezone rules if tzinfo is a string; see behavioral contract).
+  - function sunrise(observer, date=None, tzinfo=None) -> datetime
+  - function sunset(observer, date=None, tzinfo=None) -> datetime
+  - function dawn(observer, date=None, tzinfo=None, depression: float = 6.0) -> datetime (if referenced by tests; safe to provide)
+  - function dusk(observer, date=None, tzinfo=None, depression: float = 6.0) -> datetime (if referenced by tests; safe to provide)
+  - function noon(observer, date=None, tzinfo=None) -> datetime (if referenced by tests; safe to provide)
+  - Signatures must accept an observer that is either:
+    - an Observer instance, OR
+    - any object with latitude/longitude attributes, and optional elevation.
+- astral.moon
+  - function phase(date=None) -> float
+    - Returns a numeric phase value in a conventional range (see behavioral contract).
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+- Timezone handling
+  - tzinfo parameter in sun/sunrise/sunset/etc:
+    - If tzinfo is None:
+      - Returned datetimes must be timezone-aware in UTC (datetime.timezone.utc), unless tests explicitly pass a timezone; default should be stable and explicit.
+    - If tzinfo is a datetime.tzinfo instance:
+      - Return datetimes converted to that tzinfo.
+    - If tzinfo is a string:
+      - Interpret as an IANA timezone name via zoneinfo.ZoneInfo (Python 3.9+).
+  - LocationInfo.timezone:
+    - Must be a string timezone name (IANA). It is not automatically applied unless caller passes tzinfo=location.timezone or tzinfo=ZoneInfo(location.timezone). (Tests may do either; implementation must support both.)
+- Date handling
+  - date parameter:
+    - If None: use “today” in tzinfo if provided, else today in UTC (use datetime.now(tz).date()).
+    - If a datetime is passed: use its date component in the relevant timezone; preserve date meaning in that tz.
+    - If a datetime.date is passed: use directly.
+- Sun calculations (core correctness expectations)
+  - Must compute:
+    - solar noon
+    - sunrise/sunset for standard upper-limb correction (include typical refraction) consistent within small tolerances to Astral-like results used by tests.
+    - dawn/dusk using a depression angle default 6 degrees (civil twilight) unless overridden by dawn_dusk_depression parameter in sun() or depression in dawn()/dusk().
+  - Algorithm requirements (implementation-level expectations)
+    - Use a standard, deterministic algorithm (e.g., NOAA solar calculations / SPA-lite) producing:
+      - solar declination
+      - equation of time
+      - hour angle for sunrise/sunset and twilight depression
+    - Elevation handling:
+      - If observer has elevation > 0, adjust apparent horizon slightly (optional). If omitted, treat as 0.
+    - Ensure returned datetimes are timezone-aware and correspond to the requested date at the observer location.
+  - Consistency invariants
+    - sunrise(observer, date, tzinfo) must equal sun(...)[ "sunrise" ] to within <= 1 second (ideally exactly the same object produced by common internal computation).
+    - sunset(observer, date, tzinfo) must equal sun(...)[ "sunset" ] to within <= 1 second.
+    - dawn < sunrise < noon < sunset < dusk for normal mid-latitude dates where sun rises/sets.
+  - Edge cases: polar day/night
+    - If sunrise/sunset does not occur on that date (sun never rises or never sets):
+      - Raise a clear exception (ValueError is acceptable) from sunrise/sunset/dawn/dusk, and sun() should propagate or provide None values consistently. Prefer Astral-like behavior: raise ValueError for “Sun never rises/sets on this date at this location.”
+      - Tests may not cover extreme latitudes, but behavior must be deterministic.
+- Input validation
+  - Latitude must be in [-90, 90], longitude in [-180, 180]; if outside, raise ValueError.
+  - tzinfo string that cannot be loaded via zoneinfo should raise ZoneInfoNotFoundError (or ValueError if wrapped), but avoid silent fallback.
+- Moon phase
+  - phase(date=None) returns a float representing lunar phase measured in “days into the synodic month” or a 0..28-ish scale.
+  - Contracted output range:
+    - Return value must be within [0.0, 29.530588] (inclusive with small floating tolerance).
+  - Monotonic/stable behavior:
+    - For consecutive dates (UTC-based), phase(d+1) should usually increase by ~1 day modulo synodic month; must not oscillate wildly.
+    - Must be deterministic, stable across platforms/timezones.
+  - Date handling for phase:
+    - If None: use today in UTC.
+    - If datetime provided: compute based on its date in UTC (or use datetime converted to UTC then date).
+  - Algorithm suggestion:
+    - Use a known reference new moon epoch (e.g., 2000-01-06 18:14 UTC) and synodic month length 29.530588853 days:
+      - Compute days since epoch in UTC at noon to reduce timezone effects; phase = (days_since_epoch % synodic_month).
+- General behavior
+  - Pure Python; only standard library dependencies allowed (datetime, math, zoneinfo, dataclasses, typing).
+  - Deterministic: no network, no external data files.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Import and layout
+  - “import astral” works.
+  - “from astral import LocationInfo” works.
+  - “from astral.sun import sun, sunrise, sunset” works.
+  - “from astral.moon import phase” works.
+- Location/observer compatibility
+  - LocationInfo has .latitude/.longitude/.timezone and .observer with .latitude/.longitude/.elevation.
+  - Passing LocationInfo.observer into astral.sun functions works.
+  - Passing any duck-typed object with latitude/longitude/elevation works.
+- Sun output correctness/consistency
+  - astral.sun.sun(...) returns a dict with at least keys: dawn, sunrise, noon, sunset, dusk.
+  - Values are timezone-aware datetimes in tzinfo passed.
+  - sunrise(...) equals sun(...)[“sunrise”] (same tz, same instant, within <= 1 second).
+  - sunset(...) equals sun(...)[“sunset”] (same tz, same instant, within <= 1 second).
+  - Returned datetimes fall on the requested date in the requested tz for typical locations (tests’ fixtures).
+- Timezone behavior
+  - Passing tzinfo="Europe/London" (string) yields aware datetimes with ZoneInfo("Europe/London").
+  - Passing tzinfo=ZoneInfo("...") yields correctly localized outputs.
+  - If tzinfo omitted, returns UTC-aware datetimes (not naive).
+- Moon phase behavior
+  - phase(date) returns float in [0, 29.530588...] for a wide range of dates.
+  - For consecutive dates, phase changes smoothly (difference near 1 day modulo month), no negative spikes beyond wrap-around.
+- Error behavior (if exercised)
+  - Invalid latitude/longitude raises ValueError.
+  - Polar day/night raises ValueError (or documented exception) for sunrise/sunset; deterministic message not required unless tests check it.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not depend on external libraries (no numpy, pytz, astral itself, requests, ephem, skyfield).
+- Do not call external services/APIs for sunrise/sunset or moon data.
+- Do not include full Astral feature set (e.g., solar azimuth/elevation APIs, golden hour, blue hour, multiple depression enums) unless needed for compatibility; keep minimal core to satisfy tests.
+- Do not return naive datetimes.
+- Do not make results depend on system locale or system timezone when tzinfo is provided; use explicit tz conversions only.
+</contract>

@@ -1,0 +1,39 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: exercise a representative workload.
+    
+        Important:
+          - Benchmark runner (measure_generated.py) measures resource usage of pytest subprocess.
+          - This test remains a correctness-oriented smoke test.
+        """
+        assert LENNA_PNG.exists(), f"Missing sample file: {LENNA_PNG}"
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        secret = "resource secret"
+        out = REPO_ROOT / "tmp_resource.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)  # returns PIL.Image
+
+tests\Stegano\resource_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'resource secret', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       pixels = list(image.getdata())
+E       AttributeError: 'str' object has no attribute 'getdata'
+
+generation\Stegano\stegano\lsb\lsb.py:7: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/resource_test.py::test_resource_usage_smoke - AttributeE...
+1 failed in 0.52s

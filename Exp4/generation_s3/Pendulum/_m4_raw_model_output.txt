@@ -1,0 +1,769 @@
+<file:name=pendulum/__init__.py>
+from __future__ import annotations
+
+from datetime import tzinfo as _tzinfo
+
+from .datetime import DateTime
+from .duration import Duration
+from .timezone import UTC, local_timezone, timezone
+from .utils import parse_iso8601
+
+
+def datetime(
+    year: int,
+    month: int,
+    day: int,
+    hour: int = 0,
+    minute: int = 0,
+    second: int = 0,
+    microsecond: int = 0,
+    tz: str | _tzinfo | None = "UTC",
+) -> DateTime:
+    """
+    Create a DateTime. Defaults to UTC-aware unless tz=None is explicitly passed.
+    """
+    tzinfo = None if tz is None else timezone(tz)
+    return DateTime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+
+
+def parse(text: str, tz: str | _tzinfo | None = None, strict: bool = True) -> DateTime:
+    return parse_iso8601(text, tz=tz, strict=strict)
+
+
+def now(tz: str | _tzinfo | None = None) -> DateTime:
+    if tz is None:
+        tzinfo = local_timezone()
+    else:
+        tzinfo = timezone(tz)
+    return DateTime.now(tzinfo)  # type: ignore[arg-type]
+
+
+def duration(
+    years: int = 0,
+    months: int = 0,
+    weeks: int = 0,
+    days: int = 0,
+    hours: int = 0,
+    minutes: int = 0,
+    seconds: int = 0,
+    microseconds: int = 0,
+) -> Duration:
+    return Duration(
+        years=years,
+        months=months,
+        weeks=weeks,
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds,
+        microseconds=microseconds,
+    )
+
+
+__all__ = [
+    "DateTime",
+    "Duration",
+    "UTC",
+    "datetime",
+    "duration",
+    "local_timezone",
+    "now",
+    "parse",
+    "timezone",
+]
+</file>
+
+<file:name=pendulum/timezone.py>
+from __future__ import annotations
+
+import re
+import datetime as _dt
+from datetime import tzinfo
+
+try:
+    from zoneinfo import ZoneInfo  # type: ignore
+except Exception:  # pragma: no cover
+    ZoneInfo = None  # type: ignore
+
+UTC: tzinfo = _dt.timezone.utc
+
+_OFFSET_RE = re.compile(r"^(?P<sign>[+-])(?P<h>\d{2})(?::?(?P<m>\d{2}))?$")
+
+
+def local_timezone() -> tzinfo:
+    return _dt.datetime.now().astimezone().tzinfo or UTC
+
+
+def _fixed_offset_from_string(name: str) -> tzinfo:
+    if name == "Z":
+        return UTC
+    m = _OFFSET_RE.match(name)
+    if not m:
+        raise ValueError(f"Invalid timezone offset string: {name!r}")
+    sign = -1 if m.group("sign") == "-" else 1
+    hours = int(m.group("h"))
+    minutes = int(m.group("m") or "00")
+    if hours > 23 or minutes > 59:
+        raise ValueError(f"Invalid timezone offset string: {name!r}")
+    delta = _dt.timedelta(hours=hours, minutes=minutes) * sign
+    return _dt.timezone(delta)
+
+
+def timezone(name: str | tzinfo | None) -> tzinfo:
+    if name is None:
+        return local_timezone()
+
+    if isinstance(name, _dt.tzinfo):
+        # Best-effort validation that it's tzinfo-like.
+        if getattr(name, "utcoffset", None) is None:
+            raise TypeError("Invalid tzinfo provided")
+        return name
+
+    if not isinstance(name, str):
+        raise TypeError("Timezone must be a string, tzinfo, or None")
+
+    key = name.strip()
+    if key in ("UTC", "utc", "Z", "z"):
+        return UTC
+
+    # Fixed offsets
+    if key.startswith(("+", "-")):
+        return _fixed_offset_from_string(key)
+
+    # IANA zones
+    if ZoneInfo is None:  # pragma: no cover
+        raise NotImplementedError("zoneinfo is not available on this Python version")
+
+    return ZoneInfo(key)
+</file>
+
+<file:name=pendulum/utils.py>
+from __future__ import annotations
+
+import re
+import datetime as _dt
+from datetime import tzinfo
+
+from .timezone import UTC, timezone as _timezone
+
+_ISO_RE = re.compile(
+    r"^"
+    r"(?P<y>\d{4})-(?P<mo>\d{2})-(?P<d>\d{2})"
+    r"(?:"
+    r"(?:[Tt ](?P<h>\d{2}):(?P<mi>\d{2})"
+    r"(?::(?P<s>\d{2})(?:\.(?P<f>\d{1,6}))?)?"
+    r")"
+    r"(?P<tz>Z|[+-]\d{2}(?::?\d{2})?)?"
+    r")?"
+    r"$"
+)
+
+
+def is_timezone(value) -> bool:
+    return isinstance(value, _dt.tzinfo) and callable(getattr(value, "utcoffset", None))
+
+
+def days_in_month(year: int, month: int) -> int:
+    if month < 1 or month > 12:
+        raise ValueError("month must be in 1..12")
+    if month == 12:
+        next_month = _dt.date(year + 1, 1, 1)
+    else:
+        next_month = _dt.date(year, month + 1, 1)
+    this_month = _dt.date(year, month, 1)
+    return (next_month - this_month).days
+
+
+def add_months(dt: _dt.datetime, months: int):
+    if not isinstance(months, int):
+        raise TypeError("months must be int")
+
+    y = dt.year
+    m = dt.month + months
+    # normalize year/month
+    y += (m - 1) // 12
+    m = (m - 1) % 12 + 1
+    d = min(dt.day, days_in_month(y, m))
+    return dt.replace(year=y, month=m, day=d)
+
+
+def add_years(dt: _dt.datetime, years: int):
+    if not isinstance(years, int):
+        raise TypeError("years must be int")
+    y = dt.year + years
+    m = dt.month
+    d = min(dt.day, days_in_month(y, m))
+    return dt.replace(year=y, month=m, day=d)
+
+
+def _parse_tzinfo(tztext: str | None) -> tzinfo | None:
+    if tztext is None:
+        return None
+    if tztext == "Z":
+        return UTC
+    # Delegate fixed offset parsing to pendulum.timezone()
+    return _timezone(tztext)
+
+
+def parse_iso8601(text: str, tz: str | tzinfo | None = None, strict: bool = True):
+    from .datetime import DateTime  # local import to avoid cycle
+
+    if not isinstance(text, str):
+        raise TypeError("text must be str")
+
+    s = text.strip()
+    m = _ISO_RE.match(s)
+    if not m:
+        raise ValueError(f"Invalid ISO-8601 string: {text!r}")
+
+    year = int(m.group("y"))
+    month = int(m.group("mo"))
+    day = int(m.group("d"))
+
+    if m.group("h") is None:
+        hour = minute = second = microsecond = 0
+        tzinfo = None
+    else:
+        hour = int(m.group("h"))
+        minute = int(m.group("mi"))
+        second = int(m.group("s") or "0")
+        frac = m.group("f")
+        if frac:
+            microsecond = int(frac.ljust(6, "0"))
+        else:
+            microsecond = 0
+        tzinfo = _parse_tzinfo(m.group("tz"))
+
+    if tzinfo is not None:
+        # Explicit offset/Z wins over tz parameter.
+        return DateTime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+
+    # No explicit tz in string
+    if tz is None:
+        tzinfo = UTC
+    else:
+        tzinfo = _timezone(tz)
+
+    return DateTime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+</file>
+
+<file:name=pendulum/formatting.py>
+from __future__ import annotations
+
+import datetime as _dt
+
+from .timezone import UTC
+
+
+def _offset_colon(dt: _dt.datetime) -> str:
+    off = dt.utcoffset()
+    if off is None:
+        return ""
+    total = int(off.total_seconds())
+    sign = "+" if total >= 0 else "-"
+    total = abs(total)
+    hh = total // 3600
+    mm = (total % 3600) // 60
+    return f"{sign}{hh:02d}:{mm:02d}"
+
+
+def _offset_nocolon_or_z(dt: _dt.datetime) -> str:
+    off = dt.utcoffset()
+    if off is None:
+        return ""
+    if off == _dt.timedelta(0):
+        return "Z"
+    total = int(off.total_seconds())
+    sign = "+" if total >= 0 else "-"
+    total = abs(total)
+    hh = total // 3600
+    mm = (total % 3600) // 60
+    return f"{sign}{hh:02d}{mm:02d}"
+
+
+def to_iso8601(dt: _dt.datetime) -> str:
+    # We build this ourselves to ensure consistent offset formatting.
+    date_part = f"{dt.year:04d}-{dt.month:02d}-{dt.day:02d}"
+    time_part = f"{dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}"
+    if dt.microsecond:
+        time_part += f".{dt.microsecond:06d}"
+
+    if dt.tzinfo is None or dt.utcoffset() is None:
+        return f"{date_part}T{time_part}"
+
+    return f"{date_part}T{time_part}{_offset_colon(dt)}"
+
+
+def format_datetime(dt: _dt.datetime, fmt: str) -> str:
+    # If user provided strftime directives, just use them.
+    if "%" in fmt:
+        return dt.strftime(fmt)
+
+    # Minimal Pendulum-like token replacement.
+    out = fmt
+
+    # Replace longer tokens first to avoid partial overlaps.
+    replacements = {
+        "SSSSSS": f"{dt.microsecond:06d}",
+        "YYYY": f"{dt.year:04d}",
+        "MM": f"{dt.month:02d}",
+        "DD": f"{dt.day:02d}",
+        "HH": f"{dt.hour:02d}",
+        "mm": f"{dt.minute:02d}",
+        "ss": f"{dt.second:02d}",
+    }
+
+    for k in sorted(replacements.keys(), key=len, reverse=True):
+        out = out.replace(k, replacements[k])
+
+    # Timezone tokens
+    if "ZZ" in out:
+        out = out.replace("ZZ", _offset_colon(dt))
+    if "Z" in out:
+        # "Z" token: prefer +HHMM or 'Z' for UTC.
+        out = out.replace("Z", _offset_nocolon_or_z(dt))
+
+    return out
+</file>
+
+<file:name=pendulum/duration.py>
+from __future__ import annotations
+
+import datetime as _dt
+
+
+def _require_int(name: str, value):
+    if not isinstance(value, int):
+        raise TypeError(f"{name} must be int")
+
+
+class Duration:
+    __slots__ = (
+        "_years",
+        "_months",
+        "_days",
+        "_seconds",
+        "_microseconds",
+    )
+
+    def __init__(
+        self,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+        microseconds: int = 0,
+    ):
+        for k, v in [
+            ("years", years),
+            ("months", months),
+            ("weeks", weeks),
+            ("days", days),
+            ("hours", hours),
+            ("minutes", minutes),
+            ("seconds", seconds),
+            ("microseconds", microseconds),
+        ]:
+            _require_int(k, v)
+
+        days = days + weeks * 7
+
+        total_micro = microseconds
+        total_sec = seconds + minutes * 60 + hours * 3600
+
+        # Normalize microseconds into seconds
+        carry_sec, micro = divmod(total_micro, 1_000_000)
+        total_sec += carry_sec
+
+        # Normalize seconds into days
+        carry_days, sec = divmod(total_sec, 86400)
+        days += carry_days
+
+        self._years = years
+        self._months = months
+        self._days = int(days)
+        self._seconds = int(sec)
+        self._microseconds = int(micro)
+
+    @property
+    def years(self) -> int:
+        return self._years
+
+    @property
+    def months(self) -> int:
+        return self._months
+
+    @property
+    def weeks(self) -> int:
+        # Not stored separately; approximate using full weeks in day component.
+        return self._days // 7
+
+    @property
+    def days(self) -> int:
+        return self._days
+
+    @property
+    def hours(self) -> int:
+        return self._seconds // 3600
+
+    @property
+    def minutes(self) -> int:
+        return (self._seconds % 3600) // 60
+
+    @property
+    def seconds(self) -> int:
+        return self._seconds % 60
+
+    @property
+    def microseconds(self) -> int:
+        return self._microseconds
+
+    def as_timedelta(self) -> _dt.timedelta:
+        return _dt.timedelta(days=self._days, seconds=self._seconds, microseconds=self._microseconds)
+
+    def total_seconds(self) -> float:
+        # If years/months are non-zero, ignore them (no fixed duration).
+        return self.as_timedelta().total_seconds()
+
+    def __add__(self, other: "Duration") -> "Duration":
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return Duration(
+            years=self._years + other._years,
+            months=self._months + other._months,
+            days=self._days + other._days,
+            seconds=self._seconds + other._seconds,
+            microseconds=self._microseconds + other._microseconds,
+        )
+
+    def __sub__(self, other: "Duration") -> "Duration":
+        if not isinstance(other, Duration):
+            return NotImplemented
+        return Duration(
+            years=self._years - other._years,
+            months=self._months - other._months,
+            days=self._days - other._days,
+            seconds=self._seconds - other._seconds,
+            microseconds=self._microseconds - other._microseconds,
+        )
+
+    def __neg__(self) -> "Duration":
+        return Duration(
+            years=-self._years,
+            months=-self._months,
+            days=-self._days,
+            seconds=-self._seconds,
+            microseconds=-self._microseconds,
+        )
+
+    def __abs__(self) -> "Duration":
+        # For "fixed" portion, take abs of timedelta then keep y/m absolute too.
+        td = abs(self.as_timedelta())
+        return Duration(
+            years=abs(self._years),
+            months=abs(self._months),
+            days=td.days,
+            seconds=td.seconds,
+            microseconds=td.microseconds,
+        )
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Duration):
+            return False
+        return (
+            self._years == other._years
+            and self._months == other._months
+            and self._days == other._days
+            and self._seconds == other._seconds
+            and self._microseconds == other._microseconds
+        )
+
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, Duration):
+            return NotImplemented
+        # Best-effort ordering: fixed part first, then years/months.
+        a = (self.as_timedelta().total_seconds(), self._years, self._months)
+        b = (other.as_timedelta().total_seconds(), other._years, other._months)
+        return a < b
+
+    def __repr__(self) -> str:
+        return (
+            "Duration("
+            f"years={self._years}, months={self._months}, "
+            f"days={self._days}, seconds={self._seconds}, microseconds={self._microseconds}"
+            ")"
+        )
+
+    def in_words(self, locale: str | None = None, short: bool = False, parts: int = 1) -> str:
+        # English-only; interpret the fixed timedelta magnitude for phrasing.
+        seconds = abs(self.as_timedelta().total_seconds())
+        if seconds < 1:
+            return "just now" if not short else "now"
+
+        units = [
+            ("year", 365 * 86400, "y"),
+            ("month", 30 * 86400, "mo"),
+            ("week", 7 * 86400, "w"),
+            ("day", 86400, "d"),
+            ("hour", 3600, "h"),
+            ("minute", 60, "m"),
+            ("second", 1, "s"),
+        ]
+
+        remaining = int(seconds)
+        chosen = []
+        for name, size, abbr in units:
+            if remaining <= 0:
+                break
+            if size == 0:
+                continue
+            qty = remaining // size
+            if qty == 0 and not chosen:
+                continue
+            if qty:
+                chosen.append((name, qty, abbr))
+                remaining -= qty * size
+            if len(chosen) >= max(1, parts):
+                break
+
+        if not chosen:
+            chosen = [("second", 0, "s")]
+
+        def fmt_one(nm: str, qty: int, ab: str) -> str:
+            if short:
+                return f"{qty}{ab}"
+            if qty == 1:
+                return f"1 {nm}"
+            return f"{qty} {nm}s"
+
+        return ", ".join(fmt_one(nm, qty, ab) for nm, qty, ab in chosen)
+</file>
+
+<file:name=pendulum/datetime.py>
+from __future__ import annotations
+
+import datetime as _dt
+from datetime import tzinfo
+
+from .duration import Duration
+from .formatting import format_datetime, to_iso8601
+from .timezone import timezone as _timezone
+from .utils import add_months, add_years
+
+
+def _require_int(name: str, value):
+    if not isinstance(value, int):
+        raise TypeError(f"{name} must be int")
+
+
+class DateTime(_dt.datetime):
+    @classmethod
+    def instance(cls, dt: _dt.datetime) -> "DateTime":
+        if isinstance(dt, DateTime):
+            return dt
+        if not isinstance(dt, _dt.datetime):
+            raise TypeError("dt must be a datetime")
+        return cls(
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.hour,
+            dt.minute,
+            dt.second,
+            dt.microsecond,
+            tzinfo=dt.tzinfo,
+            fold=getattr(dt, "fold", 0),
+        )
+
+    def in_timezone(self, tz: str | tzinfo) -> "DateTime":
+        if self.tzinfo is None or self.utcoffset() is None:
+            raise ValueError("Cannot convert naive DateTime")
+        tzinfo = _timezone(tz)
+        converted = self.astimezone(tzinfo)
+        return DateTime.instance(converted)
+
+    def add(
+        self,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+        microseconds: int = 0,
+    ) -> "DateTime":
+        for k, v in [
+            ("years", years),
+            ("months", months),
+            ("weeks", weeks),
+            ("days", days),
+            ("hours", hours),
+            ("minutes", minutes),
+            ("seconds", seconds),
+            ("microseconds", microseconds),
+        ]:
+            _require_int(k, v)
+
+        dt: _dt.datetime = self
+
+        if years:
+            dt = add_years(dt, years)
+        if months:
+            dt = add_months(dt, months)
+
+        if weeks or days or hours or minutes or seconds or microseconds:
+            delta = _dt.timedelta(
+                days=days + weeks * 7,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+                microseconds=microseconds,
+            )
+            dt = dt + delta
+
+        return DateTime.instance(dt)
+
+    def subtract(self, **kwargs) -> "DateTime":
+        negated = {k: (-v if isinstance(v, int) else v) for k, v in kwargs.items()}
+        return self.add(**negated)
+
+    def diff(self, other: _dt.datetime | "DateTime" | None = None, absolute: bool = False) -> Duration:
+        if other is None:
+            other_dt = DateTime.now(self.tzinfo) if self.tzinfo is not None else DateTime.now()  # type: ignore[arg-type]
+        else:
+            other_dt = DateTime.instance(other)
+
+        td = self - other_dt  # uses __sub__ override returning Duration
+        if absolute:
+            return abs(td)
+        return td
+
+    def diff_for_humans(
+        self,
+        other: _dt.datetime | "DateTime" | None = None,
+        absolute: bool = False,
+        locale: str | None = None,
+        unit: str | None = None,
+        short: bool = False,
+        parts: int = 1,
+    ) -> str:
+        if other is None:
+            other_dt = DateTime.now(self.tzinfo) if self.tzinfo is not None else DateTime.now()  # type: ignore[arg-type]
+        else:
+            other_dt = DateTime.instance(other)
+
+        delta = self - other_dt  # Duration
+        future = delta.as_timedelta().total_seconds() > 0
+        fixed = abs(delta.as_timedelta())
+
+        # Determine unit
+        forced = unit.lower() if unit else None
+        seconds = fixed.total_seconds()
+
+        if seconds < 1:
+            base = "just now" if not short else "now"
+            return base if absolute else base
+
+        def render(qty: int, name: str) -> str:
+            if short:
+                abbr = {
+                    "second": "s",
+                    "minute": "m",
+                    "hour": "h",
+                    "day": "d",
+                    "week": "w",
+                    "month": "mo",
+                    "year": "y",
+                }[name]
+                core = f"{qty}{abbr}"
+            else:
+                core = f"{qty} {name}" + ("" if qty == 1 else "s")
+            if absolute:
+                return core
+            return f"in {core}" if future else f"{core} ago"
+
+        # forced unit path
+        if forced:
+            sizes = {
+                "second": 1,
+                "minute": 60,
+                "hour": 3600,
+                "day": 86400,
+                "week": 7 * 86400,
+                "month": 30 * 86400,
+                "year": 365 * 86400,
+            }
+            if forced not in sizes:
+                raise ValueError("Invalid unit")
+            qty = int(seconds // sizes[forced])
+            if qty == 0:
+                qty = 1
+            return render(qty, forced)
+
+        # automatic unit with optional parts
+        units = [
+            ("year", 365 * 86400),
+            ("month", 30 * 86400),
+            ("week", 7 * 86400),
+            ("day", 86400),
+            ("hour", 3600),
+            ("minute", 60),
+            ("second", 1),
+        ]
+
+        remaining = int(seconds)
+        picked: list[tuple[str, int]] = []
+        for name, size in units:
+            if remaining <= 0:
+                break
+            qty = remaining // size
+            if qty == 0 and not picked:
+                continue
+            if qty:
+                picked.append((name, qty))
+                remaining -= qty * size
+            if len(picked) >= max(1, parts):
+                break
+
+        if not picked:
+            picked = [("second", 1)]
+
+        if parts <= 1:
+            return render(picked[0][1], picked[0][0])
+
+        if short:
+            core = ", ".join(
+                f"{qty}{ {'second':'s','minute':'m','hour':'h','day':'d','week':'w','month':'mo','year':'y'}[name] }".replace(" ", "")
+                for name, qty in picked
+            )
+        else:
+            core = ", ".join(f"{qty} {name}" + ("" if qty == 1 else "s") for name, qty in picked)
+
+        if absolute:
+            return core
+        return f"in {core}" if future else f"{core} ago"
+
+    def to_iso8601_string(self) -> str:
+        return to_iso8601(self)
+
+    def format(self, fmt: str) -> str:
+        return format_datetime(self, fmt)
+
+    # Operators
+    def __sub__(self, other):
+        if isinstance(other, _dt.timedelta):
+            return DateTime.instance(super().__sub__(other))
+        if isinstance(other, _dt.datetime):
+            td = super().__sub__(other)
+            return Duration(days=td.days, seconds=td.seconds, microseconds=td.microseconds)
+        return NotImplemented
+
+    def __add__(self, other):
+        if isinstance(other, _dt.timedelta):
+            return DateTime.instance(super().__add__(other))
+        return NotImplemented
+</file>

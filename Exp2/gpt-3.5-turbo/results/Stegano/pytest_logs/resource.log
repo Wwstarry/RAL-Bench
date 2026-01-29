@@ -1,0 +1,49 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: exercise a representative workload.
+    
+        Important:
+          - Benchmark runner (measure_generated.py) measures resource usage of pytest subprocess.
+          - This test remains a correctness-oriented smoke test.
+        """
+        assert LENNA_PNG.exists(), f"Missing sample file: {LENNA_PNG}"
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        secret = "resource secret"
+        out = REPO_ROOT / "tmp_resource.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)  # returns PIL.Image
+
+tests\Stegano\resource_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'resource secret', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(image: Image.Image, message: str, generator: Optional[Iterator[int]] = None, shift: int = 0,
+             encoding: str = "UTF-8", auto_convert_rgb: bool = False) -> Image.Image:
+        """
+        Hide a message in the least significant bits of an image.
+    
+        :param image: PIL Image to hide message in
+        :param message: message string to hide
+        :param generator: optional generator of pixel indices to use for hiding bits
+        :param shift: bit shift for LSB (0 means least significant bit)
+        :param encoding: encoding for message string
+        :param auto_convert_rgb: if True, convert image to RGB if not already
+        :return: new PIL Image with message hidden
+        """
+>       if image.mode not in ("RGB", "RGBA", "L"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:20: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/resource_test.py::test_resource_usage_smoke - AttributeE...
+1 failed in 0.44s

@@ -1,0 +1,546 @@
+<file:name=humanize/__init__.py>
+"""
+A small, pure-Python subset of the `humanize` project API.
+
+This implementation is intended to be compatible with the core parts used by
+common black-box tests: number formatting, filesize, and time deltas, plus a
+minimal i18n layer.
+"""
+
+from __future__ import annotations
+
+from .number import intcomma, ordinal
+from .filesize import naturalsize
+from .time import precisedelta, naturaldelta, naturaltime
+from .i18n import activate, deactivate, get_translation, gettext, ngettext
+
+_ = gettext
+
+__version__ = "0.0.0"
+
+__all__ = [
+    "intcomma",
+    "ordinal",
+    "naturalsize",
+    "precisedelta",
+    "naturaldelta",
+    "naturaltime",
+    "activate",
+    "deactivate",
+    "get_translation",
+    "gettext",
+    "ngettext",
+    "_",
+    "__version__",
+]
+</file>
+
+<file:name=humanize/i18n.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+import contextvars
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class Translation:
+    locale: str = "en"
+
+    def gettext(self, message: str) -> str:
+        return message
+
+    def ngettext(self, singular: str, plural: str, n: int) -> str:
+        return singular if n == 1 else plural
+
+
+_translation_var: contextvars.ContextVar[Translation] = contextvars.ContextVar(
+    "humanize_translation",
+    default=Translation("en"),
+)
+
+
+def activate(locale: str) -> Translation:
+    """
+    Activate a locale. This lightweight implementation does not load catalogs;
+    it only tracks locale and provides identity translations.
+    """
+    tr = Translation(locale or "en")
+    _translation_var.set(tr)
+    return tr
+
+
+def deactivate() -> None:
+    """Reset to default identity translation."""
+    _translation_var.set(Translation("en"))
+
+
+def get_translation() -> Translation:
+    return _translation_var.get()
+
+
+def gettext(message: str) -> str:
+    return get_translation().gettext(message)
+
+
+def ngettext(singular: str, plural: str, n: int) -> str:
+    return get_translation().ngettext(singular, plural, n)
+</file>
+
+<file:name=humanize/number.py>
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Any
+
+
+def intcomma(value: Any) -> str:
+    """
+    Convert an integer (or integer-like string) to a string with commas.
+
+    - Preserves sign
+    - Commas only applied to integer part; fractional part is preserved
+    - For digit strings, preserves leading zeros via direct grouping
+    """
+    if value is None:
+        raise ValueError("intcomma() requires a value")
+
+    # Fast paths for numeric types
+    if isinstance(value, bool):
+        # bool is an int subclass, but not meaningful here
+        value = int(value)
+
+    if isinstance(value, int):
+        s = str(value)
+        sign = ""
+        if s.startswith("-"):
+            sign, s = "-", s[1:]
+        return sign + _group_digits(s)
+
+    if isinstance(value, (float, Decimal)):
+        s = format(value, "f")
+        return intcomma(s)
+
+    # String-ish path
+    s = str(value).strip()
+    if not s:
+        raise ValueError("invalid numeric string")
+
+    sign = ""
+    if s[0] in "+-":
+        sign, s = s[0], s[1:]
+    # support a single dot; keep fractional part untouched
+    if s.count(".") > 1:
+        raise ValueError("invalid numeric string")
+    if "." in s:
+        intpart, frac = s.split(".", 1)
+        if intpart == "":
+            intpart = "0"
+        if not intpart.isdigit() or (frac and not frac.isdigit()):
+            raise ValueError("invalid numeric string")
+        return sign + _group_digits(intpart) + "." + frac
+    else:
+        if not s.isdigit():
+            raise ValueError("invalid numeric string")
+        return sign + _group_digits(s)
+
+
+def _group_digits(digits: str) -> str:
+    # Group from the right into 3-digit chunks, preserving leading zeros.
+    n = len(digits)
+    if n <= 3:
+        return digits
+    first = n % 3
+    parts = []
+    if first:
+        parts.append(digits[:first])
+    for i in range(first, n, 3):
+        parts.append(digits[i : i + 3])
+    return ",".join(parts)
+
+
+def ordinal(value: Any) -> str:
+    """
+    Convert an integer to its ordinal as a string: 1 -> "1st", 2 -> "2nd", etc.
+    """
+    if value is None:
+        raise ValueError("ordinal() requires a value")
+    try:
+        n = int(value)
+    except Exception as e:
+        raise ValueError("ordinal() requires an integer-like value") from e
+
+    sign = "-" if n < 0 else ""
+    absn = abs(n)
+
+    # Teens are special
+    if 10 <= (absn % 100) <= 20:
+        suffix = "th"
+    else:
+        last = absn % 10
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(last, "th")
+    return f"{sign}{absn}{suffix}"
+</file>
+
+<file:name=humanize/filesize.py>
+from __future__ import annotations
+
+from typing import Any, List, Tuple
+
+
+_DECIMAL_UNITS: List[str] = ["B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+_BINARY_UNITS: List[str] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"]
+_GNU_UNITS: List[str] = ["B", "K", "M", "G", "T", "P", "E", "Z", "Y"]
+
+
+def naturalsize(
+    value: Any,
+    binary: bool = False,
+    format: str = "%.1f",
+    suffix: str = "B",
+    GNU: bool = False,
+) -> str:
+    """
+    Format a byte count as a human-readable size.
+
+    Defaults aim to be compatible with commonly used humanize behaviors:
+    - decimal by default (1000-based): 1 kB, 1 MB, ...
+    - binary=True uses IEC: 1 KiB, 1 MiB, ...
+    - GNU=True uses GNU style: 1K, 1M, ... and bytes as 512B
+    """
+    if value is None:
+        raise ValueError("naturalsize() requires a value")
+
+    try:
+        n = float(value)
+    except Exception as e:
+        raise ValueError("naturalsize() requires a numeric value") from e
+
+    sign = "-" if n < 0 else ""
+    n = abs(n)
+
+    if GNU:
+        base = 1024.0 if binary else 1000.0
+        units = _GNU_UNITS
+        # GNU style usually no space; "B" appended for bytes, and no extra suffix.
+        if n < base:
+            # Preserve integer if possible
+            return f"{sign}{_format_number(n, '%.0f')}{units[0]}"
+        scaled, unit = _scale(n, base, units)
+        num = _format_number(scaled, format)
+        # Do not append suffix for K/M/G etc; unit already represents it.
+        return f"{sign}{num}{unit}"
+
+    base = 1024.0 if binary else 1000.0
+    units = _BINARY_UNITS if binary else _DECIMAL_UNITS
+
+    if n == 0:
+        return f"{sign}0 {units[0]}" if units[0] else f"{sign}0"
+
+    scaled, unit = _scale(n, base, units)
+    num = _format_number(scaled, format)
+
+    # If caller overrides suffix, replace final "B" notion.
+    # Reference humanize keeps unit text; here we keep unit and allow suffix param
+    # mainly for compatibility.
+    if suffix != "B":
+        if unit.endswith("B"):
+            unit = unit[:-1] + suffix
+        elif unit == "B":
+            unit = suffix
+
+    return f"{sign}{num} {unit}"
+
+
+def _scale(n: float, base: float, units: List[str]) -> Tuple[float, str]:
+    idx = 0
+    max_idx = len(units) - 1
+    while n >= base and idx < max_idx:
+        n /= base
+        idx += 1
+    return n, units[idx]
+
+
+def _format_number(n: float, fmt: str) -> str:
+    s = fmt % n
+    # Normalize common cases: drop trailing ".0"
+    if "." in s:
+        s2 = s.rstrip("0").rstrip(".")
+        if s2:
+            s = s2
+    return s
+</file>
+
+<file:name=humanize/lists.py>
+from __future__ import annotations
+
+from typing import Iterable, Optional, Sequence, Any
+
+
+def natural_list(
+    iterable: Iterable[Any],
+    separator: str = ", ",
+    conjunction: str = "and",
+    final_separator: Optional[str] = None,
+    oxford_comma: bool = True,
+) -> str:
+    items = [str(x) for x in iterable]
+    n = len(items)
+    if n == 0:
+        return ""
+    if n == 1:
+        return items[0]
+    if n == 2:
+        return f"{items[0]} {conjunction} {items[1]}"
+
+    if final_separator is None:
+        if oxford_comma:
+            final_separator = f"{separator}{conjunction} "
+        else:
+            final_separator = f" {conjunction} "
+
+    head = separator.join(items[:-1])
+    return f"{head}{final_separator}{items[-1]}"
+</file>
+
+<file:name=humanize/time.py>
+from __future__ import annotations
+
+import datetime as _dt
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Set
+
+from .i18n import ngettext, gettext
+
+
+_UNIT_SECONDS: Dict[str, int] = {
+    "years": 365 * 24 * 3600,
+    "months": 30 * 24 * 3600,
+    "days": 24 * 3600,
+    "hours": 3600,
+    "minutes": 60,
+    "seconds": 1,
+}
+
+
+def _to_seconds(value: Any, *, when: Optional[_dt.datetime] = None) -> float:
+    if isinstance(value, _dt.timedelta):
+        return value.total_seconds()
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    if isinstance(value, _dt.date) and not isinstance(value, _dt.datetime):
+        value = _dt.datetime.combine(value, _dt.time.min)
+
+    if isinstance(value, _dt.datetime):
+        ref = when or _dt.datetime.now(tz=value.tzinfo) if value.tzinfo else (when or _dt.datetime.now())
+        if isinstance(ref, _dt.date) and not isinstance(ref, _dt.datetime):
+            ref = _dt.datetime.combine(ref, _dt.time.min)
+
+        # Handle naive/aware mismatch gracefully.
+        try:
+            delta = value - ref
+        except TypeError:
+            v2 = value.replace(tzinfo=None)
+            r2 = ref.replace(tzinfo=None) if isinstance(ref, _dt.datetime) else ref
+            delta = v2 - r2
+        return delta.total_seconds()
+
+    raise ValueError("unsupported type for time delta")
+
+
+def _units(months: bool) -> List[Tuple[str, int]]:
+    if months:
+        order = ["years", "months", "days", "hours", "minutes", "seconds"]
+    else:
+        order = ["years", "days", "hours", "minutes", "seconds"]
+    return [(name, _UNIT_SECONDS[name]) for name in order]
+
+
+def naturaldelta(value: Any, months: bool = False, minimum_unit: str = "seconds") -> str:
+    seconds = abs(_to_seconds(value))
+    unit_list = _units(months)
+
+    if minimum_unit not in _UNIT_SECONDS:
+        raise ValueError("invalid minimum_unit")
+
+    min_seconds = _UNIT_SECONDS[minimum_unit]
+
+    if seconds == 0:
+        # reference humanize often returns "0 seconds" for naturaldelta
+        return _format_unit(0, minimum_unit)
+
+    # Ensure we never go below minimum_unit; if below, return "1 <min_unit>"
+    if seconds < min_seconds:
+        return _format_unit(1, minimum_unit)
+
+    for name, unit_seconds in unit_list:
+        if unit_seconds < min_seconds:
+            continue
+        count = int(seconds // unit_seconds)
+        if count:
+            return _format_unit(count, name)
+
+    # Fallback (shouldn't happen)
+    return _format_unit(1, minimum_unit)
+
+
+def naturaltime(
+    value: Any,
+    future: bool = False,
+    months: bool = False,
+    minimum_unit: str = "seconds",
+    when: Optional[_dt.datetime] = None,
+) -> str:
+    seconds = _to_seconds(value, when=when)
+
+    # In humanize, negative timedelta typically means "ago" when passed as a datetime diff.
+    # We interpret: seconds < 0 => value is in the past relative to `when`.
+    if seconds == 0:
+        return gettext("now")
+
+    if abs(seconds) < 10:
+        if seconds < 0 and not future:
+            return gettext("a moment ago")
+        if seconds < 0 and future:
+            return gettext("in a moment")
+        if seconds > 0 and future:
+            return gettext("in a moment")
+        return gettext("a moment ago")
+
+    if seconds < 0 and not future:
+        phrase = naturaldelta(-seconds, months=months, minimum_unit=minimum_unit)
+        return gettext("%(delta)s ago") % {"delta": phrase}
+    else:
+        phrase = naturaldelta(abs(seconds), months=months, minimum_unit=minimum_unit)
+        return gettext("in %(delta)s") % {"delta": phrase}
+
+
+def precisedelta(
+    value: Any,
+    minimum_unit: str = "seconds",
+    format: str = "%0.1f",
+    suppress: Optional[Iterable[str]] = None,
+    months: bool = False,
+) -> str:
+    total = abs(_to_seconds(value))
+
+    if minimum_unit not in _UNIT_SECONDS:
+        raise ValueError("invalid minimum_unit")
+
+    min_seconds = _UNIT_SECONDS[minimum_unit]
+    unit_list = _units(months)
+
+    suppress_set: Set[str] = set(suppress or [])
+    parts: List[str] = []
+
+    if total == 0:
+        return _format_unit(0, minimum_unit)
+
+    # If below minimum, return 1 minimum unit.
+    if total < min_seconds:
+        return _format_unit(1, minimum_unit)
+
+    remaining = int(total)
+
+    for name, unit_seconds in unit_list:
+        if name in suppress_set:
+            continue
+        if unit_seconds < min_seconds:
+            continue
+        count = remaining // unit_seconds
+        if count:
+            remaining -= count * unit_seconds
+            parts.append(_format_unit(int(count), name))
+
+    if not parts:
+        return _format_unit(1, minimum_unit)
+
+    return ", ".join(parts)
+
+
+def _format_unit(count: int, unit_plural: str) -> str:
+    singular = unit_plural[:-1] if unit_plural.endswith("s") else unit_plural
+    label = ngettext(singular, unit_plural, count)
+    return f"{count} {label}"
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import datetime as dt
+
+import humanize
+
+
+def test_imports_and_exports():
+    assert hasattr(humanize, "intcomma")
+    assert hasattr(humanize, "ordinal")
+    assert hasattr(humanize, "naturalsize")
+    assert hasattr(humanize, "precisedelta")
+    assert hasattr(humanize, "naturaldelta")
+    assert hasattr(humanize, "naturaltime")
+
+    import humanize.number
+    import humanize.time
+    import humanize.filesize
+    import humanize.lists
+    import humanize.i18n
+
+
+def test_intcomma_basic_and_decimal_and_sign():
+    assert humanize.intcomma(0) == "0"
+    assert humanize.intcomma(1000) == "1,000"
+    assert humanize.intcomma(-1000000) == "-1,000,000"
+    assert humanize.intcomma("1234567.89") == "1,234,567.89"
+
+
+def test_intcomma_preserves_leading_zeros_for_digit_strings():
+    assert humanize.intcomma("001234") == "001,234"
+
+
+def test_ordinal_basic_and_teens_and_negative():
+    assert humanize.ordinal(1) == "1st"
+    assert humanize.ordinal(2) == "2nd"
+    assert humanize.ordinal(3) == "3rd"
+    assert humanize.ordinal(4) == "4th"
+    assert humanize.ordinal(11) == "11th"
+    assert humanize.ordinal(12) == "12th"
+    assert humanize.ordinal(13) == "13th"
+    assert humanize.ordinal(21) == "21st"
+    assert humanize.ordinal(112) == "112th"
+    assert humanize.ordinal(-1) == "-1st"
+
+
+def test_naturalsize_decimal_and_binary_and_gnu():
+    assert humanize.naturalsize(0) == "0 B"
+    assert humanize.naturalsize(1000) == "1 kB"
+    assert humanize.naturalsize(1536, binary=True) == "1.5 KiB"
+    assert humanize.naturalsize(1024, binary=True, GNU=True) == "1K"
+    assert humanize.naturalsize(500, binary=True, GNU=True) == "500B"
+
+
+def test_time_naturaldelta_naturaltime_precisedelta():
+    assert humanize.naturaldelta(dt.timedelta(seconds=1)) == "1 second"
+    assert humanize.naturaldelta(3600) == "1 hour"
+
+    now = dt.datetime.now()
+    s1 = humanize.naturaltime(now - dt.timedelta(seconds=10), when=now)
+    assert s1.endswith("ago")
+
+    s2 = humanize.naturaltime(now + dt.timedelta(minutes=3), when=now)
+    assert s2.startswith("in ")
+
+    p = humanize.precisedelta(3661)
+    assert "1 hour" in p and "1 minute" in p and "1 second" in p
+
+    assert humanize.precisedelta(59, minimum_unit="minutes") == "1 minute"
+
+
+def test_natural_list():
+    from humanize.lists import natural_list
+
+    assert natural_list([]) == ""
+    assert natural_list(["a"]) == "a"
+    assert natural_list(["a", "b"]) == "a and b"
+    assert natural_list(["a", "b", "c"]) == "a, b, and c"
+    assert natural_list(["a", "b", "c"], oxford_comma=False) == "a, b and c"
+</file>

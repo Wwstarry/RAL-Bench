@@ -1,0 +1,36 @@
+MAINT_METRICS mi_min=0.0000 files_scanned=0.0 total_loc=0.0 max_cc=0.0
+F
+================================== FAILURES ===================================
+_____________________ test_maintainability_metrics_smoke ______________________
+
+    def test_maintainability_metrics_smoke() -> None:
+        root = _repo_root()
+    
+        # Optionally focus on a package subdir if provided and exists; otherwise scan repo root.
+        pkg = os.environ.get(PKG_NAME_ENV, "").strip()
+        scan_root = root
+        if pkg:
+            cand = root / pkg
+            if cand.exists() and cand.is_dir():
+                scan_root = cand
+    
+        files, summary = _scan_repo(scan_root)
+    
+        # Print in a single line for easy parsing by measure_reference/measure_generated
+        print(
+            "MAINT_METRICS "
+            f"mi_min={summary['mi_min']:.4f} "
+            f"files_scanned={summary['files_scanned']:.1f} "
+            f"total_loc={summary['total_loc']:.1f} "
+            f"max_cc={summary['max_cc']:.1f}"
+        )
+    
+        # Keep as a smoke test: must scan at least one python file in real repos.
+>       assert summary["files_scanned"] >= 1.0, f"No python files scanned under: {scan_root}"
+E       AssertionError: No python files scanned under: D:\桌面\RealAppCodeBench_generic_eval\generation\Pendulum
+E       assert 0.0 >= 1.0
+
+tests\_generic\maintainability_test.py:380: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/_generic/maintainability_test.py::test_maintainability_metrics_smoke
+1 failed in 0.41s

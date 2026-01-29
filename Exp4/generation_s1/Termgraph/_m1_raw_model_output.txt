@@ -1,0 +1,681 @@
+<file:name=termgraph/__init__.py>
+"""
+A small, pure-Python terminal charting library providing a subset of the
+reference termgraph project's core public API.
+
+Public API:
+- Data
+- Args
+- BarChart
+- StackedChart
+"""
+
+from .data import Data
+from .args import Args
+from .charts import BarChart, StackedChart
+
+__all__ = ["Data", "Args", "BarChart", "StackedChart"]
+
+__version__ = "0.1.0"
+</file>
+
+<file:name=termgraph/data.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable, List, Optional, Sequence, Tuple, Union
+
+
+Number = Union[int, float]
+
+
+def _is_number(x) -> bool:
+    # Accept int/float and "number-like" objects (Decimal, numpy scalars) as long
+    # as they can be converted to float.
+    try:
+        float(x)
+        return True
+    except Exception:
+        return False
+
+
+def _transpose(series_major: Sequence[Sequence[Number]]) -> List[List[Number]]:
+    # series_major: n_series x n_rows -> row_major: n_rows x n_series
+    if not series_major:
+        return []
+    n_rows = len(series_major[0])
+    n_series = len(series_major)
+    out: List[List[Number]] = []
+    for i in range(n_rows):
+        row = []
+        for j in range(n_series):
+            row.append(series_major[j][i])
+        out.append(row)
+    return out
+
+
+@dataclass
+class Data:
+    """
+    Holds chart data.
+
+    labels: list of row labels (one per bar group / row)
+    values: numeric data; accepted shapes:
+      - row-major: len(values) == len(labels), each row has n_series numbers
+      - series-major: len(values) == n_series, each series has len(labels) numbers
+        (will be transposed to row-major internally)
+    categories: optional list of series names
+    """
+
+    labels: List[str]
+    values: List[List[Number]]
+    categories: Optional[List[str]] = None
+
+    def __init__(
+        self,
+        labels: Sequence[str],
+        values: Sequence[Sequence[Number]],
+        categories: Optional[Sequence[str]] = None,
+    ):
+        self.labels = list(labels)
+
+        # Normalize values to list[list[number]] row-major.
+        vals = [list(v) for v in values] if values is not None else []
+        self.values = self._normalize_values(self.labels, vals)
+
+        self.categories = list(categories) if categories is not None else None
+
+        # Basic sanity for categories length (do not raise hard; keep permissive)
+        if self.categories is not None and self.n_series and len(self.categories) != self.n_series:
+            # Truncate or pad with generic names
+            if len(self.categories) > self.n_series:
+                self.categories = self.categories[: self.n_series]
+            else:
+                self.categories = self.categories + [f"series{idx+1}" for idx in range(len(self.categories), self.n_series)]
+
+    @staticmethod
+    def _normalize_values(labels: List[str], vals: List[List[Number]]) -> List[List[Number]]:
+        if not labels:
+            # With no labels, accept any vals but keep empty (no rows to draw).
+            return []
+
+        n_labels = len(labels)
+
+        if vals == []:
+            return [[] for _ in range(n_labels)]
+
+        # Heuristic shape detection:
+        # - If len(vals) == n_labels: assume row-major.
+        # - Else if all series lengths match n_labels: assume series-major.
+        if len(vals) == n_labels:
+            row_major = vals
+        else:
+            if all(isinstance(s, (list, tuple)) and len(s) == n_labels for s in vals):
+                row_major = _transpose(vals)
+            else:
+                raise ValueError(
+                    "values shape not understood; expected row-major (len(values)==len(labels)) "
+                    "or series-major (each series len == len(labels))"
+                )
+
+        # Validate rectangularity and numeric-like contents.
+        # Determine n_series as max row length; then require all rows same length.
+        n_series = 0
+        for r in row_major:
+            n_series = max(n_series, len(r))
+        for idx, r in enumerate(row_major):
+            if len(r) != n_series:
+                raise ValueError("values must be rectangular (each row must have the same number of series)")
+            for x in r:
+                if not _is_number(x):
+                    raise ValueError(f"non-numeric value at row {idx}: {x!r}")
+
+        return row_major
+
+    @property
+    def n_rows(self) -> int:
+        return len(self.labels)
+
+    @property
+    def n_series(self) -> int:
+        if not self.values:
+            return 0
+        # values are normalized to rectangular, so length of first row is n_series
+        return len(self.values[0]) if self.values[0] is not None else 0
+</file>
+
+<file:name=termgraph/args.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import List, Optional, Sequence
+
+
+@dataclass
+class Args:
+    """
+    Rendering options container compatible with the subset used by tests.
+    """
+
+    width: int = 50
+    stacked: bool = False
+    different_scale: bool = False
+    no_labels: bool = False
+    format: str = "{:.2f}"
+    suffix: str = ""
+    vertical: bool = False
+    histogram: bool = False
+    no_values: bool = False
+    color: Optional[List[str]] = None
+    labels: Optional[List[str]] = None
+    title: Optional[str] = None
+
+    def __init__(
+        self,
+        width: int = 50,
+        stacked: bool = False,
+        different_scale: bool = False,
+        no_labels: bool = False,
+        format: str = "{:.2f}",
+        suffix: str = "",
+        vertical: bool = False,
+        histogram: bool = False,
+        no_values: bool = False,
+        color=None,
+        labels=None,
+        title: Optional[str] = None,
+    ):
+        self.width = int(width) if width is not None else 50
+        if self.width < 1:
+            self.width = 1
+
+        self.stacked = bool(stacked)
+        self.different_scale = bool(different_scale)
+        self.no_labels = bool(no_labels)
+        self.format = format if format is not None else "{:.2f}"
+        self.suffix = suffix if suffix is not None else ""
+        self.vertical = bool(vertical)
+        self.histogram = bool(histogram)
+        self.no_values = bool(no_values)
+
+        # Accept None, empty list, or string "None" etc.
+        if color in (None, "", [], (), "None", "none", False):
+            self.color = None
+        else:
+            self.color = list(color) if isinstance(color, (list, tuple)) else [str(color)]
+
+        self.labels = list(labels) if labels is not None else None
+        self.title = title
+</file>
+
+<file:name=termgraph/charts.py>
+from __future__ import annotations
+
+import sys
+from typing import List, Optional, Sequence, Tuple
+
+from .args import Args
+from .data import Data
+
+
+_COLOR_MAP = {
+    "black": 30,
+    "red": 31,
+    "green": 32,
+    "yellow": 33,
+    "blue": 34,
+    "magenta": 35,
+    "purple": 35,
+    "cyan": 36,
+    "white": 37,
+    "gray": 90,
+    "grey": 90,
+}
+
+
+def _ansi(code: int) -> str:
+    return f"\x1b[{code}m"
+
+
+def _ansi_reset() -> str:
+    return "\x1b[0m"
+
+
+def _color_code(token: str) -> Optional[int]:
+    if token is None:
+        return None
+    t = str(token).strip().lower()
+    if not t:
+        return None
+    if t.isdigit():
+        n = int(t)
+        if 30 <= n <= 37 or 90 <= n <= 97:
+            return n
+        # Common "1-7" mapping (termgraph-ish)
+        if 1 <= n <= 7:
+            return 30 + n
+        return None
+    return _COLOR_MAP.get(t)
+
+
+class BaseChart:
+    BAR_CHAR = "#"
+
+    def __init__(self, data: Data, args: Args):
+        if not isinstance(data, Data):
+            raise TypeError("data must be a termgraph.Data instance")
+        if not isinstance(args, Args):
+            raise TypeError("args must be a termgraph.Args instance")
+        self.data = data
+        self.args = args
+
+    def _effective_labels(self) -> List[str]:
+        if self.args.labels is not None:
+            return list(self.args.labels)
+        return list(self.data.labels)
+
+    def _format_value(self, v) -> str:
+        fmt = self.args.format
+        try:
+            if isinstance(fmt, str) and "{" in fmt:
+                s = fmt.format(v)
+            else:
+                spec = fmt if isinstance(fmt, str) else ""
+                s = ("{:" + spec + "}").format(v)
+        except Exception:
+            s = str(v)
+        return s + (self.args.suffix or "")
+
+    def _write_line(self, s: str) -> None:
+        sys.stdout.write(s.rstrip() + "\n")
+
+    def _colorize(self, s: str, series_idx: int) -> str:
+        colors = self.args.color
+        if not colors:
+            return s
+        token = colors[series_idx % len(colors)]
+        code = _color_code(token)
+        if code is None:
+            return s
+        return _ansi(code) + s + _ansi_reset()
+
+    @staticmethod
+    def _clamp_nonneg(x: float) -> float:
+        return x if x > 0 else 0.0
+
+    def _bar_len(self, value: float, max_value: float) -> int:
+        w = int(self.args.width)
+        if w <= 0:
+            return 0
+        if max_value <= 0:
+            return 0
+        r = w * (self._clamp_nonneg(value) / max_value)
+        n = int(round(r))
+        if n < 0:
+            n = 0
+        if n > w:
+            n = w
+        return n
+
+
+class BarChart(BaseChart):
+    def draw(self) -> None:
+        # Vertical/histogram flags exist; for compatibility, render horizontally.
+        labels = self._effective_labels()
+        values = self.data.values
+
+        if self.args.title:
+            self._write_line(str(self.args.title))
+
+        if not labels or not values:
+            return
+
+        n_rows = min(len(labels), len(values))
+        n_series = self.data.n_series
+
+        # Compute scale(s)
+        if self.args.different_scale and n_series > 0:
+            series_max = [0.0 for _ in range(n_series)]
+            for i in range(n_rows):
+                for j in range(n_series):
+                    try:
+                        fv = float(values[i][j])
+                    except Exception:
+                        fv = 0.0
+                    if fv > series_max[j]:
+                        series_max[j] = fv
+        else:
+            gmax = 0.0
+            for i in range(n_rows):
+                for j in range(n_series):
+                    try:
+                        fv = float(values[i][j])
+                    except Exception:
+                        fv = 0.0
+                    if fv > gmax:
+                        gmax = fv
+            series_max = [gmax for _ in range(n_series)]
+
+        for i in range(n_rows):
+            lab = labels[i]
+            row = values[i]
+
+            if n_series <= 1:
+                v = row[0] if row else 0
+                try:
+                    fv = float(v)
+                except Exception:
+                    fv = 0.0
+                blen = self._bar_len(fv, series_max[0] if series_max else 0.0)
+                bar = self.BAR_CHAR * blen
+                bar = self._colorize(bar, 0)
+                parts = []
+                if not self.args.no_labels:
+                    parts.append(f"{lab}: ")
+                parts.append(bar)
+                if not self.args.no_values:
+                    parts.append(" " + self._format_value(v))
+                self._write_line("".join(parts))
+            else:
+                # Multi-series: one line per series, label only on first line
+                for j in range(n_series):
+                    v = row[j]
+                    try:
+                        fv = float(v)
+                    except Exception:
+                        fv = 0.0
+                    blen = self._bar_len(fv, series_max[j])
+                    bar = self.BAR_CHAR * blen
+                    bar = self._colorize(bar, j)
+                    parts = []
+                    if not self.args.no_labels:
+                        if j == 0:
+                            parts.append(f"{lab}: ")
+                        else:
+                            parts.append(" " * (len(lab) + 2))
+                    parts.append(bar)
+                    if not self.args.no_values:
+                        parts.append(" " + self._format_value(v))
+                    self._write_line("".join(parts))
+
+
+class StackedChart(BaseChart):
+    def _row_total(self, row: Sequence) -> float:
+        s = 0.0
+        for v in row:
+            try:
+                fv = float(v)
+            except Exception:
+                fv = 0.0
+            if fv > 0:
+                s += fv
+        return s
+
+    def _segment_lengths_exact(self, row: Sequence, row_len: int) -> List[int]:
+        # Largest remainder method: ensure sum(lengths) == row_len.
+        floats: List[float] = []
+        for v in row:
+            try:
+                fv = float(v)
+            except Exception:
+                fv = 0.0
+            floats.append(self._clamp_nonneg(fv))
+
+        total = sum(floats)
+        if row_len <= 0 or total <= 0:
+            return [0 for _ in floats]
+
+        raw = [row_len * (x / total) for x in floats]
+        base = [int(r // 1) for r in raw]
+        rem = row_len - sum(base)
+        fracs = sorted([(raw[i] - base[i], i) for i in range(len(raw))], reverse=True)
+        for k in range(rem):
+            if not fracs:
+                break
+            _, idx = fracs[k % len(fracs)]
+            base[idx] += 1
+        return base
+
+    def draw(self) -> None:
+        labels = self._effective_labels()
+        values = self.data.values
+
+        if self.args.title:
+            self._write_line(str(self.args.title))
+
+        if not labels or not values:
+            return
+
+        n_rows = min(len(labels), len(values))
+        n_series = self.data.n_series
+
+        # Scale by max total per row.
+        max_total = 0.0
+        for i in range(n_rows):
+            t = self._row_total(values[i])
+            if t > max_total:
+                max_total = t
+
+        for i in range(n_rows):
+            lab = labels[i]
+            row = values[i]
+            row_total = self._row_total(row)
+
+            row_len = self._bar_len(row_total, max_total)
+            seg_lens = self._segment_lengths_exact(row, row_len)
+
+            segments: List[str] = []
+            for j, seg in enumerate(seg_lens[:n_series]):
+                s = self.BAR_CHAR * seg
+                s = self._colorize(s, j)
+                segments.append(s)
+
+            bar = "".join(segments)
+            parts: List[str] = []
+            if not self.args.no_labels:
+                parts.append(f"{lab}: ")
+            parts.append(bar)
+
+            if not self.args.no_values:
+                # Print total for stacked charts (simple, stable)
+                parts.append(" " + self._format_value(row_total))
+
+            self._write_line("".join(parts))
+</file>
+
+<file:name=termgraph/cli.py>
+from __future__ import annotations
+
+import argparse
+import sys
+from typing import List, Optional
+
+from .args import Args
+from .charts import BarChart, StackedChart
+from .data import Data
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(prog="termgraph", add_help=True)
+    p.add_argument("--width", type=int, default=50)
+    p.add_argument("--stacked", action="store_true")
+    p.add_argument("--different-scale", action="store_true")
+    p.add_argument("--no-labels", action="store_true")
+    p.add_argument("--no-values", action="store_true")
+    p.add_argument("--format", dest="format", default="{:.2f}")
+    p.add_argument("--suffix", default="")
+    p.add_argument("--title", default=None)
+    p.add_argument("--color", nargs="*", default=None)
+    p.add_argument("labels", nargs="*", help="Labels (space separated). Values read from stdin as rows of numbers.")
+
+    ns = p.parse_args(argv)
+
+    # Minimal stdin parsing: whitespace-separated rows, each row is a series list for one label.
+    raw = sys.stdin.read().strip()
+    rows: List[List[float]] = []
+    if raw:
+        for line in raw.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            rows.append([float(tok) for tok in line.split()])
+
+    labels = ns.labels if ns.labels else [str(i + 1) for i in range(len(rows))]
+    data = Data(labels=labels, values=rows)
+
+    args = Args(
+        width=ns.width,
+        stacked=ns.stacked,
+        different_scale=ns.different_scale,
+        no_labels=ns.no_labels,
+        no_values=ns.no_values,
+        format=ns.format,
+        suffix=ns.suffix,
+        title=ns.title,
+        color=ns.color,
+    )
+
+    chart = StackedChart(data, args) if ns.stacked else BarChart(data, args)
+    chart.draw()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import re
+import termgraph
+
+
+def test_public_api_importable():
+    assert hasattr(termgraph, "Data")
+    assert hasattr(termgraph, "Args")
+    assert hasattr(termgraph, "BarChart")
+    assert hasattr(termgraph, "StackedChart")
+
+
+def test_data_normalization_row_major():
+    d = termgraph.Data(labels=["a", "b", "c"], values=[[1, 2], [3, 4], [5, 6]])
+    assert d.n_rows == 3
+    assert d.n_series == 2
+    assert d.values == [[1, 2], [3, 4], [5, 6]]
+
+
+def test_data_normalization_series_major_transpose():
+    d = termgraph.Data(labels=["a", "b", "c"], values=[[1, 3, 5], [2, 4, 6]])
+    assert d.values == [[1, 2], [3, 4], [5, 6]]
+    assert d.n_series == 2
+
+
+def test_data_invalid_shape_raises():
+    try:
+        termgraph.Data(labels=["a", "b"], values=[[1, 2, 3]])
+    except ValueError as e:
+        assert "shape" in str(e) or "rectangular" in str(e)
+    else:
+        raise AssertionError("Expected ValueError")
+</file>
+
+<file:name=_agent_tests/test_agent_rendering.py>
+import re
+
+import termgraph
+
+
+def _out(capsys):
+    return capsys.readouterr().out
+
+
+def test_formatting_brace_style_and_suffix(capsys):
+    d = termgraph.Data(labels=["x"], values=[[1.234]])
+    a = termgraph.Args(width=10, format="{:.1f}", suffix="%")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys)
+    assert "1.2%" in o
+
+
+def test_formatting_format_spec_style(capsys):
+    d = termgraph.Data(labels=["x"], values=[[1.234]])
+    a = termgraph.Args(width=10, format=".2f")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys)
+    assert "1.23" in o
+
+
+def test_barchart_scaling_single_series_width(capsys):
+    d = termgraph.Data(labels=["a", "b"], values=[[5], [0]])
+    a = termgraph.Args(width=10, format="{:.0f}", suffix="")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys).splitlines()
+    assert "#" * 10 in o[0]
+    # Second line should not contain a long bar
+    assert re.search(r"b:\s*(#*)\s+0", o[1])
+    m = re.search(r"b:\s*(#*)\s+0", o[1])
+    assert m and len(m.group(1)) == 0
+
+
+def test_barchart_different_scale_multi_series(capsys):
+    # series0 max=10, series1 max=100
+    d = termgraph.Data(labels=["a"], values=[[10, 100]])
+    a = termgraph.Args(width=8, different_scale=True, format="{:.0f}")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys).splitlines()
+    # Two lines (one per series)
+    assert len(o) == 2
+    # Each should reach full width because each at its own max
+    assert "#" * 8 in o[0]
+    assert "#" * 8 in o[1]
+
+
+def test_stackedchart_scaling_and_segment_sum(capsys):
+    d = termgraph.Data(labels=["r1", "r2"], values=[[1, 2], [2, 4]])
+    a = termgraph.Args(width=12, format="{:.0f}")
+    termgraph.StackedChart(d, a).draw()
+    lines = _out(capsys).splitlines()
+    # totals are 3 and 6; second should have full width, first about half
+    assert lines[1].startswith("r2:")
+    # extract bar length between "r2: " and trailing space before value
+    m2 = re.search(r"^r2:\s*(#+)\s+6", lines[1])
+    assert m2, lines[1]
+    assert len(m2.group(1)) == 12
+
+    m1 = re.search(r"^r1:\s*(#+)\s+3", lines[0])
+    assert m1, lines[0]
+    assert 5 <= len(m1.group(1)) <= 7  # ~6 with rounding
+
+
+def test_no_labels_and_no_values_flags(capsys):
+    d = termgraph.Data(labels=["a"], values=[[3]])
+    a = termgraph.Args(width=5, no_labels=True, no_values=True)
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys).strip()
+    assert "a:" not in o
+    assert re.fullmatch(r"#+", o) is not None
+
+
+def test_title_prints_first_line(capsys):
+    d = termgraph.Data(labels=["a"], values=[[1]])
+    a = termgraph.Args(width=3, title="My Title", format="{:.0f}")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys).splitlines()
+    assert o[0] == "My Title"
+    assert o[1].startswith("a:")
+
+
+def test_color_off_by_default_no_ansi(capsys):
+    d = termgraph.Data(labels=["a"], values=[[1]])
+    a = termgraph.Args(width=3, format="{:.0f}")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys)
+    assert "\x1b[" not in o
+
+
+def test_color_on_emits_ansi(capsys):
+    d = termgraph.Data(labels=["a"], values=[[1]])
+    a = termgraph.Args(width=3, color=["red"], format="{:.0f}")
+    termgraph.BarChart(d, a).draw()
+    o = _out(capsys)
+    assert "\x1b[" in o
+</file>

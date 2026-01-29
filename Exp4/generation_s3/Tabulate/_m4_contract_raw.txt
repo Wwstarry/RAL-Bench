@@ -1,0 +1,175 @@
+<contract>
+1) Repository layout
+- Package: tabulate/
+  - tabulate/__init__.py
+    - Re-export public API (tabulate, simple_separated_format, table formats mapping, __all__)
+    - Define __version__ (string; any value acceptable unless tests assert presence)
+  - tabulate/core.py
+    - Core implementation of tabulate() and helpers (normalization, alignment, width calc, multiline handling, rendering)
+  - tabulate/formats.py
+    - Definitions for built-in table formats (plain, grid, pipe, tsv/csv-like, html-like)
+    - simple_separated_format() implementation and format registry
+  - tabulate/cli.py
+    - Minimal CLI entrypoint compatible with basic `python -m tabulate` or console usage if tests import it (must not crash on import)
+
+2) Public API surface
+- Module: tabulate (top-level package namespace)
+  - Function: tabulate(tabular_data, headers=(), tablefmt="simple", floatfmt="g",
+                      numalign="decimal", stralign="left", missingval="",
+                      showindex="default", disable_numparse=False,
+                      colalign=None, maxcolwidths=None) -> str
+    - Signature must accept these keyword args (even if some are partially implemented).
+    - Must accept tablefmt as string key into registry or as a TableFormat-like object from formats.py.
+  - Function: simple_separated_format(sep="\t") -> object
+    - Returns a table format object usable as tablefmt in tabulate().
+  - Constants/registries:
+    - tabulate.tabulate_formats: iterable of available format names (list/tuple)
+    - tabulate._table_formats or tabulate.formats: mapping name -> format object (name-based lookup)
+    - Preset formats exposed/registered at least: "plain", "grid", "pipe", "tsv", "csv", "html", plus a default "simple" if used internally.
+- Module: tabulate.formats
+  - Function: simple_separated_format(sep="\t") -> TableFormat
+  - Data: table_formats (dict[str, TableFormat]) containing required preset formats.
+  - Types (implementation detail but must exist if referenced):
+    - class/structure TableFormat with fields for:
+      - lineabove, linebelow, linebetweenrows, linebelowheader (either None or Line)
+      - headerrow, datarow (Row template)
+      - padding (int; default 0 or 1 depending on format)
+      - with_header_hide (optional)
+    - class/structure Line with fields for:
+      - begin, hline, sep, end
+    - class/structure Row with fields for:
+      - begin, sep, end
+- Module: tabulate.core
+  - Function: tabulate(...) -> str (same as top-level)
+  - Internal helpers (names not enforced except if tests import them; prefer to keep private):
+    - _normalize_tabular_data
+    - _is_number, _to_str, _wrap_text, _split_multiline, _compute_widths
+- Module: tabulate.cli
+  - Function: main(argv=None) -> int
+  - On import: must be side-effect free (no parsing sys.argv automatically)
+
+3) Behavioral contract
+3.1 Input data normalization
+- Accept tabular_data as:
+  a) list/tuple of rows where each row is list/tuple/iterable of cell values
+  b) dict mapping column name -> column values (list-like); interpret keys as headers and values as columns; transpose to rows; missing shorter columns treated as missingval
+  c) list of dicts: union of keys across dicts determines columns (stable order: if headers provided explicitly use that; else preserve first-seen key order across rows); missing keys use missingval
+  d) single dict: same as dict-of-columns? Treat as one row with keys as headers and dict values as row values (common tabulate behavior). If ambiguity arises, prefer single-row dict (headers are keys, one row of values).
+- For other iterables (e.g., generator): consume once into list.
+- If tabular_data is empty:
+  - If headers is empty/(): return "" (empty string)
+  - If headers provided: return header-only rendering consistent with format (header line(s) and optional border lines).
+- Headers argument:
+  - headers=() means no headers unless inferred.
+  - headers="keys" means infer from dict keys / list-of-dicts keys / dict keys. For list-of-lists, "keys" yields no headers.
+  - headers as list/tuple provides explicit header labels; must align with number of columns; if fewer, pad with "" to match; if more, extend data with missingval cells.
+- showindex:
+  - "default": no index column.
+  - True: add a leading index column starting at 0.
+  - False: no index.
+  - "always": same as True.
+  - showindex as iterable: use provided index labels per row; if shorter pad with "".
+  - If index column added, headers should include index header: if headers provided, prepend "" unless headers already include index label via showindex being a string (optional simplification: always prepend "").
+- missingval:
+  - Used when a cell is missing due to ragged rows, missing dict key, or column mismatch.
+
+3.2 Cell stringification and numeric parsing
+- Convert None to missingval (not "None"), consistent with common tabulate usage.
+- By default attempt numeric parsing for alignment:
+  - A cell is numeric if it is int/float/Decimal or a string that can be parsed as a number (simple float conversion) unless disable_numparse=True.
+  - Keep original string rendering (do not reformat numeric strings), except for float types where floatfmt applies.
+- floatfmt:
+  - If floatfmt is a format spec like "g", ".2f", etc., apply to float values (Python format: format(x, floatfmt) if floatfmt does not include braces; accept also floatfmt like "{:.2f}" by detecting "{" and using format string).
+  - For non-float numeric types (int, Decimal), render via str().
+- Ensure mixed numeric and string types render without exception.
+
+3.3 Multiline cells
+- If a cell string contains "\n", treat it as multiple physical lines.
+- Row height is max number of lines among its cells.
+- Render each row as multiple output lines: for each physical line i, each cell contributes its i-th line or "" if shorter.
+- Column widths computed based on maximum visible line width among all lines in that column across all rows including header.
+- For formats with borders, borders apply around the whole logical row; linebetweenrows occurs between logical rows (not between wrapped lines).
+
+3.4 Column width calculation and padding
+- Compute display width as len(s) (ASCII-only assumption; no wcwidth dependency).
+- Apply padding according to table format: for most formats padding=1 (space around content) except plain/tsv/csv where padding=0.
+- maxcolwidths:
+  - If None: no wrapping.
+  - If int: cap all columns; wrap long cell content (word-wrap on spaces if possible; otherwise hard wrap) to fit.
+  - If dict/list: per-column caps; unspecified columns uncapped.
+- Wrapping must preserve existing newlines first, then wrap each line.
+
+3.5 Alignment
+- Determine per-column alignment:
+  - If colalign provided: list/tuple of align strings per column: "left", "right", "center", "decimal".
+  - Else: numeric columns use numalign; others use stralign.
+- Implement:
+  - left: pad right
+  - right: pad left
+  - center: distribute spaces left/right (left gets floor)
+  - decimal: align on decimal point:
+    - Determine max position of decimal point among numeric strings in the column; numbers without decimal treated as decimal at end.
+    - Left-pad so decimal points line up; then right-pad to column width.
+    - If column has no numeric values, fall back to right or left (choose right).
+- Alignment applies to each physical line of a multiline cell independently, but decimal alignment should only apply to lines that are numeric; non-numeric lines in decimal columns right-align.
+
+3.6 Table formats and rendering
+- A table format is defined by:
+  - Optional border lines: lineabove, linebelow, linebelowheader, linebetweenrows
+  - Row templates: headerrow and datarow with begin/sep/end strings
+  - For formats without borders, line* can be None.
+- Required preset formats (names must exist in registry):
+  - "plain": no borders; datarow uses single space separator; no padding (or minimal) consistent with common plain output; no header underline unless tests expect none.
+  - "simple": (default if tests use it) header underline of dashes; similar to tabulate’s “simple”: header row separated by spaces, then a dashed line.
+  - "grid": ASCII box grid with +---+ separators; borders on all sides and between rows; header separated by a grid line.
+  - "pipe": Markdown pipe table with leading/trailing pipes; header separator row of dashes with colons reflecting alignment (at minimum dashes; optional colons).
+  - "tsv": tab-separated values, no borders, no padding, raw cells separated by "\t".
+  - "csv": comma-separated values, no borders, no padding, raw cells separated by ","; no quoting requirements unless tests cover basic commas; minimum: join with comma.
+  - "html": basic HTML table:
+    - Output includes <table>, <thead>/<tbody> optional (can be simplified), <tr>, <th> for headers, <td> for data.
+    - Escape &, <, > in cell content.
+    - Preserve multiline by replacing "\n" with "<br/>" (acceptable) or separate lines inside cell.
+- simple_separated_format(sep):
+  - Returns a format that joins columns by sep, no borders, no padding.
+- Rendering rules:
+  - Always produce a trailing newline? Default tabulate typically returns string without trailing newline. Contract: return without trailing newline.
+  - If headers exist, render header row first (with header styling in format), followed by linebelowheader if defined.
+  - For empty data but with headers: still render headers and header separator/borders appropriate to format.
+  - Ensure consistent column count across all rows after normalization.
+
+3.7 Error handling
+- tabulate() must not raise for:
+  - ragged rows: fill missing cells with missingval; truncate extras only if headers explicitly shorter? Preferred: expand columns to max row length.
+  - non-stringable objects: use str(obj) guarded by exception; if str fails, use repr(obj).
+- Raise TypeError only for clearly invalid inputs (e.g., tabular_data is None and headers not provided) if unavoidable; prefer graceful empty output.
+
+4) Acceptance checklist
+- Imports:
+  - `import tabulate` works.
+  - `from tabulate import tabulate, simple_separated_format` works.
+  - `import tabulate.formats` exposes `table_formats` with required names.
+- Core formatting:
+  - Lists of lists render with correct column spacing, padding, and alignment.
+  - Dict and list-of-dicts render with stable column order and missing values filled.
+  - Mixed numeric/string columns align numerics per numalign and strings per stralign.
+  - Decimal alignment aligns on decimal point for numeric-looking cells.
+- Multiline:
+  - Cells containing "\n" increase row height and render as multiple physical lines with proper alignment and borders.
+- Widths/wrapping:
+  - Column widths reflect maximum of header/data (including multiline lines).
+  - maxcolwidths caps widths and wraps content deterministically.
+- Formats:
+  - "plain", "simple", "grid", "pipe", "tsv", "csv", "html" all produce non-empty, structurally correct output and match snapshot expectations closely (borders, separators, header separators).
+  - simple_separated_format("\t") matches "tsv" behavior.
+- No trailing whitespace explosion:
+  - Lines may have trailing spaces only if required by borders; prefer stripping end spaces for borderless formats.
+- No trailing newline:
+  - Returned string should not end with "\n" unless tests explicitly expect it; default: no trailing newline.
+
+5) Non-goals / constraints
+- Pure Python only; no third-party dependencies (no wcwidth).
+- Full parity with upstream tabulate is not required; only core behavior needed for black-box snapshot tests.
+- No ANSI coloring, fancy unicode width calculations, localized number formatting, or advanced CSV quoting unless tests demand it.
+- CLI does not need full feature set; must exist and be importable, with a minimal main().
+- Avoid external I/O in core functions; tabulate() should be deterministic and side-effect free.
+</contract>

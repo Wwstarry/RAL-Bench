@@ -1,0 +1,255 @@
+project_name: Petl
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Petl\petl.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Petl
+timestamp: '2026-01-02 07:51:27'
+functional_score: 0.25
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.ss.FsFsss                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_fromdicts_addfield_and_select ______________________\n\
+      \n    def test_fromdicts_addfield_and_select() -> None:\n        \"\"\"Validate\
+      \ fromdicts, addfield, and select with a small in-memory table.\"\"\"\n    \
+      \    records = [\n            {\"id\": 1, \"value\": 10},\n            {\"id\"\
+      : 2, \"value\": 20},\n            {\"id\": 3, \"value\": 30},\n            {\"\
+      id\": 4, \"value\": 40},\n        ]\n        table = petl.fromdicts(records,\
+      \ header=[\"id\", \"value\"])\n    \n        table = petl.addfield(table, \"\
+      double\", lambda rec: int(rec[\"value\"]) * 2)\n        table = petl.select(table,\
+      \ lambda rec: int(rec[\"double\"]) >= 60)\n    \n>       result = _table_to_list_of_dicts(table)\n\
+      \ntests\\Petl\\functional_test.py:168: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Petl\\functional_test.py:87:\
+      \ in _table_to_list_of_dicts\n    for row in iterator:\ngeneration\\Petl\\petl\\\
+      transform\\selects.py:17: in __iter__\n    for row in it:\ngeneration\\Petl\\\
+      petl\\transform\\conversions.py:63: in __iter__\n    val = self.func(row)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nrec = [1, 10]\n\n>   table = petl.addfield(table, \"double\", lambda\
+      \ rec: int(rec[\"value\"]) * 2)\nE   TypeError: list indices must be integers\
+      \ or slices, not str\n\ntests\\Petl\\functional_test.py:165: TypeError\n_____________________\
+      \ test_sort_descending_orders_values ______________________\n\n    def test_sort_descending_orders_values()\
+      \ -> None:\n        \"\"\"Sort descending by a numeric field.\"\"\"\n      \
+      \  _require_attr(\"sort\")\n    \n        records = [\n            {\"name\"\
+      : \"A\", \"score\": 10},\n            {\"name\": \"B\", \"score\": 30},\n  \
+      \          {\"name\": \"C\", \"score\": 20},\n        ]\n        table = petl.fromdicts(records,\
+      \ header=[\"name\", \"score\"])\n    \n        # petl.sort supports reverse=True\
+      \ in typical implementations.\n>       sorted_tbl = petl.sort(table, \"score\"\
+      , reverse=True)\nE       TypeError: sort() got an unexpected keyword argument\
+      \ 'reverse'\n\ntests\\Petl\\functional_test.py:278: TypeError\n___________________\
+      \ test_tocsv_then_fromcsv_preserves_data ____________________\n\ntmp_path =\
+      \ WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-485/test_tocsv_then_fromcsv_preser0')\n\
+      \n    def test_tocsv_then_fromcsv_preserves_data(tmp_path: Path) -> None:\n\
+      \        \"\"\"Write a table to CSV and read it back, verifying header and row\
+      \ content.\"\"\"\n        src = tmp_path / \"roundtrip.csv\"\n    \n       \
+      \ table = petl.fromdicts(\n            [{\"a\": 1, \"b\": \"x\"}, {\"a\": 2,\
+      \ \"b\": \"y\"}],\n            header=[\"a\", \"b\"],\n        )\n        petl.tocsv(table,\
+      \ str(src))\n        assert src.exists()\n    \n        table2 = petl.fromcsv(str(src))\n\
+      \        rows = list(table2)\n    \n>       assert rows[0] == (\"a\", \"b\"\
+      )\nE       AssertionError: assert ['a', 'b'] == ('a', 'b')\nE         \nE  \
+      \       Use -v to get more diff\n\ntests\\Petl\\functional_test.py:330: AssertionError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Petl/functional_test.py::test_fromdicts_addfield_and_select - Ty...\n\
+      FAILED tests/Petl/functional_test.py::test_sort_descending_orders_values - Ty...\n\
+      FAILED tests/Petl/functional_test.py::test_tocsv_then_fromcsv_preserves_data\n\
+      3 failed, 3 passed, 6 skipped in 0.64s\n"
+    elapsed_time_s: 2.011067
+    avg_memory_mb: 32.09
+    avg_cpu_percent: 100.0
+    passed: 3
+    failed: 3
+    skipped: 6
+    total: 12
+    score_inputs_passed: 3
+    score_inputs_failed: 3
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Petl/performance_test.py _______________\n\
+      tests\\Petl\\performance_test.py:21: in <module>\n    raise RuntimeError(f\"\
+      Unsupported PETL_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ PETL_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Petl/performance_test.py - RuntimeError:\
+      \ Unsupported PETL_TARGET ...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.52s\n"
+    elapsed_time_s: 1.908951
+    avg_memory_mb: 35.36
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.294684
+    score_inputs_actual_time_s: 1.908951
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ________________ ERROR collecting tests/Petl/resource_test.py _________________\n\
+      tests\\Petl\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"Unsupported\
+      \ PETL_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported PETL_TARGET\
+      \ value: generated\n=========================== short test summary info ===========================\n\
+      ERROR tests/Petl/resource_test.py - RuntimeError: Unsupported PETL_TARGET val...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.52s\n"
+    elapsed_time_s: 1.986765
+    avg_memory_mb: 35.43
+    avg_cpu_percent: 98.3
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 39.25
+    score_inputs_baseline_cpu_pct: 98.3
+    score_inputs_actual_mem_mb: 35.43
+    score_inputs_actual_cpu_pct: 98.3
+  robustness:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.553153
+    avg_memory_mb: 31.03
+    avg_cpu_percent: 97.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=250.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.608048
+    avg_memory_mb: 31.05
+    avg_cpu_percent: 94.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 250.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 6.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=38.6999 files_scanned=6.0 total_loc=250.0 max_cc=11.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.430911
+    avg_memory_mb: 31.14
+    avg_cpu_percent: 97.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 38.6999
+      files_scanned: 6.0
+      total_loc: 250.0
+      max_cc: 11.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 38.6999
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.294684
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 2.52548
+    resource_tests_total: 2
+    avg_memory_mb: 39.25
+    avg_cpu_percent: 98.3
+  functional:
+    functional_suite_time_s: 1.986035
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.335635
+    robustness_tests_total: 1
+  security:
+    security_suite_time_s: 1.826552
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 6.0
+      files_scanned: 125.0
+      total_loc: 26979.0
+  maintainability:
+    maintainability_suite_time_s: 3.446776
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 124.0
+      total_loc: 26979.0
+      max_cc: 33.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Petl\pytest_logs

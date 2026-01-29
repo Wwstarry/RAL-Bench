@@ -1,0 +1,666 @@
+<file:name=thefuck/__init__.py>
+"""A tiny, pure-Python subset of the original *The Fuck* project.
+
+This repository provides only the minimal API surface and behaviors required
+by the unit tests for this kata-style exercise.
+"""
+
+from __future__ import annotations
+
+__all__ = [
+    "__version__",
+]
+
+__version__ = "0.1.0"
+</file>
+
+<file:name=thefuck/__main__.py>
+from __future__ import annotations
+
+import sys
+
+from .main import main
+
+
+def _run() -> None:
+    raise SystemExit(main(sys.argv[1:]))
+
+
+if __name__ == "__main__":
+    _run()
+</file>
+
+<file:name=thefuck/settings.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Settings:
+    """
+    Minimal settings container. Tests may pass a dict instead; code accepts both.
+
+    Attributes:
+        no_interactive: never prompt user. Defaults True to keep tests unattended.
+        debug: emit debug output to stderr (best-effort).
+        max_suggestions: cap number of printed/returned suggestions.
+    """
+
+    no_interactive: bool = True
+    debug: bool = False
+    max_suggestions: int = 5
+
+
+def as_settings(settings: object | None) -> Settings:
+    if settings is None:
+        return Settings()
+    if isinstance(settings, Settings):
+        return settings
+    if isinstance(settings, dict):
+        return Settings(
+            no_interactive=bool(settings.get("no_interactive", True)),
+            debug=bool(settings.get("debug", False)),
+            max_suggestions=int(settings.get("max_suggestions", 5)),
+        )
+    # Fallback: try attribute access
+    return Settings(
+        no_interactive=bool(getattr(settings, "no_interactive", True)),
+        debug=bool(getattr(settings, "debug", False)),
+        max_suggestions=int(getattr(settings, "max_suggestions", 5)),
+    )
+</file>
+
+<file:name=thefuck/utils.py>
+from __future__ import annotations
+
+import re
+import shlex
+from typing import Iterable
+
+
+def shell_split(s: str) -> list[str]:
+    """Deterministic shell-like split."""
+    s = s or ""
+    try:
+        return shlex.split(s, posix=True)
+    except ValueError:
+        # If unbalanced quotes etc., fall back to a simple whitespace split.
+        return s.split()
+
+
+def quote(s: str) -> str:
+    """Conservative quoting for POSIX shells."""
+    return shlex.quote(s)
+
+
+def shell_join(args: list[str]) -> str:
+    """Deterministic join using shlex quoting rules."""
+    return " ".join(quote(a) for a in args)
+
+
+def unique_stable(seq: Iterable[str]) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for x in seq:
+        if x in seen:
+            continue
+        seen.add(x)
+        out.append(x)
+    return out
+
+
+def levenshtein(a: str, b: str) -> int:
+    """Classic Levenshtein distance, deterministic, no third-party deps."""
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+
+    # Ensure a is the longer string for a smaller DP row.
+    if len(a) < len(b):
+        a, b = b, a
+
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, start=1):
+        cur = [i]
+        for j, cb in enumerate(b, start=1):
+            insert = cur[j - 1] + 1
+            delete = prev[j] + 1
+            sub = prev[j - 1] + (0 if ca == cb else 1)
+            cur.append(min(insert, delete, sub))
+        prev = cur
+    return prev[-1]
+
+
+_ERROR_PATTERNS = [
+    re.compile(r"command not found", re.IGNORECASE),
+    re.compile(r"not recognized as an internal or external command", re.IGNORECASE),
+    re.compile(r"No such file or directory", re.IGNORECASE),
+    re.compile(r"Unknown command", re.IGNORECASE),
+]
+
+
+def contains_command_not_found(text: str) -> bool:
+    text = text or ""
+    return any(p.search(text) for p in _ERROR_PATTERNS)
+
+
+def normalize_space(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").strip())
+</file>
+
+<file:name=thefuck/types.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from .utils import shell_split
+
+
+@dataclass(frozen=True)
+class Command:
+    """
+    Representation of a previously executed command.
+    """
+
+    script: str
+    stdout: str = ""
+    stderr: str = ""
+    returncode: int = 0
+    args: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if not self.args:
+            object.__setattr__(self, "args", shell_split(self.script or ""))
+
+    @classmethod
+    def from_raw(
+        cls, script: str, stdout: str = "", stderr: str = "", returncode: int = 0
+    ) -> "Command":
+        return cls(script=script, stdout=stdout, stderr=stderr, returncode=returncode)
+</file>
+
+<file:name=thefuck/rules/__init__.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable, Iterable, List
+
+from ..types import Command
+
+# Rule protocol wrapper
+
+
+@dataclass(frozen=True)
+class Rule:
+    name: str
+    match: Callable[[Command], bool]
+    get_new_command: Callable[[Command], str | list[str]]
+    priority: int = 1000
+
+
+def _load_default_rules() -> list[Rule]:
+    # Import locally to keep package import side-effects small and deterministic.
+    from . import git_wrong_subcommand, missing_argument, option_ordering, typo_command
+
+    # Deterministic ordering: by priority then name.
+    rules = [
+        Rule(
+            name="git_wrong_subcommand",
+            match=git_wrong_subcommand.match,
+            get_new_command=git_wrong_subcommand.get_new_command,
+            priority=getattr(git_wrong_subcommand, "priority", 100),
+        ),
+        Rule(
+            name="typo_command",
+            match=typo_command.match,
+            get_new_command=typo_command.get_new_command,
+            priority=getattr(typo_command, "priority", 200),
+        ),
+        Rule(
+            name="missing_argument",
+            match=missing_argument.match,
+            get_new_command=missing_argument.get_new_command,
+            priority=getattr(missing_argument, "priority", 300),
+        ),
+        Rule(
+            name="option_ordering",
+            match=option_ordering.match,
+            get_new_command=option_ordering.get_new_command,
+            priority=getattr(option_ordering, "priority", 400),
+        ),
+    ]
+    rules.sort(key=lambda r: (r.priority, r.name))
+    return rules
+
+
+_DEFAULT_RULES: list[Rule] | None = None
+
+
+def get_rules(settings: object | None = None) -> List[Rule]:
+    # settings currently unused, but preserved for API compatibility.
+    global _DEFAULT_RULES
+    if _DEFAULT_RULES is None:
+        _DEFAULT_RULES = _load_default_rules()
+    return list(_DEFAULT_RULES)
+
+
+def iter_rules(settings: object | None = None) -> Iterable[Rule]:
+    return get_rules(settings)
+</file>
+
+<file:name=thefuck/rules/typo_command.py>
+from __future__ import annotations
+
+from ..types import Command
+from ..utils import contains_command_not_found, levenshtein, shell_join
+
+priority = 200
+
+# Small built-in dictionary of common commands.
+KNOWN_COMMANDS = [
+    "git",
+    "python",
+    "pip",
+    "ls",
+    "cd",
+    "mkdir",
+    "rm",
+    "mv",
+    "cp",
+    "cat",
+    "echo",
+]
+
+
+def match(command: Command) -> bool:
+    if not command.args:
+        return False
+    if command.returncode == 0:
+        return False
+    combined = (command.stdout or "") + "\n" + (command.stderr or "")
+    if not contains_command_not_found(combined):
+        return False
+    # Only trigger when command name doesn't look known already.
+    return command.args[0] not in KNOWN_COMMANDS
+
+
+def _best_replacement(token: str) -> str | None:
+    token = token or ""
+    best: tuple[int, str] | None = None
+    for cand in KNOWN_COMMANDS:
+        d = levenshtein(token, cand)
+        # Only accept reasonably close candidates.
+        if d > max(2, len(cand) // 2):
+            continue
+        cur = (d, cand)
+        if best is None or cur < best:
+            best = cur
+    return best[1] if best else None
+
+
+def get_new_command(command: Command) -> str | list[str]:
+    if not command.args:
+        return []
+    replacement = _best_replacement(command.args[0])
+    if not replacement:
+        return []
+    new_args = [replacement] + command.args[1:]
+    return shell_join(new_args)
+</file>
+
+<file:name=thefuck/rules/git_wrong_subcommand.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command
+from ..utils import levenshtein, shell_join
+
+priority = 100
+
+GIT_SUBCOMMANDS = [
+    "add",
+    "branch",
+    "checkout",
+    "clone",
+    "commit",
+    "diff",
+    "fetch",
+    "init",
+    "log",
+    "merge",
+    "pull",
+    "push",
+    "rebase",
+    "remote",
+    "status",
+    "tag",
+]
+
+_PATTERNS = [
+    re.compile(r"is not a git command", re.IGNORECASE),
+    re.compile(r"unknown subcommand", re.IGNORECASE),
+    re.compile(r"unknown option", re.IGNORECASE),
+]
+
+
+def match(command: Command) -> bool:
+    if command.returncode == 0:
+        return False
+    if len(command.args) < 2:
+        return False
+    if command.args[0] != "git":
+        return False
+    err = (command.stderr or "") + "\n" + (command.stdout or "")
+    if any(p.search(err) for p in _PATTERNS):
+        return True
+    # Also match the canonical message: "git: 'x' is not a git command."
+    if "not a git command" in err.lower():
+        return True
+    return False
+
+
+def _best_subcommand(token: str) -> str | None:
+    best: tuple[int, str] | None = None
+    for cand in GIT_SUBCOMMANDS:
+        d = levenshtein(token, cand)
+        if d > max(2, len(cand) // 2):
+            continue
+        cur = (d, cand)
+        if best is None or cur < best:
+            best = cur
+    return best[1] if best else None
+
+
+def get_new_command(command: Command) -> str | list[str]:
+    if len(command.args) < 2:
+        return []
+    wrong = command.args[1]
+    replacement = _best_subcommand(wrong)
+    if not replacement or replacement == wrong:
+        return []
+    new_args = ["git", replacement] + command.args[2:]
+    return shell_join(new_args)
+</file>
+
+<file:name=thefuck/rules/missing_argument.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command
+from ..utils import shell_join
+
+priority = 300
+
+_PATTERNS = [
+    re.compile(r"missing argument", re.IGNORECASE),
+    re.compile(r"requires an argument", re.IGNORECASE),
+    re.compile(r"expected (one )?argument", re.IGNORECASE),
+    re.compile(r"the following arguments are required", re.IGNORECASE),
+    re.compile(r"missing operand", re.IGNORECASE),
+]
+
+
+def match(command: Command) -> bool:
+    if command.returncode == 0:
+        return False
+    text = (command.stderr or "") + "\n" + (command.stdout or "")
+    return any(p.search(text) for p in _PATTERNS)
+
+
+def _fix_cd(command: Command) -> str | None:
+    if not command.args:
+        return None
+    if command.args[0] != "cd":
+        return None
+    if len(command.args) >= 2:
+        return None
+    # Deterministic default.
+    return shell_join(["cd", ".."])
+
+
+def _fix_git_commit_m(command: Command) -> str | None:
+    # Detect "git commit -m" missing its value.
+    if len(command.args) < 3:
+        return None
+    if command.args[0] != "git" or command.args[1] != "commit":
+        return None
+    if command.args[-1] == "-m":
+        new_args = command.args[:-1] + ["-m", ""]
+        return shell_join(new_args)
+    # Also handle "... -m" anywhere at end of list with no value
+    for i, tok in enumerate(command.args):
+        if tok == "-m" and i == len(command.args) - 1:
+            new_args = command.args[:i] + ["-m", ""]
+            return shell_join(new_args)
+    return None
+
+
+def _fix_trailing_option(command: Command) -> str | None:
+    # Generic: if last token looks like an option expecting a value, add "".
+    if not command.args:
+        return None
+    last = command.args[-1]
+    if last in {"-m", "-o", "-O", "-u", "-p", "-P", "-c", "-C", "-f", "-F", "--message"}:
+        return shell_join(command.args + [""])
+    return None
+
+
+def get_new_command(command: Command) -> str | list[str]:
+    for fixer in (_fix_cd, _fix_git_commit_m, _fix_trailing_option):
+        out = fixer(command)
+        if out:
+            return out
+    return []
+</file>
+
+<file:name=thefuck/rules/option_ordering.py>
+from __future__ import annotations
+
+from ..types import Command
+from ..utils import shell_join
+
+priority = 400
+
+
+def match(command: Command) -> bool:
+    if command.returncode == 0:
+        return False
+    # Only handle a very clear synthetic pattern to avoid speculative changes.
+    # Pattern: git commit ... -m <msg> -a   => ... -a -m <msg>
+    if len(command.args) < 6:
+        return False
+    if command.args[0:2] != ["git", "commit"]:
+        return False
+    # Need both -m and -a present, and -a appears after the -m value.
+    if "-m" not in command.args or "-a" not in command.args:
+        return False
+    m = command.args.index("-m")
+    if m == len(command.args) - 1:
+        return False
+    a = command.args.index("-a")
+    # We only reorder if "-a" is strictly after the -m value token.
+    return a > m + 1
+
+
+def get_new_command(command: Command) -> str | list[str]:
+    args = list(command.args)
+    # Reorder: move -a to immediately after "git commit" and before -m.
+    if args[0:2] != ["git", "commit"]:
+        return []
+    try:
+        m = args.index("-m")
+        a = args.index("-a")
+    except ValueError:
+        return []
+    if m == len(args) - 1:
+        return []
+    if not (a > m + 1):
+        return []
+    # Remove -a then insert before -m.
+    args.pop(a)
+    # m index may have shifted if a < m; but we only handle a > m+1 so safe.
+    m = args.index("-m")
+    args.insert(2, "-a")
+    return shell_join(args)
+</file>
+
+<file:name=thefuck/corrector.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable, List
+
+from .settings import as_settings
+from .types import Command
+from .utils import unique_stable
+from .rules import get_rules, Rule
+
+
+@dataclass(frozen=True)
+class Suggestion:
+    command: str
+    rule_name: str
+    priority: int = 1000
+    confidence: float = 0.0
+
+
+def _ensure_list(x: str | list[str]) -> list[str]:
+    if x is None:
+        return []
+    if isinstance(x, list):
+        return [c for c in x if isinstance(c, str) and c.strip()]
+    if isinstance(x, str) and x.strip():
+        return [x]
+    return []
+
+
+def get_suggestions(command: Command, settings: object | None = None) -> List[Suggestion]:
+    st = as_settings(settings)
+
+    # Default behavior: only correct failing commands unless forced.
+    if command.returncode == 0:
+        return []
+
+    suggestions: list[Suggestion] = []
+    for rule in get_rules(st):
+        try:
+            if not rule.match(command):
+                continue
+            new_cmds = _ensure_list(rule.get_new_command(command))
+            for new_cmd in new_cmds:
+                suggestions.append(
+                    Suggestion(
+                        command=new_cmd,
+                        rule_name=rule.name,
+                        priority=rule.priority,
+                        confidence=0.0,
+                    )
+                )
+        except Exception:
+            # Deterministic, quiet failure: skip broken rule.
+            continue
+
+    # De-duplicate by command string, first win (stable).
+    unique_cmds = unique_stable([s.command for s in suggestions])
+    by_cmd: dict[str, Suggestion] = {}
+    for s in suggestions:
+        if s.command in unique_cmds and s.command not in by_cmd:
+            by_cmd[s.command] = s
+
+    uniq_suggestions = [by_cmd[c] for c in unique_cmds if c in by_cmd]
+
+    # Stable ordering: priority asc, confidence desc, command lex.
+    uniq_suggestions.sort(key=lambda s: (s.priority, -float(s.confidence), s.command))
+    if st.max_suggestions is not None:
+        uniq_suggestions = uniq_suggestions[: max(0, int(st.max_suggestions))]
+    return uniq_suggestions
+
+
+def get_corrected_commands(command: Command, settings: object | None = None) -> list[str]:
+    return [s.command for s in get_suggestions(command, settings)]
+</file>
+
+<file:name=thefuck/main.py>
+from __future__ import annotations
+
+import argparse
+import sys
+
+from . import __version__
+from .corrector import get_corrected_commands
+from .settings import as_settings
+from .types import Command
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="thefuck", add_help=True)
+    p.add_argument("-l", "--list", action="store_true", help="list all suggestions")
+    p.add_argument("--version", action="store_true", help="print version and exit")
+    p.add_argument("--debug", action="store_true", help="debug output to stderr")
+
+    # Explicit injection of prior command (used by tests).
+    p.add_argument("--command", dest="command", default=None, help="command script")
+    p.add_argument("--stdout", dest="stdout", default="", help="previous stdout")
+    p.add_argument("--stderr", dest="stderr", default="", help="previous stderr")
+    p.add_argument(
+        "--returncode", dest="returncode", default=None, type=int, help="previous return code"
+    )
+
+    # Fallback: remaining args are treated as the script.
+    p.add_argument("script", nargs=argparse.REMAINDER, help="script to correct")
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    parser = _build_parser()
+
+    try:
+        ns = parser.parse_args(argv)
+    except SystemExit as e:
+        # argparse already printed error/help; propagate code.
+        return int(getattr(e, "code", 2) or 2)
+
+    if ns.version:
+        sys.stdout.write(f"{__version__}\n")
+        return 0
+
+    settings = as_settings({"debug": bool(ns.debug), "no_interactive": True})
+
+    if ns.command is not None:
+        script = ns.command
+        stdout = ns.stdout or ""
+        stderr = ns.stderr or ""
+        returncode = 1 if ns.returncode is None else int(ns.returncode)
+    else:
+        # Remainder includes possible leading "--" depending on how invoked.
+        rem = list(ns.script or [])
+        if rem and rem[0] == "--":
+            rem = rem[1:]
+        script = " ".join(rem).strip()
+        stdout = ""
+        stderr = ""
+        returncode = 1
+
+    if not script:
+        # No input; do not prompt.
+        return 1
+
+    cmd = Command(script=script, stdout=stdout, stderr=stderr, returncode=returncode)
+    suggestions = get_corrected_commands(cmd, settings=settings)
+
+    if not suggestions:
+        return 1
+
+    if ns.list:
+        sys.stdout.write("\n".join(suggestions) + "\n")
+    else:
+        sys.stdout.write(suggestions[0] + "\n")
+    return 0
+</file>

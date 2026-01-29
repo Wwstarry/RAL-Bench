@@ -1,0 +1,217 @@
+1) Repository layout (packages/modules/files that must exist)
+
+- Top-level package: mitmproxy/
+  - mitmproxy/__init__.py
+  - mitmproxy/flow.py
+  - mitmproxy/http.py
+  - mitmproxy/addonmanager.py
+  - mitmproxy/exceptions.py (optional but recommended for stable imports)
+  - mitmproxy/options.py (optional; may be needed by CLI stubs)
+  - mitmproxy/ctx.py (optional; provide minimal context helpers if referenced)
+  - mitmproxy/tools/
+    - mitmproxy/tools/__init__.py
+    - mitmproxy/tools/main/
+      - mitmproxy/tools/main/__init__.py
+      - mitmproxy/tools/main/mitmdump.py
+    - mitmproxy/tools/dump.py
+    - mitmproxy/tools/cmdline/
+      - mitmproxy/tools/cmdline/__init__.py
+      - mitmproxy/tools/cmdline/mitmdump.py
+
+- CLI entrypoints are not required as console_scripts metadata for tests unless explicitly checked; however, the importable modules above and callable entry functions/classes must exist.
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+2.1) mitmproxy.flow
+- class Flow:
+  - attributes (public):
+    - id: str (unique-ish; may be uuid4 string)
+    - type: str (flow type identifier; default "flow")
+    - error: Optional[Exception] (default None)
+    - intercepted: bool (default False)
+    - live: bool (default False)
+    - metadata: dict (default {})
+  - methods:
+    - __init__(self, id: Optional[str] = None, type: str = "flow")
+    - __repr__(self) -> str
+    - get_state(self) -> dict  (serializable)
+    - set_state(self, state: dict) -> None
+- class Error:
+  - minimal container for an error associated with a flow (if tests reference it)
+  - __init__(self, msg: str = "", timestamp: Optional[float] = None)
+
+2.2) mitmproxy.http
+- class Message:
+  - attributes:
+    - http_version: str (default "HTTP/1.1")
+    - headers: "Headers" (case-insensitive mapping-like)
+    - content: bytes (raw body; default b"")
+    - timestamp_start: Optional[float]
+    - timestamp_end: Optional[float]
+  - properties:
+    - text: str (decode content as utf-8 with errors="replace")
+    - size: int (len(content))
+  - methods:
+    - __init__(self, *, http_version: str = "HTTP/1.1", headers: Optional[Mapping[str,str]] = None, content: bytes = b"")
+    - set_text(self, text: str, encoding: str = "utf-8") -> None
+- class Request(Message):
+  - attributes:
+    - method: str
+    - scheme: str (e.g., "http"/"https")
+    - host: str
+    - port: int
+    - path: str
+    - authority: str (computed "host:port" if needed)
+    - pretty_url: str (computed string)
+  - __init__(..., method: str = "GET", scheme: str = "http", host: str = "", port: int = 80, path: str = "/",
+            headers: Optional[Mapping[str,str]] = None, content: bytes = b"")
+- class Response(Message):
+  - attributes:
+    - status_code: int
+    - reason: str
+  - __init__(..., status_code: int = 200, reason: str = "OK", headers: Optional[Mapping[str,str]] = None, content: bytes = b"")
+- class HTTPFlow(mitmproxy.flow.Flow):
+  - attributes:
+    - request: Optional[Request]
+    - response: Optional[Response]
+    - websocket: Optional[object] (stub)
+    - client_conn: Optional[object] (stub)
+    - server_conn: Optional[object] (stub)
+  - methods:
+    - __init__(self, request: Optional[Request] = None, response: Optional[Response] = None, id: Optional[str] = None)
+    - __repr__(self) -> str
+    - get_state(self) -> dict (includes request/response state if present)
+    - set_state(self, state: dict) -> None
+- class Headers:
+  - minimal case-insensitive header container with dict-like surface:
+    - __init__(self, initial: Optional[Mapping[str,str]] = None)
+    - get(self, key: str, default: Optional[str] = None) -> Optional[str]
+    - __getitem__(self, key: str) -> str
+    - __setitem__(self, key: str, value: str) -> None
+    - __contains__(self, key: str) -> bool
+    - items(self) -> Iterable[Tuple[str,str]]
+    - to_dict(self) -> dict (canonicalized to original keys if tracked; otherwise lowercased keys acceptable)
+  - NOTE: only minimal behavior needed for tests/imports; no need for multi-value header semantics unless tests demand.
+
+2.3) mitmproxy.addonmanager
+- class AddonManager:
+  - __init__(self, master: Optional[object] = None)
+  - methods:
+    - add(self, addon: object) -> None
+    - remove(self, addon: object) -> None
+    - get(self, name: str) -> Optional[object] (by addon.__class__.__name__ or addon.name if present)
+    - trigger(self, event: str, *args, **kwargs) -> None
+      - calls method named event on each addon if present
+    - iter_addons(self) -> Iterable[object]
+  - attributes:
+    - master: Optional[object]
+    - addons: List[object]
+
+2.4) Tooling frontends
+
+2.4.1) mitmproxy.tools.dump
+- class DumpMaster:
+  - purpose: orchestration stub for mitmdump; must be instantiable and have minimal lifecycle methods.
+  - __init__(self, options: Optional[object] = None, *, with_termlog: bool = True, with_dumper: bool = True)
+  - methods:
+    - run(self) -> None (no network activity; may just set a flag)
+    - shutdown(self) -> None
+  - attributes:
+    - options: object (store provided or default Options stub)
+    - addons: mitmproxy.addonmanager.AddonManager (created in __init__)
+    - running: bool
+
+2.4.2) mitmproxy.tools.cmdline.mitmdump
+- function make_parser(prog: str = "mitmdump") -> argparse.ArgumentParser
+  - must include:
+    - -h/--help standard help
+    - --version (prints something stable like "mitmproxy 0.0.0")
+    - -q/--quiet flag (store_true)
+    - -v/--verbose flag (store_true)
+    - -s/--script option with argument (string)
+    - -p/--listen-port option with int (default 8080)
+    - --set option that may be repeated (action="append", default=[])
+  - must not require any external deps.
+- function parse_args(argv: Optional[Sequence[str]] = None, *, prog: str = "mitmdump") -> argparse.Namespace
+  - uses make_parser and returns parsed args.
+- function get_version() -> str
+  - returns version string used by --version.
+
+2.4.3) mitmproxy.tools.main.mitmdump
+- function mitmdump(argv: Optional[Sequence[str]] = None) -> int
+  - orchestrates:
+    - parse args using mitmproxy.tools.cmdline.mitmdump.parse_args
+    - if --version present, print version and return 0 (argparse can handle via action="version" too, but must be stable)
+    - create DumpMaster with options derived from args (can use simple Options object/dict)
+    - call master.run() unless help/version triggered
+    - ensure master.shutdown() called in finally if started
+  - must not open sockets, start event loops, or perform interception; no real traffic.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+- Import safety:
+  - Importing any required module must not have side effects like starting servers, reading user config files, or requiring optional external packages.
+  - All modules must be importable on a minimal Python runtime with only stdlib.
+
+- Serialization/deserialization:
+  - Flow.get_state returns a JSON-serializable dict with at least keys: "id", "type", "intercepted", "live", "metadata".
+  - HTTPFlow.get_state extends Flow state with optional "request" and "response" keys.
+  - set_state restores those fields; unknown keys ignored.
+
+- HTTP message behavior:
+  - Request.pretty_url returns a human-friendly URL string:
+    - if host empty, return path only
+    - else: f"{scheme}://{host}:{port}{path}" (port may be omitted for default 80/443 optionally; acceptable either way unless tests assert exact string; prefer omit for defaults if easy).
+  - Message.text decodes content with utf-8 errors="replace"; set_text encodes using provided encoding.
+
+- AddonManager behavior:
+  - add/remove are idempotent enough for tests (removing missing addon may raise ValueError or silently ignore; prefer silent ignore for robustness).
+  - trigger calls addon.<event>(*args, **kwargs) for each addon that has that attribute and it is callable.
+  - No concurrency requirements.
+
+- CLI behavior:
+  - make_parser/prog names stable (default "mitmdump").
+  - Help output must be stable in broad strokes: includes option flags listed above and short descriptions; do not include environment-dependent content.
+  - parse_args([]) returns defaults; parse_args(["--set","a=b","--set","c=d"]) accumulates list ["a=b","c=d"].
+  - mitmdump(argv) returns process-like exit code int; does not raise on normal invocations.
+  - Invalid args should exit via argparse SystemExit; tests may capture this; do not swallow SystemExit in parse_args. In mitmdump(), it is acceptable to let SystemExit propagate or convert to int; prefer convert to int code for friendliness:
+    - if argparse raises SystemExit, return that code (int) if available.
+
+- Error handling:
+  - Never attempt TLS, sockets, asyncio loops.
+  - If DumpMaster.run is called, it must not block indefinitely; immediate return is acceptable (set running True then False).
+  - shutdown safe to call multiple times.
+
+4) Acceptance checklist (verifiable bullets mapped to test intent)
+
+- Module layout:
+  - Can import: mitmproxy.http, mitmproxy.flow, mitmproxy.addonmanager
+  - Can import: mitmproxy.tools.main.mitmdump, mitmproxy.tools.dump, mitmproxy.tools.cmdline.mitmdump
+
+- Public symbols:
+  - mitmproxy.http exposes HTTPFlow, Request, Response, Message, Headers
+  - mitmproxy.flow exposes Flow (and optionally Error)
+  - mitmproxy.addonmanager exposes AddonManager
+  - mitmproxy.tools.dump exposes DumpMaster
+  - mitmproxy.tools.main.mitmdump exposes function mitmdump
+  - mitmproxy.tools.cmdline.mitmdump exposes make_parser, parse_args, get_version
+
+- Instantiation and basic use:
+  - HTTPFlow() works, has .request/.response attributes, get_state()/set_state round-trip without error.
+  - AddonManager().add/addon trigger works with a dummy addon implementing e.g. load() or request(flow).
+  - DumpMaster() constructs without external deps, has .addons as AddonManager.
+
+- CLI parsing/help stability:
+  - make_parser().format_help() includes the key options and does not crash.
+  - parse_args(["-p","1234"]).listen_port == 1234
+  - parse_args(["--set","x=y","--set","a=b"]).set == ["x=y","a=b"]
+  - mitmproxy.tools.main.mitmdump.mitmdump(["--help"]) prints help (argparse) and returns/exit cleanly (SystemExit acceptable depending on harness).
+  - mitmproxy.tools.main.mitmdump.mitmdump(["--version"]) prints version string and returns 0.
+
+5) Non-goals / constraints
+
+- Do NOT implement real proxying, interception, TLS, networking, websockets, event loops, or any file-based certificate stores.
+- Do NOT depend on third-party packages (OpenSSL, cryptography, tornado, click, etc.). Stdlib only.
+- Do NOT implement full mitmproxy option system, console UI, mitmweb UI, or script execution; accept -s/--script as a parsed string only.
+- Do NOT perform dynamic plugin loading from disk, execute user scripts, or evaluate untrusted inputs.
+- Keep behavior deterministic and fast; no long-running loops.

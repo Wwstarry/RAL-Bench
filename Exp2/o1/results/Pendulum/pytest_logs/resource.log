@@ -1,0 +1,23 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_generate_recurring_schedule_and_group_by_day ______________
+
+    def test_generate_recurring_schedule_and_group_by_day() -> None:
+        """
+        Integration-style test: build a recurring schedule, convert to another
+        timezone, and group events by local calendar day.
+        """
+        # Start from a fixed UTC anchor.
+        start = pendulum.datetime(2022, 1, 1, 8, 0, 0, tz="UTC")
+    
+        # Create a small weekly schedule with three "meetings" per day.
+        meetings_utc = []
+        for day in range(7):
+            for hour in (9, 13, 17):
+>               meetings_utc.append(start.add(days=day, hours=hour))
+E               TypeError: add() got an unexpected keyword argument 'days'
+
+tests\Pendulum\resource_test.py:44: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day
+1 failed in 0.38s

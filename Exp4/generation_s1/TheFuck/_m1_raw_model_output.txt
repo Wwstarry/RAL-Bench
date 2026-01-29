@@ -1,0 +1,823 @@
+<file:name=thefuck/__init__.py>
+from __future__ import annotations
+
+__version__ = "0.0.test"
+
+from .corrector import get_best_suggestion, get_suggestions  # noqa: F401
+from .types import Command, Rule  # noqa: F401
+</file>
+
+<file:name=thefuck/__main__.py>
+from __future__ import annotations
+
+import sys
+
+from .main import main
+
+
+def _run() -> None:
+    raise SystemExit(main())
+
+
+if __name__ == "__main__":
+    _run()
+</file>
+
+<file:name=thefuck/types.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable, Iterable, Protocol, Sequence
+
+from .utils import split_command
+
+
+@dataclass(frozen=True)
+class Command:
+    script: str = ""
+    command: str = ""
+    stdout: str = ""
+    stderr: str = ""
+    return_code: int = 0
+    env: dict | None = None
+
+    @property
+    def parts(self) -> list[str]:
+        return split_command(self.command)
+
+    @property
+    def name(self) -> str:
+        parts = self.parts
+        return parts[0] if parts else ""
+
+
+class RuleFnMatch(Protocol):
+    def __call__(self, command: Command) -> bool: ...
+
+
+class RuleFnNew(Protocol):
+    def __call__(self, command: Command) -> str | Sequence[str]: ...
+
+
+@dataclass(frozen=True)
+class Rule:
+    name: str
+    match: RuleFnMatch
+    get_new_command: RuleFnNew
+    priority: int = 1000
+    enabled_by_default: bool = True
+
+    def propose(self, command: Command) -> list[str]:
+        res = self.get_new_command(command)
+        if res is None:
+            return []
+        if isinstance(res, str):
+            return [res]
+        return [str(x) for x in res]
+
+
+def ensure_rules(rules: Iterable[Rule]) -> list[Rule]:
+    return list(rules)
+</file>
+
+<file:name=thefuck/settings.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import AbstractSet
+
+
+@dataclass
+class Settings:
+    non_interactive: bool = True
+    require_confirmation: bool = False
+    max_suggestions: int = 3
+    enabled_rules: AbstractSet[str] | None = None
+    disabled_rules: AbstractSet[str] | None = field(default_factory=set)
+
+    def is_rule_enabled(self, name: str, enabled_by_default: bool = True) -> bool:
+        if self.enabled_rules is not None:
+            return name in self.enabled_rules
+        if self.disabled_rules and name in self.disabled_rules:
+            return False
+        return enabled_by_default
+</file>
+
+<file:name=thefuck/utils.py>
+from __future__ import annotations
+
+import re
+import shlex
+from functools import lru_cache
+from typing import Iterable
+
+
+def split_command(command: str) -> list[str]:
+    command = command or ""
+    try:
+        return shlex.split(command, posix=True)
+    except Exception:
+        return command.split()
+
+
+def join_command(parts: Iterable[str]) -> str:
+    # Minimal stable join: keep it simple and deterministic.
+    return " ".join(str(p) for p in parts if p is not None and str(p) != "")
+
+
+def unique_preserve_order(items: Iterable[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for it in items:
+        if it not in seen:
+            seen.add(it)
+            out.append(it)
+    return out
+
+
+def levenshtein(a: str, b: str) -> int:
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    # DP with two rows
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, start=1):
+        cur = [i]
+        for j, cb in enumerate(b, start=1):
+            cost = 0 if ca == cb else 1
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost))
+        prev = cur
+    return prev[-1]
+
+
+def best_by_distance(target: str, candidates: Iterable[str], max_dist: int) -> str | None:
+    target = target or ""
+    best = None
+    best_d = None
+    for c in candidates:
+        d = levenshtein(target, c)
+        if d <= max_dist:
+            if best is None or d < best_d or (d == best_d and c < best):
+                best = c
+                best_d = d
+    return best
+
+
+_COMMAND_NOT_FOUND_PATTERNS = [
+    re.compile(r"command not found", re.IGNORECASE),
+    re.compile(r"not recognized as an internal or external command", re.IGNORECASE),
+    re.compile(r"no such file or directory", re.IGNORECASE),
+]
+
+
+def looks_like_command_not_found(stderr: str) -> bool:
+    s = stderr or ""
+    return any(p.search(s) for p in _COMMAND_NOT_FOUND_PATTERNS)
+
+
+@lru_cache(maxsize=1)
+def default_known_commands() -> tuple[str, ...]:
+    # Small deterministic vocabulary used by rules.
+    return (
+        "git",
+        "pip",
+        "python",
+        "python3",
+        "ls",
+        "cd",
+        "cat",
+        "echo",
+        "mkdir",
+        "rm",
+        "pwd",
+        "grep",
+    )
+
+
+def extract_usage_options(stderr: str) -> list[str]:
+    """
+    Try to extract option tokens from typical argparse usage/help text.
+    Conservative: return only obvious -x / --long options.
+    """
+    s = stderr or ""
+    opts = set(re.findall(r"(?<!\w)(--[A-Za-z0-9][A-Za-z0-9_-]*)", s))
+    opts.update(re.findall(r"(?<!\w)(-[A-Za-z0-9])", s))
+    return sorted(opts)
+</file>
+
+<file:name=thefuck/corrector.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable
+
+from .settings import Settings
+from .types import Command, Rule
+from .utils import unique_preserve_order
+
+
+@dataclass(frozen=True)
+class _Suggestion:
+    rule_priority: int
+    rule_name: str
+    index: int
+    text: str
+
+
+def get_suggestions(command: Command, rules: list[Rule], settings: Settings | None = None) -> list[str]:
+    settings = settings or Settings()
+    suggestions: list[_Suggestion] = []
+
+    for rule in rules:
+        if not settings.is_rule_enabled(rule.name, rule.enabled_by_default):
+            continue
+        try:
+            if not rule.match(command):
+                continue
+        except Exception:
+            continue
+
+        try:
+            proposed = rule.propose(command)
+        except Exception:
+            continue
+
+        for idx, text in enumerate(proposed):
+            text = (text or "").strip()
+            if not text:
+                continue
+            suggestions.append(_Suggestion(rule.priority, rule.name, idx, text))
+
+    # Deterministic ordering:
+    # 1) rule priority
+    # 2) rule name (tie-break, stable)
+    # 3) within-rule proposal order (idx)
+    # 4) suggestion text (final tie-break)
+    suggestions.sort(key=lambda s: (s.rule_priority, s.rule_name, s.index, s.text))
+
+    texts = unique_preserve_order(s.text for s in suggestions)
+    if settings.max_suggestions is not None:
+        texts = texts[: int(settings.max_suggestions)]
+    return texts
+
+
+def get_best_suggestion(command: Command, rules: list[Rule], settings: Settings | None = None) -> str | None:
+    sugs = get_suggestions(command, rules, settings=settings)
+    return sugs[0] if sugs else None
+
+
+def suggest(command: Command, rules: Iterable[Rule], settings: Settings | None = None) -> list[str]:
+    # Compatibility alias.
+    return get_suggestions(command, list(rules), settings=settings)
+</file>
+
+<file:name=thefuck/rules/__init__.py>
+from __future__ import annotations
+
+from ..settings import Settings
+from ..types import Rule
+
+from .command_not_found import rule as command_not_found
+from .missing_argument import rule as missing_argument
+from .option_order import rule as option_order
+from .typo_in_command import rule as typo_in_command
+from .wrong_subcommand import rule as wrong_subcommand
+
+# Deterministic order: specific -> general
+_BUILTIN_RULES: list[Rule] = [
+    wrong_subcommand,
+    option_order,
+    missing_argument,
+    typo_in_command,
+    command_not_found,
+]
+
+
+def load_rules(settings: Settings | None = None) -> list[Rule]:
+    # Settings filtering happens in corrector; keep discovery deterministic.
+    return list(_BUILTIN_RULES)
+
+
+def get_rule_names() -> list[str]:
+    return [r.name for r in _BUILTIN_RULES]
+</file>
+
+<file:name=thefuck/rules/command_not_found.py>
+from __future__ import annotations
+
+from ..types import Command, Rule
+from ..utils import best_by_distance, default_known_commands, looks_like_command_not_found, join_command
+
+
+def _match(command: Command) -> bool:
+    if command.return_code == 0:
+        return False
+    if not command.name:
+        return False
+    return looks_like_command_not_found(command.stderr)
+
+
+def _get_new_command(command: Command) -> list[str]:
+    parts = command.parts
+    if not parts:
+        return []
+    name = parts[0]
+
+    # Prefer strict distance for short names, a bit looser for longer.
+    max_dist = 2 if len(name) <= 6 else 3
+    best = best_by_distance(name, default_known_commands(), max_dist=max_dist)
+    if not best or best == name:
+        return []
+    parts2 = [best] + parts[1:]
+    return [join_command(parts2)]
+
+
+rule = Rule(
+    name="command_not_found",
+    match=_match,
+    get_new_command=_get_new_command,
+    priority=500,
+)
+</file>
+
+<file:name=thefuck/rules/typo_in_command.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command, Rule
+from ..utils import best_by_distance, default_known_commands, join_command
+
+
+_TYPO_HINT_PATTERNS = [
+    re.compile(r"^([A-Za-z0-9._-]+): command not found", re.IGNORECASE | re.MULTILINE),
+    re.compile(r"'([A-Za-z0-9._-]+)' is not recognized", re.IGNORECASE),
+]
+
+
+def _match(command: Command) -> bool:
+    if command.return_code == 0:
+        return False
+    if not command.name:
+        return False
+    s = command.stderr or ""
+    return any(p.search(s) for p in _TYPO_HINT_PATTERNS)
+
+
+def _get_new_command(command: Command) -> list[str]:
+    parts = command.parts
+    if not parts:
+        return []
+    name = parts[0]
+    best = best_by_distance(name, default_known_commands(), max_dist=2)
+    if not best or best == name:
+        return []
+    return [join_command([best] + parts[1:])]
+
+
+rule = Rule(
+    name="typo_in_command",
+    match=_match,
+    get_new_command=_get_new_command,
+    priority=400,
+)
+</file>
+
+<file:name=thefuck/rules/wrong_subcommand.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command, Rule
+from ..utils import best_by_distance, join_command, split_command
+
+
+_GIT_SUBS = (
+    "add",
+    "branch",
+    "checkout",
+    "clone",
+    "commit",
+    "diff",
+    "fetch",
+    "init",
+    "log",
+    "merge",
+    "pull",
+    "push",
+    "rebase",
+    "reset",
+    "restore",
+    "show",
+    "stash",
+    "status",
+    "switch",
+    "tag",
+)
+
+_PIP_SUBS = (
+    "install",
+    "uninstall",
+    "list",
+    "show",
+    "freeze",
+    "download",
+    "wheel",
+    "check",
+)
+
+_RE_GIT_NOT_A_COMMAND = re.compile(r"git:\s*'([^']+)'\s+is not a git command", re.IGNORECASE)
+_RE_PIP_NO_SUCH_COMMAND = re.compile(r"no such command ['\"]?([A-Za-z0-9_-]+)['\"]?", re.IGNORECASE)
+
+
+def _match(command: Command) -> bool:
+    if command.return_code == 0:
+        return False
+    s = command.stderr or ""
+    if _RE_GIT_NOT_A_COMMAND.search(s):
+        return True
+    if _RE_PIP_NO_SUCH_COMMAND.search(s) and "pip" in split_command(command.command):
+        return True
+    return False
+
+
+def _fix_git(command: Command) -> list[str]:
+    m = _RE_GIT_NOT_A_COMMAND.search(command.stderr or "")
+    if not m:
+        return []
+    bad = m.group(1)
+    best = best_by_distance(bad, _GIT_SUBS, max_dist=2)
+    if not best or best == bad:
+        return []
+    parts = command.parts
+    if len(parts) >= 2 and parts[0] == "git":
+        parts2 = ["git", best] + parts[2:]
+        return [join_command(parts2)]
+    # fallback: just suggest git <best>
+    return [join_command(["git", best])]
+
+
+def _fix_pip(command: Command) -> list[str]:
+    m = _RE_PIP_NO_SUCH_COMMAND.search(command.stderr or "")
+    if not m:
+        return []
+    bad = m.group(1)
+    best = best_by_distance(bad, _PIP_SUBS, max_dist=2)
+    if not best or best == bad:
+        return []
+    parts = command.parts
+
+    # Preserve "python -m pip ..." shape if present.
+    if len(parts) >= 3 and parts[0] == "python" and parts[1] == "-m" and parts[2] == "pip":
+        if len(parts) >= 4:
+            parts2 = parts[:3] + [best] + parts[4:]
+        else:
+            parts2 = parts[:3] + [best]
+        return [join_command(parts2)]
+
+    # Plain pip
+    if parts and parts[0] == "pip":
+        if len(parts) >= 2:
+            parts2 = ["pip", best] + parts[2:]
+        else:
+            parts2 = ["pip", best]
+        return [join_command(parts2)]
+
+    return []
+
+
+def _get_new_command(command: Command) -> list[str]:
+    s = command.stderr or ""
+    if _RE_GIT_NOT_A_COMMAND.search(s):
+        return _fix_git(command)
+    if _RE_PIP_NO_SUCH_COMMAND.search(s):
+        return _fix_pip(command)
+    return []
+
+
+rule = Rule(
+    name="wrong_subcommand",
+    match=_match,
+    get_new_command=_get_new_command,
+    priority=100,
+)
+</file>
+
+<file:name=thefuck/rules/missing_argument.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command, Rule
+
+
+_PATTERNS = [
+    re.compile(r"missing operand", re.IGNORECASE),
+    re.compile(r"expected (?:one|an) argument", re.IGNORECASE),
+    re.compile(r"requires an argument", re.IGNORECASE),
+    re.compile(r"too few arguments", re.IGNORECASE),
+    re.compile(r"the following arguments are required", re.IGNORECASE),
+]
+
+
+def _match(command: Command) -> bool:
+    if command.return_code == 0:
+        return False
+    if not command.parts:
+        return False
+    s = command.stderr or ""
+    return any(p.search(s) for p in _PATTERNS) or (command.parts == ["cd"] and command.return_code != 0)
+
+
+def _get_new_command(command: Command) -> list[str]:
+    parts = command.parts
+    if parts == ["cd"]:
+        return ["cd ~"]
+    return []
+
+
+rule = Rule(
+    name="missing_argument",
+    match=_match,
+    get_new_command=_get_new_command,
+    priority=200,
+)
+</file>
+
+<file:name=thefuck/rules/option_order.py>
+from __future__ import annotations
+
+import re
+
+from ..types import Command, Rule
+from ..utils import best_by_distance, extract_usage_options, join_command
+
+
+_RE_UNKNOWN_OPT = re.compile(r"(unknown option|unrecognized arguments)\s*[:]?(.+)?", re.IGNORECASE)
+
+
+def _match(command: Command) -> bool:
+    if command.return_code == 0:
+        return False
+    s = command.stderr or ""
+    return bool(_RE_UNKNOWN_OPT.search(s))
+
+
+def _get_new_command(command: Command) -> list[str]:
+    parts = command.parts
+    if not parts:
+        return []
+
+    s = command.stderr or ""
+    # Try to locate an "unknown option" token like "--hepl"
+    m = re.search(r"(?<!\w)(--[A-Za-z0-9][A-Za-z0-9_-]*|-[A-Za-z0-9])", s)
+    bad = m.group(1) if m else None
+    if not bad:
+        # Fallback: find any token in the command that looks like an option and is suspiciously close to --help.
+        for t in parts:
+            if t.startswith("--") or (t.startswith("-") and len(t) == 2):
+                bad = t
+                break
+    if not bad:
+        return []
+
+    opts = extract_usage_options(s)
+    if not opts:
+        # Conservative default choices.
+        opts = ["--help", "--version", "-h"]
+
+    best = best_by_distance(bad, opts, max_dist=2)
+    if not best or best == bad:
+        return []
+
+    # Replace first occurrence of bad in the command parts.
+    new_parts = []
+    replaced = False
+    for t in parts:
+        if not replaced and t == bad:
+            new_parts.append(best)
+            replaced = True
+        else:
+            new_parts.append(t)
+    if not replaced:
+        return []
+    return [join_command(new_parts)]
+
+
+rule = Rule(
+    name="option_order",
+    match=_match,
+    get_new_command=_get_new_command,
+    priority=150,
+)
+</file>
+
+<file:name=thefuck/main.py>
+from __future__ import annotations
+
+import argparse
+import sys
+from typing import Sequence
+
+from .corrector import get_best_suggestion, get_suggestions
+from .rules import load_rules
+from .settings import Settings
+from .types import Command
+from . import __version__
+
+
+def get_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="thefuck", add_help=True)
+    p.add_argument("--version", action="store_true", help="Print version and exit")
+    p.add_argument("--command", help="Previous command as a single string")
+    p.add_argument("--stdout", default="", help="Captured stdout of previous command")
+    p.add_argument("--stderr", default="", help="Captured stderr of previous command")
+    p.add_argument("--exit-code", type=int, default=0, help="Exit code of previous command")
+    p.add_argument("--script", default="", help="Shell/script name")
+    p.add_argument("--best", action="store_true", help="Print only the best suggestion")
+    p.add_argument(
+        "--suggest",
+        action="store_true",
+        help="Print suggestions one per line (default if not --best)",
+    )
+    p.add_argument("-n", "--no-confirm", action="store_true", default=True, help="Non-interactive mode")
+    p.add_argument("cmd", nargs=argparse.REMAINDER, help="Previous command (positional fallback)")
+    return p
+
+
+def _command_from_args(ns: argparse.Namespace) -> Command:
+    cmd = ns.command
+    if (cmd is None or cmd == "") and ns.cmd:
+        # argparse REMAINDER may include leading '--' if used; keep joined.
+        cmd = " ".join(ns.cmd).strip()
+    cmd = cmd or ""
+    return Command(
+        script=ns.script or "",
+        command=cmd,
+        stdout=ns.stdout or "",
+        stderr=ns.stderr or "",
+        return_code=int(ns.exit_code),
+    )
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = get_parser()
+    ns = parser.parse_args(list(argv) if argv is not None else None)
+
+    if ns.version:
+        sys.stdout.write(f"{__version__}\n")
+        return 0
+
+    settings = Settings(non_interactive=bool(ns.no_confirm), require_confirmation=False)
+    rules = load_rules(settings=settings)
+    command = _command_from_args(ns)
+
+    # If previous command succeeded, do not suggest.
+    if command.return_code == 0:
+        return 1
+
+    if ns.best:
+        best = get_best_suggestion(command, rules, settings=settings)
+        if best:
+            sys.stdout.write(best + "\n")
+            return 0
+        return 1
+
+    # Default to --suggest behavior when neither specified.
+    suggestions = get_suggestions(command, rules, settings=settings)
+    if suggestions:
+        sys.stdout.write("\n".join(suggestions) + "\n")
+        return 0
+    return 1
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import subprocess
+import sys
+
+import pytest
+
+from thefuck.corrector import get_suggestions
+from thefuck.rules import load_rules
+from thefuck.types import Command
+from thefuck.main import main
+
+
+def test_imports_and_rules_deterministic():
+    rules1 = load_rules()
+    rules2 = load_rules()
+    assert [r.name for r in rules1] == [r.name for r in rules2]
+    assert len(rules1) >= 3
+
+
+def test_unknown_command_typo_suggests_git_status():
+    cmd = Command(
+        script="bash",
+        command="gti status",
+        stdout="",
+        stderr="gti: command not found",
+        return_code=127,
+    )
+    sugs = get_suggestions(cmd, load_rules())
+    assert sugs and sugs[0] == "git status"
+
+
+def test_wrong_git_subcommand():
+    cmd = Command(
+        script="bash",
+        command="git ststus",
+        stdout="",
+        stderr="git: 'ststus' is not a git command. See 'git --help'.",
+        return_code=1,
+    )
+    sugs = get_suggestions(cmd, load_rules())
+    assert sugs[:1] == ["git status"]
+
+
+def test_wrong_pip_subcommand_preserves_python_m_pip_shape():
+    cmd = Command(
+        script="bash",
+        command="python -m pip instal requests",
+        stdout="",
+        stderr="ERROR: No such command 'instal'.",
+        return_code=2,
+    )
+    sugs = get_suggestions(cmd, load_rules())
+    assert sugs and sugs[0].startswith("python -m pip install")
+
+
+def test_missing_cd_argument_suggests_home():
+    cmd = Command(
+        script="bash",
+        command="cd",
+        stdout="",
+        stderr="cd: missing operand",
+        return_code=1,
+    )
+    sugs = get_suggestions(cmd, load_rules())
+    assert sugs[:1] == ["cd ~"]
+
+
+def test_determinism_and_dedup():
+    cmd = Command(
+        script="bash",
+        command="gti status",
+        stdout="",
+        stderr="gti: command not found",
+        return_code=127,
+    )
+    r = load_rules()
+    a = get_suggestions(cmd, r)
+    b = get_suggestions(cmd, r)
+    assert a == b
+    assert len(a) == len(set(a))
+
+
+def test_main_best_prints_only_suggestion_and_returns_0(capsys):
+    rc = main(["--command", "gti status", "--stderr", "gti: command not found", "--exit-code", "127", "--best"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert out.strip() == "git status"
+
+
+def test_main_returns_1_when_previous_succeeded(capsys):
+    rc = main(["--command", "echo ok", "--stdout", "ok", "--stderr", "", "--exit-code", "0", "--best"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert out.strip() == ""
+
+
+def test_python_m_thefuck_version_smoke():
+    proc = subprocess.run(
+        [sys.executable, "-m", "thefuck", "--version"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert proc.stdout.strip() != ""
+</file>
+
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thefuck"
+version = "0.0.test"
+description = "Minimal TheFuck-compatible autocorrect utility (test fixture)"
+requires-python = ">=3.10"
+</file>
+
+<file:name=thefuck/rules/__init__.pyi>
+from __future__ import annotations
+from ..settings import Settings
+from ..types import Rule
+
+def load_rules(settings: Settings | None = ...) -> list[Rule]: ...
+def get_rule_names() -> list[str]: ...
+</file>

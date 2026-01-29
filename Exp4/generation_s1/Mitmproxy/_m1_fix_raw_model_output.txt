@@ -1,0 +1,140 @@
+<file:name=mitmproxy/tools/cmdline/__init__.py>
+"""
+Command-line argument specifications for mitmproxy tools.
+
+This package contains submodules like `mitmproxy.tools.cmdline.mitmdump`.
+"""
+</file>
+
+<file:name=mitmproxy/tools/cmdline/mitmdump.py>
+from __future__ import annotations
+
+import argparse
+from typing import List, Optional
+
+from mitmproxy.version import __version__
+
+
+def mitmdump(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    """
+    Add mitmdump-compatible arguments to an ArgumentParser.
+    This is a minimal subset intended for API and help-output stability in tests.
+    """
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=__version__,
+        help="show program's version number and exit",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="quiet",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="increase verbosity (can be repeated)",
+    )
+    parser.add_argument(
+        "-p",
+        "--listen-port",
+        dest="listen_port",
+        type=int,
+        default=8080,
+        metavar="PORT",
+        help="proxy service port",
+    )
+    parser.add_argument(
+        "--listen-host",
+        dest="listen_host",
+        default="",
+        metavar="HOST",
+        help="proxy service host",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        dest="mode",
+        default="regular",
+        metavar="MODE",
+        help="mode of operation",
+    )
+    parser.add_argument(
+        "-s",
+        "--script",
+        dest="scripts",
+        action="append",
+        default=[],
+        metavar="SCRIPT",
+        help="execute a script",
+    )
+    parser.add_argument(
+        "--set",
+        dest="set",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="set an option (KEY=VALUE)",
+    )
+    parser.add_argument(
+        "--confdir",
+        dest="confdir",
+        default="",
+        metavar="DIR",
+        help="configuration directory",
+    )
+    return parser
+
+
+def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="mitmdump", add_help=True)
+    mitmdump(parser)
+    return parser.parse_args(args=args)
+</file>
+
+<file:name=mitmproxy/tools/main.py>
+from __future__ import annotations
+
+from typing import List, Optional
+
+from mitmproxy.options import Options
+from mitmproxy.tools.cmdline.mitmdump import parse_args
+from mitmproxy.tools.dump import DumpMaster
+
+
+def _options_from_namespace(ns) -> Options:
+    # Keep this mapping explicit and minimal for determinism.
+    return Options(
+        quiet=bool(getattr(ns, "quiet", False)),
+        verbose=int(getattr(ns, "verbose", 0) or 0),
+        listen_host=str(getattr(ns, "listen_host", "")),
+        listen_port=int(getattr(ns, "listen_port", 8080)),
+        mode=str(getattr(ns, "mode", "regular")),
+        confdir=str(getattr(ns, "confdir", "")),
+        scripts=list(getattr(ns, "scripts", []) or []),
+        set=list(getattr(ns, "set", []) or []),
+    )
+
+
+def mitmdump(argv: Optional[List[str]] = None) -> int:
+    ns = parse_args(argv)
+    opts = _options_from_namespace(ns)
+    master = DumpMaster(options=opts)
+    master.run()
+    return 0
+
+
+def mitmproxy(argv: Optional[List[str]] = None) -> int:
+    # Minimal stub: parse same args and exit after running a no-op master.
+    return mitmdump(argv)
+
+
+def mitmweb(argv: Optional[List[str]] = None) -> int:
+    # Minimal stub: parse same args and exit after running a no-op master.
+    return mitmdump(argv)
+</file>

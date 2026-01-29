@@ -1,0 +1,898 @@
+<file:name=mitmproxy/__init__.py>
+"""
+A minimal, safe-to-evaluate subset of mitmproxy.
+
+This package intentionally does not implement any networking or MITM behavior.
+It only provides a small API surface and CLI skeleton used by the test suite.
+"""
+from .version import __version__
+
+__all__ = ["__version__"]
+</file>
+
+<file:name=mitmproxy/version.py>
+__version__ = "0.0.0"
+</file>
+
+<file:name=mitmproxy/exceptions.py>
+class MitmproxyError(Exception):
+    """Base exception for the minimal mitmproxy subset."""
+
+
+class OptionsError(MitmproxyError):
+    """Raised for invalid options/option operations."""
+
+
+class CommandError(MitmproxyError):
+    """Raised for command manager failures."""
+</file>
+
+<file:name=mitmproxy/ctx.py>
+"""
+Global context placeholder, as commonly used by mitmproxy addons.
+
+In real mitmproxy, ctx is populated by the running master instance.
+Here we provide only the minimal attributes used by addons/tests.
+"""
+
+
+class _Ctx:
+    def __init__(self) -> None:
+        self.master = None
+        self.options = None
+
+    def __repr__(self) -> str:
+        return f"<mitmproxy.ctx master={type(self.master).__name__} options={type(self.options).__name__}>"
+
+
+ctx = _Ctx()
+
+__all__ = ["ctx"]
+</file>
+
+<file:name=mitmproxy/command.py>
+from __future__ import annotations
+
+from typing import Any, Callable, Dict, Optional
+
+from .exceptions import CommandError
+
+
+class CommandManager:
+    """
+    Minimal command registry.
+
+    This is only intended to satisfy add-on manager integration and basic lookups.
+    """
+
+    def __init__(self, master: Any):
+        self.master = master
+        self._commands: Dict[str, Dict[str, Any]] = {}
+
+    def add(self, name: str, func: Callable[..., Any], help: str = "") -> None:
+        if not callable(func):
+            raise CommandError("func must be callable")
+        self._commands[name] = {"func": func, "help": help or ""}
+
+    def call(self, name: str, *args: Any, **kwargs: Any) -> Any:
+        cmd = self._commands.get(name)
+        if not cmd:
+            raise CommandError(f"Unknown command: {name}")
+        return cmd["func"](*args, **kwargs)
+
+    def get_commands(self) -> Dict[str, Dict[str, Any]]:
+        return dict(self._commands)
+</file>
+
+<file:name=mitmproxy/options.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+
+@dataclass
+class Option:
+    name: str
+    default: Any
+    typespec: Optional[type] = None
+    help: str = ""
+
+
+class Options:
+    """
+    Minimal options store with attribute and mapping-like access.
+
+    Unknown options are permitted and tracked.
+    """
+
+    def __init__(self, **kwargs: Any):
+        self._defs: Dict[str, Option] = {}
+        self._values: Dict[str, Any] = {}
+
+        # Define minimal standard options expected by cmdline/frontends.
+        self.add_option("verbose", 0, int, help="Increase verbosity.")
+        self.add_option("quiet", False, bool, help="Quiet mode.")
+        self.add_option("mode", "regular", str, help="Proxy mode.")
+        self.add_option("listen_host", "127.0.0.1", str, help="Listen host.")
+        self.add_option("listen_port", 8080, int, help="Listen port.")
+        self.add_option("confdir", "", str, help="Configuration directory.")
+        self.add_option("set", [], list, help="Set option: KEY=VALUE.")
+        self.add_option("scripts", [], list, help="Addon scripts (not executed).")
+
+        self.update(**kwargs)
+
+    def add_option(self, name: str, default: Any, typespec: Optional[type] = None, help: str = "") -> None:
+        if name in self._defs:
+            # keep deterministic: do not overwrite existing
+            return
+        self._defs[name] = Option(name=name, default=default, typespec=typespec, help=help or "")
+        self._values.setdefault(name, default)
+
+    def update(self, **kwargs: Any) -> None:
+        for k, v in kwargs.items():
+            self[k] = v
+
+    def keys(self) -> Iterable[str]:
+        return self._values.keys()
+
+    def get_help(self) -> List[Tuple[str, Any, str]]:
+        """
+        Return a stable, minimal help listing for registered options.
+        """
+        out: List[Tuple[str, Any, str]] = []
+        for name in sorted(self._defs.keys()):
+            opt = self._defs[name]
+            out.append((opt.name, opt.default, opt.help))
+        return out
+
+    def __getattr__(self, item: str) -> Any:
+        # called only if normal attribute lookup fails
+        if item in self._values:
+            return self._values[item]
+        raise AttributeError(item)
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        if key.startswith("_"):
+            object.__setattr__(self, key, value)
+        else:
+            self.__setitem__(key, value)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._values[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        # If defined and has a typespec, attempt a lightweight conversion.
+        opt = self._defs.get(key)
+        if opt and opt.typespec and value is not None:
+            # Be permissive: accept already-correct types.
+            try:
+                if opt.typespec is bool:
+                    if isinstance(value, str):
+                        value = value.lower() in ("1", "true", "yes", "on")
+                    else:
+                        value = bool(value)
+                elif opt.typespec is int:
+                    value = int(value)
+                elif opt.typespec is str:
+                    value = str(value)
+                elif opt.typespec is list:
+                    if value is None:
+                        value = []
+                    elif isinstance(value, list):
+                        pass
+                    else:
+                        value = [value]
+                else:
+                    # generic attempt
+                    value = opt.typespec(value)
+            except Exception:
+                # Keep minimal; store raw value if conversion fails.
+                pass
+
+        # Unknown options are allowed: track value anyway.
+        self._values[key] = value
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._values
+
+    def __repr__(self) -> str:
+        return f"Options({self._values!r})"
+</file>
+
+<file:name=mitmproxy/flow.py>
+from __future__ import annotations
+
+import copy
+import time
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
+
+@dataclass
+class Error:
+    msg: str = ""
+    timestamp: float = 0.0
+
+    def __init__(self, msg: str = "", timestamp: Optional[float] = None):
+        self.msg = msg
+        self.timestamp = time.time() if timestamp is None else float(timestamp)
+
+    def __str__(self) -> str:
+        return self.msg
+
+    def __repr__(self) -> str:
+        return f"Error(msg={self.msg!r}, timestamp={self.timestamp!r})"
+
+
+class Flow:
+    """
+    Minimal Flow base class.
+
+    This provides metadata and basic lifecycle flags. No networking side effects.
+    """
+
+    def __init__(self) -> None:
+        self.id: str = uuid.uuid4().hex
+        self.error: Optional[Error] = None
+        self.intercepted: bool = False
+        self.marked: Optional[str] = None
+        self.metadata: Dict[str, Any] = {}
+        self.live: bool = False
+
+    def kill(self) -> None:
+        # In real mitmproxy, kill aborts connections. Here we only mark an error.
+        if self.error is None:
+            self.error = Error("killed")
+
+    def copy(self) -> "Flow":
+        f = copy.copy(self)
+        f.metadata = copy.deepcopy(self.metadata)
+        return f
+
+    def get_state(self) -> Dict[str, Any]:
+        return {
+            "type": self.__class__.__name__,
+            "id": self.id,
+            "error": None if self.error is None else {"msg": self.error.msg, "timestamp": self.error.timestamp},
+            "intercepted": self.intercepted,
+            "marked": self.marked,
+            "metadata": copy.deepcopy(self.metadata),
+            "live": self.live,
+        }
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        self.id = state.get("id", self.id)
+        err = state.get("error", None)
+        if err is None:
+            self.error = None
+        else:
+            self.error = Error(err.get("msg", ""), err.get("timestamp", None))
+        self.intercepted = bool(state.get("intercepted", False))
+        self.marked = state.get("marked", None)
+        self.metadata = copy.deepcopy(state.get("metadata", {}))
+        self.live = bool(state.get("live", False))
+
+
+class FlowReader:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError("FlowReader is not implemented in this minimal subset.")
+
+
+class FlowWriter:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError("FlowWriter is not implemented in this minimal subset.")
+</file>
+
+<file:name=mitmproxy/http.py>
+from __future__ import annotations
+
+import copy
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+
+from .flow import Flow
+
+
+class Headers:
+    """
+    Minimal, case-insensitive header container with support for duplicate keys.
+    Stores values as strings.
+    """
+
+    def __init__(self, fields: Optional[Union[List[Tuple[str, str]], Dict[str, str]]] = None):
+        self._fields: List[Tuple[str, str]] = []
+        if fields:
+            if isinstance(fields, dict):
+                for k, v in fields.items():
+                    self.add(k, v)
+            else:
+                for k, v in fields:
+                    self.add(k, v)
+
+    @staticmethod
+    def _norm(name: str) -> str:
+        return name.lower()
+
+    def add(self, name: str, value: str) -> None:
+        self._fields.append((str(name), str(value)))
+
+    def get_all(self, name: str) -> List[str]:
+        n = self._norm(name)
+        return [v for (k, v) in self._fields if self._norm(k) == n]
+
+    def get(self, name: str, default: Optional[str] = None) -> Optional[str]:
+        vals = self.get_all(name)
+        return vals[-1] if vals else default
+
+    def __getitem__(self, name: str) -> str:
+        v = self.get(name)
+        if v is None:
+            raise KeyError(name)
+        return v
+
+    def __setitem__(self, name: str, value: str) -> None:
+        n = self._norm(name)
+        self._fields = [(k, v) for (k, v) in self._fields if self._norm(k) != n]
+        self._fields.append((str(name), str(value)))
+
+    def __contains__(self, name: str) -> bool:
+        n = self._norm(name)
+        return any(self._norm(k) == n for (k, v) in self._fields)
+
+    def items(self, multi: bool = False) -> Iterator[Tuple[str, Union[str, List[str]]]]:
+        if multi:
+            # group by normalized name, preserving first-seen casing
+            seen: Dict[str, Tuple[str, List[str]]] = {}
+            order: List[str] = []
+            for k, v in self._fields:
+                nk = self._norm(k)
+                if nk not in seen:
+                    seen[nk] = (k, [v])
+                    order.append(nk)
+                else:
+                    seen[nk][1].append(v)
+            for nk in order:
+                orig, vals = seen[nk]
+                yield orig, vals
+        else:
+            for k, v in self._fields:
+                yield k, v
+
+    def __iter__(self) -> Iterable[str]:
+        for k, _ in self._fields:
+            yield k
+
+    def __len__(self) -> int:
+        return len(self._fields)
+
+    def __repr__(self) -> str:
+        return f"Headers({self._fields!r})"
+
+
+class Message:
+    def __init__(
+        self,
+        headers: Optional[Headers] = None,
+        content: bytes = b"",
+        timestamp_start: Optional[float] = None,
+        timestamp_end: Optional[float] = None,
+        trailers: Optional[Headers] = None,
+    ):
+        self.headers: Headers = headers if headers is not None else Headers()
+        self.content: bytes = content if content is not None else b""
+        self.timestamp_start: Optional[float] = timestamp_start
+        self.timestamp_end: Optional[float] = timestamp_end
+        self.trailers: Optional[Headers] = trailers
+
+    @property
+    def text(self) -> str:
+        try:
+            return self.content.decode("utf-8", errors="replace")
+        except Exception:
+            return str(self.content)
+
+
+class Request(Message):
+    def __init__(
+        self,
+        host: str = "example.com",
+        port: int = 80,
+        method: str = "GET",
+        scheme: str = "http",
+        path: str = "/",
+        http_version: str = "HTTP/1.1",
+        headers: Optional[Headers] = None,
+        content: bytes = b"",
+    ):
+        super().__init__(headers=headers, content=content)
+        self.host = host
+        self.port = int(port)
+        self.method = method
+        self.scheme = scheme
+        self.path = path
+        self.http_version = http_version
+
+    @property
+    def pretty_url(self) -> str:
+        default_port = 443 if self.scheme == "https" else 80
+        hostport = self.host if self.port == default_port else f"{self.host}:{self.port}"
+        p = self.path if self.path.startswith("/") else "/" + self.path
+        return f"{self.scheme}://{hostport}{p}"
+
+
+class Response(Message):
+    def __init__(
+        self,
+        status_code: int = 200,
+        reason: str = "OK",
+        http_version: str = "HTTP/1.1",
+        headers: Optional[Headers] = None,
+        content: bytes = b"",
+    ):
+        super().__init__(headers=headers, content=content)
+        self.status_code = int(status_code)
+        self.reason = reason
+        self.http_version = http_version
+
+
+class HTTPFlow(Flow):
+    def __init__(self, request: Optional[Request] = None):
+        super().__init__()
+        self.request: Optional[Request] = request
+        self.response: Optional[Response] = None
+        self.websocket: Optional[object] = None
+
+    def get_state(self) -> Dict[str, Any]:
+        s = super().get_state()
+        s["request"] = None if self.request is None else _req_state(self.request)
+        s["response"] = None if self.response is None else _resp_state(self.response)
+        return s
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        super().set_state(state)
+        rs = state.get("request", None)
+        self.request = None if rs is None else _req_from_state(rs)
+        ps = state.get("response", None)
+        self.response = None if ps is None else _resp_from_state(ps)
+
+
+def _headers_state(h: Headers) -> List[Tuple[str, str]]:
+    return list(h.items(multi=False))
+
+
+def _headers_from_state(fields: List[Tuple[str, str]]) -> Headers:
+    return Headers(fields)
+
+
+def _req_state(r: Request) -> Dict[str, Any]:
+    return {
+        "host": r.host,
+        "port": r.port,
+        "method": r.method,
+        "scheme": r.scheme,
+        "path": r.path,
+        "http_version": r.http_version,
+        "headers": _headers_state(r.headers),
+        "content": r.content,
+    }
+
+
+def _resp_state(r: Response) -> Dict[str, Any]:
+    return {
+        "status_code": r.status_code,
+        "reason": r.reason,
+        "http_version": r.http_version,
+        "headers": _headers_state(r.headers),
+        "content": r.content,
+    }
+
+
+def _req_from_state(s: Dict[str, Any]) -> Request:
+    return Request(
+        host=s.get("host", "example.com"),
+        port=s.get("port", 80),
+        method=s.get("method", "GET"),
+        scheme=s.get("scheme", "http"),
+        path=s.get("path", "/"),
+        http_version=s.get("http_version", "HTTP/1.1"),
+        headers=_headers_from_state(s.get("headers", [])),
+        content=s.get("content", b""),
+    )
+
+
+def _resp_from_state(s: Dict[str, Any]) -> Response:
+    return Response(
+        status_code=s.get("status_code", 200),
+        reason=s.get("reason", "OK"),
+        http_version=s.get("http_version", "HTTP/1.1"),
+        headers=_headers_from_state(s.get("headers", [])),
+        content=s.get("content", b""),
+    )
+
+
+__all__ = ["Headers", "Message", "Request", "Response", "HTTPFlow"]
+</file>
+
+<file:name=mitmproxy/addonmanager.py>
+from __future__ import annotations
+
+from typing import Any, List, Optional
+
+from .options import Options
+
+
+class AddonManager:
+    """
+    Minimal addon manager: keeps addons and triggers named hooks.
+    """
+
+    def __init__(self, master: Any):
+        self.master = master
+        self.options: Options = getattr(master, "options", Options())
+        self._addons: List[Any] = []
+
+    def add(self, *addons: Any) -> None:
+        for a in addons:
+            if a in self._addons:
+                continue
+            self._addons.append(a)
+
+    def remove(self, addon: Any) -> None:
+        if addon in self._addons:
+            self._addons.remove(addon)
+
+    def clear(self) -> None:
+        self._addons.clear()
+
+    def trigger(self, event: str, *args: Any, **kwargs: Any) -> None:
+        for a in list(self._addons):
+            func = getattr(a, event, None)
+            if callable(func):
+                try:
+                    func(*args, **kwargs)
+                except Exception as e:
+                    # store for debugging; re-raise to fail fast.
+                    setattr(self.master, "last_exception", e)
+                    raise
+
+    def register_option(
+        self,
+        name: str,
+        default: Any,
+        help: str = "",
+        typespec: Optional[type] = None,
+    ) -> None:
+        self.options.add_option(name=name, default=default, typespec=typespec, help=help)
+
+    def __iter__(self):
+        return iter(self._addons)
+
+    def __len__(self) -> int:
+        return len(self._addons)
+</file>
+
+<file:name=mitmproxy/tools/__init__.py>
+# minimal tools package
+</file>
+
+<file:name=mitmproxy/tools/cmdline.py>
+# Namespace package marker for mitmproxy.tools.cmdline
+</file>
+
+<file:name=mitmproxy/tools/cmdline/mitmdump.py>
+from __future__ import annotations
+
+import argparse
+
+from mitmproxy.version import __version__
+
+
+def mitmdump(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
+    # Keep argument order stable.
+    parser.add_argument("--version", action="version", version=__version__)
+
+    parser.add_argument("-q", "--quiet", action="store_true", default=False, help="Quiet mode.")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase verbosity. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "-p",
+        "--listen-port",
+        dest="listen_port",
+        type=int,
+        default=8080,
+        metavar="PORT",
+        help="Proxy service port.",
+    )
+    parser.add_argument(
+        "--listen-host",
+        dest="listen_host",
+        type=str,
+        default="127.0.0.1",
+        metavar="HOST",
+        help="Proxy service host.",
+    )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        dest="mode",
+        type=str,
+        default="regular",
+        metavar="MODE",
+        help="Proxy mode.",
+    )
+    parser.add_argument(
+        "-s",
+        "--script",
+        dest="scripts",
+        action="append",
+        default=[],
+        metavar="SCRIPT",
+        help="Addon script (parsed only; not executed).",
+    )
+    parser.add_argument(
+        "--set",
+        dest="set",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Set an option (parsed only).",
+    )
+    parser.add_argument(
+        "--confdir",
+        dest="confdir",
+        type=str,
+        default="",
+        metavar="DIR",
+        help="Configuration directory.",
+    )
+    return parser
+
+
+def _make_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="mitmdump", add_help=True)
+    return mitmdump(p)
+
+
+def parse_args(args=None) -> argparse.Namespace:
+    parser = _make_parser()
+    return parser.parse_args(args=args)
+</file>
+
+<file:name=mitmproxy/tools/dump.py>
+from __future__ import annotations
+
+from typing import Optional
+
+from mitmproxy import ctx
+from mitmproxy.addonmanager import AddonManager
+from mitmproxy.command import CommandManager
+from mitmproxy.flow import Flow
+from mitmproxy.options import Options
+
+
+class DumpMaster:
+    """
+    Safe-to-evaluate dummy master class for mitmdump.
+    """
+
+    def __init__(
+        self,
+        options: Optional[Options] = None,
+        with_termlog: bool = True,
+        with_dumper: bool = True,
+    ):
+        self.options: Options = options if options is not None else Options()
+        self.should_exit: bool = False
+        self.last_exception = None
+
+        self.commands = CommandManager(self)
+        self.addons = AddonManager(self)
+
+        # populate global context for addons that import ctx
+        ctx.ctx.master = self
+        ctx.ctx.options = self.options
+
+        self.with_termlog = bool(with_termlog)
+        self.with_dumper = bool(with_dumper)
+
+    def run(self) -> None:
+        # No loop, just lifecycle hooks.
+        self.addons.trigger("running")
+        if not self.should_exit:
+            self.addons.trigger("done")
+
+    def shutdown(self) -> None:
+        self.should_exit = True
+
+    def load_flow(self, flow: Flow) -> None:
+        # Optional hook in real mitmproxy.
+        self.addons.trigger("load", flow)
+</file>
+
+<file:name=mitmproxy/tools/main.py>
+from __future__ import annotations
+
+import sys
+from typing import List, Optional
+
+from mitmproxy.options import Options
+from mitmproxy.tools.cmdline.mitmdump import parse_args
+from mitmproxy.tools.dump import DumpMaster
+
+
+def mitmdump(argv: Optional[List[str]] = None) -> int:
+    ns = parse_args(argv)
+    opts = Options(
+        quiet=ns.quiet,
+        verbose=ns.verbose,
+        listen_port=ns.listen_port,
+        listen_host=ns.listen_host,
+        mode=ns.mode,
+        confdir=ns.confdir,
+        set=ns.set,
+        scripts=ns.scripts,
+    )
+    m = DumpMaster(options=opts)
+    m.run()
+    return 0
+
+
+def mitmproxy(argv: Optional[List[str]] = None) -> int:
+    # Console UI stub. Reuse mitmdump args for compatibility.
+    return mitmdump(argv)
+
+
+def mitmweb(argv: Optional[List[str]] = None) -> int:
+    # Web UI stub. Reuse mitmdump args for compatibility.
+    return mitmdump(argv)
+</file>
+
+<file:name=mitmproxy/tools/console/__init__.py>
+# console frontend placeholder
+</file>
+
+<file:name=mitmproxy/tools/web/__init__.py>
+# web frontend placeholder
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import argparse
+
+import pytest
+
+from mitmproxy.addonmanager import AddonManager
+from mitmproxy.flow import Flow
+from mitmproxy.http import HTTPFlow, Headers, Request, Response
+from mitmproxy.tools.dump import DumpMaster
+from mitmproxy.tools.main import mitmdump as main_mitmdump
+import mitmproxy.tools.cmdline.mitmdump as cmd_mitmdump
+from mitmproxy.version import __version__
+
+
+def test_import_anchors():
+    from mitmproxy.http import HTTPFlow as _
+    from mitmproxy.flow import Flow as _
+    from mitmproxy.addonmanager import AddonManager as _
+    from mitmproxy.tools.dump import DumpMaster as _
+    from mitmproxy.tools.main import mitmdump as _
+    import mitmproxy.tools.cmdline.mitmdump as _
+
+
+def test_cmdline_parse_defaults():
+    ns = cmd_mitmdump.parse_args([])
+    assert ns.listen_port == 8080
+    assert ns.listen_host == "127.0.0.1"
+    assert ns.mode == "regular"
+    assert ns.quiet is False
+    assert ns.verbose == 0
+    assert ns.scripts == []
+    assert ns.set == []
+    assert ns.confdir == ""
+
+
+def test_cmdline_parse_listen_port():
+    ns = cmd_mitmdump.parse_args(["--listen-port", "8081"])
+    assert ns.listen_port == 8081
+
+
+def test_cmdline_help_contains_flags():
+    p = argparse.ArgumentParser(prog="mitmdump", add_help=True)
+    cmd_mitmdump.mitmdump(p)
+    h = p.format_help()
+    for token in ["--listen-port", "--listen-host", "--mode", "--set", "--version", "--confdir"]:
+        assert token in h
+
+
+def test_main_version_prints_and_exits(capsys):
+    # argparse's --version exits with SystemExit(0)
+    with pytest.raises(SystemExit) as ei:
+        main_mitmdump(["--version"])
+    assert ei.value.code == 0
+    out = capsys.readouterr().out.strip()
+    assert out == __version__
+
+
+def test_master_lifecycle_runs_quickly():
+    m = DumpMaster()
+    assert m.should_exit is False
+    m.run()
+    assert m.should_exit is False
+    m.shutdown()
+    assert m.should_exit is True
+
+
+def test_addon_hooks_order_and_remove():
+    m = DumpMaster()
+    calls = []
+
+    class A:
+        def running(self):
+            calls.append("A.running")
+
+        def done(self):
+            calls.append("A.done")
+
+    class B:
+        def running(self):
+            calls.append("B.running")
+
+        def done(self):
+            calls.append("B.done")
+
+    a, b = A(), B()
+    m.addons.add(a, b)
+    m.run()
+    assert calls == ["A.running", "B.running", "A.done", "B.done"]
+
+    calls.clear()
+    m.addons.remove(a)
+    m.run()
+    assert calls == ["B.running", "B.done"]
+
+
+def test_http_headers_case_insensitive_and_multi():
+    h = Headers([("X-Test", "1"), ("x-test", "2"), ("Other", "a")])
+    assert h.get("x-test") == "2"
+    assert h.get_all("X-TEST") == ["1", "2"]
+    h["X-TEST"] = "3"
+    assert h.get_all("x-test") == ["3"]
+
+
+def test_httpflow_pretty_url_and_state_roundtrip():
+    req = Request(host="example.com", port=8080, scheme="http", path="/hello", method="GET")
+    req.headers["Host"] = "example.com"
+    resp = Response(status_code=201, reason="Created", content=b"ok")
+    f = HTTPFlow(request=req)
+    f.response = resp
+    assert f.request.pretty_url == "http://example.com:8080/hello"
+
+    st = f.get_state()
+    f2 = HTTPFlow()
+    f2.set_state(st)
+    assert f2.request is not None
+    assert f2.response is not None
+    assert f2.request.pretty_url == "http://example.com:8080/hello"
+    assert f2.response.status_code == 201
+    assert f2.response.content == b"ok"
+
+
+def test_flow_kill_and_copy_metadata():
+    f = Flow()
+    f.metadata["a"] = {"b": 1}
+    f2 = f.copy()
+    assert f2 is not f
+    assert f2.metadata == f.metadata
+    f2.metadata["a"]["b"] = 2
+    assert f.metadata["a"]["b"] == 1  # deep-copied metadata
+
+    assert f.error is None
+    f.kill()
+    assert f.error is not None
+    assert "killed" in str(f.error)
+</file>

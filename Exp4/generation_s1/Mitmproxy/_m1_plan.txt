@@ -1,0 +1,269 @@
+1) Repository layout and import graph
+
+Repository layout (minimal subset; only what tests need):
+- mitmproxy/
+  - __init__.py
+  - flow.py
+  - http.py
+  - addonmanager.py
+  - options.py
+  - command.py
+  - exceptions.py
+  - ctx.py
+  - version.py
+  - tools/
+    - __init__.py
+    - main.py
+    - cmdline.py
+    - dump.py
+    - console/
+      - __init__.py
+    - web/
+      - __init__.py
+
+Import graph (keep shallow and stable):
+- mitmproxy.__init__ imports version.__version__ only (avoid heavy imports).
+- mitmproxy.flow standalone; no dependencies on tools.
+- mitmproxy.http depends on mitmproxy.flow.
+- mitmproxy.addonmanager depends on mitmproxy.options and mitmproxy.command.
+- mitmproxy.tools.cmdline depends on argparse + mitmproxy.options (+ maybe version).
+- mitmproxy.tools.dump depends on mitmproxy.addonmanager + mitmproxy.options + mitmproxy.flow (light).
+- mitmproxy.tools.main provides entry functions that call cmdline + create DumpMaster.
+- mitmproxy.ctx provides a very small global context placeholder used by addons (optional but common).
+
+2) Public APIs to implement (modules/classes/functions)
+
+2.1 mitmproxy.flow
+- class Error:
+  - __init__(self, msg: str = "", timestamp: float | None = None)
+  - msg: str
+  - timestamp: float
+  - __repr__/__str__ stable
+- class Flow:
+  - attributes:
+    - id: str (uuid4 hex)
+    - error: Error | None
+    - intercepted: bool
+    - marked: str | None
+    - metadata: dict
+    - live: bool (default False)
+  - methods:
+    - __init__(self)
+    - kill(self): set error/interrupted marker; no real network side effects.
+    - copy(self): shallow-ish copy with new id? (mitmproxy usually keeps id; but tests likely only need exists). Implement copy that returns copy.copy(self) but deep-copies metadata.
+    - get_state(self) -> dict: serializable minimal state
+    - set_state(self, state: dict) -> None
+- class FlowReader/FlowWriter (optional; only if tests import):
+  - minimal stubs that raise NotImplementedError on I/O, but exist.
+
+2.2 mitmproxy.http
+Provide types commonly referenced by docs/tests:
+- class Headers (dict-like):
+  - store list of (bytes, bytes) or a case-insensitive mapping; but for minimal tests implement:
+    - __init__(self, fields: list[tuple[str,str]] | dict[str,str] | None = None)
+    - get_all(name) -> list[str]
+    - __getitem__/__setitem__/get
+    - items(multi=False) -> iterator
+  - must be importable and usable for trivial header access.
+- class Message:
+  - headers: Headers
+  - content: bytes
+  - timestamp_start: float | None
+  - timestamp_end: float | None
+  - trailers: Headers | None
+  - property text (decode as utf-8 with replacement)
+- class Request(Message):
+  - host: str
+  - port: int
+  - method: str
+  - scheme: str
+  - path: str
+  - http_version: str
+  - pretty_url property (scheme://host[:port]/path)
+- class Response(Message):
+  - status_code: int
+  - reason: str
+  - http_version: str
+- class HTTPFlow(mitmproxy.flow.Flow):
+  - request: Request | None
+  - response: Response | None
+  - websocket: object | None (placeholder)
+  - __init__(self, request: Request | None = None)
+  - get_state/set_state include request/response basic fields.
+
+2.3 mitmproxy.addonmanager
+Core surface:
+- class AddonManager:
+  - __init__(self, master)
+  - add(self, *addons) -> None
+  - remove(self, addon) -> None
+  - clear(self) -> None
+  - trigger(self, event: str, *args, **kwargs) -> None
+    - If addon has attribute named event and callable, invoke it.
+  - register_option(self, name: str, default, help: str = "", typespec: type | None = None) -> None
+    - plumb into Options
+  - (optional) get/addon lookup helpers if tests import.
+- The manager should be permissive: ignore missing hooks, keep deterministic order.
+
+2.4 mitmproxy.options
+- class Options:
+  - stores option values + metadata.
+  - __init__(self, **kwargs)
+  - update(self, **kwargs)
+  - keys/ __getattr__/__setattr__ for known options; unknown options allowed but tracked.
+  - add_option(self, name, default, typespec=None, help="")
+  - get_help(self) -> list of tuples or dict for CLI integration.
+
+Define minimal options used by mitmdump-like CLIs:
+- verbose (bool)
+- quiet (bool)
+- mode (str)
+- listen_host (str)
+- listen_port (int)
+- confdir (str)
+- set (list[str]) (for -s/--set style in real mitmproxy; here just accept)
+- scripts (list[str]) (for -s in some versions; but to keep safe parse only)
+
+2.5 mitmproxy.command
+- class CommandManager:
+  - __init__(self, master)
+  - add(self, name: str, func, help: str = "")
+  - call(self, name: str, *args, **kwargs)
+  - get_commands(self) -> dict
+Only needed so AddonManager can expose commands without implementing real console.
+
+2.6 mitmproxy.tools.cmdline.mitmdump (anchor #5)
+- function mitmdump(parser: argparse.ArgumentParser) -> argparse.ArgumentParser OR add_args-style function:
+  - Provide stable set of args and help output. Minimal:
+    - -h/--help default by argparse
+    - --version (prints mitmproxy.version.__version__)
+    - -q/--quiet
+    - -v/--verbose (count or bool)
+    - -p/--listen-port (int)
+    - --listen-host
+    - -m/--mode
+    - -s/--script (append)
+    - --set (append KEY=VALUE)
+    - --confdir
+  - Return parser after adding args.
+- function parse_args(args: list[str] | None = None) -> argparse.Namespace
+  - create parser, call mitmdump(parser), parse, return.
+Keep logic simple and deterministic.
+
+2.7 mitmproxy.tools.dump.DumpMaster (anchor #4)
+- class DumpMaster:
+  - __init__(self, options: Options | None = None, with_termlog: bool = True, with_dumper: bool = True)
+    - create:
+      - self.options (Options)
+      - self.addons (AddonManager)
+      - self.commands (CommandManager)
+      - self.should_exit (bool False)
+  - run(self) -> None
+    - no event loop; just trigger addons “running” then “done” immediately unless externally stopped.
+  - shutdown(self) -> None: set should_exit True
+  - load_flow(self, flow: Flow) -> None (optional): trigger “load” hook.
+This is a “safe-to-evaluate” dummy master, no networking.
+
+2.8 mitmproxy.tools.main.mitmdump (anchor #3)
+- In mitmproxy/tools/main.py:
+  - function mitmdump(argv: list[str] | None = None) -> int
+    - parse args using tools.cmdline.mitmdump.parse_args
+    - build Options from parsed args
+    - instantiate DumpMaster(options)
+    - run
+    - return 0
+  - also provide mitmproxy/mitmweb/mitmproxy (console) entry stubs if tests import them:
+    - mitmproxy(argv=None) -> int (same pattern, but no UI)
+    - mitmweb(argv=None) -> int (same pattern, but no web server)
+These should only parse args/help and exit.
+
+2.9 Version and misc
+- mitmproxy/version.py: __version__ = "0.0.0" (or deterministic).
+- mitmproxy/exceptions.py: define OptionsError/CommandError minimal.
+- mitmproxy/ctx.py: expose ctx.options, ctx.master placeholders; set by DumpMaster on init for addons that import ctx.
+
+3) Key behaviors & edge cases
+
+CLI/help stability:
+- Use argparse with consistent ordering of arguments.
+- Ensure --version works without importing heavy modules; only import mitmproxy.version.
+- Ensure parse_args([]) succeeds and yields defaults.
+
+Safe execution:
+- DumpMaster.run must not open sockets, start asyncio loops, or spawn threads.
+- Any “script” options are parsed but not executed/imported.
+
+API compatibility expectations:
+- Modules and symbols must exist at their import paths:
+  - mitmproxy.http HTTPFlow/Request/Response/Headers
+  - mitmproxy.flow Flow/Error
+  - mitmproxy.addonmanager AddonManager
+  - mitmproxy.tools.main.mitmdump callable
+  - mitmproxy.tools.dump.DumpMaster class
+  - mitmproxy.tools.cmdline.mitmdump module with mitmdump() (arg-spec) and parse_args()
+
+Flow serialization:
+- get_state/set_state should roundtrip basic primitives (str/int/bool/dict/None).
+- Request/Response content stays bytes; when serializing, encode as latin1 or base64 to keep JSON-safe. Minimal approach: store content as bytes directly in state (tests likely won’t JSON dump). If concerned, store as latin1 string plus flag; but keep simple unless tests demand JSON.
+
+Headers behavior:
+- Case-insensitive lookup for common use; implement by normalizing keys to lower internally but preserve original for iteration.
+- get_all returns list even if single entry.
+
+AddonManager triggering:
+- trigger must catch exceptions? For safety, catch and store on master.last_exception, but don’t crash unless desired. Default: re-raise to fail fast in tests unless tests expect resilience. Implement re-raise with minimal wrapping.
+
+Options typing:
+- When set via CLI, ensure listen_port is int, verbose count -> bool or int. Keep verbose as int count to mirror common behavior, but also allow bool truthiness.
+
+4) Minimal internal test plan (what to test and why)
+
+Import/layout tests:
+- Import each anchor module and symbol:
+  - from mitmproxy.http import HTTPFlow, Request, Response, Headers
+  - from mitmproxy.flow import Flow
+  - from mitmproxy.addonmanager import AddonManager
+  - from mitmproxy.tools.dump import DumpMaster
+  - from mitmproxy.tools.main import mitmdump
+  - import mitmproxy.tools.cmdline.mitmdump as cmd_mitmdump
+
+CLI parsing/help tests:
+- cmd_mitmdump.parse_args([]) returns namespace with defaults.
+- cmd_mitmdump.parse_args(["--listen-port","8080"]) sets listen_port=8080.
+- Running parser.format_help() contains key flags (--listen-port, --mode, --set, --version).
+- main.mitmdump(["--version"]) returns 0 and prints version (capture stdout).
+
+Master lifecycle tests:
+- master = DumpMaster(); master.run() completes quickly and sets should_exit False.
+- master.shutdown() sets should_exit True.
+
+Addon hook tests:
+- Create addon object with running(self)/done(self) methods and ensure AddonManager.trigger calls them.
+- Ensure add/remove works and order is preserved.
+
+HTTP model tests:
+- Build Request/Response, attach to HTTPFlow, verify pretty_url and header get/set.
+- Flow.get_state/set_state roundtrip for HTTPFlow without errors.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+
+Risk: Test suite asserts exact help output formatting/order.
+Mitigation: Keep argument set minimal and stable; add arguments in deterministic order; avoid argparse subparsers; avoid auto-generated metavars that differ across Python versions by setting metavar explicitly where needed.
+
+Risk: Import-time side effects (network, event loop, optional deps).
+Mitigation: No external dependencies; no asyncio; keep __init__.py lightweight; ensure tools modules only import standard library and minimal internal modules.
+
+Risk: API surface mismatch (tests expect additional names/attributes).
+Mitigation: Provide common aliases and placeholders:
+- HTTPFlow properties request/response always exist (can be None).
+- Provide __all__ in modules to expose primary names.
+- Add stubs for commonly imported but unused things (e.g., mitmproxy.http.HTTPFlow, mitmproxy.http.Request/Response).
+
+Risk: Options model mismatches (attribute vs dict access).
+Mitigation: Implement both attribute access and mapping-like behavior (getattr/setattr + __getitem__/__setitem__) in Options.
+
+Risk: Exceptions in addon hooks causing failures in tests that only validate trigger calls.
+Mitigation: Keep default behavior to re-raise for visibility, but optionally provide master.options/flag to suppress. If unsure, catch and store, then re-raise; this satisfies both debugging and predictable failure.
+
+Risk: Bytes/text handling in message types.
+Mitigation: Provide Message.text property decoding with errors="replace"; keep content as bytes; headers accept str and encode/normalize internally as str for simplicity.

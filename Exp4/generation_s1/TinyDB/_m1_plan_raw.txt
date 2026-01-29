@@ -1,0 +1,201 @@
+<plan>
+1) Repository layout and import graph
+- Package: tinydb/
+  - __init__.py
+    - Re-export public API: TinyDB, Table, Query/where, storages (JSONStorage), maybe exceptions.
+    - Imports from: tinydb.database, tinydb.table, tinydb.queries, tinydb.storages
+  - database.py
+    - Defines TinyDB (database handle) that owns Storage and manages tables.
+    - Imports: storages (JSONStorage), table (Table), typing, pathlib/os, threading (optional lock)
+  - table.py
+    - Defines Table: CRUD operations for documents within one “table” (project/task collection).
+    - Imports: queries (Query, QueryInstance, where), typing, copy, time/uuid/itertools (optional), threading (optional)
+    - Calls into TinyDB’s storage read/write via database reference.
+  - queries.py
+    - Defines Query builder and composable predicate objects for filtering.
+    - No imports from database/table; purely functional/predicate.
+  - storages.py
+    - Defines Storage interface and JSONStorage (file-based).
+    - Imports: json, os, io, pathlib, threading (optional), tempfile for atomic writes.
+
+Import direction (no cycles):
+- queries.py: standalone
+- storages.py: standalone
+- table.py: imports queries.py (predicates), no imports from storages
+- database.py: imports storages.py and table.py
+- __init__.py: imports from database/table/queries/storages
+
+
+2) Public APIs to implement (modules/classes/functions)
+tinydb/__init__.py
+- __all__ exports:
+  - TinyDB (from database)
+  - Table (from table)
+  - Query, where (from queries)
+  - JSONStorage, Storage (from storages)
+
+tinydb/storages.py
+- class Storage:
+  - __init__(self, path: str | os.PathLike, **kwargs)
+  - read(self) -> dict
+  - write(self, data: dict) -> None
+  - close(self) -> None
+- class JSONStorage(Storage):
+  - __init__(self, path, *, encoding="utf-8", indent=2, ensure_ascii=False, create_dirs=True, atomic_write=True)
+  - read(): returns dict; if file missing/empty -> {}
+  - write(data): persists JSON; atomic write via temp file + replace when atomic_write True
+  - close(): no-op (kept for interface)
+
+tinydb/queries.py
+- class Query:
+  - Used as a field-path builder. Accessing attributes creates nested paths.
+  - __getattr__(self, item) -> Query
+  - __getitem__(self, item) -> Query (allow dict key access, including non-identifiers)
+  - Methods that return QueryInstance (callable predicate):
+    - exists()  -> checks field presence
+    - equals(value) / __eq__(value)
+    - not_equals(value) / __ne__(value)
+    - matches(regex_or_pattern) -> re.search on stringified value (optional)
+    - one_of(iterable)
+    - test(fn) -> fn(field_value) is True
+    - any(fn_or_queryinstance) / all(...) for list fields (optional, keep minimal if not needed)
+  - Convenience comparisons:
+    - <, <=, >, >= for numeric/date-like comparisons when supported
+- class QueryInstance:
+  - Wraps a predicate: __call__(doc) -> bool
+  - Boolean composition:
+    - __and__(other), __or__(other), __invert__ (NOT)
+- def where(key: str) -> Query
+  - returns Query()[key] equivalent for convenience.
+
+tinydb/database.py
+- class TinyDB:
+  - __init__(self, path: str | os.PathLike, *, storage=JSONStorage, default_table="tasks", **storage_kwargs)
+    - Creates storage instance; loads initial data lazily/eagerly.
+  - table(self, name: str) -> Table
+    - Returns a Table object bound to this DB and table name.
+  - __getitem__(self, name: str) -> Table (alias to table)
+  - tables(self) -> list[str]
+  - drop_tables(self) -> None
+  - drop_table(self, name: str) -> None
+  - close(self) -> None (delegates to storage.close)
+  - Internal:
+    - _read() -> dict (reads storage)
+    - _write(data: dict) -> None
+    - _get_table_data(data, name) -> dict-like {doc_id: doc}
+    - optional locking to serialize read-modify-write cycles.
+
+tinydb/table.py
+- class Table:
+  - Construction: Table(db: TinyDB, name: str)
+  - Basic CRUD:
+    - insert(self, document: dict) -> int
+      - assigns doc_id; returns doc_id
+    - insert_multiple(self, documents: list[dict]) -> list[int]
+    - get(self, doc_id: int | None = None, *, query: QueryInstance | None = None) -> dict | None
+    - all(self) -> list[dict]
+    - remove(self, doc_ids: list[int] | None = None, *, query: QueryInstance | None = None) -> int (count removed)
+    - update(self, fields: dict | None = None, *, doc_ids: list[int] | None = None, query: QueryInstance | None = None, transform=None) -> int
+      - fields merges into doc; transform(doc)->doc optional for custom updates
+    - upsert(self, document: dict, *, query: QueryInstance) -> int
+      - if match exists update first match else insert; returns doc_id
+    - count(self, query: QueryInstance | None = None) -> int
+    - search(self, query: QueryInstance) -> list[dict]
+    - contains(self, query: QueryInstance) -> bool
+    - purge(self) -> None (drop all docs from table)
+  - Task-manager helpers (thin wrappers over generic CRUD; keep optional but useful):
+    - create_task(self, *, title: str, project: str | None = None, status="todo", estimate: float | None=None, **extra) -> int
+      - Inserts normalized task document.
+    - unfinished_per_project(self, *, done_statuses=("done","closed")) -> dict[str, int]
+      - Simple analytics-like query.
+  - Document format:
+    - Stored docs include a reserved field like "_id" for doc_id (or expose via returned doc copies). Choose:
+      - Store without _id but return copies with "doc_id" field for usability; or store with "_id".
+    - Minimal: store with "_id" to keep stable across reads and simplify analytics.
+
+Data model in JSON file (single file):
+{
+  "_default": {
+    "1": {"_id": 1, "title": "...", "project": "X", "status": "todo", "estimate": 3}
+  },
+  "projects": {...}
+}
+- Each table is a dict keyed by string doc_id for JSON compatibility; docs also include numeric _id.
+
+3) Key behaviors & edge cases
+- File creation and empty/corrupt JSON:
+  - If file does not exist: treat as empty DB; create on first write.
+  - If file exists but empty/whitespace: treat as {}.
+  - If JSON is invalid: raise ValueError with clear message (don’t silently overwrite).
+- Atomic writes:
+  - Write to temp file in same directory then os.replace to avoid partial writes.
+  - Ensure directory exists if create_dirs True.
+- Concurrency:
+  - Minimal thread-safety: a process-local lock around read-modify-write in TinyDB methods called by Table.
+  - Multi-process concurrency not guaranteed; document as limitation.
+- Doc IDs:
+  - Auto-increment based on max existing _id in that table; handle non-contiguous ids.
+  - Store table mapping keys as strings; parse to int for computations.
+- Return values and mutation safety:
+  - Return shallow copies of docs to prevent external mutation of in-memory data from affecting persisted state without update().
+  - update(fields=...) merges keys; does not deep-merge nested dicts (document this).
+- Query behavior:
+  - Missing fields: comparisons (==, <, etc.) should return False unless exists() is used; exists() True only when path resolvable.
+  - Nested paths: Query().project.name style and where("project")["name"] should work.
+  - Composition: (where("status") == "todo") & (where("project") == "X")
+- CRUD selection rules:
+  - update/remove: require exactly one of doc_ids or query or neither? Define:
+    - If both doc_ids and query given: intersect (only update doc_ids that also match query) OR raise. Simpler/safer: raise ValueError if both provided.
+    - If neither provided for update/remove: update/remove all docs (dangerous). Safer default:
+      - update requires doc_ids or query; else ValueError.
+      - remove requires doc_ids or query; else ValueError.
+  - get(): if both doc_id and query provided: raise ValueError.
+- Analytics helper unfinished_per_project:
+  - Tasks without project go under key "" or None; decide: use "(none)" or None. Minimal: None key not valid in JSON output; but returning dict in memory is fine. Choose "(none)" string.
+  - Done statuses: configurable tuple; status missing counts as unfinished.
+- Table naming:
+  - Default table name "tasks".
+  - Allow arbitrary table names to model projects separately if user wants, but core task manager uses one tasks table with a "project" field.
+
+4) Minimal internal test plan (what to test and why)
+Storage (JSONStorage)
+- read() on missing file returns {} (ensures first-run works).
+- write() then read() round-trip preserves data.
+- atomic write: simulate by writing, ensure file contains valid JSON (can’t fully simulate crash, but at least ensures replace path works).
+- invalid JSON raises ValueError (prevents silent data loss).
+
+Database/Table basic operations
+- insert returns increasing ids; persisted across new TinyDB instance (reopen file).
+- insert_multiple returns correct ids; all() returns all docs with _id present.
+- get by doc_id returns correct doc; get missing returns None.
+- update by doc_id modifies only target; update with query modifies matches; verify ValueError when both doc_ids and query.
+- remove by doc_id/query returns correct count and actually removes.
+- purge clears table.
+- drop_table removes table key in JSON.
+- tables() lists existing tables including default after insert.
+
+Queries
+- where("status") == "todo" matches; != works.
+- nested query: where("meta")["priority"] == 1 matches nested dict.
+- exists() True/False.
+- composition: AND/OR/NOT correctness.
+- missing field comparison returns False.
+
+Task helpers / analytics
+- create_task normalizes fields and sets defaults.
+- unfinished_per_project counts correctly with mixed statuses and missing project/status.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Data corruption on partial writes.
+  - Mitigation: atomic writes with temp file + os.replace; fsync optional (skip unless needed).
+- Risk: Concurrent writers (multi-process) can interleave read-modify-write.
+  - Mitigation: document limitation; add optional file lock later; implement at least threading.Lock for same-process.
+- Risk: Query semantics ambiguity (missing fields, type comparisons).
+  - Mitigation: define consistent behavior: missing -> False; comparisons only when types comparable; catch TypeError and return False.
+- Risk: Unintended external mutation of returned documents.
+  - Mitigation: return copies; on update, operate on loaded data and write back.
+- Risk: Large JSON file performance (read/write whole file each change).
+  - Mitigation: accept as “lightweight”; keep code simple; mention that this is not optimized for huge datasets.
+- Risk: Reserved fields collisions (e.g., "_id").
+  - Mitigation: document reserved key(s); optionally allow configuring id field name, but keep fixed for simplicity.
+</plan>

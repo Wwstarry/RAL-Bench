@@ -1,0 +1,281 @@
+<contract>
+1) Repository layout
+- Top-level package: pendulum/
+  - pendulum/__init__.py
+  - pendulum/datetime.py
+  - pendulum/timezone.py
+  - pendulum/duration.py
+  - pendulum/formatting.py
+  - pendulum/utils.py
+- No other required files; implementation must be pure Python (standard library only).
+
+2) Public API surface
+2.1 pendulum/__init__.py
+- Must expose (importable from pendulum):
+  - datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tz="UTC" | None | tzinfo | str = "UTC") -> pendulum.datetime.DateTime
+  - parse(text: str, tz: str|tzinfo|None = None, strict: bool = True) -> pendulum.datetime.DateTime
+  - now(tz: str|tzinfo|None = None) -> DateTime
+  - timezone(name: str|tzinfo|None) -> tzinfo (pendulum.timezone.Timezone or datetime.tzinfo)
+  - local_timezone() -> tzinfo
+  - duration(
+      years=0, months=0, weeks=0, days=0,
+      hours=0, minutes=0, seconds=0, microseconds=0
+    ) -> pendulum.duration.Duration
+  - UTC (a tzinfo instance representing UTC, compatible with datetime)
+- Should also re-export:
+  - DateTime class
+  - Duration class
+
+2.2 pendulum/datetime.py
+- Class DateTime(datetime.datetime subclass or wrapper with datetime-like behavior)
+  - Construction:
+    - DateTime.__new__/__init__ compatible with datetime.datetime signature, with tzinfo support.
+    - Must be timezone-aware when tzinfo provided; if none, allow naive but pendulum.datetime() should default to UTC unless tz=None explicitly requested.
+  - Class/static helpers:
+    - DateTime.instance(dt: datetime.datetime) -> DateTime (preserve tzinfo, convert class)
+  - Core methods:
+    - in_timezone(tz: str|tzinfo) -> DateTime
+    - add(
+        years=0, months=0, weeks=0, days=0,
+        hours=0, minutes=0, seconds=0, microseconds=0
+      ) -> DateTime
+    - subtract(same keyword args as add) -> DateTime (optional but used if tests mirror Pendulum)
+    - diff(other: datetime|DateTime|None = None, absolute: bool = False) -> Duration
+    - diff_for_humans(
+        other: datetime|DateTime|None = None,
+        absolute: bool = False,
+        locale: str|None = None,
+        unit: str|None = None,
+        short: bool = False,
+        parts: int = 1
+      ) -> str
+    - to_iso8601_string() -> str
+    - format(fmt: str) -> str (basic token support; see formatting contract)
+  - Arithmetic / operators:
+    - DateTime - DateTime -> Duration
+    - DateTime - datetime.timedelta -> DateTime (if applicable)
+    - DateTime + datetime.timedelta -> DateTime
+    - Comparisons consistent with datetime rules (aware vs aware, etc.)
+  - Must expose datetime-like properties/behaviors used by tests: year, month, day, hour, minute, second, microsecond, tzinfo, fold (if present), timestamp(), replace(), astimezone(), etc.
+
+2.3 pendulum/timezone.py
+- timezone(name: str|tzinfo|None) -> tzinfo
+  - If tzinfo passed, return it (if it has utcoffset)
+  - If None: return local timezone (see local_timezone)
+  - If "UTC" / "Z": return UTC tzinfo
+  - Otherwise: return IANA timezone using zoneinfo.ZoneInfo if available; fall back behavior described below.
+- local_timezone() -> tzinfo
+  - Use datetime.datetime.now().astimezone().tzinfo as local tzinfo (no external deps).
+- Class Timezone (light wrapper acceptable) or direct use of zoneinfo.ZoneInfo; tests may check repr/str/name:
+  - Required attributes/behaviors:
+    - key/name property or str(tz) yields canonical name for ZoneInfo; for UTC return "UTC"
+- Constant UTC: tzinfo with zero offset; can be datetime.timezone.utc.
+
+2.4 pendulum/duration.py
+- Class Duration(datetime.timedelta-like with extra fields for years/months)
+  - Construction:
+    - Duration(
+        years=0, months=0, weeks=0, days=0,
+        hours=0, minutes=0, seconds=0, microseconds=0
+      )
+  - Properties:
+    - years, months, weeks, days, hours, minutes, seconds, microseconds (normalized where reasonable)
+    - total_seconds() consistent with timedelta if years/months are zero; otherwise include only fixed-size parts for total_seconds and keep years/months separately (contract below).
+  - Operators:
+    - Duration + Duration -> Duration
+    - Duration - Duration -> Duration
+    - unary abs() (via __abs__) returns Duration with all components non-negative (or absolute seconds for fixed part)
+    - Comparisons for fixed-only durations may be required; otherwise compare based on total fixed seconds and then y/m if needed.
+  - Humanization helper:
+    - in_words(locale: str|None = None, short: bool=False, parts: int=1) -> str (may be delegated from DateTime.diff_for_humans)
+- Factory function duration(...) in __init__.py should return Duration.
+
+2.5 pendulum/formatting.py
+- Functions used by DateTime:
+  - format_datetime(dt: DateTime|datetime.datetime, fmt: str) -> str
+  - to_iso8601(dt: DateTime|datetime.datetime) -> str
+- Minimal token support expected in tests:
+  - If fmt contains strftime directives (%Y, %m, %d, %H, %M, %S, %z, %Z), pass through to dt.strftime.
+  - If fmt contains Pendulum-like tokens (common subset), support at least:
+    - "YYYY" => 4-digit year
+    - "MM" => 2-digit month
+    - "DD" => 2-digit day
+    - "HH" => 2-digit hour (24h)
+    - "mm" => 2-digit minute
+    - "ss" => 2-digit second
+    - "SSSSSS" => microseconds 6 digits
+    - "ZZ" => offset like +02:00
+    - "Z" => offset like +0200 or "Z" for UTC (either accepted if tests allow; prefer "+00:00" for ISO and "+0000" for Z token unless strict required)
+    - "dddd"/"ddd" not required unless tests mention; keep optional.
+- ISO formatting:
+  - to_iso8601 must produce ISO-8601 with offset, e.g. 2020-01-01T12:34:56+00:00; if UTC allow "Z" only if tests expect; safest: "+00:00" unless explicitly called for "Z".
+
+2.6 pendulum/utils.py
+- Utility functions:
+  - is_timezone(value) -> bool (has utcoffset)
+  - parse_iso8601(text: str, tz: str|tzinfo|None = None, strict: bool=True) -> DateTime
+  - days_in_month(year: int, month: int) -> int
+  - add_months(dt: datetime|DateTime, months: int) -> same type (handles month-end clamping)
+  - add_years(dt, years: int) -> same type (handles Feb 29 clamp)
+- May also include helper for humanization rounding/pluralization.
+
+3) Behavioral contract
+3.1 Core principles
+- Pure Python, stdlib-only.
+- Must produce timezone-aware DateTime objects by default for pendulum.datetime() and pendulum.parse() unless tz=None is explicitly requested and input is naive without tz info.
+- Must interoperate with stdlib datetime in arithmetic, comparisons, and tz conversion.
+
+3.2 pendulum.datetime(...)
+- Signature: datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tz="UTC")
+- tz handling:
+  - tz as string: resolve via pendulum.timezone.timezone(tz)
+  - tz as tzinfo: use directly
+  - tz is None: create naive DateTime (tzinfo=None)
+  - default tz is "UTC" (must create aware UTC DateTime)
+- Must validate input like datetime.datetime does (ValueError on invalid date/time components).
+
+3.3 pendulum.parse(...)
+- Must parse ISO-8601 date/datetime strings.
+- Must support at least:
+  - Date only: "YYYY-MM-DD" (result at 00:00:00)
+  - Datetime with seconds: "YYYY-MM-DDTHH:MM:SS"
+  - Optional fractional seconds: ".ffffff" (1-6 digits; pad right)
+  - Timezone offset:
+    - "Z"
+    - "+HH:MM" / "-HH:MM"
+    - "+HHMM" / "-HHMM"
+    - "+HH" / "-HH" (interpret as whole hours)
+- strict behavior:
+  - strict=True: reject invalid/unsupported formats with ValueError
+  - strict=False: attempt best-effort; if fails raise ValueError anyway (no external parser allowed)
+- tz parameter behavior:
+  - If input contains explicit offset/Z: that tzinfo must be preserved (fixed offset or UTC).
+  - If input is naive and tz is provided: assign tz (resolved via pendulum.timezone()) without shifting clock time.
+  - If input is naive and tz is None: default to UTC (to match pendulum typical behavior) unless tests require naive; but repository requirement says “timezone-aware datetimes via parse”, so default should be UTC aware.
+
+3.4 timezone handling
+- pendulum.timezone(name):
+  - "UTC"/"Z": returns UTC tzinfo (datetime.timezone.utc)
+  - Fixed offset strings like "+02:00" or "-0500" should return datetime.timezone(datetime.timedelta(...))
+  - IANA names (e.g., "Europe/Paris") should return zoneinfo.ZoneInfo(name) if available.
+  - If zoneinfo not available (older Python), raise NotImplementedError or fall back to UTC; prefer NotImplementedError to surface missing capability, but tests likely run on Py3.9+ with zoneinfo.
+- DateTime.in_timezone(tz):
+  - Returns a new DateTime representing same instant in the target timezone.
+  - If self is naive: if tz conversion requested, treat self as in UTC unless tests demand error; safer: raise ValueError when converting naive to avoid silent bugs; however Pendulum generally assumes aware. Contract: raise ValueError("Cannot convert naive DateTime") if tzinfo is None.
+  - Must preserve fold attribute if relevant through astimezone.
+
+3.5 DateTime arithmetic
+- DateTime.add:
+  - Adds components in this order: years, months, weeks, days, hours, minutes, seconds, microseconds.
+  - years/months are calendar arithmetic:
+    - Adding months: adjust year/month, then clamp day to last day of resulting month (e.g., Jan 31 + 1 month => Feb 28/29).
+    - Adding years: adjust year, clamp Feb 29 to Feb 28 when target year not leap.
+  - weeks are 7 days.
+  - For time-based parts, use timedelta addition on the resulting datetime.
+  - Preserve timezone and absolute instant rules consistent with datetime arithmetic:
+    - When adding calendar units to aware datetime, apply in local time (like typical pendulum behavior): perform replace-based calendar shift in the same timezone, then add timedeltas.
+- Subtraction:
+  - DateTime - DateTime returns Duration:
+    - For two aware datetimes, compute exact elapsed time as timedelta in UTC (or using datetime subtraction which accounts for offsets).
+    - Duration should represent fixed difference in days/seconds/microseconds (years/months=0 for subtraction results unless explicitly asked; keep simple).
+  - DateTime - timedelta returns DateTime; DateTime + timedelta returns DateTime.
+
+3.6 Duration semantics
+- Duration is a container for both calendar (years, months) and fixed time (weeks/days/hours/minutes/seconds/microseconds).
+- duration(...) factory:
+  - Stores years, months separately.
+  - Convert weeks into days internally (weeks*7 added to days).
+  - Normalize fixed parts so that microseconds < 1e6, seconds < 60, minutes < 60, hours < 24 when feasible; days can remain unbounded.
+- total_seconds:
+  - If years and months are zero: match timedelta total seconds for fixed parts.
+  - If years/months nonzero: total_seconds reflects only fixed parts (ignoring years/months) to avoid assuming month length; tests should not rely on conversion of months/years to seconds.
+- String/repr:
+  - repr(Duration) not required to match Pendulum exactly unless tests check; but should be stable and informative.
+
+3.7 Human-readable differences (diff_for_humans)
+- DateTime.diff_for_humans(other=None, absolute=False, locale=None, unit=None, short=False, parts=1)
+  - If other is None: compare to pendulum.now(self.tzinfo) (now in same tz).
+  - If absolute=False:
+    - If self > other: return future phrasing relative to other (e.g., "in 2 days")
+    - If self < other: past phrasing (e.g., "2 days ago")
+  - If absolute=True: return without "ago"/"in" (e.g., "2 days")
+- Unit selection:
+  - If unit is provided, force that unit ("second", "minute", "hour", "day", "week", "month", "year").
+  - Otherwise choose largest appropriate based on absolute seconds with thresholds:
+    - <60s: seconds
+    - <3600s: minutes
+    - <86400s: hours
+    - <604800s: days
+    - >=604800s: weeks
+    - For larger ranges, may choose months/years based on day counts (30/365 approximations) if tests expect; otherwise weeks acceptable. Contract: implement months/years using day approximations: month=30 days, year=365 days for humanization only.
+- Formatting:
+  - English only; ignore locale parameter (accept but no effect).
+  - short=False examples:
+    - "just now" for diff < 1 second (or <5 seconds) (choose <1 second to be deterministic)
+    - "1 second ago", "2 seconds ago"
+    - "in 1 minute", "in 3 hours", "2 days ago"
+  - short=True examples:
+    - "1s ago", "in 3h", "2d ago"
+  - parts parameter:
+    - If parts==1: single unit output.
+    - If parts>1: include next smaller units when non-zero, separated by ", " (e.g., "1 hour, 2 minutes ago"). Only required if tests cover; implement for fixed units up to seconds.
+
+3.8 ISO output
+- DateTime.to_iso8601_string:
+  - Must include date, time, and offset if aware:
+    - "YYYY-MM-DDTHH:MM:SS" + optional ".ffffff" if microsecond != 0
+    - Offset as "+HH:MM"; UTC can be "+00:00" (preferred).
+  - If naive: omit offset.
+
+3.9 Error handling
+- timezone(name) raises:
+  - TypeError for unsupported types.
+  - ValueError for invalid offset string formats.
+  - ZoneInfoNotFoundError (from zoneinfo) should propagate for unknown IANA zones.
+- parse raises ValueError on invalid format when strict=True.
+- in_timezone on naive raises ValueError per 3.4.
+- add with non-int numeric inputs:
+  - Accept ints; if floats provided, either coerce via int() if exact or raise TypeError. Contract: raise TypeError if not int.
+
+4) Acceptance checklist
+- Import/exports
+  - import pendulum works.
+  - pendulum.datetime, pendulum.parse, pendulum.now, pendulum.timezone, pendulum.duration exist and callable.
+  - pendulum.DateTime and pendulum.Duration are importable.
+- Datetime creation & tz
+  - pendulum.datetime(..., tz="UTC") returns aware DateTime with tzinfo UTC.
+  - pendulum.datetime(..., tz=None) returns naive DateTime.
+  - pendulum.timezone("Europe/Paris") returns zoneinfo-based tzinfo when available.
+  - pendulum.timezone("+02:00") returns fixed offset tzinfo with correct utcoffset.
+- Parsing
+  - pendulum.parse("2020-01-01") yields 2020-01-01 00:00:00+00:00 by default.
+  - pendulum.parse("2020-01-01T10:20:30Z") yields UTC-aware DateTime.
+  - pendulum.parse("2020-01-01T10:20:30+02:00") preserves offset.
+  - pendulum.parse(naive, tz="Europe/Paris") assigns that tz without shifting wall time.
+- Conversion
+  - dt.in_timezone("UTC") matches dt.astimezone(UTC) instant-equivalently.
+- Arithmetic
+  - dt.add(months=1) clamps day (Jan 31 -> Feb end).
+  - dt.add(years=1) clamps Feb 29 appropriately.
+  - dt1 - dt2 returns Duration representing exact timedelta difference (fixed parts).
+  - dt +/- timedelta returns DateTime.
+- Duration
+  - pendulum.duration(days=1, hours=2) behaves consistently; total_seconds matches fixed parts.
+  - duration supports addition/subtraction with other durations.
+- Humanization
+  - diff_for_humans returns deterministic English phrases:
+    - Past: "... ago"
+    - Future: "in ..."
+    - Absolute: no suffix/prefix
+  - short flag uses abbreviated unit labels (s, m, h, d, w, mo, y) if months/years used.
+- ISO formatting
+  - to_iso8601_string returns valid ISO-8601 with correct offset formatting.
+
+5) Non-goals / constraints
+- No external dependencies (no pytz, dateutil, babel, pendulum).
+- No full Pendulum feature parity required; only core API above.
+- No localization beyond English; locale parameter accepted but ignored.
+- No advanced parsing beyond ISO-8601 as specified.
+- No reliance on system timezone database beyond stdlib zoneinfo; if missing, acceptable to raise NotImplementedError for IANA zones.
+- Performance optimizations are not required; correctness for black-box tests is primary.
+</contract>

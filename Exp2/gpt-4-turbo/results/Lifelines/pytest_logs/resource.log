@@ -1,0 +1,79 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_waltons_kmf_and_cox_integration _____________________
+
+    def test_waltons_kmf_and_cox_integration() -> None:
+        """End-to-end integration test combining KMF and CoxPH on Waltons dataset."""
+        df = load_waltons()
+        kmf = KaplanMeierFitter()
+    
+        for name, group_df in df.groupby("group"):
+            kmf.fit(group_df["T"], group_df["E"], label=name)
+            sf = kmf.survival_function_
+            # Survival function should be non-increasing.
+            values = sf[name].values
+            for i in range(1, len(values)):
+                assert values[i] <= values[i - 1] + 1e-8
+    
+        # Now fit a Cox model on a regression-ready frame.
+        df_reg = _prepare_regression_frame()
+        cph = CoxPHFitter()
+>       cph.fit(df_reg, duration_col="duration", event_col="event")
+
+tests\Lifelines\resource_test.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x000001EE9F2E4FD0>
+df =     duration  event  group_miR-137
+0          6      1          False
+1          6      1          False
+2          6 ...          True
+16        19      1           True
+17        25      1           True
+18        32      0           True
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (19,) and (19,1,1) not aligned: 19 (dim 0) != 1 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+1 failed in 1.43s

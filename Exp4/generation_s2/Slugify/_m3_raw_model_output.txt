@@ -1,0 +1,185 @@
+<file:name=slugify/__init__.py>
+"""
+Lightweight, pure-Python slugification library.
+
+This package provides API-compatible core parts of the `python-slugify` project
+as needed by the unit tests in this kata.
+"""
+
+from .slugify import slugify
+
+__all__ = ["slugify"]
+</file>
+
+<file:name=slugify/slugify.py>
+"""
+Pure-Python slugification.
+
+Implements the core API surface of the reference `python-slugify` project:
+    slugify(text, allow_unicode=False, max_length=None, word_boundary=False,
+            separator='-', regex_pattern=None, stopwords=None, lowercase=True,
+            replacements=None, **kwargs)
+
+Design goals for this kata:
+- Reasonable ASCII slugification for basic Latin text.
+- Optional Unicode-preserving mode.
+- Support for truncation, separators, stopwords, custom regex pattern,
+  lowercasing, and simple replacements.
+- No third-party dependencies.
+"""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from typing import Iterable, List, Optional, Sequence, Tuple
+
+
+_DEFAULT_DISALLOWED_PATTERN = r"[^\w\s-]"
+_WHITESPACE_OR_SEP_RE = re.compile(r"[\s_-]+", re.UNICODE)
+
+
+def _as_text(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _normalize_separators(text: str, separator: str) -> str:
+    # Convert runs of whitespace/underscore/hyphen into the target separator
+    text = _WHITESPACE_OR_SEP_RE.sub(separator, text)
+    # Collapse repeated separators (including escaped)
+    if not separator:
+        return text
+    sep_re = re.compile(re.escape(separator) + r"{2,}")
+    text = sep_re.sub(separator, text)
+    # Strip separators from ends
+    text = text.strip(separator)
+    return text
+
+
+def _apply_replacements(text: str, replacements: Optional[Sequence]) -> str:
+    if not replacements:
+        return text
+    # Accept list/tuple of (old, new)
+    for pair in replacements:
+        if not pair:
+            continue
+        if isinstance(pair, (list, tuple)) and len(pair) == 2:
+            old, new = pair
+            text = text.replace(_as_text(old), _as_text(new))
+        else:
+            # If format is unexpected, ignore silently
+            continue
+    return text
+
+
+def _remove_stopwords_from_parts(parts: List[str], stopwords: Optional[Iterable[str]]) -> List[str]:
+    if not stopwords:
+        return parts
+    stop = {(_as_text(w).strip().lower()) for w in stopwords if _as_text(w).strip()}
+    if not stop:
+        return parts
+    out: List[str] = []
+    for p in parts:
+        if p and p.lower() not in stop:
+            out.append(p)
+    return out
+
+
+def _truncate(slug: str, max_length: Optional[int], word_boundary: bool, separator: str) -> str:
+    if max_length is None:
+        return slug
+    try:
+        max_len = int(max_length)
+    except Exception:
+        return slug
+    if max_len < 1:
+        return ""
+    if len(slug) <= max_len:
+        return slug
+
+    cut = slug[:max_len]
+    if not word_boundary:
+        return cut.strip(separator)
+
+    # Prefer to cut at the last separator within the limit
+    idx = cut.rfind(separator)
+    if idx <= 0:
+        # No separator found; fall back to hard cut
+        return cut.strip(separator)
+    return cut[:idx].strip(separator)
+
+
+def slugify(
+    text,
+    allow_unicode: bool = False,
+    max_length: Optional[int] = None,
+    word_boundary: bool = False,
+    separator: str = "-",
+    regex_pattern: Optional[str] = None,
+    stopwords: Optional[Iterable[str]] = None,
+    lowercase: bool = True,
+    replacements: Optional[Sequence[Tuple[str, str]]] = None,
+    **kwargs,
+) -> str:
+    """
+    Return a slug for the given text.
+
+    Parameters mirror the common subset of `python-slugify`.
+    Any extra keyword args are accepted for compatibility and ignored.
+    """
+    text = _as_text(text)
+
+    # Apply user replacements early (matches common behavior)
+    text = _apply_replacements(text, replacements)
+
+    # Normalize unicode (also makes diacritics removable for ASCII mode)
+    text = unicodedata.normalize("NFKD", text)
+
+    if allow_unicode:
+        # Keep unicode letters/numbers, remove diacritic combining marks later via pattern.
+        working = text
+    else:
+        # Strip accents and any non-ascii by encoding/decoding
+        working = (
+            text.encode("ascii", "ignore").decode("ascii")
+            if text
+            else ""
+        )
+
+    if lowercase:
+        working = working.lower()
+
+    # Remove apostrophes/quotes like python-slugify does (so "don't" -> "dont")
+    # In unicode mode, include common unicode apostrophes.
+    working = re.sub(r"[\'\u2019\u2018\u02BC\uFF07]", "", working)
+
+    # Filter characters: allow word chars, whitespace and hyphen/underscore by default.
+    pattern = regex_pattern if regex_pattern is not None else _DEFAULT_DISALLOWED_PATTERN
+    try:
+        disallowed = re.compile(pattern, re.UNICODE)
+    except re.error:
+        # If invalid custom pattern, fall back to default
+        disallowed = re.compile(_DEFAULT_DISALLOWED_PATTERN, re.UNICODE)
+    working = disallowed.sub("", working)
+
+    # Normalize whitespace/separators to chosen separator
+    working = _normalize_separators(working, separator)
+
+    # Stopwords removal works on separator-delimited tokens.
+    if stopwords:
+        parts = [p for p in working.split(separator) if p]
+        parts = _remove_stopwords_from_parts(parts, stopwords)
+        working = separator.join(parts)
+
+    # Truncate if needed
+    working = _truncate(working, max_length, word_boundary, separator)
+
+    # Final cleanup: collapse separators and strip
+    working = _normalize_separators(working, separator)
+
+    return working
+</file>

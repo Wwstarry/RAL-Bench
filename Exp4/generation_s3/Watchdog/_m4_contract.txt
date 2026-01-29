@@ -1,0 +1,141 @@
+1) Repository layout
+- Root package: watchdog/
+  - watchdog/__init__.py
+  - watchdog/events.py
+  - watchdog/observers/
+    - watchdog/observers/__init__.py
+    - watchdog/observers/api.py
+
+2) Public API surface
+- Module: watchdog/__init__.py
+  - Expose version-like metadata if needed by tests (optional).
+  - Ensure imports work:
+    - from watchdog.observers import Observer
+    - from watchdog.events import FileSystemEventHandler
+
+- Module: watchdog/events.py
+  - Class: FileSystemEventHandler
+    - Methods (overridable by user code/tests):
+      - dispatch(self, event) -> None
+      - on_any_event(self, event) -> None (default no-op)
+      - on_created(self, event) -> None (default no-op)
+      - on_modified(self, event) -> None (default no-op)
+      - on_deleted(self, event) -> None (default no-op)
+      - on_moved(self, event) -> None (default no-op; may not be used by tests)
+  - Event objects:
+    - Provide simple event classes/structs compatible with core watchdog usage:
+      - Base: FileSystemEvent
+        - attributes: event_type (str), src_path (str), is_directory (bool)
+      - For created/modified/deleted:
+        - FileCreatedEvent(path)
+        - FileModifiedEvent(path)
+        - FileDeletedEvent(path)
+      - (Optional) DirCreatedEvent/DirModifiedEvent/DirDeletedEvent if convenient; not required unless tests create directories and expect is_directory True.
+    - event_type must be one of: "created", "modified", "deleted" (and "moved" if implemented).
+
+- Module: watchdog/observers/__init__.py
+  - from .api import Observer
+  - __all__ = ["Observer"]
+
+- Module: watchdog/observers/api.py
+  - Class: Observer
+    - schedule(self, event_handler: FileSystemEventHandler, path: str, recursive: bool = False) -> object
+      - Returns a “watch” handle object (any opaque object) usable internally; tests may ignore return but must not be None if they check truthiness.
+    - start(self) -> None
+    - stop(self) -> None
+    - join(self, timeout: float | None = None) -> None
+    - (Optional compatibility) is_alive(self) -> bool
+  - The Observer should be usable as:
+    - observer = Observer()
+    - observer.schedule(handler, some_dir, recursive=True/False)
+    - observer.start()
+    - ... create/modify/delete files ...
+    - observer.stop()
+    - observer.join()
+
+3) Behavioral contract
+- Core behavior: polling-based filesystem monitoring in pure Python (no OS-specific backends).
+  - Use a background thread started by Observer.start().
+  - Poll interval should be short enough for tests (target 50–200ms) but not busy-wait.
+  - Monitoring is directory-based:
+    - schedule() path is a directory path. If a file path is provided, treat its parent directory as watch root and only consider that file (optional); unless tests require, simplest: require directory and still function if file given by watching its parent.
+  - Non-recursive:
+    - Only detect changes to direct children of the scheduled directory (files; optionally directories).
+    - Ignore changes within subdirectories.
+  - Recursive:
+    - Detect changes for all descendant files under the scheduled directory, including subdirectories created after scheduling.
+- Event detection requirements:
+  - Created event:
+    - Emitted when a new file appears within scope since last snapshot.
+  - Deleted event:
+    - Emitted when a previously known file disappears.
+  - Modified event:
+    - Emitted when a previously known file’s stat signature changes (at minimum st_mtime_ns; also allow size changes).
+    - It is acceptable to emit modified for a file soon after creation (some platforms update mtime twice); tests should tolerate at least required events.
+  - Order/duplication:
+    - No strict ordering guarantees required; however within a single polling cycle, dispatch created/deleted/modified deterministically (e.g., created then modified then deleted, or any consistent order). Tests may wait for specific events; duplication should be minimized but occasional extra modified events are acceptable unless tests assert exact counts.
+  - Directories:
+    - If directory creation/deletion occurs, it may be ignored unless tests assert directory events. If emitting directory events, set is_directory=True.
+- Dispatch semantics:
+  - Observer dispatches events to the handler passed in schedule().
+  - For each event, call handler.dispatch(event).
+    - FileSystemEventHandler.dispatch must call on_any_event(event) then the specific callback matching event.event_type:
+      - "created" -> on_created
+      - "modified" -> on_modified
+      - "deleted" -> on_deleted
+      - "moved" -> on_moved (if implemented)
+- Threading/lifecycle:
+  - Observer.start():
+    - Starts one background thread if not already started.
+    - Subsequent start() calls should be no-op or raise a RuntimeError; prefer no-op for test friendliness.
+  - Observer.stop():
+    - Signals thread to stop; safe to call multiple times.
+  - Observer.join(timeout=None):
+    - Waits for background thread to finish; if not started, returns immediately.
+  - Scheduling:
+    - schedule() may be called before or after start(); both must work.
+    - Multiple schedules may exist simultaneously; events for each watched root must be dispatched to the correct handler.
+- Snapshot strategy:
+  - Maintain per-watch snapshot of files in scope: mapping path -> (mtime_ns, size, is_dir).
+  - For recursive, walk directory tree (os.walk) each poll.
+  - For non-recursive, listdir and stat immediate entries each poll.
+  - Handle transient races:
+    - If a file disappears between list and stat, ignore for that cycle.
+    - If permission errors occur, ignore those paths but keep observer alive.
+- Path normalization:
+  - Use absolute paths internally to compare reliably, but src_path passed to events should be the full path string consistent with os.path.join(root, relpath) (tests likely compare basename or exact path; safest: emit absolute path).
+  - Ensure paths use the platform’s native separators.
+- Error handling:
+  - No unhandled exceptions should escape the observer thread; catch broad exceptions per cycle to keep running.
+  - If the watched directory itself is deleted:
+    - Emit deleted events for previously known files if possible, then treat snapshot as empty; continue running (or stop that watch) without crashing.
+- Performance constraints:
+  - Optimized enough for small test directories; no need for large-scale optimizations.
+
+4) Acceptance checklist
+- Imports succeed:
+  - `from watchdog.observers import Observer` works.
+  - `from watchdog.events import FileSystemEventHandler` works.
+- Basic lifecycle:
+  - Observer can schedule at least one handler, start, stop, join without deadlock.
+  - stop() + join() reliably terminates thread within a short time (<= a few seconds).
+- Event dispatch:
+  - Creating a file inside watched directory triggers handler.on_created with event.event_type == "created" and event.src_path matching created file.
+  - Modifying an existing file triggers handler.on_modified with event.event_type == "modified".
+  - Deleting a file triggers handler.on_deleted with event.event_type == "deleted".
+- Recursive behavior:
+  - With recursive=False, creating/modifying/deleting a file inside a subdirectory does NOT trigger events.
+  - With recursive=True, creating/modifying/deleting a file inside a subdirectory DOES trigger events.
+- Handler behavior:
+  - FileSystemEventHandler.dispatch calls on_any_event then the type-specific callback.
+  - Default callbacks are no-ops so users/tests can subclass and override.
+- Robustness:
+  - No crashes if files are created/deleted quickly.
+  - No crashes on transient FileNotFoundError during polling.
+  - Multiple watches can coexist and each receives only relevant events.
+
+5) Non-goals / constraints
+- Pure Python only; do not depend on the real watchdog project, inotify/fsevents/kqueue, or external binaries/services.
+- No requirement to implement advanced watchdog features (emitters, event queues, pattern matching, moved events unless needed, symlink handling nuances, debounce/coalescing, precise ordering guarantees).
+- No requirement for high performance beyond passing the black-box tests under ./tests/Watchdog/.
+- Avoid third-party dependencies; use only Python standard library (threading, os, time, pathlib, queue optional).

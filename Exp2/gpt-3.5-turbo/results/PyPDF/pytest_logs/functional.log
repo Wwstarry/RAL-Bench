@@ -1,0 +1,442 @@
+FFFFFFFFFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+        _create_simple_pdf(pdf_path, num_pages=3)
+    
+>       reader = PdfReader(str(pdf_path))
+
+tests\PyPDF\functional_test.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED2483C10>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+>       reader = PdfReader(str(pdf_path))
+
+tests\PyPDF\functional_test.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED2438F40>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+        _create_simple_pdf(pdf1, num_pages=1)
+        _create_simple_pdf(pdf2, num_pages=2)
+    
+>       _write_pdf_with_pages([pdf1, pdf2], merged)
+
+tests\PyPDF\functional_test.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:121: in _write_pdf_with_pages
+    reader = PdfReader(str(src))
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED24918E0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+        _create_simple_pdf(src, num_pages=4)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED247F280>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED248E2B0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED248F1F0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+__________________________ test_encrypt_and_decrypt ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_encrypt_and_decrypt0')
+
+    def test_encrypt_and_decrypt(tmp_path: Path) -> None:
+        src = tmp_path / "plain.pdf"
+        enc = tmp_path / "encrypted.pdf"
+        _create_simple_pdf(src, num_pages=2)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED25675E0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:258: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED256A0D0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED248EE80>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:308: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED2481B20>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-341/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+        _create_simple_pdf(src, num_pages=3)
+    
+>       reader = PdfReader(str(src))
+
+tests\PyPDF\functional_test.py:363: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\PyPDF\pypdf\_reader.py:22: in __init__
+    self._read_pdf()
+generation\PyPDF\pypdf\_reader.py:44: in _read_pdf
+    self._build_pages()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._reader.PdfReader object at 0x0000018ED2592EB0>
+
+    def _build_pages(self):
+        # Recursively build pages list from /Pages tree
+        def _recurse_pages(node):
+            node = self._get_object(node)
+            if node is None:
+                return
+            t = node.get(b"/Type")
+            if t == b"/Pages":
+                kids = node.get(b"/Kids", [])
+                for kid in kids:
+                    _recurse_pages(kid)
+            elif t == b"/Page":
+                self._pages.append(PageObject(self, node))
+>       _recurse_pages(self._root.get(b"/Pages"))
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+generation\PyPDF\pypdf\_reader.py:195: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - Attri...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - At...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - AttributeError: ...
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - AttributeError: 'No...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Attr...
+FAILED tests/PyPDF/functional_test.py::test_encrypt_and_decrypt - AttributeEr...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AttributeErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+11 failed, 1 skipped in 24.23s

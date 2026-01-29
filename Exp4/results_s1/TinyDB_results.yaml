@@ -1,0 +1,311 @@
+project_name: TinyDB
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\TinyDB\tinydb.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m1\TinyDB
+timestamp: '2026-01-14 23:51:39'
+functional_score: 0.0833
+non_functional_score: 0.6187
+non_functional_subscores:
+  maintainability: 0.6075
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFF.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________________ test_insert_and_search ____________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_insert_and_search0')\n\
+      \n    def test_insert_and_search(tmp_path: Path) -> None:\n        \"\"\"Basic\
+      \ insert + search on the default table.\"\"\"\n        db_path = tmp_path /\
+      \ \"db.json\"\n        db = TinyDB(str(db_path))\n    \n        User = Query()\n\
+      >       db.insert({\"name\": \"Alice\", \"age\": 30})\nE       AttributeError:\
+      \ 'TinyDB' object has no attribute 'insert'\n\ntests\\TinyDB\\functional_test.py:63:\
+      \ AttributeError\n_______________________ test_multiple_tables_isolation ________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_multiple_tables_isolation0')\n\
+      \n    def test_multiple_tables_isolation(tmp_path: Path) -> None:\n        \"\
+      \"\"Data in different tables should be isolated.\"\"\"\n        db = _open_db(tmp_path)\n\
+      \    \n        tasks = db.table(\"tasks\")\n        logs = db.table(\"logs\"\
+      )\n    \n        tasks.insert({\"title\": \"write code\", \"done\": False})\n\
+      \        tasks.insert({\"title\": \"write tests\", \"done\": False})\n     \
+      \   logs.insert({\"event\": \"created_tasks\"})\n    \n>       assert len(tasks)\
+      \ == 2\nE       TypeError: object of type 'Table' has no len()\n\ntests\\TinyDB\\\
+      functional_test.py:88: TypeError\n___________________________ test_update_and_remove\
+      \ ____________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_update_and_remove0')\n\
+      \n    def test_update_and_remove(tmp_path: Path) -> None:\n        \"\"\"Update\
+      \ and remove operations should work on matching documents.\"\"\"\n        db\
+      \ = _open_db(tmp_path)\n    \n        Task = Query()\n        table = db.table(\"\
+      tasks\")\n    \n        table.insert({\"title\": \"task-1\", \"done\": False})\n\
+      \        table.insert({\"title\": \"task-2\", \"done\": False})\n        table.insert({\"\
+      title\": \"task-3\", \"done\": False})\n    \n>       table.update({\"done\"\
+      : True}, Task.title == \"task-2\")\nE       TypeError: update() takes from 1\
+      \ to 2 positional arguments but 3 were given\n\ntests\\TinyDB\\functional_test.py:108:\
+      \ TypeError\n_________________________ test_where_helper_querying __________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_where_helper_querying0')\n\
+      \n    def test_where_helper_querying(tmp_path: Path) -> None:\n        \"\"\"\
+      where('field') helper should build a working query for search().\"\"\"\n   \
+      \     db = _open_db(tmp_path)\n>       db.insert({\"name\": \"Alice\", \"city\"\
+      : \"Tokyo\"})\nE       AttributeError: 'TinyDB' object has no attribute 'insert'\n\
+      \ntests\\TinyDB\\functional_test.py:125: AttributeError\n______________________\
+      \ test_get_returns_single_document _______________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_get_returns_single_docume0')\n\
+      \n    def test_get_returns_single_document(tmp_path: Path) -> None:\n      \
+      \  \"\"\"get(query) should retrieve one matching document.\"\"\"\n        db\
+      \ = _open_db(tmp_path)\n        User = Query()\n    \n>       db.insert({\"\
+      name\": \"Alice\", \"age\": 30})\nE       AttributeError: 'TinyDB' object has\
+      \ no attribute 'insert'\n\ntests\\TinyDB\\functional_test.py:140: AttributeError\n\
+      ________________________ test_insert_multiple_and_all _________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_insert_multiple_and_all0')\n\
+      \n    def test_insert_multiple_and_all(tmp_path: Path) -> None:\n        \"\"\
+      \"insert_multiple should add several documents and return their ids.\"\"\"\n\
+      \        db = _open_db(tmp_path)\n    \n        docs = [\n            {\"k\"\
+      : \"a\", \"v\": 1},\n            {\"k\": \"b\", \"v\": 2},\n            {\"\
+      k\": \"c\", \"v\": 3},\n        ]\n>       ids = db.insert_multiple(docs)\n\
+      E       AttributeError: 'TinyDB' object has no attribute 'insert_multiple'\n\
+      \ntests\\TinyDB\\functional_test.py:160: AttributeError\n___________________________\
+      \ test_contains_and_count ___________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_contains_and_count0')\n\
+      \n    def test_contains_and_count(tmp_path: Path) -> None:\n        \"\"\"contains\
+      \ and count should reflect stored data and queries.\"\"\"\n        db = _open_db(tmp_path)\n\
+      \        User = Query()\n    \n>       db.insert({\"name\": \"Alice\", \"age\"\
+      : 30})\nE       AttributeError: 'TinyDB' object has no attribute 'insert'\n\n\
+      tests\\TinyDB\\functional_test.py:176: AttributeError\n_____________________\
+      \ test_persistence_reopen_and_search ______________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_persistence_reopen_and_se0')\n\
+      \n    def test_persistence_reopen_and_search(tmp_path: Path) -> None:\n    \
+      \    \"\"\"Data should persist on disk and be readable after reopening.\"\"\"\
+      \n        db_path = tmp_path / \"persist.json\"\n    \n        db1 = TinyDB(str(db_path))\n\
+      >       db1.insert({\"name\": \"Ada\", \"lang\": \"Python\"})\nE       AttributeError:\
+      \ 'TinyDB' object has no attribute 'insert'\n\ntests\\TinyDB\\functional_test.py:194:\
+      \ AttributeError\n_________________ test_table_truncate_clears_only_that_table\
+      \ __________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_table_truncate_clears_onl0')\n\
+      \n    def test_table_truncate_clears_only_that_table(tmp_path: Path) -> None:\n\
+      \        \"\"\"truncate on a table should clear its rows without affecting other\
+      \ tables.\"\"\"\n        db = _open_db(tmp_path)\n    \n        tasks = db.table(\"\
+      tasks\")\n        logs = db.table(\"logs\")\n    \n        tasks.insert({\"\
+      title\": \"t1\"})\n        tasks.insert({\"title\": \"t2\"})\n        logs.insert({\"\
+      event\": \"created\"})\n    \n>       assert len(tasks) == 2\nE       TypeError:\
+      \ object of type 'Table' has no len()\n\ntests\\TinyDB\\functional_test.py:215:\
+      \ TypeError\n____________________________ test_update_by_doc_id ____________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_update_by_doc_id0')\n\
+      \n    def test_update_by_doc_id(tmp_path: Path) -> None:\n        \"\"\"update\
+      \ with doc_ids should modify the targeted document.\"\"\"\n        db = _open_db(tmp_path)\n\
+      \        table = db.table(\"items\")\n    \n        doc_id = table.insert({\"\
+      name\": \"ItemA\", \"qty\": 1})\n>       assert len(table) == 1\nE       TypeError:\
+      \ object of type 'Table' has no len()\n\ntests\\TinyDB\\functional_test.py:231:\
+      \ TypeError\n____________________________ test_remove_by_doc_id ____________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-529/test_remove_by_doc_id0')\n\
+      \n    def test_remove_by_doc_id(tmp_path: Path) -> None:\n        \"\"\"remove\
+      \ with doc_ids should delete the targeted document.\"\"\"\n        db = _open_db(tmp_path)\n\
+      \        table = db.table(\"items\")\n    \n        id1 = table.insert({\"name\"\
+      : \"A\"})\n        id2 = table.insert({\"name\": \"B\"})\n>       assert len(table)\
+      \ == 2\nE       TypeError: object of type 'Table' has no len()\n\ntests\\TinyDB\\\
+      functional_test.py:249: TypeError\n=========================== short test summary\
+      \ info ===========================\nFAILED tests/TinyDB/functional_test.py::test_insert_and_search\
+      \ - AttributeErr...\nFAILED tests/TinyDB/functional_test.py::test_multiple_tables_isolation\
+      \ - Type...\nFAILED tests/TinyDB/functional_test.py::test_update_and_remove\
+      \ - TypeError: u...\nFAILED tests/TinyDB/functional_test.py::test_where_helper_querying\
+      \ - Attribut...\nFAILED tests/TinyDB/functional_test.py::test_get_returns_single_document\
+      \ - At...\nFAILED tests/TinyDB/functional_test.py::test_insert_multiple_and_all\
+      \ - Attrib...\nFAILED tests/TinyDB/functional_test.py::test_contains_and_count\
+      \ - AttributeEr...\nFAILED tests/TinyDB/functional_test.py::test_persistence_reopen_and_search\
+      \ - ...\nFAILED tests/TinyDB/functional_test.py::test_table_truncate_clears_only_that_table\n\
+      FAILED tests/TinyDB/functional_test.py::test_update_by_doc_id - TypeError: ob...\n\
+      FAILED tests/TinyDB/functional_test.py::test_remove_by_doc_id - TypeError: ob...\n\
+      11 failed, 1 passed in 0.69s\n"
+    elapsed_time_s: 1.988621
+    avg_memory_mb: 32.55
+    avg_cpu_percent: 99.2
+    passed: 1
+    failed: 11
+    skipped: 0
+    total: 12
+    score_inputs_passed: 1
+    score_inputs_failed: 11
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ______________ ERROR collecting tests/TinyDB/performance_test.py ______________\n\
+      tests\\TinyDB\\performance_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Target repository does not exist: {REPO_ROOT}\")\nE   RuntimeError: Target repository\
+      \ does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\TinyDB\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/TinyDB/performance_test.py - RuntimeError: Target repository does...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.46s\n"
+    elapsed_time_s: 1.858336
+    avg_memory_mb: 35.93
+    avg_cpu_percent: 99.1
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 3.353348
+    score_inputs_actual_time_s: 1.858336
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/TinyDB/resource_test.py ________________\n\
+      tests\\TinyDB\\resource_test.py:17: in <module>\n    raise RuntimeError(f\"\
+      Target repository does not exist: {REPO_ROOT}\")\nE   RuntimeError: Target repository\
+      \ does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\TinyDB\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/TinyDB/resource_test.py - RuntimeError: Target repository does no...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.55s\n"
+    elapsed_time_s: 1.870219
+    avg_memory_mb: 35.14
+    avg_cpu_percent: 98.2
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.6
+    score_inputs_baseline_cpu_pct: 95.8
+    score_inputs_actual_mem_mb: 35.14
+    score_inputs_actual_cpu_pct: 98.2
+  robustness:
+    returncode: 0
+    stdout: '.....                                                                    [100%]
+
+      5 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.567862
+    avg_memory_mb: 31.5
+    avg_cpu_percent: 98.9
+    passed: 5
+    failed: 0
+    skipped: 0
+    total: 5
+    score_inputs_passed: 5
+    score_inputs_failed: 0
+    score_inputs_total: 5
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=480.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.491221
+    avg_memory_mb: 31.98
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 480.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=20.1748 files_scanned=5.0 total_loc=480.0 max_cc=19.0
+
+      .
+
+      1 passed in 0.23s
+
+      '
+    elapsed_time_s: 1.684584
+    avg_memory_mb: 31.95
+    avg_cpu_percent: 96.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 20.1748
+      files_scanned: 5.0
+      total_loc: 480.0
+      max_cc: 19.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 13.0339
+    score_inputs_generated_mi_min: 20.1748
+    score_inputs_ratio_g_over_b: 1.5478713201727805
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 3.353348
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.990859
+    resource_tests_total: 1
+    avg_memory_mb: 31.6
+    avg_cpu_percent: 95.8
+  functional:
+    functional_suite_time_s: 1.755448
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 4.096848
+    robustness_tests_total: 5
+  security:
+    security_suite_time_s: 1.418844
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 10.0
+      total_loc: 1367.0
+  maintainability:
+    maintainability_suite_time_s: 1.564148
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 13.0339
+      files_scanned: 10.0
+      total_loc: 1367.0
+      max_cc: 9.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\TinyDB\pytest_logs

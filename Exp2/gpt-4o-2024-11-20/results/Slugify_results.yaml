@@ -1,0 +1,616 @@
+project_name: Slugify
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Slugify\slugify.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Slugify
+timestamp: '2025-12-31 13:05:04'
+functional_score: 0.0833
+non_functional_score: 0.614
+non_functional_subscores:
+  maintainability: 0.5946
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFF.FFFFFFFF                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ____________________________ test_basic_ascii_slug ____________________________\n\
+      \n    def test_basic_ascii_slug() -> None:\n        \"\"\"Basic ASCII text should\
+      \ be lowercased and separated by dashes.\"\"\"\n        text = \"This is a test\
+      \ ---\"\n>       result = slugify(text)\n\ntests\\Slugify\\functional_test.py:106:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\ntext = 'This is a test ---', allow_unicode = False, max_length\
+      \ = None\nword_boundary = False, separator = '-', regex_pattern = None, stopwords\
+      \ = None\nlowercase = True, replacements = None, kwargs = {}\n\n    def slugify(\n\
+      \        text,\n        allow_unicode=False,\n        max_length=None,\n   \
+      \     word_boundary=False,\n        separator='-',\n        regex_pattern=None,\n\
+      \        stopwords=None,\n        lowercase=True,\n        replacements=None,\n\
+      \        **kwargs\n    ):\n        \"\"\"\n        Generate a slug for the given\
+      \ text.\n    \n        Parameters:\n            text (str): The input text to\
+      \ slugify.\n            allow_unicode (bool): Whether to allow Unicode characters\
+      \ in the slug.\n            max_length (int): Maximum length of the slug.\n\
+      \            word_boundary (bool): Ensure truncation happens at word boundaries.\n\
+      \            separator (str): Separator to use for the slug.\n            regex_pattern\
+      \ (str): Custom regex pattern for filtering characters.\n            stopwords\
+      \ (list): Words to exclude from the slug.\n            lowercase (bool): Whether\
+      \ to convert the slug to lowercase.\n            replacements (list): List of\
+      \ (search, replace) tuples for custom replacements.\n    \n        Returns:\n\
+      \            str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n____________\
+      \ test_ascii_punctuation_collapses_to_single_separator _____________\n\n   \
+      \ def test_ascii_punctuation_collapses_to_single_separator() -> None:\n    \
+      \    \"\"\"Punctuation should be normalized so separators don't repeat.\"\"\"\
+      \n        text = \"Hello!!!  World??? -- Rich__Text\"\n>       result = slugify(text)\n\
+      \ntests\\Slugify\\functional_test.py:113: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'Hello!!!  World???\
+      \ -- Rich__Text', allow_unicode = False\nmax_length = None, word_boundary =\
+      \ False, separator = '-', regex_pattern = None\nstopwords = None, lowercase\
+      \ = True, replacements = None, kwargs = {}\n\n    def slugify(\n        text,\n\
+      \        allow_unicode=False,\n        max_length=None,\n        word_boundary=False,\n\
+      \        separator='-',\n        regex_pattern=None,\n        stopwords=None,\n\
+      \        lowercase=True,\n        replacements=None,\n        **kwargs\n   \
+      \ ):\n        \"\"\"\n        Generate a slug for the given text.\n    \n  \
+      \      Parameters:\n            text (str): The input text to slugify.\n   \
+      \         allow_unicode (bool): Whether to allow Unicode characters in the slug.\n\
+      \            max_length (int): Maximum length of the slug.\n            word_boundary\
+      \ (bool): Ensure truncation happens at word boundaries.\n            separator\
+      \ (str): Separator to use for the slug.\n            regex_pattern (str): Custom\
+      \ regex pattern for filtering characters.\n            stopwords (list): Words\
+      \ to exclude from the slug.\n            lowercase (bool): Whether to convert\
+      \ the slug to lowercase.\n            replacements (list): List of (search,\
+      \ replace) tuples for custom replacements.\n    \n        Returns:\n       \
+      \     str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n_____________________\
+      \ test_unicode_default_is_ascii_only ______________________\n\n    def test_unicode_default_is_ascii_only()\
+      \ -> None:\n        \"\"\"By default, unicode text should produce an ASCII-only\
+      \ slug.\n    \n        With the unidecode stub, non-ascii chars may be removed\
+      \ and result may be empty.\n        We only assert ASCII-only property.\n  \
+      \      \"\"\"\n        text = \"影師嗎\"\n>       result = slugify(text)\n\ntests\\\
+      Slugify\\functional_test.py:128: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = '影師嗎', allow_unicode = False,\
+      \ max_length = None, word_boundary = False\nseparator = '-', regex_pattern =\
+      \ None, stopwords = None, lowercase = True\nreplacements = None, kwargs = {}\n\
+      \n    def slugify(\n        text,\n        allow_unicode=False,\n        max_length=None,\n\
+      \        word_boundary=False,\n        separator='-',\n        regex_pattern=None,\n\
+      \        stopwords=None,\n        lowercase=True,\n        replacements=None,\n\
+      \        **kwargs\n    ):\n        \"\"\"\n        Generate a slug for the given\
+      \ text.\n    \n        Parameters:\n            text (str): The input text to\
+      \ slugify.\n            allow_unicode (bool): Whether to allow Unicode characters\
+      \ in the slug.\n            max_length (int): Maximum length of the slug.\n\
+      \            word_boundary (bool): Ensure truncation happens at word boundaries.\n\
+      \            separator (str): Separator to use for the slug.\n            regex_pattern\
+      \ (str): Custom regex pattern for filtering characters.\n            stopwords\
+      \ (list): Words to exclude from the slug.\n            lowercase (bool): Whether\
+      \ to convert the slug to lowercase.\n            replacements (list): List of\
+      \ (search, replace) tuples for custom replacements.\n    \n        Returns:\n\
+      \            str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n__________________\
+      \ test_max_length_truncation_respects_limit __________________\n\n    def test_max_length_truncation_respects_limit()\
+      \ -> None:\n        \"\"\"max_length should cap the resulting slug length.\"\
+      \"\"\n        text = \"one two three four five six seven\"\n>       result =\
+      \ slugify(text, max_length=10)\n\ntests\\Slugify\\functional_test.py:143: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\ntext = 'one two three four five six seven', allow_unicode = False\n\
+      max_length = 10, word_boundary = False, separator = '-', regex_pattern = None\n\
+      stopwords = None, lowercase = True, replacements = None, kwargs = {}\n\n   \
+      \ def slugify(\n        text,\n        allow_unicode=False,\n        max_length=None,\n\
+      \        word_boundary=False,\n        separator='-',\n        regex_pattern=None,\n\
+      \        stopwords=None,\n        lowercase=True,\n        replacements=None,\n\
+      \        **kwargs\n    ):\n        \"\"\"\n        Generate a slug for the given\
+      \ text.\n    \n        Parameters:\n            text (str): The input text to\
+      \ slugify.\n            allow_unicode (bool): Whether to allow Unicode characters\
+      \ in the slug.\n            max_length (int): Maximum length of the slug.\n\
+      \            word_boundary (bool): Ensure truncation happens at word boundaries.\n\
+      \            separator (str): Separator to use for the slug.\n            regex_pattern\
+      \ (str): Custom regex pattern for filtering characters.\n            stopwords\
+      \ (list): Words to exclude from the slug.\n            lowercase (bool): Whether\
+      \ to convert the slug to lowercase.\n            replacements (list): List of\
+      \ (search, replace) tuples for custom replacements.\n    \n        Returns:\n\
+      \            str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n______________\
+      \ test_word_boundary_keeps_whole_words_when_enabled ______________\n\n    def\
+      \ test_word_boundary_keeps_whole_words_when_enabled() -> None:\n        \"\"\
+      \"word_boundary=True should avoid cutting in the middle of a word (typical behavior).\"\
+      \"\"\n        text = \"alpha beta gamma delta\"\n>       result = slugify(text,\
+      \ max_length=12, word_boundary=True)\n\ntests\\Slugify\\functional_test.py:152:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\ntext = 'alpha beta gamma delta', allow_unicode = False, max_length\
+      \ = 12\nword_boundary = True, separator = '-', regex_pattern = None, stopwords\
+      \ = None\nlowercase = True, replacements = None, kwargs = {}\n\n    def slugify(\n\
+      \        text,\n        allow_unicode=False,\n        max_length=None,\n   \
+      \     word_boundary=False,\n        separator='-',\n        regex_pattern=None,\n\
+      \        stopwords=None,\n        lowercase=True,\n        replacements=None,\n\
+      \        **kwargs\n    ):\n        \"\"\"\n        Generate a slug for the given\
+      \ text.\n    \n        Parameters:\n            text (str): The input text to\
+      \ slugify.\n            allow_unicode (bool): Whether to allow Unicode characters\
+      \ in the slug.\n            max_length (int): Maximum length of the slug.\n\
+      \            word_boundary (bool): Ensure truncation happens at word boundaries.\n\
+      \            separator (str): Separator to use for the slug.\n            regex_pattern\
+      \ (str): Custom regex pattern for filtering characters.\n            stopwords\
+      \ (list): Words to exclude from the slug.\n            lowercase (bool): Whether\
+      \ to convert the slug to lowercase.\n            replacements (list): List of\
+      \ (search, replace) tuples for custom replacements.\n    \n        Returns:\n\
+      \            str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n________________________\
+      \ test_separator_customization _________________________\n\n    def test_separator_customization()\
+      \ -> None:\n        \"\"\"Custom separator should be used between tokens.\"\"\
+      \"\n        text = \"This is a test\"\n>       result = slugify(text, separator=\"\
+      _\")\n\ntests\\Slugify\\functional_test.py:163: \n_ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'This is a\
+      \ test', allow_unicode = False, max_length = None\nword_boundary = False, separator\
+      \ = '_', regex_pattern = None, stopwords = None\nlowercase = True, replacements\
+      \ = None, kwargs = {}\n\n    def slugify(\n        text,\n        allow_unicode=False,\n\
+      \        max_length=None,\n        word_boundary=False,\n        separator='-',\n\
+      \        regex_pattern=None,\n        stopwords=None,\n        lowercase=True,\n\
+      \        replacements=None,\n        **kwargs\n    ):\n        \"\"\"\n    \
+      \    Generate a slug for the given text.\n    \n        Parameters:\n      \
+      \      text (str): The input text to slugify.\n            allow_unicode (bool):\
+      \ Whether to allow Unicode characters in the slug.\n            max_length (int):\
+      \ Maximum length of the slug.\n            word_boundary (bool): Ensure truncation\
+      \ happens at word boundaries.\n            separator (str): Separator to use\
+      \ for the slug.\n            regex_pattern (str): Custom regex pattern for filtering\
+      \ characters.\n            stopwords (list): Words to exclude from the slug.\n\
+      \            lowercase (bool): Whether to convert the slug to lowercase.\n \
+      \           replacements (list): List of (search, replace) tuples for custom\
+      \ replacements.\n    \n        Returns:\n            str: The generated slug.\n\
+      \        \"\"\"\n        if not isinstance(text, str):\n            raise TypeError(\"\
+      Input text must be a string.\")\n    \n        # Apply custom replacements if\
+      \ provided\n        if replacements:\n            for search, replace in replacements:\n\
+      \                text = text.replace(search, replace)\n    \n        # Normalize\
+      \ text to NFKD form for consistent processing\n        if not allow_unicode:\n\
+      >           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')\n\
+      E           TypeError: normalize expected 2 arguments, got 1\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:43: TypeError\n________________ test_regex_pattern_allows_underscore_prefixes\
+      \ ________________\n\n    def test_regex_pattern_allows_underscore_prefixes()\
+      \ -> None:\n        \"\"\"Custom regex_pattern can allow underscores to remain.\"\
+      \"\"\n        text = \"___This is a test___\"\n        regex_pattern = r\"[^-a-z0-9_]+\"\
+      \n    \n>       result_default_sep = slugify(text, regex_pattern=regex_pattern)\n\
+      \ntests\\Slugify\\functional_test.py:172: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = '___This is a test___',\
+      \ allow_unicode = False, max_length = None\nword_boundary = False, separator\
+      \ = '-', regex_pattern = '[^-a-z0-9_]+'\nstopwords = None, lowercase = True,\
+      \ replacements = None, kwargs = {}\n\n    def slugify(\n        text,\n    \
+      \    allow_unicode=False,\n        max_length=None,\n        word_boundary=False,\n\
+      \        separator='-',\n        regex_pattern=None,\n        stopwords=None,\n\
+      \        lowercase=True,\n        replacements=None,\n        **kwargs\n   \
+      \ ):\n        \"\"\"\n        Generate a slug for the given text.\n    \n  \
+      \      Parameters:\n            text (str): The input text to slugify.\n   \
+      \         allow_unicode (bool): Whether to allow Unicode characters in the slug.\n\
+      \            max_length (int): Maximum length of the slug.\n            word_boundary\
+      \ (bool): Ensure truncation happens at word boundaries.\n            separator\
+      \ (str): Separator to use for the slug.\n            regex_pattern (str): Custom\
+      \ regex pattern for filtering characters.\n            stopwords (list): Words\
+      \ to exclude from the slug.\n            lowercase (bool): Whether to convert\
+      \ the slug to lowercase.\n            replacements (list): List of (search,\
+      \ replace) tuples for custom replacements.\n    \n        Returns:\n       \
+      \     str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n________________________\
+      \ test_stopwords_remove_tokens _________________________\n\n    def test_stopwords_remove_tokens()\
+      \ -> None:\n        \"\"\"Stopwords should be removed from the slug.\"\"\"\n\
+      \        text = \"the quick brown fox jumps over the lazy dog in a hurry\"\n\
+      >       result = slugify(text, stopwords=[\"the\", \"in\", \"a\", \"hurry\"\
+      ])\n\ntests\\Slugify\\functional_test.py:183: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'the quick brown\
+      \ fox jumps over the lazy dog in a hurry'\nallow_unicode = False, max_length\
+      \ = None, word_boundary = False, separator = '-'\nregex_pattern = None, stopwords\
+      \ = ['the', 'in', 'a', 'hurry'], lowercase = True\nreplacements = None, kwargs\
+      \ = {}\n\n    def slugify(\n        text,\n        allow_unicode=False,\n  \
+      \      max_length=None,\n        word_boundary=False,\n        separator='-',\n\
+      \        regex_pattern=None,\n        stopwords=None,\n        lowercase=True,\n\
+      \        replacements=None,\n        **kwargs\n    ):\n        \"\"\"\n    \
+      \    Generate a slug for the given text.\n    \n        Parameters:\n      \
+      \      text (str): The input text to slugify.\n            allow_unicode (bool):\
+      \ Whether to allow Unicode characters in the slug.\n            max_length (int):\
+      \ Maximum length of the slug.\n            word_boundary (bool): Ensure truncation\
+      \ happens at word boundaries.\n            separator (str): Separator to use\
+      \ for the slug.\n            regex_pattern (str): Custom regex pattern for filtering\
+      \ characters.\n            stopwords (list): Words to exclude from the slug.\n\
+      \            lowercase (bool): Whether to convert the slug to lowercase.\n \
+      \           replacements (list): List of (search, replace) tuples for custom\
+      \ replacements.\n    \n        Returns:\n            str: The generated slug.\n\
+      \        \"\"\"\n        if not isinstance(text, str):\n            raise TypeError(\"\
+      Input text must be a string.\")\n    \n        # Apply custom replacements if\
+      \ provided\n        if replacements:\n            for search, replace in replacements:\n\
+      \                text = text.replace(search, replace)\n    \n        # Normalize\
+      \ text to NFKD form for consistent processing\n        if not allow_unicode:\n\
+      >           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')\n\
+      E           TypeError: normalize expected 2 arguments, got 1\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:43: TypeError\n__________ test_lowercase_false_preserves_case_for_remaining_tokens\
+      \ ___________\n\n    def test_lowercase_false_preserves_case_for_remaining_tokens()\
+      \ -> None:\n        \"\"\"lowercase=False should preserve original case for\
+      \ non-removed words.\"\"\"\n        mixed = \"thIs Has a stopword Stopword\"\
+      \n>       result = slugify(mixed, stopwords=[\"Stopword\"], lowercase=False)\n\
+      \ntests\\Slugify\\functional_test.py:198: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'thIs Has a stopword\
+      \ Stopword', allow_unicode = False, max_length = None\nword_boundary = False,\
+      \ separator = '-', regex_pattern = None\nstopwords = ['Stopword'], lowercase\
+      \ = False, replacements = None, kwargs = {}\n\n    def slugify(\n        text,\n\
+      \        allow_unicode=False,\n        max_length=None,\n        word_boundary=False,\n\
+      \        separator='-',\n        regex_pattern=None,\n        stopwords=None,\n\
+      \        lowercase=True,\n        replacements=None,\n        **kwargs\n   \
+      \ ):\n        \"\"\"\n        Generate a slug for the given text.\n    \n  \
+      \      Parameters:\n            text (str): The input text to slugify.\n   \
+      \         allow_unicode (bool): Whether to allow Unicode characters in the slug.\n\
+      \            max_length (int): Maximum length of the slug.\n            word_boundary\
+      \ (bool): Ensure truncation happens at word boundaries.\n            separator\
+      \ (str): Separator to use for the slug.\n            regex_pattern (str): Custom\
+      \ regex pattern for filtering characters.\n            stopwords (list): Words\
+      \ to exclude from the slug.\n            lowercase (bool): Whether to convert\
+      \ the slug to lowercase.\n            replacements (list): List of (search,\
+      \ replace) tuples for custom replacements.\n    \n        Returns:\n       \
+      \     str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n___________________\
+      \ test_replacements_apply_before_slugging ___________________\n\n    def test_replacements_apply_before_slugging()\
+      \ -> None:\n        \"\"\"replacements should transform substrings before final\
+      \ slug is produced.\"\"\"\n        text = \"C# is not C++\"\n>       result\
+      \ = slugify(text, replacements=[[\"C#\", \"Csharp\"], [\"C++\", \"Cpp\"]])\n\
+      \ntests\\Slugify\\functional_test.py:208: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'Csharp is not Cpp',\
+      \ allow_unicode = False, max_length = None\nword_boundary = False, separator\
+      \ = '-', regex_pattern = None, stopwords = None\nlowercase = True, replacements\
+      \ = [['C#', 'Csharp'], ['C++', 'Cpp']], kwargs = {}\nsearch = 'C++', replace\
+      \ = 'Cpp'\n\n    def slugify(\n        text,\n        allow_unicode=False,\n\
+      \        max_length=None,\n        word_boundary=False,\n        separator='-',\n\
+      \        regex_pattern=None,\n        stopwords=None,\n        lowercase=True,\n\
+      \        replacements=None,\n        **kwargs\n    ):\n        \"\"\"\n    \
+      \    Generate a slug for the given text.\n    \n        Parameters:\n      \
+      \      text (str): The input text to slugify.\n            allow_unicode (bool):\
+      \ Whether to allow Unicode characters in the slug.\n            max_length (int):\
+      \ Maximum length of the slug.\n            word_boundary (bool): Ensure truncation\
+      \ happens at word boundaries.\n            separator (str): Separator to use\
+      \ for the slug.\n            regex_pattern (str): Custom regex pattern for filtering\
+      \ characters.\n            stopwords (list): Words to exclude from the slug.\n\
+      \            lowercase (bool): Whether to convert the slug to lowercase.\n \
+      \           replacements (list): List of (search, replace) tuples for custom\
+      \ replacements.\n    \n        Returns:\n            str: The generated slug.\n\
+      \        \"\"\"\n        if not isinstance(text, str):\n            raise TypeError(\"\
+      Input text must be a string.\")\n    \n        # Apply custom replacements if\
+      \ provided\n        if replacements:\n            for search, replace in replacements:\n\
+      \                text = text.replace(search, replace)\n    \n        # Normalize\
+      \ text to NFKD form for consistent processing\n        if not allow_unicode:\n\
+      >           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')\n\
+      E           TypeError: normalize expected 2 arguments, got 1\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:43: TypeError\n________________ test_trailing_and_leading_separators_trimmed\
+      \ _________________\n\n    def test_trailing_and_leading_separators_trimmed()\
+      \ -> None:\n        \"\"\"Slug should not start or end with the separator in\
+      \ normal usage.\"\"\"\n        text = \" --- spaced --- \"\n>       result =\
+      \ slugify(text)\n\ntests\\Slugify\\functional_test.py:218: \n_ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext =\
+      \ ' --- spaced --- ', allow_unicode = False, max_length = None\nword_boundary\
+      \ = False, separator = '-', regex_pattern = None, stopwords = None\nlowercase\
+      \ = True, replacements = None, kwargs = {}\n\n    def slugify(\n        text,\n\
+      \        allow_unicode=False,\n        max_length=None,\n        word_boundary=False,\n\
+      \        separator='-',\n        regex_pattern=None,\n        stopwords=None,\n\
+      \        lowercase=True,\n        replacements=None,\n        **kwargs\n   \
+      \ ):\n        \"\"\"\n        Generate a slug for the given text.\n    \n  \
+      \      Parameters:\n            text (str): The input text to slugify.\n   \
+      \         allow_unicode (bool): Whether to allow Unicode characters in the slug.\n\
+      \            max_length (int): Maximum length of the slug.\n            word_boundary\
+      \ (bool): Ensure truncation happens at word boundaries.\n            separator\
+      \ (str): Separator to use for the slug.\n            regex_pattern (str): Custom\
+      \ regex pattern for filtering characters.\n            stopwords (list): Words\
+      \ to exclude from the slug.\n            lowercase (bool): Whether to convert\
+      \ the slug to lowercase.\n            replacements (list): List of (search,\
+      \ replace) tuples for custom replacements.\n    \n        Returns:\n       \
+      \     str: The generated slug.\n        \"\"\"\n        if not isinstance(text,\
+      \ str):\n            raise TypeError(\"Input text must be a string.\")\n   \
+      \ \n        # Apply custom replacements if provided\n        if replacements:\n\
+      \            for search, replace in replacements:\n                text = text.replace(search,\
+      \ replace)\n    \n        # Normalize text to NFKD form for consistent processing\n\
+      \        if not allow_unicode:\n>           text = unicodedata.normalize('NFKD').encode('ascii',\
+      \ 'ignore').decode('ascii')\nE           TypeError: normalize expected 2 arguments,\
+      \ got 1\n\ngeneration\\Slugify\\slugify\\slugify.py:43: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Slugify/functional_test.py::test_basic_ascii_slug\
+      \ - TypeError: n...\nFAILED tests/Slugify/functional_test.py::test_ascii_punctuation_collapses_to_single_separator\n\
+      FAILED tests/Slugify/functional_test.py::test_unicode_default_is_ascii_only\n\
+      FAILED tests/Slugify/functional_test.py::test_max_length_truncation_respects_limit\n\
+      FAILED tests/Slugify/functional_test.py::test_word_boundary_keeps_whole_words_when_enabled\n\
+      FAILED tests/Slugify/functional_test.py::test_separator_customization - TypeE...\n\
+      FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes\n\
+      FAILED tests/Slugify/functional_test.py::test_stopwords_remove_tokens - TypeE...\n\
+      FAILED tests/Slugify/functional_test.py::test_lowercase_false_preserves_case_for_remaining_tokens\n\
+      FAILED tests/Slugify/functional_test.py::test_replacements_apply_before_slugging\n\
+      FAILED tests/Slugify/functional_test.py::test_trailing_and_leading_separators_trimmed\n\
+      11 failed, 1 passed in 47.77s\n"
+    elapsed_time_s: 48.892004
+    avg_memory_mb: 32.16
+    avg_cpu_percent: 0.31
+    passed: 1
+    failed: 11
+    skipped: 0
+    total: 12
+    score_inputs_passed: 1
+    score_inputs_failed: 11
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_slugify_performance_smoke ________________________\n\
+      \n    def test_slugify_performance_smoke() -> None:\n        \"\"\"Smoke test\
+      \ to ensure the performance benchmark runs successfully.\"\"\"\n>       metrics\
+      \ = run_slugify_performance_benchmark(iterations=3, batch_size=100, text_length=32)\n\
+      \ntests\\Slugify\\performance_test.py:91: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Slugify\\performance_test.py:72:\
+      \ in run_slugify_performance_benchmark\n    total_out_len += _run_slugify_batch(batch_size=batch_size,\
+      \ text_length=text_length)\ntests\\Slugify\\performance_test.py:56: in _run_slugify_batch\n\
+      \    s = slugify(text)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'odJFCrn嗎l2edlBD_déz嗎1C5Jau2RJtBR',\
+      \ allow_unicode = False\nmax_length = None, word_boundary = False, separator\
+      \ = '-', regex_pattern = None\nstopwords = None, lowercase = True, replacements\
+      \ = None, kwargs = {}\n\n    def slugify(\n        text,\n        allow_unicode=False,\n\
+      \        max_length=None,\n        word_boundary=False,\n        separator='-',\n\
+      \        regex_pattern=None,\n        stopwords=None,\n        lowercase=True,\n\
+      \        replacements=None,\n        **kwargs\n    ):\n        \"\"\"\n    \
+      \    Generate a slug for the given text.\n    \n        Parameters:\n      \
+      \      text (str): The input text to slugify.\n            allow_unicode (bool):\
+      \ Whether to allow Unicode characters in the slug.\n            max_length (int):\
+      \ Maximum length of the slug.\n            word_boundary (bool): Ensure truncation\
+      \ happens at word boundaries.\n            separator (str): Separator to use\
+      \ for the slug.\n            regex_pattern (str): Custom regex pattern for filtering\
+      \ characters.\n            stopwords (list): Words to exclude from the slug.\n\
+      \            lowercase (bool): Whether to convert the slug to lowercase.\n \
+      \           replacements (list): List of (search, replace) tuples for custom\
+      \ replacements.\n    \n        Returns:\n            str: The generated slug.\n\
+      \        \"\"\"\n        if not isinstance(text, str):\n            raise TypeError(\"\
+      Input text must be a string.\")\n    \n        # Apply custom replacements if\
+      \ provided\n        if replacements:\n            for search, replace in replacements:\n\
+      \                text = text.replace(search, replace)\n    \n        # Normalize\
+      \ text to NFKD form for consistent processing\n        if not allow_unicode:\n\
+      >           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')\n\
+      E           TypeError: normalize expected 2 arguments, got 1\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:43: TypeError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Slugify/performance_test.py::test_slugify_performance_smoke\
+      \ - Ty...\n1 failed in 0.35s\n"
+    elapsed_time_s: 1.628014
+    avg_memory_mb: 31.75
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.214036
+    score_inputs_actual_time_s: 1.628014
+  resource:
+    returncode: 1
+    stdout: "F.                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_slug_index_for_filenames ________________________\n\
+      \n    def test_slug_index_for_filenames() -> None:\n        \"\"\"Integration-style\
+      \ test: build a slug index for a set of filenames.\"\"\"\n        filenames\
+      \ = [\n            \"My Document.txt\",\n            \"My Document (final).txt\"\
+      ,\n            \"Résumé 2025.pdf\",\n            \"影師嗎.png\",\n            \"\
+      project-plan_v1.0.docx\",\n            \"project plan v1.0.docx\",\n       \
+      \     \"C'est déjà l'été.md\",\n            \"10 | 20 %.csv\",\n           \
+      \ \"README\",\n            \"README (copy).md\",\n        ]\n    \n>       index\
+      \ = _build_slug_index(filenames)\n\ntests\\Slugify\\resource_test.py:70: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ntests\\Slugify\\resource_test.py:50: in _build_slug_index\n    s = slugify(name,\
+      \ allow_unicode=allow_unicode)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'My Document.txt', allow_unicode\
+      \ = False, max_length = None\nword_boundary = False, separator = '-', regex_pattern\
+      \ = None, stopwords = None\nlowercase = True, replacements = None, kwargs =\
+      \ {}\n\n    def slugify(\n        text,\n        allow_unicode=False,\n    \
+      \    max_length=None,\n        word_boundary=False,\n        separator='-',\n\
+      \        regex_pattern=None,\n        stopwords=None,\n        lowercase=True,\n\
+      \        replacements=None,\n        **kwargs\n    ):\n        \"\"\"\n    \
+      \    Generate a slug for the given text.\n    \n        Parameters:\n      \
+      \      text (str): The input text to slugify.\n            allow_unicode (bool):\
+      \ Whether to allow Unicode characters in the slug.\n            max_length (int):\
+      \ Maximum length of the slug.\n            word_boundary (bool): Ensure truncation\
+      \ happens at word boundaries.\n            separator (str): Separator to use\
+      \ for the slug.\n            regex_pattern (str): Custom regex pattern for filtering\
+      \ characters.\n            stopwords (list): Words to exclude from the slug.\n\
+      \            lowercase (bool): Whether to convert the slug to lowercase.\n \
+      \           replacements (list): List of (search, replace) tuples for custom\
+      \ replacements.\n    \n        Returns:\n            str: The generated slug.\n\
+      \        \"\"\"\n        if not isinstance(text, str):\n            raise TypeError(\"\
+      Input text must be a string.\")\n    \n        # Apply custom replacements if\
+      \ provided\n        if replacements:\n            for search, replace in replacements:\n\
+      \                text = text.replace(search, replace)\n    \n        # Normalize\
+      \ text to NFKD form for consistent processing\n        if not allow_unicode:\n\
+      >           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')\n\
+      E           TypeError: normalize expected 2 arguments, got 1\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:43: TypeError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Slugify/resource_test.py::test_slug_index_for_filenames\
+      \ - TypeEr...\n1 failed, 1 passed in 0.31s\n"
+    elapsed_time_s: 1.595992
+    avg_memory_mb: 31.27
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 1
+    skipped: 0
+    total: 2
+    score_inputs_passed: 1
+    score_inputs_failed: 1
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.25
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 31.27
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.338963
+    avg_memory_mb: 30.8
+    avg_cpu_percent: 101.3
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=59.0
+
+      .
+
+      1 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.371867
+    avg_memory_mb: 31.14
+    avg_cpu_percent: 102.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 59.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=37.5841 files_scanned=2.0 total_loc=59.0 max_cc=13.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.357404
+    avg_memory_mb: 31.18
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 37.5841
+      files_scanned: 2.0
+      total_loc: 59.0
+      max_cc: 13.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 25.6286
+    score_inputs_generated_mi_min: 37.5841
+    score_inputs_ratio_g_over_b: 1.4664905613260186
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.214036
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.191233
+    resource_tests_total: 2
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.215999
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.276187
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416456
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 278.0
+  maintainability:
+    maintainability_suite_time_s: 1.253803
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.6286
+      files_scanned: 5.0
+      total_loc: 278.0
+      max_cc: 27.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Slugify\pytest_logs

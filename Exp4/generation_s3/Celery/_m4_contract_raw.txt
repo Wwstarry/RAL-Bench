@@ -1,0 +1,129 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- Top-level package:
+  - celery/__init__.py
+    - Must expose: Celery, shared_task (optional but safe), current_app (optional), __version__ (optional)
+  - celery/app/__init__.py
+    - Must expose: Celery (alias), maybe base classes
+  - celery/app/base.py
+    - Implements Celery application class and core methods (task decorator, send_task, configuration, registry)
+  - celery/app/task.py
+    - Implements Task base class and task wrapper objects created by @app.task
+  - celery/result.py
+    - Implements AsyncResult / EagerResult-like objects with .get(), .successful(), .failed(), .status, .result, .traceback
+  - celery/exceptions.py
+    - Defines common exceptions used by API: TimeoutError, ImproperlyConfigured, TaskRevokedError (optional), CeleryError (base)
+  - celery/local.py (optional)
+    - Implements simple proxy for current_app if needed
+  - celery/utils/__init__.py (optional)
+  - celery/utils/imports.py (optional)
+    - Helper for importing callables by name if needed by send_task
+- Minimal packaging metadata (only if repository expects it):
+  - pyproject.toml or setup.cfg/setup.py (not strictly required by tests unless import/install behavior depends on it)
+
+2) Public API surface (modules/classes/functions and key signatures)
+- celery.Celery class (primary entry point)
+  - __init__(self, main=None, broker=None, backend=None, include=None, **kwargs)
+    - Accept broker and/or broker_url; accept backend and/or result_backend.
+    - Store configuration into self.conf.
+  - task(self, *dargs, **dkwargs) -> decorator OR Task instance
+    - Supports @app.task and @app.task(name="...", bind=True/False)
+    - Must accept common kwargs used by tests: name, bind, ignore_result, store_errors_even_if_ignored (optional), eager (optional alias for task_always_eager)
+  - send_task(self, name, args=None, kwargs=None, countdown=None, eta=None, task_id=None, **options) -> AsyncResult
+  - tasks (attribute): mapping-like registry of task name -> Task object
+  - conf (attribute): configuration object supporting attribute and dict-style access
+- celery.app.task.Task base class
+  - Attributes: app, name, __name__ (function name), __module__, ignore_result (default False)
+  - Methods:
+    - __call__(self, *args, **kwargs) -> result (invokes run)
+    - run(self, *args, **kwargs) (to be overridden; for wrapped functions this delegates)
+    - delay(self, *args, **kwargs) -> AsyncResult
+    - apply_async(self, args=None, kwargs=None, task_id=None, countdown=None, eta=None, **options) -> AsyncResult
+    - apply(self, args=None, kwargs=None, **options) -> EagerResult/AsyncResult for eager mode
+- celery.result.AsyncResult (and/or EagerResult)
+  - __init__(self, id, backend, app=None)
+  - get(self, timeout=None, propagate=True, **kwargs) -> return value or raises
+  - successful(self) -> bool
+  - failed(self) -> bool
+  - status (property or attribute): one of "PENDING", "SUCCESS", "FAILURE"
+  - result (property/attribute): return value or exception instance
+  - traceback (property/attribute): string or None (optional)
+- celery.exceptions.TimeoutError (raised by AsyncResult.get on timeout)
+- celery.exceptions.ImproperlyConfigured (raised when backend/broker config invalid if tests cover it)
+- celery.__init__ must allow:
+  - import celery; celery.Celery(...)
+  - from celery import Celery
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+- Task registration
+  - @app.task wraps a function into a Task-like object registered in app.tasks.
+  - Task name resolution:
+    - If name= provided, use it exactly.
+    - Else default name is f"{func.__module__}.{func.__name__}".
+  - bind parameter:
+    - If bind=True, the wrapped callable receives (self, *args, **kwargs) where self is the Task instance.
+    - If bind=False (default), callable receives (*args, **kwargs) with no task instance.
+- Dispatch and execution modes
+  - Must not require external services. Provide at least one working mode for tests:
+    - Eager mode: execute tasks immediately in-process.
+    - In-memory broker/backend mode: broker_url="memory://" allowed; can map to eager execution or a simple local queue/thread worker if needed, but must be deterministic for tests.
+  - Configuration keys on app.conf (support both attribute and item access):
+    - task_always_eager (bool): if True, .delay/.apply_async execute immediately and return an EagerResult/AsyncResult already completed.
+    - task_eager_propagates (bool): if True, exceptions in eager execution propagate through .get (and possibly at call time); minimally must control whether .get raises vs stores exception.
+    - result_backend (string or None): if None and eager, results can still be stored in-memory for retrieval by AsyncResult.get.
+    - broker_url or broker (string): accept "memory://" and None.
+    - task_ignore_result (bool default False): if True and a task doesn’t override ignore_result, results may not be stored; .get may return None or raise ImproperlyConfigured depending on tests; safest: still allow .get for eager tasks unless ignore_result explicitly True on the task.
+  - Invariants for .delay/.apply_async:
+    - Returns an AsyncResult-like object with unique id per call (uuid4 string acceptable).
+    - In eager/memory mode, status becomes SUCCESS/FAILURE immediately after execution.
+    - For failures, result stores exception instance; .failed() True; .successful() False.
+    - .get(timeout=...) behavior:
+      - If task is complete: return value (SUCCESS) or raise stored exception if propagate=True.
+      - If not complete by timeout: raise celery.exceptions.TimeoutError.
+- send_task by name
+  - app.send_task("pkg.mod.func", args=[...], kwargs={...}) looks up task in app.tasks by exact name.
+  - If task name is unknown: raise KeyError or a CeleryError subclass; behavior should match simplest test expectation (prefer KeyError).
+  - Uses same execution pathway as Task.apply_async.
+- Result backend behavior
+  - Provide an in-memory backend that can store task state and result keyed by task_id.
+  - AsyncResult(id).get() must consult backend to retrieve completion; in eager mode it can be prepopulated.
+  - If results are ignored (ignore_result True globally or per task), backend may record only state or nothing; tests likely expect either None or inability to fetch; default should store results unless explicitly ignored.
+- Thread/process usage
+  - No external processes required.
+  - If implementing non-eager async, must be safe in unit tests: deterministic, avoid hangs, and provide timeouts.
+- Error handling
+  - Exceptions raised by task functions must be captured and stored in result object/back-end when not propagating immediately.
+  - AsyncResult.get(propagate=True) must raise the original exception type (re-raised) on FAILURE.
+  - AsyncResult.get(propagate=False) must return exception instance (or wrap) without raising.
+  - Timeout uses celery.exceptions.TimeoutError (not built-in TimeoutError) to match Celery-like semantics.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Imports:
+  - `import celery` works.
+  - `from celery import Celery` works.
+- App creation/config:
+  - `app = celery.Celery("tests", broker_url="memory://", result_backend="cache+memory://")` (or simplified strings) does not error.
+  - `app.conf.task_always_eager = True` and `app.conf["task_always_eager"] = True` both work; reading via both styles works.
+- Task decorator/registry:
+  - `@app.task` registers task; `task.name` matches default naming rule.
+  - `@app.task(name="custom")` registers under "custom".
+  - `@app.task(bind=True)` passes Task instance as first argument.
+  - `app.tasks[task.name]` returns the Task object.
+- Execution/results:
+  - `res = task.delay(1, 2)` returns AsyncResult-like object with .id, .get, .successful, .failed.
+  - In eager/memory mode, `res.get(timeout=...)` returns expected value.
+  - On exception, `res.failed()` True and `res.get()` raises (propagate=True) or returns exception (propagate=False).
+  - Timeout: if execution is not immediate (only if implemented), `.get(timeout=small)` raises celery.exceptions.TimeoutError.
+- send_task:
+  - `res = app.send_task(task.name, args=[...], kwargs={...})` executes and returns result object; `res.get()` returns expected.
+  - Unknown task name raises KeyError (or documented CeleryError) consistently.
+- No external dependencies:
+  - Test suite can run without RabbitMQ/Redis; no network connections attempted.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not implement full Celery feature set (routing, chords, chains, retries, worker processes, serializers, kombu/amqp, signals).
+- Do not require external brokers/backends (RabbitMQ/Redis/etc.). Must work fully in-process for tests.
+- Do not spawn persistent daemons. If threads are used, they must be bounded and joined/daemonized to avoid hanging tests.
+- Do not depend on the reference Celery project codebase; implement minimal compatible surface in pure Python.
+- Compatibility target is the test suite’s used API only; anything not referenced by tests can be stubbed or omitted as long as imports don’t fail.
+</contract>

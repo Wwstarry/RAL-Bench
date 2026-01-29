@@ -1,0 +1,320 @@
+project_name: PyJWT
+task_file: D:\桌面\RAL-Bench\tasks\PyJWT\pyjwt.yaml
+generated_repo: D:\桌面\RAL-Bench\generation\gemini-3-pro-preview\PyJWT
+timestamp: '2026-01-21 23:09:32'
+functional_score: 0.5455
+non_functional_score: 0.7108
+non_functional_subscores:
+  maintainability: 0.8633
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.FF...F.s                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_hs512_encode_decode_roundtrip ______________________\n\
+      \n>   ???\n\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\PyJWT\\functional_test.py:148:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\PyJWT\\functional_test.py:130:\
+      \ in _encode_decode\n    ???\ngeneration\\gemini-3-pro-preview\\PyJWT\\jwt\\\
+      __init__.py:10: in encode\n    return _jwt_global.encode(payload, key, algorithm,\
+      \ **kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _\n\nself = <jwt.api_jwt.PyJWT object at 0x000001DFD3701130>\n\
+      payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'\nalgorithm\
+      \ = 'HS512', headers = None, json_encoder = None\n\n    def encode(self, payload,\
+      \ key, algorithm='HS256', headers=None, json_encoder=None):\n        # Prepare\
+      \ Header\n        header = {'typ': 'JWT', 'alg': algorithm}\n        if headers:\n\
+      \            header.update(headers)\n    \n        # Serialize Header and Payload\n\
+      \        # Use separators to match compact JSON representation (no spaces)\n\
+      \        header_json = json.dumps(header, separators=(',', ':')).encode('utf-8')\n\
+      \        payload_json = json.dumps(payload, separators=(',', ':')).encode('utf-8')\n\
+      \    \n        header_b64 = self._base64url_encode(header_json)\n        payload_b64\
+      \ = self._base64url_encode(payload_json)\n    \n        signing_input = f\"\
+      {header_b64}.{payload_b64}\".encode('ascii')\n    \n        # Sign\n       \
+      \ if algorithm == 'HS256':\n            if not key:\n                raise ValueError(\"\
+      Key is required for HS256\")\n    \n            key_bytes = key.encode('utf-8')\
+      \ if isinstance(key, str) else key\n            signature = hmac.new(key_bytes,\
+      \ signing_input, hashlib.sha256).digest()\n            signature_b64 = self._base64url_encode(signature)\n\
+      \        elif algorithm == 'none':\n            signature_b64 = \"\"\n     \
+      \   else:\n>           raise NotImplementedError(f\"Algorithm {algorithm} not\
+      \ supported\")\nE           NotImplementedError: Algorithm HS512 not supported\n\
+      \ngeneration\\gemini-3-pro-preview\\PyJWT\\jwt\\api_jwt.py:50: NotImplementedError\n\
+      _______________ test_encode_decode_with_datetime_exp_in_future ________________\n\
+      \n>   ???\n\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\PyJWT\\functional_test.py:163:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\PyJWT\\functional_test.py:130:\
+      \ in _encode_decode\n    ???\ngeneration\\gemini-3-pro-preview\\PyJWT\\jwt\\\
+      __init__.py:10: in encode\n    return _jwt_global.encode(payload, key, algorithm,\
+      \ **kwargs)\ngeneration\\gemini-3-pro-preview\\PyJWT\\jwt\\api_jwt.py:32: in\
+      \ encode\n    payload_json = json.dumps(payload, separators=(',', ':')).encode('utf-8')\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\json\\__init__.py:234:\
+      \ in dumps\n    return cls(\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\json\\encoder.py:199: in encode\n    chunks = self.iterencode(o,\
+      \ _one_shot=True)\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\\
+      lib\\json\\encoder.py:257: in iterencode\n    return _iterencode(o, 0)\n_ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _\n\nself = <json.encoder.JSONEncoder object at 0x000001DFD3798D90>\no = datetime.datetime(2099,\
+      \ 1, 1, 0, 0, tzinfo=datetime.timezone.utc)\n\n    def default(self, o):\n \
+      \       \"\"\"Implement this method in a subclass such that it returns\n   \
+      \     a serializable object for ``o``, or calls the base implementation\n  \
+      \      (to raise a ``TypeError``).\n    \n        For example, to support arbitrary\
+      \ iterators, you could\n        implement default like this::\n    \n      \
+      \      def default(self, o):\n                try:\n                    iterable\
+      \ = iter(o)\n                except TypeError:\n                    pass\n \
+      \               else:\n                    return list(iterable)\n         \
+      \       # Let the base class default method raise the TypeError\n          \
+      \      return JSONEncoder.default(self, o)\n    \n        \"\"\"\n>       raise\
+      \ TypeError(f'Object of type {o.__class__.__name__} '\n                    \
+      \    f'is not JSON serializable')\nE       TypeError: Object of type datetime\
+      \ is not JSON serializable\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\json\\encoder.py:179: TypeError\n________________ test_encode_decode_with_datetime_nbf_in_past\
+      \ _________________\n\n>   ???\n\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\\
+      PyJWT\\functional_test.py:171: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\nD:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\PyJWT\\functional_test.py:130: in _encode_decode\n    ???\ngeneration\\\
+      gemini-3-pro-preview\\PyJWT\\jwt\\__init__.py:10: in encode\n    return _jwt_global.encode(payload,\
+      \ key, algorithm, **kwargs)\ngeneration\\gemini-3-pro-preview\\PyJWT\\jwt\\\
+      api_jwt.py:32: in encode\n    payload_json = json.dumps(payload, separators=(',',\
+      \ ':')).encode('utf-8')\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\json\\__init__.py:234: in dumps\n    return cls(\nC:\\Users\\\
+      86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\json\\encoder.py:199:\
+      \ in encode\n    chunks = self.iterencode(o, _one_shot=True)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\json\\encoder.py:257: in iterencode\n\
+      \    return _iterencode(o, 0)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <json.encoder.JSONEncoder object\
+      \ at 0x000001DFD37B9BB0>\no = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)\n\
+      \n    def default(self, o):\n        \"\"\"Implement this method in a subclass\
+      \ such that it returns\n        a serializable object for ``o``, or calls the\
+      \ base implementation\n        (to raise a ``TypeError``).\n    \n        For\
+      \ example, to support arbitrary iterators, you could\n        implement default\
+      \ like this::\n    \n            def default(self, o):\n                try:\n\
+      \                    iterable = iter(o)\n                except TypeError:\n\
+      \                    pass\n                else:\n                    return\
+      \ list(iterable)\n                # Let the base class default method raise\
+      \ the TypeError\n                return JSONEncoder.default(self, o)\n    \n\
+      \        \"\"\"\n>       raise TypeError(f'Object of type {o.__class__.__name__}\
+      \ '\n                        f'is not JSON serializable')\nE       TypeError:\
+      \ Object of type datetime is not JSON serializable\n\nC:\\Users\\86152\\AppData\\\
+      Local\\Programs\\Python\\Python39\\lib\\json\\encoder.py:179: TypeError\n_____________\
+      \ test_unverified_header_contains_alg_and_custom_kid ______________\n\n>   ???\n\
+      E   AttributeError: module 'jwt' has no attribute 'get_unverified_header'\n\n\
+      D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\PyJWT\\functional_test.py:210:\
+      \ AttributeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip -\
+      \ N...\nFAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future\n\
+      FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past\n\
+      FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid\n\
+      4 failed, 6 passed, 1 skipped in 0.44s\n"
+    elapsed_time_s: 1.684955
+    avg_memory_mb: 33.11
+    avg_cpu_percent: 96.0
+    passed: 6
+    failed: 4
+    skipped: 1
+    total: 11
+    score_inputs_passed: 6
+    score_inputs_failed: 4
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ______________ ERROR collecting tests/PyJWT/performance_test.py _______________\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\importlib\\\
+      __init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:],\
+      \ package, level)\n<frozen importlib._bootstrap>:1030: in _gcd_import\n    ???\n\
+      <frozen importlib._bootstrap>:1007: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:986:\
+      \ in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:680: in\
+      \ _load_unlocked\n    ???\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\_pytest\\assertion\\rewrite.py:186: in exec_module\n\
+      \    exec(co, module.__dict__)\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\\
+      PyJWT\\performance_test.py:19: in <module>\n    ???\nE   RuntimeError: Target\
+      \ repository does not exist: D:\\桌面\\RAL-Bench\\generation\\PyJWT\n===========================\
+      \ short test summary info ===========================\nERROR tests/PyJWT/performance_test.py\
+      \ - RuntimeError: Target repository does ...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.47s\n"
+    elapsed_time_s: 1.655199
+    avg_memory_mb: 36.14
+    avg_cpu_percent: 98.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.272328
+    score_inputs_actual_time_s: 1.655199
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ________________ ERROR collecting tests/PyJWT/resource_test.py ________________\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\importlib\\\
+      __init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:],\
+      \ package, level)\n<frozen importlib._bootstrap>:1030: in _gcd_import\n    ???\n\
+      <frozen importlib._bootstrap>:1007: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:986:\
+      \ in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:680: in\
+      \ _load_unlocked\n    ???\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\_pytest\\assertion\\rewrite.py:186: in exec_module\n\
+      \    exec(co, module.__dict__)\nD:\\桌面\\RealAppCodeBench_generic_eval\\tests\\\
+      PyJWT\\resource_test.py:20: in <module>\n    ???\nE   RuntimeError: Target repository\
+      \ does not exist: D:\\桌面\\RAL-Bench\\generation\\PyJWT\n===========================\
+      \ short test summary info ===========================\nERROR tests/PyJWT/resource_test.py\
+      \ - RuntimeError: Target repository does not...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.47s\n"
+    elapsed_time_s: 1.683751
+    avg_memory_mb: 36.12
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 32.45
+    score_inputs_baseline_cpu_pct: 97.5
+    score_inputs_actual_mem_mb: 36.12
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.460138
+    avg_memory_mb: 31.18
+    avg_cpu_percent: 96.6
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=3.0 total_loc=126.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.233862
+    avg_memory_mb: 31.43
+    avg_cpu_percent: 98.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 3.0
+      total_loc: 126.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=29.1792 files_scanned=3.0 total_loc=126.0 max_cc=17.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.279282
+    avg_memory_mb: 31.55
+    avg_cpu_percent: 102.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 29.1792
+      files_scanned: 3.0
+      total_loc: 126.0
+      max_cc: 17.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 4.6208
+    score_inputs_generated_mi_min: 29.1792
+    score_inputs_ratio_g_over_b: 6.314750692520776
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.272328
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.374763
+    resource_tests_total: 3
+    avg_memory_mb: 32.45
+    avg_cpu_percent: 97.5
+  functional:
+    functional_suite_time_s: 1.285872
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.543038
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.347434
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 12.0
+      total_loc: 2146.0
+  maintainability:
+    maintainability_suite_time_s: 1.290264
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 4.6208
+      files_scanned: 12.0
+      total_loc: 2146.0
+      max_cc: 19.0
+pytest_logs_dir: D:\桌面\RAL-Bench\results\PyJWT\pytest_logs

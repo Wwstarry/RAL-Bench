@@ -1,0 +1,552 @@
+<file:name=humanize/__init__.py>
+"""
+A small, pure-Python subset of the `humanize` project.
+
+This package is intentionally minimal and API-compatible with the core helpers
+commonly used in tests: number, time, filesize, lists, and a tiny i18n shim.
+"""
+
+from __future__ import annotations
+
+from .number import intcomma, ordinal
+from .filesize import naturalsize
+from .time import precisedelta, naturaldelta, naturaltime
+from .lists import naturallist
+
+__all__ = [
+    "intcomma",
+    "ordinal",
+    "naturalsize",
+    "precisedelta",
+    "naturaldelta",
+    "naturaltime",
+    "naturallist",
+]
+
+# Version metadata (not necessarily matching upstream, but present for callers/tests)
+__version__ = "0.0.0"
+</file>
+
+<file:name=humanize/i18n.py>
+"""
+Minimal i18n scaffolding.
+
+The reference `humanize` package supports multiple locales. For this benchmark we
+provide a tiny subset of that interface so other modules can call gettext-like
+functions without requiring external catalogs.
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+
+_LANGUAGE: Optional[str] = None
+
+
+def activate(locale: str) -> None:
+    global _LANGUAGE
+    _LANGUAGE = str(locale) if locale is not None else None
+
+
+def deactivate() -> None:
+    global _LANGUAGE
+    _LANGUAGE = None
+
+
+def get_language() -> Optional[str]:
+    return _LANGUAGE
+
+
+def gettext(message: str) -> str:
+    # English-only stub
+    return message
+
+
+def ngettext(singular: str, plural: str, n: int) -> str:
+    return singular if int(n) == 1 else plural
+
+
+def localize(number_string: str) -> str:
+    # Locale-aware formatting is out of scope for this implementation.
+    return number_string
+</file>
+
+<file:name=humanize/number.py>
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+from typing import Any, Optional
+
+
+def _to_decimal_str(value: Any) -> Optional[str]:
+    """
+    Convert common numeric inputs to a non-scientific decimal string.
+
+    Returns None if conversion is not possible.
+    """
+    if value is None:
+        raise TypeError("value must not be None")
+
+    if isinstance(value, Decimal):
+        s = format(value, "f")
+        return s
+
+    if isinstance(value, (int,)):
+        return str(value)
+
+    if isinstance(value, float):
+        # Use Decimal(str(x)) to avoid binary float artifacts and scientific
+        # notation for typical values.
+        try:
+            d = Decimal(str(value))
+        except Exception:
+            return str(value)
+        return format(d, "f")
+
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return value
+        # Attempt Decimal parsing for e/E and for numeric strings generally.
+        try:
+            d = Decimal(s)
+        except (InvalidOperation, ValueError):
+            return None
+        # Preserve fraction digits from the original string when ndigits is None
+        # is handled by intcomma; here just return a normalized fixed string.
+        return format(d, "f")
+
+    # Fallback: try Decimal on stringified value.
+    try:
+        d = Decimal(str(value))
+    except Exception:
+        return None
+    return format(d, "f")
+
+
+def intcomma(value: Any, ndigits: Optional[int] = None) -> str:
+    """
+    Insert commas into the integer part of a number.
+
+    If ndigits is provided, the value is rounded to that number of decimal places.
+    """
+    if value is None:
+        raise TypeError("value must not be None")
+
+    # Preserve string fractional part when ndigits is None.
+    if isinstance(value, str) and ndigits is None:
+        s = value.strip()
+        if not s:
+            return value
+        # If scientific notation, try Decimal conversion to a fixed representation.
+        if "e" in s.lower():
+            try:
+                s = format(Decimal(s), "f")
+            except Exception:
+                return value
+        # Now operate on the (possibly) decimal string.
+        sign = ""
+        if s.startswith(("+", "-")):
+            sign = "-" if s[0] == "-" else ""
+            s = s[1:]
+        if "." in s:
+            intpart, fracpart = s.split(".", 1)
+            frac = "." + fracpart
+        else:
+            intpart, frac = s, ""
+        if not intpart.isdigit():
+            # Not a plain number; return original unchanged for robustness.
+            return value
+        intpart = _comma_int(intpart)
+        return f"{sign}{intpart}{frac}"
+
+    # For numeric types or when rounding requested, use Decimal for stability.
+    if ndigits is not None:
+        try:
+            d = Decimal(str(value))
+        except Exception:
+            return str(value)
+        q = Decimal("1") if ndigits == 0 else Decimal("1").scaleb(-ndigits)
+        # quantize rounds; use default rounding (banker's) like Decimal.
+        try:
+            d = d.quantize(q)
+        except Exception:
+            # Some values may not quantize cleanly; fall back to formatting.
+            fmt = f"{{0:.{ndigits}f}}"
+            try:
+                s = fmt.format(float(value))
+            except Exception:
+                return str(value)
+        else:
+            s = format(d, "f")
+        # Now comma-separate integer part.
+        sign = ""
+        if s.startswith(("-", "+")):
+            sign = "-" if s[0] == "-" else ""
+            s = s[1:]
+        if "." in s:
+            intpart, fracpart = s.split(".", 1)
+            frac = "." + fracpart
+        else:
+            intpart, frac = s, ""
+        if not intpart.isdigit():
+            return str(value)
+        return f"{sign}{_comma_int(intpart)}{frac}"
+
+    # ndigits is None and value is not a string: create a fixed decimal string
+    # where possible, then comma.
+    decs = _to_decimal_str(value)
+    if decs is None:
+        return str(value)
+
+    sign = ""
+    s = decs
+    if s.startswith(("-", "+")):
+        sign = "-" if s[0] == "-" else ""
+        s = s[1:]
+    if "." in s:
+        intpart, fracpart = s.split(".", 1)
+        frac = "." + fracpart
+    else:
+        intpart, frac = s, ""
+    if not intpart.isdigit():
+        return str(value)
+    return f"{sign}{_comma_int(intpart)}{frac}"
+
+
+def _comma_int(digits: str) -> str:
+    # digits is assumed to be only 0-9
+    n = len(digits)
+    if n <= 3:
+        return digits
+    parts = []
+    i = n
+    while i > 3:
+        parts.append(digits[i - 3 : i])
+        i -= 3
+    parts.append(digits[:i])
+    return ",".join(reversed(parts))
+
+
+def ordinal(value: Any) -> str:
+    """
+    Convert an integer to its ordinal representation in English.
+    """
+    if value is None:
+        raise TypeError("value must not be None")
+
+    n: int
+    if isinstance(value, bool):
+        # bool is int subclass; treat explicitly for clarity
+        n = int(value)
+    elif isinstance(value, int):
+        n = value
+    elif isinstance(value, str):
+        s = value.strip()
+        if not s:
+            raise ValueError("invalid literal for ordinal")
+        try:
+            n = int(s, 10)
+        except ValueError:
+            # Try float->int only if integral.
+            try:
+                f = float(s)
+            except ValueError as e:
+                raise ValueError("invalid literal for ordinal") from e
+            if not f.is_integer():
+                raise ValueError("invalid literal for ordinal")
+            n = int(f)
+    else:
+        # Try int conversion; if fails, attempt float integral.
+        try:
+            n = int(value)
+        except Exception:
+            try:
+                f = float(value)
+            except Exception as e:
+                raise ValueError("invalid literal for ordinal") from e
+            if not f.is_integer():
+                raise ValueError("invalid literal for ordinal")
+            n = int(f)
+
+    absn = abs(n)
+    if 10 <= (absn % 100) <= 20:
+        suf = "th"
+    else:
+        suf = {1: "st", 2: "nd", 3: "rd"}.get(absn % 10, "th")
+    return f"{n}{suf}"
+</file>
+
+<file:name=humanize/filesize.py>
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Any
+
+
+def naturalsize(
+    value: Any,
+    binary: bool = False,
+    format: str = "%.1f",
+    suffix: str = "B",
+    gnuradio: bool = False,
+) -> str:
+    if value is None:
+        raise TypeError("value must not be None")
+
+    # Convert to Decimal for stable scaling/formatting.
+    try:
+        d = Decimal(str(value))
+    except Exception:
+        # If it's not numeric, let it raise TypeError in Decimal or return str.
+        return f"{value} {suffix}".rstrip()
+
+    sign = "-" if d.is_signed() and d != 0 else ""
+    d = abs(d)
+
+    base = Decimal(1024) if binary else Decimal(1000)
+
+    if gnuradio:
+        # GNU Radio style units: no trailing "B"
+        units = ["", "K", "M", "G", "T", "P", "E"]
+        unit_suffix = ""
+        # For bytes, they often still show "B"; keep compatibility with our suffix
+        # behavior: if suffix provided, keep it only for the base unit.
+    else:
+        if binary:
+            units = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"]
+        else:
+            units = ["", "k", "M", "G", "T", "P", "E"]
+        unit_suffix = suffix
+
+    # Bytes case: < base uses integer
+    if d < base:
+        # Always show as integer bytes with unit "B" (or suffix if customized)
+        # The unit should be just suffix if provided; default produces "B".
+        unit = suffix if suffix else ""
+        num = str(int(d))
+        if gnuradio:
+            # For gnuradio, base unit is "B" if suffix is "B"
+            unit = suffix if suffix else ""
+        return (f"{sign}{num} {unit}").rstrip()
+
+    idx = 0
+    q = d
+    max_idx = len(units) - 1
+    while q >= base and idx < max_idx:
+        q = q / base
+        idx += 1
+
+    unit = units[idx]
+    if gnuradio:
+        # For gnuradio, bytes are not reached here; units are K/M/G...
+        # The suffix argument is ignored in this mode for scaled units.
+        out_unit = unit
+    else:
+        out_unit = f"{unit}{unit_suffix}" if unit or unit_suffix else unit
+
+    # Apply formatting to the scaled number; use float formatting for printf style.
+    # Decimal -> float is safe for typical values used in tests.
+    num = format % float(q)
+
+    return f"{sign}{num} {out_unit}".rstrip()
+</file>
+
+<file:name=humanize/lists.py>
+from __future__ import annotations
+
+from typing import Iterable, Any
+
+
+def naturallist(seq: Iterable[Any], separator: str = ", ", conjunction: str = "and") -> str:
+    if seq is None:
+        raise TypeError("seq must not be None")
+
+    items = [str(x) for x in seq]
+    n = len(items)
+    if n == 0:
+        return ""
+    if n == 1:
+        return items[0]
+    if n == 2:
+        return f"{items[0]} {conjunction} {items[1]}"
+    return f"{separator.join(items[:-1])} {conjunction} {items[-1]}"
+</file>
+
+<file:name=humanize/time.py>
+from __future__ import annotations
+
+import datetime as _dt
+from decimal import Decimal
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from .i18n import ngettext
+
+
+_UNIT_SECONDS: Dict[str, int] = {
+    "seconds": 1,
+    "minutes": 60,
+    "hours": 60 * 60,
+    "days": 60 * 60 * 24,
+    "weeks": 60 * 60 * 24 * 7,
+    "months": 60 * 60 * 24 * 30,   # 30 days approximation
+    "years": 60 * 60 * 24 * 365,   # 365 days
+}
+
+_ORDER: List[str] = ["years", "months", "weeks", "days", "hours", "minutes", "seconds"]
+
+
+def _to_seconds(value: Any) -> Decimal:
+    if isinstance(value, _dt.timedelta):
+        return Decimal(value.total_seconds())
+    if isinstance(value, (int, float, Decimal)):
+        return Decimal(str(value))
+    raise TypeError("value must be a timedelta or a number of seconds")
+
+
+def _plural(unit: str, n: int) -> str:
+    singular = unit[:-1] if unit.endswith("s") else unit
+    return ngettext(singular, unit, n)
+
+
+def precisedelta(
+    value: Any,
+    minimum_unit: str = "seconds",
+    format: str = "%d",
+    suppress: Optional[Iterable[str]] = None,
+    delimiter: str = ", ",
+) -> str:
+    if minimum_unit not in _UNIT_SECONDS:
+        raise ValueError(f"unknown unit: {minimum_unit}")
+
+    total = _to_seconds(value)
+    sign = "-" if total < 0 else ""
+    total = abs(total)
+
+    suppress_set = set(suppress or ())
+    # Unknown suppress entries are ignored.
+
+    min_index = _ORDER.index(minimum_unit)
+
+    # Truncate to minimum_unit (discard remainder below minimum_unit).
+    min_sec = Decimal(_UNIT_SECONDS[minimum_unit])
+    if min_sec != 0:
+        total = (total // min_sec) * min_sec
+
+    remaining = int(total)  # work in integer seconds after truncation
+    parts: List[str] = []
+
+    for unit in _ORDER[: min_index + 1]:
+        if unit in suppress_set:
+            continue
+        unit_seconds = _UNIT_SECONDS[unit]
+        count = remaining // unit_seconds
+        remaining -= count * unit_seconds
+        if count:
+            num = format % count
+            parts.append(f"{num} {_plural(unit, int(count))}")
+
+    if not parts:
+        # Nothing shown (e.g., everything suppressed or total is 0)
+        count = 0
+        num = format % count
+        parts = [f"{num} {_plural(minimum_unit, count)}"]
+
+    return sign + delimiter.join(parts)
+
+
+def naturaldelta(value: Any, months: bool = True) -> str:
+    seconds = _to_seconds(value)
+    seconds = abs(seconds)
+    s = float(seconds)
+
+    if s < 1:
+        return "a moment"
+    if s < 45:
+        return "a moment"
+    if s < 90:
+        return "a minute"
+
+    minutes = s / 60.0
+    if minutes < 45:
+        n = int(round(minutes))
+        return f"{n} minutes"
+    if minutes < 90:
+        return "an hour"
+
+    hours = minutes / 60.0
+    if hours < 22:
+        n = int(round(hours))
+        return f"{n} hours"
+    if hours < 36:
+        return "a day"
+
+    days = hours / 24.0
+    if days < 25:
+        n = int(round(days))
+        return f"{n} days"
+
+    if months:
+        if days < 45:
+            return "a month"
+        if days < 345:
+            n = int(round(days / 30.0))
+            n = max(2, n)
+            return f"{n} months"
+        if days < 545:
+            return "a year"
+        n = int(round(days / 365.0))
+        return f"{n} years"
+    else:
+        # Weeks-based fallback if months=False
+        weeks = days / 7.0
+        if days < 45:
+            n = int(round(weeks))
+            n = max(5, n)
+            return f"{n} weeks"
+        if days < 365:
+            n = int(round(weeks))
+            return f"{n} weeks"
+        if days < 545:
+            return "a year"
+        n = int(round(days / 365.0))
+        return f"{n} years"
+
+
+def naturaltime(value: Any, when: Optional[_dt.datetime] = None) -> str:
+    # Determine delta seconds: positive -> future, negative -> past
+    if isinstance(value, _dt.datetime):
+        ref = when
+        if ref is None:
+            if value.tzinfo is not None:
+                ref = _dt.datetime.now(tz=value.tzinfo)
+            else:
+                ref = _dt.datetime.now()
+        delta = value - ref  # may raise TypeError for naive/aware mismatch
+        seconds = Decimal(delta.total_seconds())
+    elif isinstance(value, _dt.timedelta):
+        seconds = Decimal(value.total_seconds())
+    elif isinstance(value, (int, float, Decimal)):
+        seconds = Decimal(str(value))
+    else:
+        raise TypeError("value must be datetime, timedelta, or seconds")
+
+    s = float(seconds)
+
+    if abs(s) < 1:
+        return "now"
+
+    phrase = naturaldelta(abs(seconds), months=True)
+
+    if s < 0:
+        # Past
+        if phrase == "a moment":
+            # Many implementations prefer "a moment ago" for short past deltas.
+            return "a moment ago"
+        return f"{phrase} ago"
+    else:
+        # Future
+        if phrase == "a moment":
+            return "in a moment"
+        return f"in {phrase}"
+</file>

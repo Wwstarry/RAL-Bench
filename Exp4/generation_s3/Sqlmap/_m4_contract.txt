@@ -1,0 +1,120 @@
+1) Repository layout (what packages/modules/files must exist)
+- Repo root:
+  - sqlmap.py (CLI entrypoint; runnable via `python sqlmap.py ...`)
+  - lib/ (package directory)
+    - __init__.py
+    - controller/ (package)
+      - __init__.py
+      - controller.py
+    - core/ (package)
+      - __init__.py
+      - data.py
+      - option.py
+      - settings.py
+    - parse/ (package)
+      - __init__.py
+      - cmdline.py
+
+2) Public API surface (modules/classes/functions and key signatures)
+- lib.core.settings
+  - VERSION: str (e.g., "0.0.0" or "1.0")
+  - DESCRIPTION: str (human-readable one-liner used in help/headers)
+- lib.core.data
+  - cmdLineOptions: object (default None or simple namespace/dict-like)
+  - conf: object (runtime configuration namespace/dict-like)
+  - kb: object (runtime “knowledge base” namespace/dict-like)
+  - These symbols must be importable and mutable (tests may read/write attributes).
+- lib.parse.cmdline
+  - function cmdLineParser(argv: list[str] | None = None) -> object
+    - Returns parsed options object (argparse.Namespace or custom with attributes).
+    - Must support -h, -hh, --version, and robust error messages for invalid args.
+- lib.core.option
+  - function initOptions(options: object) -> None
+    - Takes parsed options object and populates lib.core.data.cmdLineOptions and lib.core.data.conf with defaults/derived values.
+  - function init(options: object | None = None) -> None
+    - If options is None, uses lib.core.data.cmdLineOptions if present; otherwise no-op safe.
+    - Ensures lib.core.data.conf and lib.core.data.kb exist and are initialized to namespace/dict-like objects.
+- lib.controller.controller
+  - function start() -> int | None
+    - Main controller entry point; should not require external target.
+    - For benign invocations (help/version) should not run; for normal runs should exit cleanly with a message indicating “not implemented” or “no target specified”, returning 0/1 deterministically without throwing.
+- sqlmap.py (root script)
+  - Must be executable via `python sqlmap.py ...`
+  - Must import and use:
+    - lib.parse.cmdline.cmdLineParser
+    - lib.core.option.initOptions
+    - lib.core.option.init
+    - lib.controller.controller.start
+    - lib.core.data (cmdLineOptions/conf/kb)
+    - lib.core.settings (VERSION/DESCRIPTION)
+  - Must expose a conventional `main(argv: list[str] | None = None) -> int` (even if tests don’t call directly), and call it under `if __name__ == "__main__":`.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+- CLI parsing and help/version behavior:
+  - `python sqlmap.py -h`:
+    - Exits with code 0.
+    - Prints basic help to stdout (argparse default acceptable).
+    - Must not raise exceptions or print stack traces.
+  - `python sqlmap.py -hh`:
+    - Exits with code 0.
+    - Prints “advanced help” (can be a superset of -h; must be distinct enough to show that -hh is accepted).
+    - Must not raise exceptions or print stack traces.
+  - `python sqlmap.py --version`:
+    - Exits with code 0.
+    - Prints version string containing lib.core.settings.VERSION (e.g., "sqlmap/0.0.0").
+- Robust invalid argument handling:
+  - For unknown options or malformed invocations, program must:
+    - Exit cleanly (non-zero exit code, typically 2 like argparse).
+    - Print an informative error plus short usage/help.
+    - Never hang or crash; no tracebacks in normal invalid-arg paths.
+- No external dependency requirements:
+  - Must be pure Python; only standard library allowed.
+  - Must not perform network calls, filesystem writes, or attempt real SQL injection.
+- Runtime state initialization invariants:
+  - After parsing and calling initOptions/init, lib.core.data.conf and lib.core.data.kb must be non-None objects with attribute access (SimpleNamespace is acceptable).
+  - lib.core.data.cmdLineOptions must refer to the parsed options object after initOptions.
+  - These should be safe to import at any time (module import must not trigger heavy logic).
+- Controller behavior:
+  - start() must be callable without arguments.
+  - If invoked without a target (no URL/data provided), it should:
+    - Print a short message like “No target provided” to stdout or stderr.
+    - Return a non-zero code (e.g., 1) but not throw.
+  - If invoked with benign flags that terminate early (help/version), it should not be called or should no-op (either acceptable if outputs/codes match).
+- Output streams:
+  - Help/version to stdout; errors to stderr is preferred but not strictly required if tests only check exit success and presence of text.
+  - Ensure deterministic output (no timestamps/randomness).
+- Compatibility constraints:
+  - Module paths and symbol names must match exactly:
+    - lib.parse.cmdline.cmdLineParser
+    - lib.core.option.init
+    - lib.core.option.initOptions
+    - lib.core.data.cmdLineOptions/conf/kb
+    - lib.core.settings.VERSION/DESCRIPTION
+    - lib.controller.controller.start
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Imports:
+  - `from lib.parse.cmdline import cmdLineParser` succeeds.
+  - `from lib.core.option import init, initOptions` succeeds.
+  - `from lib.core.data import cmdLineOptions, conf, kb` succeeds.
+  - `from lib.core.settings import VERSION, DESCRIPTION` succeeds.
+  - `from lib.controller.controller import start` succeeds.
+- CLI:
+  - Running `python sqlmap.py -h` returns exit code 0 and prints usage/help.
+  - Running `python sqlmap.py -hh` returns exit code 0 and prints advanced help (contains at least one line not present in -h, or a clear “Advanced help” header).
+  - Running `python sqlmap.py --version` returns exit code 0 and output includes VERSION.
+  - Running `python sqlmap.py --definitely-unknown` exits non-zero and prints an error/usage, without traceback.
+- State:
+  - After `opts = cmdLineParser([...]); initOptions(opts); init(opts)`:
+    - lib.core.data.cmdLineOptions is opts.
+    - lib.core.data.conf and lib.core.data.kb are initialized and attribute-accessible.
+- Controller:
+  - `start()` callable and terminates quickly, returning an int/None without raising.
+  - With no target configured, it exits cleanly with an informative message.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not implement real SQL injection, crawling, or network probing.
+- Do not require third-party packages (no requests, colorama, etc.).
+- Do not require a live database/URL; tests must pass with no external target.
+- Do not create complex plugin systems or mirror full sqlmap; only the minimal surface/behavior described.
+- Do not perform side effects at import time beyond defining constants and initializing safe default namespaces.

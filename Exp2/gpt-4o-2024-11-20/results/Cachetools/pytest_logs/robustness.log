@@ -1,0 +1,90 @@
+F.FFF.....F                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+        cachetools = _import_cachetools()
+    
+>       c = cachetools.Cache(-1)
+
+tests\Cachetools\robustness_test.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = {}, maxsize = -1
+
+    def __init__(self, maxsize):
+        if maxsize <= 0:
+>           raise ValueError("maxsize must be greater than 0")
+E           ValueError: maxsize must be greater than 0
+
+generation\Cachetools\cachetools\cache.py:8: ValueError
+___________ test_cache_value_too_large_for_getsizeof_does_not_crash ___________
+
+    def test_cache_value_too_large_for_getsizeof_does_not_crash():
+        """
+        Extreme getsizeof behavior should not crash the process.
+        """
+        cachetools = _import_cachetools()
+    
+>       c = cachetools.Cache(100, getsizeof=lambda _x: 200)
+E       TypeError: __init__() got an unexpected keyword argument 'getsizeof'
+
+tests\Cachetools\robustness_test.py:106: TypeError
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'FIFOCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'LFUCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+_________ test_non_hashable_keys_raise_typeerror_in_dict_like_methods _________
+
+    def test_non_hashable_keys_raise_typeerror_in_dict_like_methods():
+        """
+        This is stable: list keys are unhashable and should raise TypeError.
+        """
+        cachetools = _import_cachetools()
+        c = cachetools.Cache(100)
+    
+        with pytest.raises(TypeError):
+            _ = c.get([1, 2, 3])  # type: ignore[arg-type]
+    
+        with pytest.raises(TypeError):
+            c[[1, 2, 3]] = "value"  # type: ignore[index]
+    
+        with pytest.raises(TypeError):
+            del c[[1, 2, 3]]  # type: ignore[index]
+    
+        with pytest.raises(TypeError):
+>           _ = c.pop([1, 2, 3], None)  # type: ignore[arg-type]
+E           Failed: DID NOT RAISE <class 'TypeError'>
+
+tests\Cachetools\robustness_test.py:231: Failed
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_cache_value_too_large_for_getsizeof_does_not_crash
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+FAILED tests/Cachetools/robustness_test.py::test_non_hashable_keys_raise_typeerror_in_dict_like_methods
+5 failed, 6 passed in 0.39s

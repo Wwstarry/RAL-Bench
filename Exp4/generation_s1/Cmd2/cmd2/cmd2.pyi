@@ -1,0 +1,1 @@
+# Stub file (optional for editors). Not used by runtime.

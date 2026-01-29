@@ -1,0 +1,525 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x00000202858A4E80>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000202858A8FA0>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020285900B80>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x0000020285900B20>
+
+    def draw(self):
+        # Only horizontal stacked bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # sum values per item (stacked)
+        sums = []
+        n_items = self.data.num_items()
+        n_series = self.data.num_series()
+        for i in range(n_items):
+            s = 0
+            for series in self.data.data:
+                if i < len(series):
+>                   s += series[i]
+E                   TypeError: unsupported operand type(s) for +=: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:102: TypeError
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020285898040>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000020285898AC0>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020283E00C10>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000020285871AF0>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020285923CA0>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000020285923D60>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x00000202858A4550>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000202858A4190>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x00000202859115E0>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000202859114C0>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020285859EB0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x00000202858597C0>
+
+    def draw(self):
+        # Only horizontal stacked bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # sum values per item (stacked)
+        sums = []
+        n_items = self.data.num_items()
+        n_series = self.data.num_series()
+        for i in range(n_items):
+            s = 0
+            for series in self.data.data:
+                if i < len(series):
+>                   s += series[i]
+E                   TypeError: unsupported operand type(s) for +=: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:102: TypeError
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x00000202858921F0>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x00000202858922E0>
+
+    def draw(self):
+        # Only horizontal stacked bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # sum values per item (stacked)
+        sums = []
+        n_items = self.data.num_items()
+        n_series = self.data.num_series()
+        for i in range(n_items):
+            s = 0
+            for series in self.data.data:
+                if i < len(series):
+>                   s += series[i]
+E                   TypeError: unsupported operand type(s) for +=: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:102: TypeError
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x00000202858FF2E0>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000202858FF970>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000020285912130>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000020285912F70>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 25.89s

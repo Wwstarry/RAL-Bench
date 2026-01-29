@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.server.filter import FailRegex
+
+MAX_LINE_LEN = 32 * 1024
+
+def _read_lines(path: str) -> list[str]:
+    if path == "-":
+        data = sys.stdin.read()
+        return data.splitlines()
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(str(p))
+    with p.open("r", encoding="utf-8", errors="replace") as f:
+        out = []
+        for line in f:
+            if len(line) > MAX_LINE_LEN:
+                line = line[:MAX_LINE_LEN]
+            out.append(line.rstrip("\n"))
+        return out
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex tester: scans a log file for failregex matches and extracts IPs.",
+    )
+    parser.add_argument("logfile", nargs="?", help="Path to logfile (use '-' for stdin).")
+    parser.add_argument("regex", nargs="?", help="Failregex to test (Python regex).")
+    parser.add_argument("--ignoreregex", action="append", default=[], help="Ignore regex (can repeat).")
+    parser.add_argument("--max-lines", type=int, default=None, help="Limit number of lines read.")
+    args = parser.parse_args(argv)
+
+    if not args.logfile or not args.regex:
+        parser.print_help()
+        return 0
+
+    try:
+        fr = FailRegex([args.regex], ignoreregex=args.ignoreregex)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        lines = _read_lines(args.logfile)
+    except FileNotFoundError as e:
+        print(f"ERROR: logfile not found: {e}", file=sys.stderr)
+        return 2
+
+    if args.max_lines is not None:
+        lines = lines[: max(0, args.max_lines)]
+
+    tested = 0
+    matches = 0
+    ignored_or_nomatch = 0
+    ips: set[str] = set()
+
+    for line in lines:
+        tested += 1
+        info = fr.match_line(line)
+        if not info:
+            ignored_or_nomatch += 1
+            continue
+        matches += 1
+        if info.get("ip"):
+            ips.add(info["ip"])
+
+    print(f"Lines: {tested}")
+    print(f"Matches: {matches}")
+    print(f"Non-matching/ignored: {ignored_or_nomatch}")
+    if ips:
+        print("IPs:")
+        for ip in sorted(ips):
+            print(f"  {ip}")
+    else:
+        print("IPs: (none)")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

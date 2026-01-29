@@ -1,0 +1,20 @@
+.....F...                                                                [100%]
+================================== FAILURES ===================================
+________________ test_006_invalid_option_reports_error_cleanly ________________
+
+    def test_006_invalid_option_reports_error_cleanly():
+        """
+        In sqlmap reference, invalid options can still return code 0 in some paths,
+        but stderr includes 'no such option' (argparse style). We assert on the message.
+        """
+        p = _run_cli(["--this-option-should-not-exist"], timeout_s=30)
+        out = _out(p)
+    
+        # Must clearly indicate option parsing failure; do NOT assert return code.
+>       assert ("no such option" in out) or ("unrecognized" in out) or ("unknown" in out)
+E       AssertionError: assert ('no such option' in '[*] starting the sqlmap-like tool (mock).\n[*] no actual sql injection testing is performed in this mock implementation.\n[*] exiting now.\n\n' or 'unrecognized' in '[*] starting the sqlmap-like tool (mock).\n[*] no actual sql injection testing is performed in this mock implementation.\n[*] exiting now.\n\n' or 'unknown' in '[*] starting the sqlmap-like tool (mock).\n[*] no actual sql injection testing is performed in this mock implementation.\n[*] exiting now.\n\n')
+
+tests\Sqlmap\functional_test.py:92: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_006_invalid_option_reports_error_cleanly
+1 failed, 8 passed in 1.93s

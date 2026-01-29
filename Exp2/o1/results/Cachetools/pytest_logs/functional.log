@@ -1,0 +1,25 @@
+.F...........                                                            [100%]
+================================== FAILURES ===================================
+__________________________ test_ttl_cache_expiration __________________________
+
+    def test_ttl_cache_expiration():
+        ttl_seconds = 0.2
+        cache = TTLCache(maxsize=10, ttl=ttl_seconds)
+    
+        cache["answer"] = 42
+        assert cache["answer"] == 42
+        assert "answer" in cache
+    
+        # Wait long enough for the entry to expire
+        time.sleep(ttl_seconds + 0.3)
+    
+        # After TTL has passed, the key should no longer be considered valid
+        # Implementations may clean up lazily, but membership and access
+        # must not behave as if the value is still present.
+>       assert "answer" not in cache
+E       AssertionError: assert 'answer' not in TTLCache(maxsize=10, size=1)
+
+tests\Cachetools\functional_test.py:62: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_ttl_cache_expiration - Asser...
+1 failed, 12 passed in 2.06s

@@ -1,0 +1,749 @@
+<file:name=tinydb/__init__.py>
+from .database import TinyDB
+from .table import Table
+from .queries import Query, QueryInstance, where
+from .storages import Storage, JSONStorage
+
+__all__ = [
+    "TinyDB",
+    "Table",
+    "Query",
+    "QueryInstance",
+    "where",
+    "Storage",
+    "JSONStorage",
+]
+</file>
+
+<file:name=tinydb/storages.py>
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+
+PathLike = Union[str, os.PathLike]
+
+
+class Storage:
+    def __init__(self, path: PathLike, **kwargs: Any):
+        self.path = Path(path)
+
+    def read(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def write(self, data: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def close(self) -> None:
+        return None
+
+
+class JSONStorage(Storage):
+    def __init__(
+        self,
+        path: PathLike,
+        *,
+        encoding: str = "utf-8",
+        indent: int = 2,
+        ensure_ascii: bool = False,
+        create_dirs: bool = True,
+        atomic_write: bool = True,
+    ):
+        super().__init__(path)
+        self.encoding = encoding
+        self.indent = indent
+        self.ensure_ascii = ensure_ascii
+        self.create_dirs = create_dirs
+        self.atomic_write = atomic_write
+
+    def read(self) -> Dict[str, Any]:
+        if not self.path.exists():
+            return {}
+        try:
+            raw = self.path.read_text(encoding=self.encoding)
+        except FileNotFoundError:
+            return {}
+        if raw.strip() == "":
+            return {}
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON database file: {self.path}") from e
+        if not isinstance(data, dict):
+            raise ValueError(f"Database root must be an object/dict: {self.path}")
+        return data
+
+    def write(self, data: Dict[str, Any]) -> None:
+        if self.create_dirs:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        serialized = json.dumps(
+            data,
+            indent=self.indent,
+            ensure_ascii=self.ensure_ascii,
+            sort_keys=True,
+        )
+
+        if not self.atomic_write:
+            self.path.write_text(serialized, encoding=self.encoding)
+            return
+
+        # Atomic: write to temp in same directory then replace
+        tmp_path: Optional[Path] = None
+        try:
+            fd, tmp_name = tempfile.mkstemp(
+                prefix=self.path.name + ".",
+                suffix=".tmp",
+                dir=str(self.path.parent),
+                text=True,
+            )
+            tmp_path = Path(tmp_name)
+            with os.fdopen(fd, "w", encoding=self.encoding) as f:
+                f.write(serialized)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(str(tmp_path), str(self.path))
+        finally:
+            if tmp_path is not None and tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except OSError:
+                    pass
+
+    def close(self) -> None:
+        return None
+</file>
+
+<file:name=tinydb/queries.py>
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable, List, Sequence, Tuple, Union
+
+
+def _resolve_path(doc: Any, path: Sequence[Any]) -> Tuple[bool, Any]:
+    cur = doc
+    for key in path:
+        if isinstance(cur, dict):
+            if key in cur:
+                cur = cur[key]
+            else:
+                return False, None
+        elif isinstance(cur, (list, tuple)) and isinstance(key, int):
+            if 0 <= key < len(cur):
+                cur = cur[key]
+            else:
+                return False, None
+        else:
+            return False, None
+    return True, cur
+
+
+@dataclass(frozen=True)
+class QueryInstance:
+    _predicate: Callable[[dict], bool]
+
+    def __call__(self, doc: dict) -> bool:
+        try:
+            return bool(self._predicate(doc))
+        except Exception:
+            return False
+
+    def __and__(self, other: "QueryInstance") -> "QueryInstance":
+        return QueryInstance(lambda doc: self(doc) and other(doc))
+
+    def __or__(self, other: "QueryInstance") -> "QueryInstance":
+        return QueryInstance(lambda doc: self(doc) or other(doc))
+
+    def __invert__(self) -> "QueryInstance":
+        return QueryInstance(lambda doc: not self(doc))
+
+
+class Query:
+    def __init__(self, path: Tuple[Any, ...] = ()):
+        self._path = path
+
+    def __getattr__(self, item: str) -> "Query":
+        if item.startswith("_"):
+            raise AttributeError(item)
+        return Query(self._path + (item,))
+
+    def __getitem__(self, item: Any) -> "Query":
+        return Query(self._path + (item,))
+
+    def exists(self) -> QueryInstance:
+        path = self._path
+        return QueryInstance(lambda doc: _resolve_path(doc, path)[0])
+
+    def equals(self, value: Any) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            return ok and v == value
+        return QueryInstance(pred)
+
+    def not_equals(self, value: Any) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            return ok and v != value
+        return QueryInstance(pred)
+
+    def one_of(self, values: Iterable[Any]) -> QueryInstance:
+        s = set(values)
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            return ok and v in s
+        return QueryInstance(pred)
+
+    def matches(self, regex_or_pattern: Union[str, "re.Pattern[str]"]) -> QueryInstance:
+        pat = re.compile(regex_or_pattern) if isinstance(regex_or_pattern, str) else regex_or_pattern
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            if not ok:
+                return False
+            return pat.search(str(v)) is not None
+        return QueryInstance(pred)
+
+    def test(self, fn: Callable[[Any], bool]) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            return ok and bool(fn(v))
+        return QueryInstance(pred)
+
+    def any(self, fn_or_query: Union[Callable[[Any], bool], QueryInstance]) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            if not ok or not isinstance(v, list):
+                return False
+            if isinstance(fn_or_query, QueryInstance):
+                return any(fn_or_query(item) if isinstance(item, dict) else False for item in v)
+            return any(bool(fn_or_query(item)) for item in v)
+        return QueryInstance(pred)
+
+    def all(self, fn_or_query: Union[Callable[[Any], bool], QueryInstance]) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            if not ok or not isinstance(v, list):
+                return False
+            if isinstance(fn_or_query, QueryInstance):
+                return all(fn_or_query(item) if isinstance(item, dict) else False for item in v)
+            return all(bool(fn_or_query(item)) for item in v)
+        return QueryInstance(pred)
+
+    def __eq__(self, value: Any) -> QueryInstance:  # type: ignore[override]
+        return self.equals(value)
+
+    def __ne__(self, value: Any) -> QueryInstance:  # type: ignore[override]
+        return self.not_equals(value)
+
+    def _cmp(self, op: Callable[[Any, Any], bool], other: Any) -> QueryInstance:
+        path = self._path
+        def pred(doc: dict) -> bool:
+            ok, v = _resolve_path(doc, path)
+            if not ok:
+                return False
+            try:
+                return bool(op(v, other))
+            except TypeError:
+                return False
+        return QueryInstance(pred)
+
+    def __lt__(self, other: Any) -> QueryInstance:
+        return self._cmp(lambda a, b: a < b, other)
+
+    def __le__(self, other: Any) -> QueryInstance:
+        return self._cmp(lambda a, b: a <= b, other)
+
+    def __gt__(self, other: Any) -> QueryInstance:
+        return self._cmp(lambda a, b: a > b, other)
+
+    def __ge__(self, other: Any) -> QueryInstance:
+        return self._cmp(lambda a, b: a >= b, other)
+
+
+def where(key: str) -> Query:
+    return Query((key,))
+</file>
+
+<file:name=tinydb/database.py>
+from __future__ import annotations
+
+import threading
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, Union
+
+from .storages import JSONStorage, Storage
+from .table import Table
+
+
+PathLike = Union[str, "Path"]
+
+
+class TinyDB:
+    def __init__(
+        self,
+        path: PathLike,
+        *,
+        storage: Type[Storage] = JSONStorage,
+        default_table: str = "tasks",
+        **storage_kwargs: Any,
+    ):
+        self.path = Path(path)
+        self._storage: Storage = storage(self.path, **storage_kwargs)
+        self.default_table = default_table
+        self._lock = threading.RLock()
+
+    def table(self, name: str) -> Table:
+        return Table(self, name)
+
+    def __getitem__(self, name: str) -> Table:
+        return self.table(name)
+
+    def _read(self) -> Dict[str, Any]:
+        return self._storage.read()
+
+    def _write(self, data: Dict[str, Any]) -> None:
+        self._storage.write(data)
+
+    def _get_table_data(self, data: Dict[str, Any], name: str) -> Dict[str, Any]:
+        tbl = data.get(name)
+        if tbl is None:
+            tbl = {}
+            data[name] = tbl
+        if not isinstance(tbl, dict):
+            raise ValueError(f"Table {name!r} is not a dict in database file")
+        return tbl
+
+    def tables(self) -> List[str]:
+        with self._lock:
+            data = self._read()
+            return sorted([k for k, v in data.items() if isinstance(v, dict)])
+
+    def drop_tables(self) -> None:
+        with self._lock:
+            self._write({})
+
+    def drop_table(self, name: str) -> None:
+        with self._lock:
+            data = self._read()
+            if name in data:
+                del data[name]
+                self._write(data)
+
+    def close(self) -> None:
+        self._storage.close()
+</file>
+
+<file:name=tinydb/table.py>
+from __future__ import annotations
+
+import copy
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+
+from .queries import QueryInstance
+
+
+class Table:
+    def __init__(self, db: Any, name: str):
+        self._db = db
+        self.name = name
+
+    def _read_table(self) -> Dict[str, Any]:
+        data = self._db._read()
+        tbl = self._db._get_table_data(data, self.name)
+        return data, tbl
+
+    def _iter_docs(self, table_data: Dict[str, Any]) -> Iterable[Dict[str, Any]]:
+        for _, doc in table_data.items():
+            if isinstance(doc, dict):
+                yield doc
+
+    def _next_id(self, table_data: Dict[str, Any]) -> int:
+        max_id = 0
+        for k, doc in table_data.items():
+            try:
+                if isinstance(doc, dict) and "_id" in doc:
+                    max_id = max(max_id, int(doc["_id"]))
+                else:
+                    max_id = max(max_id, int(k))
+            except Exception:
+                continue
+        return max_id + 1
+
+    def insert(self, document: Dict[str, Any]) -> int:
+        with self._db._lock:
+            data, tbl = self._read_table()
+            doc_id = self._next_id(tbl)
+            doc = copy.deepcopy(document)
+            doc["_id"] = doc_id
+            tbl[str(doc_id)] = doc
+            self._db._write(data)
+            return doc_id
+
+    def insert_multiple(self, documents: List[Dict[str, Any]]) -> List[int]:
+        with self._db._lock:
+            data, tbl = self._read_table()
+            ids: List[int] = []
+            for d in documents:
+                doc_id = self._next_id(tbl)
+                doc = copy.deepcopy(d)
+                doc["_id"] = doc_id
+                tbl[str(doc_id)] = doc
+                ids.append(doc_id)
+            self._db._write(data)
+            return ids
+
+    def get(self, doc_id: Optional[int] = None, *, query: Optional[QueryInstance] = None) -> Optional[Dict[str, Any]]:
+        if doc_id is not None and query is not None:
+            raise ValueError("Provide either doc_id or query, not both")
+        with self._db._lock:
+            data = self._db._read()
+            tbl = self._db._get_table_data(data, self.name)
+            if doc_id is not None:
+                doc = tbl.get(str(doc_id))
+                return copy.deepcopy(doc) if isinstance(doc, dict) else None
+            if query is not None:
+                for doc in self._iter_docs(tbl):
+                    if query(doc):
+                        return copy.deepcopy(doc)
+            return None
+
+    def all(self) -> List[Dict[str, Any]]:
+        with self._db._lock:
+            data = self._db._read()
+            tbl = self._db._get_table_data(data, self.name)
+            return [copy.deepcopy(doc) for doc in self._iter_docs(tbl)]
+
+    def search(self, query: QueryInstance) -> List[Dict[str, Any]]:
+        with self._db._lock:
+            data = self._db._read()
+            tbl = self._db._get_table_data(data, self.name)
+            return [copy.deepcopy(doc) for doc in self._iter_docs(tbl) if query(doc)]
+
+    def contains(self, query: QueryInstance) -> bool:
+        with self._db._lock:
+            data = self._db._read()
+            tbl = self._db._get_table_data(data, self.name)
+            for doc in self._iter_docs(tbl):
+                if query(doc):
+                    return True
+            return False
+
+    def count(self, query: Optional[QueryInstance] = None) -> int:
+        with self._db._lock:
+            data = self._db._read()
+            tbl = self._db._get_table_data(data, self.name)
+            if query is None:
+                return sum(1 for _ in self._iter_docs(tbl))
+            return sum(1 for doc in self._iter_docs(tbl) if query(doc))
+
+    def update(
+        self,
+        fields: Optional[Dict[str, Any]] = None,
+        *,
+        doc_ids: Optional[List[int]] = None,
+        query: Optional[QueryInstance] = None,
+        transform: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    ) -> int:
+        if doc_ids is not None and query is not None:
+            raise ValueError("Provide either doc_ids or query, not both")
+        if doc_ids is None and query is None:
+            raise ValueError("update requires doc_ids or query")
+        if fields is None and transform is None:
+            return 0
+
+        with self._db._lock:
+            data, tbl = self._read_table()
+            changed = 0
+
+            id_set = set(doc_ids) if doc_ids is not None else None
+
+            for key, doc in list(tbl.items()):
+                if not isinstance(doc, dict):
+                    continue
+                cur_id = doc.get("_id")
+                if id_set is not None:
+                    if cur_id not in id_set:
+                        continue
+                elif query is not None:
+                    if not query(doc):
+                        continue
+
+                new_doc = doc
+                if fields is not None:
+                    new_doc = dict(new_doc)
+                    new_doc.update(fields)
+                if transform is not None:
+                    new_doc = transform(copy.deepcopy(new_doc))
+                    if not isinstance(new_doc, dict):
+                        raise ValueError("transform must return a dict document")
+                # Preserve id
+                new_doc["_id"] = doc.get("_id")
+                tbl[str(new_doc["_id"])] = new_doc
+                changed += 1
+
+            if changed:
+                self._db._write(data)
+            return changed
+
+    def remove(
+        self,
+        doc_ids: Optional[List[int]] = None,
+        *,
+        query: Optional[QueryInstance] = None,
+    ) -> int:
+        if doc_ids is not None and query is not None:
+            raise ValueError("Provide either doc_ids or query, not both")
+        if doc_ids is None and query is None:
+            raise ValueError("remove requires doc_ids or query")
+
+        with self._db._lock:
+            data, tbl = self._read_table()
+            removed = 0
+            if doc_ids is not None:
+                for did in doc_ids:
+                    if str(did) in tbl:
+                        del tbl[str(did)]
+                        removed += 1
+            else:
+                to_del: List[str] = []
+                for k, doc in tbl.items():
+                    if isinstance(doc, dict) and query is not None and query(doc):
+                        to_del.append(k)
+                for k in to_del:
+                    del tbl[k]
+                    removed += 1
+
+            if removed:
+                self._db._write(data)
+            return removed
+
+    def upsert(self, document: Dict[str, Any], *, query: QueryInstance) -> int:
+        with self._db._lock:
+            data, tbl = self._read_table()
+            for k, doc in tbl.items():
+                if isinstance(doc, dict) and query(doc):
+                    did = int(doc.get("_id"))
+                    new_doc = dict(doc)
+                    new_doc.update(copy.deepcopy(document))
+                    new_doc["_id"] = did
+                    tbl[str(did)] = new_doc
+                    self._db._write(data)
+                    return did
+            # insert
+            did = self._next_id(tbl)
+            doc = copy.deepcopy(document)
+            doc["_id"] = did
+            tbl[str(did)] = doc
+            self._db._write(data)
+            return did
+
+    def purge(self) -> None:
+        with self._db._lock:
+            data = self._db._read()
+            data[self.name] = {}
+            self._db._write(data)
+
+    # Task-manager helpers
+    def create_task(
+        self,
+        *,
+        title: str,
+        project: Optional[str] = None,
+        status: str = "todo",
+        estimate: Optional[float] = None,
+        **extra: Any,
+    ) -> int:
+        doc: Dict[str, Any] = {"title": title, "status": status}
+        if project is not None:
+            doc["project"] = project
+        if estimate is not None:
+            doc["estimate"] = estimate
+        doc.update(extra)
+        return self.insert(doc)
+
+    def unfinished_per_project(self, *, done_statuses: Sequence[str] = ("done", "closed")) -> Dict[str, int]:
+        done_set = set(done_statuses)
+        counts: Dict[str, int] = {}
+        for doc in self.all():
+            status = doc.get("status")
+            if status in done_set:
+                continue
+            project = doc.get("project")
+            key = project if isinstance(project, str) and project != "" else "(none)"
+            counts[key] = counts.get(key, 0) + 1
+        return counts
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import os
+import pytest
+
+from tinydb import TinyDB, where, JSONStorage
+
+
+def test_jsonstorage_missing_file_read_returns_empty(tmp_path):
+    p = tmp_path / "db.json"
+    s = JSONStorage(p)
+    assert s.read() == {}
+
+
+def test_jsonstorage_roundtrip(tmp_path):
+    p = tmp_path / "db.json"
+    s = JSONStorage(p)
+    s.write({"a": {"1": {"_id": 1, "x": 2}}})
+    assert s.read()["a"]["1"]["x"] == 2
+
+
+def test_jsonstorage_invalid_json_raises(tmp_path):
+    p = tmp_path / "db.json"
+    p.write_text("{not valid", encoding="utf-8")
+    s = JSONStorage(p)
+    with pytest.raises(ValueError):
+        s.read()
+
+
+def test_insert_and_persist_reopen(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    id1 = t.insert({"title": "A"})
+    id2 = t.insert({"title": "B"})
+    assert (id1, id2) == (1, 2)
+    db.close()
+
+    db2 = TinyDB(p)
+    t2 = db2.table("tasks")
+    assert t2.get(id1)["title"] == "A"
+    assert t2.get(id2)["title"] == "B"
+
+
+def test_insert_multiple_and_all_have_ids(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    ids = t.insert_multiple([{"title": "A"}, {"title": "B"}])
+    assert ids == [1, 2]
+    docs = t.all()
+    assert sorted([d["_id"] for d in docs]) == [1, 2]
+
+
+def test_get_missing_returns_none(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    assert t.get(9999) is None
+
+
+def test_update_by_doc_id_and_query_and_errors(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    a = t.insert({"title": "A", "status": "todo"})
+    b = t.insert({"title": "B", "status": "todo"})
+
+    assert t.update({"status": "doing"}, doc_ids=[a]) == 1
+    assert t.get(a)["status"] == "doing"
+    assert t.get(b)["status"] == "todo"
+
+    assert t.update({"status": "done"}, query=(where("status") == "todo")) == 1
+    assert t.get(b)["status"] == "done"
+
+    with pytest.raises(ValueError):
+        t.update({"x": 1})
+
+    with pytest.raises(ValueError):
+        t.update({"x": 1}, doc_ids=[a], query=(where("title") == "A"))
+
+
+def test_remove_by_doc_id_and_query_and_errors(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    a = t.insert({"title": "A", "status": "todo"})
+    b = t.insert({"title": "B", "status": "todo"})
+    c = t.insert({"title": "C", "status": "done"})
+
+    assert t.remove(doc_ids=[a]) == 1
+    assert t.get(a) is None
+    assert t.count() == 2
+
+    assert t.remove(query=(where("status") == "todo")) == 1
+    assert t.get(b) is None
+    assert t.count() == 1
+
+    with pytest.raises(ValueError):
+        t.remove()
+
+    with pytest.raises(ValueError):
+        t.remove(doc_ids=[c], query=(where("status") == "done"))
+
+
+def test_purge_drop_table_tables_listing(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    t.insert({"title": "A"})
+    db.table("other").insert({"x": 1})
+
+    assert db.tables() == ["other", "tasks"]
+
+    t.purge()
+    assert t.count() == 0
+    assert "tasks" in db.tables()
+
+    db.drop_table("tasks")
+    assert "tasks" not in db.tables()
+    assert "other" in db.tables()
+
+
+def test_queries_nested_exists_composition_missing_field_semantics(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    t = db.table("tasks")
+    t.insert({"title": "A", "status": "todo", "meta": {"priority": 1}})
+    t.insert({"title": "B", "status": "done"})
+    t.insert({"title": "C", "status": "todo", "meta": {"priority": 2}})
+
+    q1 = (where("status") == "todo") & (where("meta")["priority"] == 1)
+    res = t.search(q1)
+    assert [d["title"] for d in res] == ["A"]
+
+    assert t.contains(where("meta")["priority"].exists()) is True
+    # Missing field comparisons should be False (so only 2 match priority>=1, not doc without meta)
+    assert t.count(where("meta")["priority"] >= 1) == 2
+
+    q_not_done = ~ (where("status") == "done")
+    assert t.count(q_not_done) == 2
+
+    q_or = (where("title") == "B") | (where("meta")["priority"] == 2)
+    titles = sorted([d["title"] for d in t.search(q_or)])
+    assert titles == ["B", "C"]
+
+
+def test_task_helpers_create_and_analytics(tmp_path):
+    p = tmp_path / "db.json"
+    db = TinyDB(p)
+    tasks = db.table("tasks")
+
+    tasks.create_task(title="A", project="P1", status="todo", estimate=3)
+    tasks.create_task(title="B", project="P1", status="done")
+    tasks.create_task(title="C", project="P2", status="doing")
+    tasks.create_task(title="D")  # no project, default todo
+
+    counts = tasks.unfinished_per_project()
+    assert counts["P1"] == 1
+    assert counts["P2"] == 1
+    assert counts["(none)"] == 1
+</file>

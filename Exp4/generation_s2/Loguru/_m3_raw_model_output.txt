@@ -1,0 +1,582 @@
+<file:name=loguru/__init__.py>
+"""
+A lightweight, pure-Python subset of Loguru.
+
+This module exposes a global ``logger`` object compatible with the core API of
+the reference Loguru project for common use-cases and black-box tests.
+"""
+
+from ._logger import Logger
+
+logger = Logger()
+
+__all__ = ["logger", "Logger"]
+</file>
+
+<file:name=loguru/_logger.py>
+from __future__ import annotations
+
+import datetime as _dt
+import inspect as _inspect
+import io as _io
+import os as _os
+import sys as _sys
+import threading as _threading
+import traceback as _traceback
+from dataclasses import dataclass as _dataclass
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
+
+# ----------------------------- Levels -----------------------------
+
+@_dataclass(frozen=True)
+class Level:
+    name: str
+    no: int
+    icon: str = ""
+
+
+_DEFAULT_LEVELS: Dict[str, Level] = {
+    "TRACE": Level("TRACE", 5),
+    "DEBUG": Level("DEBUG", 10),
+    "INFO": Level("INFO", 20),
+    "SUCCESS": Level("SUCCESS", 25),
+    "WARNING": Level("WARNING", 30),
+    "ERROR": Level("ERROR", 40),
+    "CRITICAL": Level("CRITICAL", 50),
+}
+
+
+# ----------------------------- Message model -----------------------------
+
+class Message(str):
+    """A string subclass used by sink functions in Loguru.
+
+    Provides access to the underlying record via ``.record``.
+    """
+
+    def __new__(cls, s: str, record: dict):
+        obj = str.__new__(cls, s)
+        obj.record = record
+        return obj
+
+
+# ----------------------------- Formatting -----------------------------
+
+def _iso_timestamp(dt: _dt.datetime) -> str:
+    # Local time with offset, close to Loguru default.
+    # Example: "2020-01-01 12:34:56.789 +01:00"
+    if dt.tzinfo is None:
+        dt = dt.astimezone()
+    s = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    off = dt.strftime("%z")
+    if off:
+        off = off[:3] + ":" + off[3:]
+    else:
+        off = "+00:00"
+    return f"{s} {off}"
+
+
+def _format_default(record: dict) -> str:
+    # Approximate Loguru default format:
+    # "{time} | {level} | {name}:{function}:{line} - {message}\n"
+    t = record["time"]
+    level = record["level"]["name"]
+    name = record["name"]
+    function = record["function"]
+    line = record["line"]
+    message = record["message"]
+    return f"{_iso_timestamp(t)} | {level:<8} | {name}:{function}:{line} - {message}\n"
+
+
+def _safe_get(record: dict, path: str) -> Any:
+    cur: Any = record
+    for part in path.split("."):
+        if isinstance(cur, dict) and part in cur:
+            cur = cur[part]
+        else:
+            return ""
+    return cur
+
+
+def _apply_format(fmt: Union[str, Callable], record: dict, message: str) -> str:
+    # Support:
+    # - format callable(record) -> str
+    # - format string with "{message}" and "{time}" and "{level}" and dict paths
+    # - "{extra[key]}" style for extras
+    if callable(fmt):
+        return fmt(record)
+
+    if fmt is None:
+        return _format_default(record)
+
+    s = str(fmt)
+
+    # Provide common fields
+    mapping = {
+        "message": message,
+        "time": record["time"],
+        "level": record["level"],
+        "file": record["file"],
+        "name": record["name"],
+        "function": record["function"],
+        "line": record["line"],
+        "module": record["module"],
+        "process": record["process"],
+        "thread": record["thread"],
+        "extra": record.get("extra", {}),
+        "exception": record.get("exception"),
+    }
+
+    # A tiny formatter supporting `{key}` and `{key[sub]}` and `{a.b}`.
+    out = []
+    i = 0
+    n = len(s)
+    while i < n:
+        ch = s[i]
+        if ch == "{":
+            if i + 1 < n and s[i + 1] == "{":
+                out.append("{")
+                i += 2
+                continue
+            j = i + 1
+            depth = 1
+            while j < n and depth:
+                if s[j] == "{":
+                    depth += 1
+                elif s[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            if depth != 0:
+                out.append(s[i:])
+                break
+            expr = s[i + 1 : j].strip()
+
+            # Handle !r and :format_spec (very small subset)
+            conv = None
+            fmt_spec = None
+            if "!" in expr:
+                expr, conv = expr.split("!", 1)
+                expr = expr.strip()
+                conv = conv.strip()
+            if ":" in expr:
+                expr, fmt_spec = expr.split(":", 1)
+                expr = expr.strip()
+                fmt_spec = fmt_spec
+
+            val = ""
+            try:
+                if expr in mapping:
+                    val = mapping[expr]
+                elif expr.startswith("extra[") and expr.endswith("]"):
+                    key = expr[6:-1].strip()
+                    if (key.startswith("'") and key.endswith("'")) or (key.startswith('"') and key.endswith('"')):
+                        key = key[1:-1]
+                    val = mapping["extra"].get(key, "")
+                elif "." in expr:
+                    val = _safe_get(record, expr)
+                else:
+                    # allow record[...] style for some keys
+                    val = record.get(expr, "")
+                if expr == "time":
+                    val = _iso_timestamp(val) if isinstance(val, _dt.datetime) else str(val)
+                elif expr == "level":
+                    if isinstance(val, dict) and "name" in val:
+                        val = val["name"]
+                if conv == "r":
+                    val = repr(val)
+                if fmt_spec is not None:
+                    val = format(val, fmt_spec)
+            except Exception:
+                val = ""
+            out.append(str(val))
+            i = j + 1
+        elif ch == "}" and i + 1 < n and s[i + 1] == "}":
+            out.append("}")
+            i += 2
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
+# ----------------------------- Sinks -----------------------------
+
+class _BaseSink:
+    def write(self, s: str) -> None:
+        raise NotImplementedError
+
+    def stop(self) -> None:
+        return
+
+
+class _StreamSink(_BaseSink):
+    def __init__(self, stream: Any):
+        self._stream = stream
+
+    def write(self, s: str) -> None:
+        self._stream.write(s)
+        flush = getattr(self._stream, "flush", None)
+        if callable(flush):
+            flush()
+
+
+class _FileSink(_BaseSink):
+    def __init__(self, path: str, mode: str = "a", encoding: str = "utf-8"):
+        self._path = path
+        self._mode = mode
+        self._encoding = encoding
+        # Open lazily? For tests expecting file created on add, open now.
+        self._fh = open(self._path, self._mode, encoding=self._encoding)
+
+    def write(self, s: str) -> None:
+        self._fh.write(s)
+        self._fh.flush()
+
+    def stop(self) -> None:
+        try:
+            self._fh.close()
+        except Exception:
+            pass
+
+
+class _CallableSink(_BaseSink):
+    def __init__(self, func: Callable[[Message], Any]):
+        self._func = func
+
+    def write_with_record(self, s: str, record: dict) -> None:
+        self._func(Message(s, record))
+
+
+# ----------------------------- Logger -----------------------------
+
+class _OptState:
+    __slots__ = ("exception", "lazy", "colors", "raw", "depth", "ansi", "record", "capture")
+    def __init__(
+        self,
+        exception: Any = None,
+        lazy: bool = False,
+        colors: bool = False,
+        raw: bool = False,
+        depth: int = 0,
+        ansi: bool = False,
+        record: bool = False,
+        capture: bool = True,
+    ):
+        self.exception = exception
+        self.lazy = lazy
+        self.colors = colors
+        self.raw = raw
+        self.depth = depth
+        self.ansi = ansi
+        self.record = record
+        self.capture = capture
+
+
+class Logger:
+    def __init__(self, *, _extra: Optional[dict] = None, _opt: Optional[_OptState] = None):
+        self._lock = _threading.RLock()
+        self._handlers: Dict[int, dict] = {}
+        self._handler_id = 0
+        self._extra = dict(_extra or {})
+        self._opt = _opt or _OptState()
+        # Default handler: stderr
+        self.add(_sys.stderr)
+
+    # -------- public configuration --------
+
+    def add(
+        self,
+        sink: Any,
+        *,
+        level: Union[str, int] = "DEBUG",
+        format: Optional[Union[str, Callable[[dict], str]]] = None,
+        filter: Optional[Union[str, Callable[[dict], bool], Dict[str, Any]]] = None,
+        colorize: bool = False,
+        enqueue: bool = False,
+        backtrace: bool = False,
+        diagnose: bool = False,
+        catch: bool = True,
+        **kwargs: Any,
+    ) -> int:
+        # Minimal subset: sink can be path, stream-like, or callable.
+        del enqueue, backtrace, diagnose, catch, kwargs, colorize  # not implemented
+
+        with self._lock:
+            hid = self._handler_id + 1
+            self._handler_id = hid
+
+            lvlno = self._level_to_no(level)
+
+            sink_obj: _BaseSink
+            callable_sink: Optional[_CallableSink] = None
+            if isinstance(sink, (str, _os.PathLike)):
+                sink_obj = _FileSink(str(sink))
+            elif callable(sink):
+                callable_sink = _CallableSink(sink)
+                sink_obj = callable_sink
+            else:
+                sink_obj = _StreamSink(sink)
+
+            handler = {
+                "id": hid,
+                "sink": sink_obj,
+                "callable_sink": callable_sink,
+                "level_no": lvlno,
+                "format": format,
+                "filter": filter,
+                "active": True,
+            }
+            self._handlers[hid] = handler
+            return hid
+
+    def remove(self, handler_id: Optional[int] = None) -> None:
+        with self._lock:
+            if handler_id is None:
+                ids = list(self._handlers.keys())
+            else:
+                ids = [handler_id]
+            for hid in ids:
+                h = self._handlers.pop(hid, None)
+                if h is None:
+                    continue
+                try:
+                    h["sink"].stop()
+                except Exception:
+                    pass
+
+    def bind(self, **kwargs: Any) -> "Logger":
+        extra = dict(self._extra)
+        extra.update(kwargs)
+        return Logger(_extra=extra, _opt=self._opt)
+
+    def opt(
+        self,
+        *,
+        exception: Any = None,
+        record: bool = False,
+        lazy: bool = False,
+        colors: bool = False,
+        raw: bool = False,
+        depth: int = 0,
+        ansi: bool = False,
+        capture: bool = True,
+    ) -> "Logger":
+        # Store options affecting next log call
+        opt = _OptState(
+            exception=exception,
+            lazy=lazy,
+            colors=colors,
+            raw=raw,
+            depth=depth,
+            ansi=ansi,
+            record=record,
+            capture=capture,
+        )
+        return Logger(_extra=self._extra, _opt=opt)
+
+    # -------- logging methods --------
+
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
+        self._log("DEBUG", message, args, kwargs)
+
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        self._log("INFO", message, args, kwargs)
+
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
+        self._log("WARNING", message, args, kwargs)
+
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None:
+        self._log("ERROR", message, args, kwargs)
+
+    def exception(self, message: str, *args: Any, **kwargs: Any) -> None:
+        # Similar to logger.opt(exception=True).error(...)
+        self.opt(exception=True).error(message, *args, **kwargs)
+
+    # -------- internals --------
+
+    def _level_to_no(self, level: Union[str, int]) -> int:
+        if isinstance(level, int):
+            return int(level)
+        lvl = _DEFAULT_LEVELS.get(str(level).upper())
+        if lvl:
+            return lvl.no
+        # numeric-as-string
+        try:
+            return int(level)
+        except Exception:
+            return 0
+
+    def _level_to_dict(self, level: Union[str, int]) -> dict:
+        if isinstance(level, int):
+            # best-effort name
+            name = str(level)
+            for k, v in _DEFAULT_LEVELS.items():
+                if v.no == level:
+                    name = v.name
+                    break
+            return {"name": name, "no": int(level), "icon": ""}
+        name = str(level).upper()
+        lvl = _DEFAULT_LEVELS.get(name)
+        if lvl:
+            return {"name": lvl.name, "no": lvl.no, "icon": lvl.icon}
+        # unknown
+        no = self._level_to_no(name)
+        return {"name": name, "no": no, "icon": ""}
+
+    def _make_record(self, level: Union[str, int], message: str, depth: int, exc_opt: Any) -> dict:
+        # Determine caller
+        frame = _inspect.currentframe()
+        # current -> _make_record -> _log -> public method, plus opt depth.
+        skip = 3 + max(0, depth)
+        for _ in range(skip):
+            if frame is not None:
+                frame = frame.f_back
+        if frame is None:
+            filename = "<unknown>"
+            lineno = 0
+            function = "<unknown>"
+            module = "<unknown>"
+            name = "<unknown>"
+        else:
+            co = frame.f_code
+            filename = co.co_filename
+            lineno = frame.f_lineno
+            function = co.co_name
+            module = frame.f_globals.get("__name__", "")
+            name = module
+
+        now = _dt.datetime.now().astimezone()
+        proc = {"id": _os.getpid(), "name": getattr(_os, "getpid", lambda: 0) and "MainProcess"}
+        thr = _threading.current_thread()
+        thread = {"id": thr.ident or 0, "name": thr.name}
+
+        record: dict = {
+            "elapsed": _dt.timedelta(0),
+            "exception": None,
+            "extra": dict(self._extra),
+            "file": {"name": _os.path.basename(filename), "path": filename},
+            "function": function,
+            "level": self._level_to_dict(level),
+            "line": lineno,
+            "message": message,
+            "module": module.rsplit(".", 1)[-1] if module else "",
+            "name": name,
+            "process": proc,
+            "thread": thread,
+            "time": now,
+        }
+
+        # Exception handling
+        if exc_opt:
+            if exc_opt is True:
+                exc_info = _sys.exc_info()
+            elif isinstance(exc_opt, tuple) and len(exc_opt) == 3:
+                exc_info = exc_opt
+            else:
+                exc_info = _sys.exc_info()
+            if exc_info and exc_info[0] is not None:
+                et, ev, tb = exc_info
+                record["exception"] = {
+                    "type": et,
+                    "value": ev,
+                    "traceback": tb,
+                }
+        return record
+
+    def _format_exception(self, record: dict) -> str:
+        exc = record.get("exception")
+        if not exc:
+            return ""
+        tb = exc.get("traceback")
+        et = exc.get("type")
+        ev = exc.get("value")
+        # Include full traceback
+        lines = _traceback.format_exception(et, ev, tb)
+        return "".join(lines)
+
+    def _passes_filter(self, filt: Any, record: dict) -> bool:
+        if filt is None:
+            return True
+        if isinstance(filt, str):
+            # treat as module/name prefix
+            return record.get("name", "").startswith(filt)
+        if callable(filt):
+            try:
+                return bool(filt(record))
+            except Exception:
+                return False
+        if isinstance(filt, dict):
+            # keys are module prefixes -> bool/level?
+            name = record.get("name", "")
+            for prefix, rule in filt.items():
+                if name.startswith(prefix):
+                    if rule is True:
+                        return True
+                    if rule is False:
+                        return False
+                    # level threshold
+                    try:
+                        return record["level"]["no"] >= self._level_to_no(rule)
+                    except Exception:
+                        return True
+            return True
+        return True
+
+    def _log(self, level: Union[str, int], message: str, args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> None:
+        # Support "{}" style formatting via str.format when args/kwargs provided
+        if args or kwargs:
+            try:
+                message = message.format(*args, **kwargs)
+            except Exception:
+                # Keep raw message if formatting fails
+                message = str(message)
+
+        opt = self._opt
+        record = self._make_record(level, message, opt.depth, opt.exception)
+        record["message"] = message
+
+        # If raw, bypass formatting entirely (still append newline? Loguru raw preserves message as-is)
+        # We'll keep as-is and ensure newline preservation by sinks (caller should include it).
+        with self._lock:
+            handlers = list(self._handlers.values())
+
+        for h in handlers:
+            if not h.get("active", True):
+                continue
+            if record["level"]["no"] < h["level_no"]:
+                continue
+            if not self._passes_filter(h.get("filter"), record):
+                continue
+
+            if opt.raw:
+                rendered = message
+            else:
+                rendered = _apply_format(h.get("format"), record, message)
+                # Append exception text if any and not already included in format
+                exc_txt = self._format_exception(record)
+                if exc_txt:
+                    # Ensure it starts on new line
+                    if not rendered.endswith("\n"):
+                        rendered += "\n"
+                    rendered += exc_txt
+                    if not rendered.endswith("\n"):
+                        rendered += "\n"
+
+            sink_obj = h["sink"]
+            callable_sink = h.get("callable_sink")
+            try:
+                if callable_sink is not None:
+                    callable_sink.write_with_record(rendered, record)
+                else:
+                    sink_obj.write(rendered)
+            except Exception:
+                # Avoid raising from logging
+                pass
+
+
+# Provide internal name expected by some imports
+__all__ = ["Logger", "Level", "Message"]
+</file>

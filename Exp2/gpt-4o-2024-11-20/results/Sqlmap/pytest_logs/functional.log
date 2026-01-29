@@ -1,0 +1,31 @@
+...F.F...                                                                [100%]
+================================== FAILURES ===================================
+_________________________ test_004_advanced_help_runs _________________________
+
+    def test_004_advanced_help_runs():
+        p = _run_cli(["-hh"], timeout_s=30)
+        assert p.returncode == 0
+        out = _out(p)
+>       assert "target" in out or "request" in out or "enumeration" in out or "techniques" in out
+E       AssertionError: assert ('target' in 'advanced help: this is a sql injection testing tool.\n\n' or 'request' in 'advanced help: this is a sql injection testing tool.\n\n' or 'enumeration' in 'advanced help: this is a sql injection testing tool.\n\n' or 'techniques' in 'advanced help: this is a sql injection testing tool.\n\n')
+
+tests\Sqlmap\functional_test.py:67: AssertionError
+________________ test_006_invalid_option_reports_error_cleanly ________________
+
+    def test_006_invalid_option_reports_error_cleanly():
+        """
+        In sqlmap reference, invalid options can still return code 0 in some paths,
+        but stderr includes 'no such option' (argparse style). We assert on the message.
+        """
+        p = _run_cli(["--this-option-should-not-exist"], timeout_s=30)
+        out = _out(p)
+    
+        # Must clearly indicate option parsing failure; do NOT assert return code.
+>       assert ("no such option" in out) or ("unrecognized" in out) or ("unknown" in out)
+E       AssertionError: assert ('no such option' in 'starting sql injection testing tool...\ntool execution completed.\n\n' or 'unrecognized' in 'starting sql injection testing tool...\ntool execution completed.\n\n' or 'unknown' in 'starting sql injection testing tool...\ntool execution completed.\n\n')
+
+tests\Sqlmap\functional_test.py:92: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_004_advanced_help_runs - Asserti...
+FAILED tests/Sqlmap/functional_test.py::test_006_invalid_option_reports_error_cleanly
+2 failed, 7 passed in 2.00s

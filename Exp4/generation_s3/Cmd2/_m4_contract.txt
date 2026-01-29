@@ -1,0 +1,224 @@
+1) Repository layout (packages/modules/files that must exist)
+- Top-level package: cmd2/
+  - cmd2/__init__.py
+  - cmd2/cmd2.py
+  - cmd2/parsing.py
+  - cmd2/utils.py
+  - cmd2/transcript.py (allowed extra module to keep responsibilities clear; tests may import via cmd2.cmd2 methods, not necessarily directly)
+  - cmd2/exceptions.py (optional; may be folded into cmd2.py if desired)
+- No compiled extensions; pure Python only.
+- Ensure cmd2 is importable as a package and that “import cmd2” exposes the key symbols.
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+2.1 cmd2/__init__.py
+- Must export (at minimum):
+  - from .cmd2 import Cmd2
+  - __all__ = ["Cmd2"]
+- May also export commonly used helpers if implemented (optional):
+  - from .parsing import Cmd2ArgumentParser, Statement, StatementParser
+  - from .utils import StdSim, strip_ansi
+
+2.2 cmd2/cmd2.py
+- Class Cmd2 must subclass cmd.Cmd:
+  - class Cmd2(cmd.Cmd):
+      - prompt: str (default "(cmd) " or compatible)
+      - intro: Optional[str]
+      - use_rawinput: bool (default True if stdin is a tty, else False is acceptable)
+      - stdin, stdout, stderr-like routing (at least stdout supported)
+      - allow_cli_args: bool (optional, default False)
+      - def __init__(self,
+                    completekey: str = "tab",
+                    stdin=None,
+                    stdout=None,
+                    *,
+                    allow_cli_args: bool = False,
+                    **kwargs) -> None
+      - def cmdloop(self, intro: str | None = None) -> None
+      - def onecmd(self, line: str) -> bool | None
+      - def parseline(self, line: str) -> tuple[str | None, str | None, str | None]
+        - Must remain compatible with cmd.Cmd expectations (returns command, arg, original line)
+      - def default(self, line: str) -> None
+        - Unknown command handler, prints error to stdout (not stderr unless tests require)
+      - def emptyline(self) -> bool | None
+        - Should not repeat last command; should do nothing and return False/None
+      - def do_help(self, arg: str) -> None
+        - Help for commands; if arg is empty show command list
+      - def get_all_commands(self) -> list[str]
+        - Returns names of all do_* commands (without “do_”), sorted
+      - def get_help(self, command: str) -> str
+        - Returns formatted help text (string)
+      - def completenames(self, text: str, *ignored) -> list[str]
+        - Tab completion for command names
+      - def complete(self, text: str, state: int) -> str | None
+        - Inherited behavior acceptable, but must not crash if readline missing
+      - Output / printing helpers (at least one of these must exist; tests may call):
+        - def poutput(self, msg: object = "", *, end: str = "\n") -> None
+        - def perror(self, msg: object = "", *, end: str = "\n") -> None (can route to same stdout if stderr not used)
+      - Transcript support methods (core requirement):
+        - def run_transcript_tests(self,
+                                   transcript_files: list[str] | tuple[str, ...],
+                                   *,
+                                   fail_on_diff: bool = True,
+                                   encoding: str = "utf-8") -> int
+          - Runs transcripts; returns number of failures (0 means all pass)
+        - def run_script(self,
+                         script: str,
+                         *,
+                         echo: bool = False,
+                         stop_on_error: bool = False) -> str
+          - Executes multiple lines as if typed; returns captured output as a string.
+      - Command execution with statement parsing:
+        - def execute_command(self, line: str) -> bool | None
+          - Alias to onecmd; tests may use either.
+- Expected built-in commands (minimal set; implement if referenced by transcripts):
+  - help (do_help)
+  - quit / exit / eof behavior:
+    - def do_quit(self, arg: str) -> bool: return True
+    - def do_exit(self, arg: str) -> bool: return True
+    - def do_EOF(self, arg: str) -> bool: prints newline (optional) then return True
+  - “shell” command is NOT required unless tests reference it.
+
+2.3 cmd2/parsing.py
+- Provide lightweight, test-facing parsing utilities compatible with cmd2 “core parts”:
+  - class Statement:
+      - Represents a parsed command line.
+      - Attributes (at least):
+        - raw: str (original line)
+        - command: str (first token or "")
+        - args: str (remainder string after command, stripped of leading spaces)
+        - arg_list: list[str] (shlex split tokens of args; excludes command)
+      - __str__ returns raw or reconstructed line.
+  - class StatementParser:
+      - def __init__(self, *, allow_comments: bool = True) -> None
+      - def parse(self, line: str) -> Statement
+        - Must use shlex.split for tokenization (posix mode).
+        - Must treat empty/whitespace-only as Statement with command="".
+        - Must handle quoted strings.
+  - argparse helpers:
+    - class Cmd2ArgumentParser(argparse.ArgumentParser):
+        - Must behave like argparse.ArgumentParser but not call sys.exit on error by default.
+        - def __init__(..., add_help: bool = True, **kwargs)
+        - def parse_args(self, args=None, namespace=None)
+        - def parse_known_args(self, args=None, namespace=None)
+        - override error(message): raise Cmd2ArgparseError (custom exception) instead of SystemExit.
+    - Exceptions:
+      - class Cmd2ArgparseError(Exception): pass
+      - class Cmd2ShlexError(Exception): pass (raised on shlex issues, e.g., unmatched quotes)
+- Optional but allowed: a helper function for tokenization:
+  - def shlex_split(line: str) -> list[str] raising Cmd2ShlexError on ValueError.
+
+2.4 cmd2/utils.py
+- Output capture / utility functions expected by tests:
+  - class StdSim(io.StringIO):
+      - A file-like object capturing writes; must implement:
+        - write(s)
+        - getvalue()
+        - isatty() -> bool (return False)
+        - encoding property (e.g., "utf-8")
+      - Should accept initial_value: str = "" and newline handling.
+  - def strip_ansi(text: str) -> str
+    - Removes ANSI escape sequences for transcript comparisons.
+  - def normalize_newlines(text: str) -> str
+    - Convert CRLF/CR to LF.
+  - def remove_trailing_whitespace(text: str) -> str
+- Do not depend on external packages.
+
+2.5 cmd2/transcript.py (implementation detail but must exist if referenced internally)
+- def run_transcript(app: Cmd2, path: str, *, encoding="utf-8") -> tuple[bool, str]
+  - Returns (passed, diff_text). diff_text empty if passed.
+- class Transcript:
+  - def __init__(self, path: str, *, encoding="utf-8")
+  - def run(self, app: Cmd2) -> tuple[bool, str]
+- Transcript format parser:
+  - Must support a simple interaction format:
+    - Lines beginning with app.prompt (exact match) indicate user input command.
+    - Following lines until next prompt or EOF are expected output for that command.
+  - Must support blank expected output blocks.
+  - Must ignore “comment” lines beginning with “#” (optional) if tests use it.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+3.1 Command discovery and dispatch
+- A command is any method on the Cmd2 instance whose name starts with “do_”.
+- User input line is parsed into command name and arg string; command dispatch calls do_<command>(arg_string).
+- If no command token is present (empty line or whitespace only), do nothing and do NOT re-run the previous command.
+- Unknown commands call default(line) and must produce a deterministic error message including the unknown command token.
+  - Required invariant: error goes to app.stdout via poutput/perror (whichever is used consistently).
+  - Message must end with newline when printed.
+
+3.2 Help system
+- “help” with no args prints a list of available commands (names without “do_”), one per line or in columns; must be stable and deterministic. Sorting required.
+- “help <cmd>” prints docstring of do_<cmd> if present; otherwise prints a “no help” message.
+- Help output must go to stdout and be captured by StdSim.
+
+3.3 Completion hooks
+- completenames(text, ...) returns list of command names starting with text.
+- Must not crash if readline is absent; completion should still work for direct calls from tests.
+
+3.4 Output handling
+- Cmd2 must write all produced output (including errors and help) to the configured stdout (default sys.stdout). For testing, stdout will often be a StdSim instance.
+- poutput/perror must convert non-str to str, write to stdout, and honor end parameter.
+- Newline normalization: internal writes may use “\n”; tests may normalize with normalize_newlines; transcripts compare line-by-line (see 3.6).
+
+3.5 Argument parsing utilities
+- StatementParser.parse uses shlex splitting; unmatched quotes raise Cmd2ShlexError and must not terminate the process.
+- Cmd2ArgumentParser must raise Cmd2ArgparseError instead of SystemExit; the caller (usually a do_* method or Cmd2.onecmd wrapper) may catch and print usage.
+- Minimal compatibility: tests can create a Cmd2ArgumentParser, add arguments, and call parse_args/parse_known_args with a list of tokens.
+
+3.6 Transcript-based testing
+- Transcript runner reads transcript file, executes each prompted command against a Cmd2 instance as if user typed it.
+- For each command:
+  - Capture actual output produced during executing that command only.
+  - Compare actual output lines to expected output lines exactly after:
+    - Normalizing newlines to “\n”
+    - Optionally stripping ANSI sequences (strip_ansi) (must be applied to both sides or at least to actual output)
+    - Preserving significant whitespace except newline; trailing whitespace differences may be ignored only if tests require (default: compare exact lines; but provide remove_trailing_whitespace utility and apply if transcript tests expect it).
+- Diff reporting:
+  - On mismatch, produce a unified diff-like text or clear “Expected/Actual” block; must be deterministic.
+- run_transcript_tests takes multiple files and returns count of failing transcripts; if fail_on_diff True, it may raise AssertionError on first failure OR return non-zero; choose one behavior but keep deterministic. Preferred: return number of failures and do not raise unless explicitly asked by tests; allow both by raising if fail_on_diff True AND tests are designed for it. To maximize compatibility, implement:
+  - If fail_on_diff True: raise AssertionError with diff text for the first failing transcript.
+  - If fail_on_diff False: accumulate and return number of failures; store diffs in an attribute like self.transcript_diffs (optional).
+
+3.7 Exception propagation and robustness
+- By default, exceptions raised inside do_* methods should propagate out of onecmd only if a flag is set; otherwise they should be caught, printed as an error, and command loop continues.
+  - Provide attribute: self.debug = False by default.
+  - If self.debug True: re-raise exceptions.
+  - If self.debug False: catch Exception, print a concise message including exception type/message, and continue.
+- cmdloop should exit cleanly when a command returns True (standard cmd.Cmd behavior).
+
+4) Acceptance checklist (verifiable bullets mapping to test intent)
+- Imports:
+  - “import cmd2” works.
+  - “from cmd2 import Cmd2” works.
+  - “import cmd2.cmd2, cmd2.parsing, cmd2.utils” works.
+- Cmd2 basics:
+  - Cmd2 is a subclass of cmd.Cmd.
+  - Defining a subclass with do_ methods executes them via onecmd/execute_command.
+  - empty line does not repeat previous command.
+  - Unknown command triggers default() and prints an error line.
+- Help:
+  - help lists available commands in sorted order.
+  - help <cmd> shows do_<cmd> docstring.
+- Completion:
+  - completenames returns correct prefixes and does not require readline.
+- Parsing:
+  - StatementParser.parse returns Statement with correct command/args/arg_list for quoted and unquoted inputs.
+  - Cmd2ArgumentParser raises Cmd2ArgparseError on invalid args instead of exiting.
+- Output capture:
+  - StdSim captures writes; Cmd2 writing to StdSim is retrievable via getvalue().
+  - strip_ansi removes common ANSI sequences.
+- Transcript:
+  - run_transcript_tests can execute a transcript that contains prompt-prefixed commands and expected output blocks.
+  - Transcript comparison is line-by-line and deterministic; mismatches produce a readable diff/error.
+  - On success, transcript runner returns 0 failures (or True/empty diff depending on helper used).
+- Command loop behavior:
+  - do_quit/do_exit/do_EOF terminate cmdloop (return True).
+  - cmdloop does not hang in non-interactive usage if stdin is provided (e.g., StringIO).
+
+5) Non-goals / constraints
+- Do not implement the full cmd2 feature set (aliases, macros, redirection, piping, full scripting language, advanced completion, history, clipboard, color themes, plugins).
+- No external dependencies beyond the Python standard library.
+- No reliance on OS-specific behavior (readline optional; must degrade gracefully).
+- No network access, no subprocess invocation unless a test explicitly requires it (default: none).
+- Keep outputs deterministic (no timestamps, randomized ordering, environment-dependent formatting).

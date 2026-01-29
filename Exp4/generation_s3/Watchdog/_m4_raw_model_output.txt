@@ -1,0 +1,290 @@
+<file:name=watchdog/__init__.py>
+"""
+A tiny, pure-Python subset of the `watchdog` package API.
+
+This implementation is intended for educational/testing use and provides
+polling-based filesystem monitoring compatible with the core parts of the
+reference watchdog project used by the test suite.
+"""
+
+from .events import FileSystemEventHandler
+from .observers import Observer
+
+__all__ = ["Observer", "FileSystemEventHandler"]
+
+# Optional metadata (some code may introspect these)
+__version__ = "0.0.0"
+</file>
+
+<file:name=watchdog/events.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class FileSystemEvent:
+    event_type: str
+    src_path: str
+    is_directory: bool = False
+
+
+class FileCreatedEvent(FileSystemEvent):
+    def __init__(self, path: str, is_directory: bool = False):
+        super().__init__(event_type="created", src_path=path, is_directory=is_directory)
+
+
+class FileModifiedEvent(FileSystemEvent):
+    def __init__(self, path: str, is_directory: bool = False):
+        super().__init__(event_type="modified", src_path=path, is_directory=is_directory)
+
+
+class FileDeletedEvent(FileSystemEvent):
+    def __init__(self, path: str, is_directory: bool = False):
+        super().__init__(event_type="deleted", src_path=path, is_directory=is_directory)
+
+
+class FileMovedEvent(FileSystemEvent):
+    # Optional; provided for compatibility even if not used by tests.
+    def __init__(self, src_path: str, dest_path: str, is_directory: bool = False):
+        # Keep attributes similar to watchdog: src_path + dest_path.
+        object.__setattr__(self, "dest_path", dest_path)  # type: ignore[attr-defined]
+        super().__init__(event_type="moved", src_path=src_path, is_directory=is_directory)
+
+
+class FileSystemEventHandler:
+    """
+    Base event handler with overridable callbacks.
+    """
+
+    def dispatch(self, event: FileSystemEvent) -> None:
+        self.on_any_event(event)
+        et = getattr(event, "event_type", None)
+        if et == "created":
+            self.on_created(event)
+        elif et == "modified":
+            self.on_modified(event)
+        elif et == "deleted":
+            self.on_deleted(event)
+        elif et == "moved":
+            self.on_moved(event)
+
+    def on_any_event(self, event: FileSystemEvent) -> None:
+        return None
+
+    def on_created(self, event: FileSystemEvent) -> None:
+        return None
+
+    def on_modified(self, event: FileSystemEvent) -> None:
+        return None
+
+    def on_deleted(self, event: FileSystemEvent) -> None:
+        return None
+
+    def on_moved(self, event: FileSystemEvent) -> None:
+        return None
+</file>
+
+<file:name=watchdog/observers/__init__.py>
+from .api import Observer
+
+__all__ = ["Observer"]
+</file>
+
+<file:name=watchdog/observers/api.py>
+from __future__ import annotations
+
+import os
+import threading
+import time
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
+
+from watchdog.events import (
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileSystemEventHandler,
+)
+
+StatSig = Tuple[int, int, bool]  # (mtime_ns, size, is_directory)
+
+
+@dataclass
+class _Watch:
+    handler: FileSystemEventHandler
+    root: str
+    recursive: bool
+    only_file: Optional[str] = None  # absolute path if schedule() was given a file
+    snapshot: Optional[Dict[str, StatSig]] = None
+
+
+class Observer:
+    """
+    Polling-based Observer compatible with core watchdog API used by tests.
+    """
+
+    def __init__(self, timeout: float = 0.1):
+        # timeout acts as polling interval
+        self._interval = max(0.05, float(timeout)) if timeout is not None else 0.1
+        self._watches: list[_Watch] = []
+        self._lock = threading.RLock()
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def schedule(self, event_handler: FileSystemEventHandler, path: str, recursive: bool = False):
+        abs_path = os.path.abspath(path)
+
+        only_file = None
+        root = abs_path
+        try:
+            if os.path.isfile(abs_path):
+                only_file = abs_path
+                root = os.path.dirname(abs_path) or abs_path
+        except OSError:
+            # If stat fails (transient), treat as directory path as provided.
+            root = abs_path
+
+        watch = _Watch(handler=event_handler, root=os.path.abspath(root), recursive=bool(recursive), only_file=only_file)
+        # Initialize snapshot immediately for schedule-before-start behavior.
+        watch.snapshot = self._snapshot_for_watch(watch)
+
+        with self._lock:
+            self._watches.append(watch)
+        return watch  # opaque handle
+
+    def start(self) -> None:
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return None
+            self._stop_event.clear()
+            t = threading.Thread(target=self._run, name="watchdog-observer", daemon=True)
+            self._thread = t
+            t.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+
+    def join(self, timeout: float | None = None) -> None:
+        t = self._thread
+        if t is None:
+            return None
+        t.join(timeout=timeout)
+
+    def is_alive(self) -> bool:
+        t = self._thread
+        return bool(t is not None and t.is_alive())
+
+    # ---------------- internal ----------------
+
+    def _run(self) -> None:
+        while not self._stop_event.is_set():
+            start = time.monotonic()
+            try:
+                self._poll_once()
+            except Exception:
+                # Never let exceptions escape the observer thread.
+                pass
+            elapsed = time.monotonic() - start
+            remaining = self._interval - elapsed
+            if remaining > 0:
+                self._stop_event.wait(remaining)
+
+    def _poll_once(self) -> None:
+        with self._lock:
+            watches = list(self._watches)
+
+        for w in watches:
+            try:
+                new_snap = self._snapshot_for_watch(w)
+                old_snap = w.snapshot or {}
+                self._dispatch_diffs(w, old_snap, new_snap)
+                w.snapshot = new_snap
+            except Exception:
+                # Keep running even if a single watch fails in a cycle.
+                continue
+
+    def _dispatch_diffs(self, w: _Watch, old: Dict[str, StatSig], new: Dict[str, StatSig]) -> None:
+        old_keys = set(old.keys())
+        new_keys = set(new.keys())
+
+        created = sorted(new_keys - old_keys)
+        deleted = sorted(old_keys - new_keys)
+        common = sorted(old_keys & new_keys)
+
+        # Deterministic ordering: created -> modified -> deleted
+        for p in created:
+            sig = new.get(p)
+            is_dir = bool(sig[2]) if sig else False
+            w.handler.dispatch(FileCreatedEvent(p, is_directory=is_dir))
+
+        for p in common:
+            o = old.get(p)
+            n = new.get(p)
+            if o is None or n is None:
+                continue
+            if o[0] != n[0] or o[1] != n[1]:
+                is_dir = bool(n[2])
+                w.handler.dispatch(FileModifiedEvent(p, is_directory=is_dir))
+
+        for p in deleted:
+            sig = old.get(p)
+            is_dir = bool(sig[2]) if sig else False
+            w.handler.dispatch(FileDeletedEvent(p, is_directory=is_dir))
+
+    def _snapshot_for_watch(self, w: _Watch) -> Dict[str, StatSig]:
+        root = w.root
+        result: Dict[str, StatSig] = {}
+
+        def add_path(full_path: str) -> None:
+            try:
+                st = os.stat(full_path)
+            except (FileNotFoundError, PermissionError, NotADirectoryError, OSError):
+                return
+            is_dir = os.path.isdir(full_path)
+            # st_mtime_ns exists on py3.3+, fallback to mtime*1e9
+            mtime_ns = getattr(st, "st_mtime_ns", int(st.st_mtime * 1_000_000_000))
+            size = int(getattr(st, "st_size", 0))
+            result[full_path] = (int(mtime_ns), size, bool(is_dir))
+
+        # If root directory is missing, snapshot is empty.
+        try:
+            root_is_dir = os.path.isdir(root)
+        except OSError:
+            root_is_dir = False
+        if not root_is_dir:
+            return {}
+
+        if w.only_file is not None:
+            # Track only the specific file within the parent directory.
+            add_path(w.only_file)
+            return result
+
+        if w.recursive:
+            # Walk the full tree. Include both files and directories (harmless if tests ignore dirs).
+            try:
+                for dirpath, dirnames, filenames in os.walk(root, topdown=True):
+                    # Add the directory itself (optional).
+                    add_path(dirpath)
+                    for name in dirnames:
+                        add_path(os.path.join(dirpath, name))
+                    for name in filenames:
+                        add_path(os.path.join(dirpath, name))
+            except (FileNotFoundError, PermissionError, NotADirectoryError, OSError):
+                return {}
+        else:
+            # Only immediate children.
+            try:
+                with os.scandir(root) as it:
+                    for entry in it:
+                        # Ignore entries within subdirectories beyond the immediate level; scandir already yields immediate.
+                        try:
+                            full_path = entry.path
+                        except OSError:
+                            continue
+                        add_path(full_path)
+            except (FileNotFoundError, PermissionError, NotADirectoryError, OSError):
+                return {}
+
+        return result
+</file>

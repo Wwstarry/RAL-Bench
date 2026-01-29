@@ -1,0 +1,303 @@
+project_name: Click
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Click\click.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Click
+timestamp: '2026-01-01 21:26:05'
+functional_score: 0.2727
+non_functional_score: 0.4264
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.0
+  performance: 0.5552
+  resource: 0.998
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.FF.FFFFF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_boolean_flag_option_pair ________________________\n\
+      \n    def test_boolean_flag_option_pair():\n        @click.command()\n     \
+      \   @click.option(\"--flag/--no-flag\", default=False)\n        def cli(flag:\
+      \ bool) -> None:\n            click.echo(f\"FLAG={flag}\")\n    \n        runner\
+      \ = CliRunner()\n    \n        r1 = runner.invoke(cli, [\"--flag\"])\n>    \
+      \   assert r1.exit_code == 0\nE       assert 1 == 0\nE        +  where 1 = <Result\
+      \ 1>.exit_code\n\ntests\\Click\\functional_test.py:157: AssertionError\n___________________\
+      \ test_help_output_for_command_and_group ____________________\n\n    def test_help_output_for_command_and_group():\n\
+      \        @click.group(help=\"Top level group\")\n        def cli() -> None:\n\
+      \            pass\n    \n        @cli.command(help=\"Say hello\")\n        @click.option(\"\
+      --shout/--no-shout\", default=False)\n        @click.argument(\"name\")\n  \
+      \      def hello(name: str, shout: bool) -> None:\n            msg = f\"Hello\
+      \ {name}\"\n            if shout:\n                msg = msg.upper()\n     \
+      \       click.echo(msg)\n    \n        runner = CliRunner()\n    \n        group_help\
+      \ = runner.invoke(cli, [\"--help\"])\n        assert group_help.exit_code ==\
+      \ 0\n        assert \"Top level group\" in group_help.output\n        assert\
+      \ \"hello\" in group_help.output\n    \n        cmd_help = runner.invoke(cli,\
+      \ [\"hello\", \"--help\"])\n        assert cmd_help.exit_code == 0\n       \
+      \ assert \"Say hello\" in cmd_help.output\n>       assert \"--shout\" in cmd_help.output\n\
+      E       AssertionError: assert '--shout' in 'Usage: cli COMMAND [ARGS]...\\\
+      n\\nTop level group\\n\\nCommands:\\n  hello  Say hello\\n'\nE        +  where\
+      \ 'Usage: cli COMMAND [ARGS]...\\n\\nTop level group\\n\\nCommands:\\n  hello\
+      \  Say hello\\n' = <Result 0>.output\n\ntests\\Click\\functional_test.py:215:\
+      \ AssertionError\n____________________ test_get_current_context_propagation\
+      \ _____________________\n\n    def test_get_current_context_propagation():\n\
+      \        @click.group()\n        @click.option(\"--config\", type=str, default=\"\
+      default.cfg\")\n        def cli(config: str) -> None:\n            ctx = click.get_current_context()\n\
+      \            ctx.obj = {\"config\": config}\n    \n        @cli.command()\n\
+      \        def show() -> None:\n            ctx = click.get_current_context()\n\
+      \            cfg = ctx.obj.get(\"config\")\n            click.echo(f\"CONFIG={cfg}\"\
+      )\n    \n        runner = CliRunner()\n        result = runner.invoke(cli, [\"\
+      --config\", \"custom.cfg\", \"show\"])\n    \n>       assert result.exit_code\
+      \ == 0\nE       assert 1 == 0\nE        +  where 1 = <Result 1>.exit_code\n\n\
+      tests\\Click\\functional_test.py:235: AssertionError\n_____________________\
+      \ test_option_envvar_default_is_used ______________________\n\n    def test_option_envvar_default_is_used():\n\
+      \        @click.command()\n        @click.option(\"--name\", envvar=\"CLICK_TEST_NAME\"\
+      , default=\"fallback\")\n>       def cli(name: str) -> None:\n\ntests\\Click\\\
+      functional_test.py:263: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Click\\click\\decorators.py:34:\
+      \ in decorator\n    _attach_param(f, Option(param_decls, **attrs))\n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n\
+      self = <click.core.Option object at 0x000001A2D33794F0>\nparam_decls = ('--name',),\
+      \ is_flag = False\nattrs = {'default': 'fallback', 'envvar': 'CLICK_TEST_NAME'},\
+      \ name = 'name'\n\n    def __init__(\n        self,\n        param_decls: Sequence[str],\n\
+      \        is_flag: bool = False,\n        **attrs: Any,\n    ) -> None:\n   \
+      \     if not param_decls:\n            raise TypeError(\"At least one option\
+      \ string is required.\")\n        self.param_decls = list(param_decls)\n   \
+      \     name = self._infer_name()\n>       super().__init__(name, param_type=\"\
+      option\", **attrs)\nE       TypeError: __init__() got an unexpected keyword\
+      \ argument 'envvar'\n\ngeneration\\Click\\click\\core.py:207: TypeError\n________________\
+      \ test_prompt_option_can_be_satisfied_via_input ________________\n\n    def\
+      \ test_prompt_option_can_be_satisfied_via_input():\n        @click.command()\n\
+      \        @click.option(\"--token\", prompt=True)\n        def cli(token: str)\
+      \ -> None:\n            click.echo(f\"TOKEN={token}\")\n    \n        runner\
+      \ = CliRunner()\n        r = runner.invoke(cli, [], input=\"secret-token\\n\"\
+      )\n>       assert r.exit_code == 0\nE       assert 1 == 0\nE        +  where\
+      \ 1 = <Result 1>.exit_code\n\ntests\\Click\\functional_test.py:285: AssertionError\n\
+      _______________ test_default_map_provides_default_option_value ________________\n\
+      \n    def test_default_map_provides_default_option_value():\n        @click.group()\n\
+      \        def cli() -> None:\n            pass\n    \n        @cli.command()\n\
+      \        @click.option(\"--count\", type=int, default=1)\n        def run(count:\
+      \ int) -> None:\n            click.echo(f\"COUNT={count}\")\n    \n        runner\
+      \ = CliRunner()\n>       r = runner.invoke(cli, [\"run\"], default_map={\"run\"\
+      : {\"count\": 7}})\nE       TypeError: invoke() got an unexpected keyword argument\
+      \ 'default_map'\n\ntests\\Click\\functional_test.py:300: TypeError\n_______________\
+      \ test_parameter_type_validation_error_exit_code ________________\n\n    def\
+      \ test_parameter_type_validation_error_exit_code():\n        @click.command()\n\
+      \        @click.option(\"--count\", type=int, required=True)\n        def cli(count:\
+      \ int) -> None:\n            click.echo(f\"COUNT={count}\")\n    \n        runner\
+      \ = CliRunner()\n        r = runner.invoke(cli, [\"--count\", \"not-an-int\"\
+      ])\n        assert r.exit_code != 0\n>       assert (\"Invalid value\" in r.output)\
+      \ or (\"Error\" in r.output)\nE       AssertionError: assert ('Invalid value'\
+      \ in '' or 'Error' in '')\nE        +  where '' = <Result 1>.output\nE     \
+      \   +  and   '' = <Result 1>.output\n\ntests\\Click\\functional_test.py:314:\
+      \ AssertionError\n_____________ test_path_type_creates_writable_path_in_isolated_fs\
+      \ _____________\n\n    def test_path_type_creates_writable_path_in_isolated_fs():\n\
+      \        @click.command()\n>       @click.option(\"--out\", type=click.Path(dir_okay=False,\
+      \ writable=True))\nE       AttributeError: module 'click' has no attribute 'Path'\n\
+      \ntests\\Click\\functional_test.py:319: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/functional_test.py::test_boolean_flag_option_pair\
+      \ - assert...\nFAILED tests/Click/functional_test.py::test_help_output_for_command_and_group\n\
+      FAILED tests/Click/functional_test.py::test_get_current_context_propagation\n\
+      FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used -\
+      \ T...\nFAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input\n\
+      FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value\n\
+      FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code\n\
+      FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs\n\
+      8 failed, 3 passed in 2.94s\n"
+    elapsed_time_s: 4.072924
+    avg_memory_mb: 33.2
+    avg_cpu_percent: 100.8
+    passed: 3
+    failed: 8
+    skipped: 0
+    total: 11
+    score_inputs_passed: 3
+    score_inputs_failed: 8
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 1.55s
+
+      '
+    elapsed_time_s: 2.744161
+    avg_memory_mb: 31.31
+    avg_cpu_percent: 99.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.523511
+    score_inputs_actual_time_s: 2.744161
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.57s
+
+      '
+    elapsed_time_s: 1.707563
+    avg_memory_mb: 33.41
+    avg_cpu_percent: 98.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 34.28
+    score_inputs_baseline_cpu_pct: 97.6
+    score_inputs_actual_mem_mb: 33.41
+    score_inputs_actual_cpu_pct: 98.0
+  robustness:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________ test_click_robustness_invalid_inputs_do_not_crash ______________\n\
+      \n    def test_click_robustness_invalid_inputs_do_not_crash():\n        \"\"\
+      \"\n        Robustness tests should be version-tolerant:\n          - Invalid\
+      \ inputs may raise exceptions (acceptable).\n          - Some invalid inputs\
+      \ may be coerced/ignored (also acceptable).\n        Requirement: no hard crashes;\
+      \ library remains importable and callable.\n        \"\"\"\n        click =\
+      \ _import_click()\n    \n        results: list[Tuple[bool, str]] = []\n    \n\
+      \        # 1) Construct basic objects\n>       cmd = click.Command(name=\"test\"\
+      )\nE       TypeError: __init__() missing 1 required positional argument: 'callback'\n\
+      \ntests\\Click\\robustness_test.py:97: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash\n\
+      1 failed in 0.30s\n"
+    elapsed_time_s: 1.472485
+    avg_memory_mb: 31.67
+    avg_cpu_percent: 105.8
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=670.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.18648
+    avg_memory_mb: 31.94
+    avg_cpu_percent: 99.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 670.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 2.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=10.9159 files_scanned=4.0 total_loc=670.0 max_cc=13.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.239897
+    avg_memory_mb: 31.91
+    avg_cpu_percent: 97.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 10.9159
+      files_scanned: 4.0
+      total_loc: 670.0
+      max_cc: 13.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 10.9159
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.523511
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.392334
+    resource_tests_total: 1
+    avg_memory_mb: 34.28
+    avg_cpu_percent: 97.6
+  functional:
+    functional_suite_time_s: 3.08833
+    functional_tests_total: 11
+  security:
+    security_suite_time_s: 1.36602
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 2.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+  maintainability:
+    maintainability_suite_time_s: 1.770477
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+      max_cc: 43.0
+  robustness:
+    robustness_suite_time_s: 1.208987
+    robustness_tests_total: 1
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Click\pytest_logs

@@ -1,0 +1,291 @@
+project_name: Imageio
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Imageio\imageio.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m4\Imageio
+timestamp: '2026-01-14 19:17:04'
+functional_score: 0.7
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "...F..F.F.                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_png_roundtrip_via_bytes_buffer _____________________\n\
+      \n    def test_png_roundtrip_via_bytes_buffer() -> None:\n        \"\"\"Write\
+      \ PNG to in-memory bytes, then read back using extension.\"\"\"\n        img\
+      \ = _make_color_image(height=20, width=31)\n    \n>       blob = iio.imwrite(\"\
+      <bytes>\", img, extension=\".png\")\n\ntests\\Imageio\\functional_test.py:139:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration_m4\\Imageio\\imageio\\v3.py:163: in imwrite\n    pil_img.save(path,\
+      \ format=\"PNG\" if suffix in (\"\", \".png\") else None)\n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <PIL.Image.Image\
+      \ image mode=RGB size=31x20 at 0x2792D8D87C0>\nfp = WindowsPath('<bytes>'),\
+      \ format = 'PNG', params = {}, filename = '<bytes>'\nopen_fp = True, save_all\
+      \ = False, filename_ext = '', ext = ''\n\n    def save(\n        self, fp: StrOrBytesPath\
+      \ | IO[bytes], format: str | None = None, **params: Any\n    ) -> None:\n  \
+      \      \"\"\"\n        Saves this image under the given filename.  If no format\
+      \ is\n        specified, the format to use is determined from the filename\n\
+      \        extension, if possible.\n    \n        Keyword options can be used\
+      \ to provide additional instructions\n        to the writer. If a writer doesn't\
+      \ recognise an option, it is\n        silently ignored. The available options\
+      \ are described in the\n        :doc:`image format documentation\n        <../handbook/image-file-formats>`\
+      \ for each writer.\n    \n        You can use a file object instead of a filename.\
+      \ In this case,\n        you must always specify the format. The file object\
+      \ must\n        implement the ``seek``, ``tell``, and ``write``\n        methods,\
+      \ and be opened in binary mode.\n    \n        :param fp: A filename (string),\
+      \ os.PathLike object or file object.\n        :param format: Optional format\
+      \ override.  If omitted, the\n           format to use is determined from the\
+      \ filename extension.\n           If a file object was used instead of a filename,\
+      \ this\n           parameter should always be used.\n        :param params:\
+      \ Extra parameters to the image writer.\n        :returns: None\n        :exception\
+      \ ValueError: If the output format could not be determined\n           from\
+      \ the file name.  Use the format option to solve this.\n        :exception OSError:\
+      \ If the file could not be written.  The file\n           may have been created,\
+      \ and may contain partial data.\n        \"\"\"\n    \n        filename: str\
+      \ | bytes = \"\"\n        open_fp = False\n        if is_path(fp):\n       \
+      \     filename = os.fspath(fp)\n            open_fp = True\n        elif fp\
+      \ == sys.stdout:\n            try:\n                fp = sys.stdout.buffer\n\
+      \            except AttributeError:\n                pass\n        if not filename\
+      \ and hasattr(fp, \"name\") and is_path(fp.name):\n            # only set the\
+      \ name for metadata purposes\n            filename = os.fspath(fp.name)\n  \
+      \  \n        # may mutate self!\n        self._ensure_mutable()\n    \n    \
+      \    save_all = params.pop(\"save_all\", False)\n        self.encoderinfo =\
+      \ {**getattr(self, \"encoderinfo\", {}), **params}\n        self.encoderconfig:\
+      \ tuple[Any, ...] = ()\n    \n        preinit()\n    \n        filename_ext\
+      \ = os.path.splitext(filename)[1].lower()\n        ext = filename_ext.decode()\
+      \ if isinstance(filename_ext, bytes) else filename_ext\n    \n        if not\
+      \ format:\n            if ext not in EXTENSION:\n                init()\n  \
+      \          try:\n                format = EXTENSION[ext]\n            except\
+      \ KeyError as e:\n                msg = f\"unknown file extension: {ext}\"\n\
+      \                raise ValueError(msg) from e\n    \n        if format.upper()\
+      \ not in SAVE:\n            init()\n        if save_all:\n            save_handler\
+      \ = SAVE_ALL[format.upper()]\n        else:\n            save_handler = SAVE[format.upper()]\n\
+      \    \n        created = False\n        if open_fp:\n            created = not\
+      \ os.path.exists(filename)\n            if params.get(\"append\", False):\n\
+      \                # Open also for reading (\"+\"), because TIFF save_all\n  \
+      \              # writer needs to go back and edit the written data.\n      \
+      \          fp = builtins.open(filename, \"r+b\")\n            else:\n>     \
+      \          fp = builtins.open(filename, \"w+b\")\nE               OSError: [Errno\
+      \ 22] Invalid argument: '<bytes>'\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\site-packages\\PIL\\Image.py:2591: OSError\n___________\
+      \ test_gif_imread_returns_stack_with_expected_frame_count ___________\n\ntmp_path\
+      \ = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-507/test_gif_imread_returns_stack_0')\n\
+      \n    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Reading a GIF via imread should produce a stack/sequence\
+      \ with the right number of frames.\"\"\"\n        frames = _make_grayscale_frames(num_frames=5,\
+      \ height=20, width=21)\n        path = tmp_path / \"stack.gif\"\n    \n    \
+      \    iio.imwrite(path, frames)\n        assert path.exists()\n    \n       \
+      \ loaded = iio.imread(path)\n        assert isinstance(loaded, np.ndarray)\n\
+      >       assert loaded.shape[0] == frames.shape[0]\nE       assert 20 == 5\n\n\
+      tests\\Imageio\\functional_test.py:194: AssertionError\n_______________________\
+      \ test_imopen_write_then_read_png _______________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-507/test_imopen_write_then_read_pn0')\n\
+      \n    def test_imopen_write_then_read_png(tmp_path: Path) -> None:\n       \
+      \ \"\"\"Use the v3 imopen context manager to write then read a PNG.\"\"\"\n\
+      \        img = _make_color_image(height=16, width=20)\n        path = tmp_path\
+      \ / \"imopen.png\"\n    \n>       with iio.imopen(path, \"w\") as f:\nE    \
+      \   AttributeError: module 'imageio.v3' has no attribute 'imopen'\n\ntests\\\
+      Imageio\\functional_test.py:221: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count\n\
+      FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...\n\
+      3 failed, 7 passed in 1.36s\n"
+    elapsed_time_s: 2.788492
+    avg_memory_mb: 49.91
+    avg_cpu_percent: 95.4
+    passed: 7
+    failed: 3
+    skipped: 0
+    total: 10
+    score_inputs_passed: 7
+    score_inputs_failed: 3
+    score_inputs_total: 10
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Imageio/performance_test.py ______________\n\
+      tests\\Imageio\\performance_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/performance_test.py\
+      \ - RuntimeError: Unsupported IMAGEIO_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.83s\n"
+    elapsed_time_s: 2.304982
+    avg_memory_mb: 43.67
+    avg_cpu_percent: 98.5
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.827932
+    score_inputs_actual_time_s: 2.304982
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Imageio/resource_test.py _______________\n\
+      tests\\Imageio\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/resource_test.py - RuntimeError:\
+      \ Unsupported IMAGEIO_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.80s\n"
+    elapsed_time_s: 2.18392
+    avg_memory_mb: 44.03
+    avg_cpu_percent: 97.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 49.3
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 44.03
+    score_inputs_actual_cpu_pct: 97.0
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.46s
+
+      '
+    elapsed_time_s: 1.957833
+    avg_memory_mb: 41.41
+    avg_cpu_percent: 97.4
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=312.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.493465
+    avg_memory_mb: 32.08
+    avg_cpu_percent: 98.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 312.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=15.5967 files_scanned=2.0 total_loc=312.0 max_cc=27.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.431722
+    avg_memory_mb: 32.09
+    avg_cpu_percent: 102.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 15.5967
+      files_scanned: 2.0
+      total_loc: 312.0
+      max_cc: 27.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 15.5967
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Imageio\pytest_logs

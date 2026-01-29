@@ -1,0 +1,125 @@
+FFFFFFF                                                                  [100%]
+================================== FAILURES ===================================
+____________ test_map_root_render_contains_leaflet_assets_and_init ____________
+
+    def test_map_root_render_contains_leaflet_assets_and_init():
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        html = m.get_root().render()
+        assert "<!DOCTYPE html>" in html
+        assert "leaflet.css" in html
+        assert "leaflet.js" in html
+        assert "L.map(" in html
+>       assert re.search(r'<div id="map_[^"]+"></div>', html)
+E       assert None
+E        +  where None = <function search at 0x000002565EDEA9D0>('<div id="map_[^"]+"></div>', '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_34932c8729b3 = L.map("map_34932c8729b3", {"center":[0.0,0.0],"zoom":2});\n</script></html>')
+E        +    where <function search at 0x000002565EDEA9D0> = re.search
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:14: AssertionError
+______________ test_marker_and_circlemarker_render_popup_tooltip ______________
+
+    def test_marker_and_circlemarker_render_popup_tooltip():
+        m = folium.Map(location=[1, 2], zoom_start=3)
+        folium.Marker([1, 2], popup='Hello "world"', tooltip="Tip").add_to(m)
+        folium.CircleMarker([3, 4], radius=7, popup="C").add_to(m)
+        html = m.get_root().render()
+>       assert "L.marker([1.0,2.0]" in html or "L.marker([1,2]" in html
+E       assert ('L.marker([1.0,2.0]' in '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_6b6639b522ca = L.map("map_6b6639b522ca", {"center":[1.0,2.0],"zoom":3});\n</script></html>' or 'L.marker([1,2]' in '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_6b6639b522ca = L.map("map_6b6639b522ca", {"center":[1.0,2.0],"zoom":3});\n</script></html>')
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:22: AssertionError
+____________ test_tilelayer_and_layercontrol_show_false_not_added _____________
+
+    def test_tilelayer_and_layercontrol_show_false_not_added():
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        tl1 = folium.TileLayer("OpenStreetMap", name="OSM", overlay=False, control=True, show=True).add_to(m)
+        tl2 = folium.TileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            name="Custom",
+            overlay=False,
+            control=True,
+            show=False,
+        ).add_to(m)
+        folium.LayerControl().add_to(m)
+        html = m.get_root().render()
+    
+>       assert "L.control.layers" in html
+E       assert 'L.control.layers' in '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_4ded7260b44e = L.map("map_4ded7260b44e", {"center":[0.0,0.0],"zoom":2});\n</script></html>'
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:43: AssertionError
+____________________ test_geojson_basic_and_style_constant ____________________
+
+    def test_geojson_basic_and_style_constant():
+        geo = {
+            "type": "FeatureCollection",
+            "features": [
+                {"type": "Feature", "properties": {"x": 1}, "geometry": {"type": "Point", "coordinates": [10, 20]}},
+            ],
+        }
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        gj = folium.GeoJson(geo, name="geo", style_function={"color": "red"}, show=True).add_to(m)
+        folium.LayerControl().add_to(m)
+        html = m.get_root().render()
+>       assert "L.geoJSON" in html
+E       assert 'L.geoJSON' in '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_30005a461f95 = L.map("map_30005a461f95", {"center":[0.0,0.0],"zoom":2});\n</script></html>'
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:63: AssertionError
+____ test_markercluster_assets_and_marker_targeting_and_single_in_control _____
+
+    def test_markercluster_assets_and_marker_targeting_and_single_in_control():
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        mc = MarkerCluster(name="Cluster").add_to(m)
+        for i in range(50):
+            folium.Marker([i * 0.01, i * 0.01]).add_to(mc)
+        folium.LayerControl().add_to(m)
+        html = m.get_root().render()
+    
+>       assert "leaflet.markercluster.js" in html
+E       assert 'leaflet.markercluster.js' in '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_1b69578e14cb = L.map("map_1b69578e14cb", {"center":[0.0,0.0],"zoom":2});\n</script></html>'
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:78: AssertionError
+__________ test_markercluster_assets_included_once_for_two_clusters ___________
+
+    def test_markercluster_assets_included_once_for_two_clusters():
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        mc1 = MarkerCluster().add_to(m)
+        mc2 = MarkerCluster().add_to(m)
+        folium.Marker([0, 0]).add_to(mc1)
+        folium.Marker([1, 1]).add_to(mc2)
+        html = m.get_root().render()
+    
+>       assert html.count("leaflet.markercluster.js") == 1
+E       assert 0 == 1
+E        +  where 0 = <built-in method count of str object at 0x000002565F92A2B0>('leaflet.markercluster.js')
+E        +    where <built-in method count of str object at 0x000002565F92A2B0> = '<!DOCTYPE html><html><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><h.../div></body><script>var map_24e26ba5e4dd = L.map("map_24e26ba5e4dd", {"center":[0.0,0.0],"zoom":2});\n</script></html>'.count
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:98: AssertionError
+______________ test_cluster_reduces_direct_addto_map_occurrences ______________
+
+    def test_cluster_reduces_direct_addto_map_occurrences():
+        m1 = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        for i in range(200):
+            folium.Marker([i * 0.001, i * 0.001]).add_to(m1)
+        html1 = m1.get_root().render()
+    
+        m2 = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        mc = MarkerCluster().add_to(m2)
+        for i in range(200):
+            folium.Marker([i * 0.001, i * 0.001]).add_to(mc)
+        html2 = m2.get_root().render()
+    
+        # Direct version should have many addTo(map)
+        c1 = html1.count(f".addTo({m1.get_name()})")
+        # Cluster version should have far fewer direct addTo(map) calls (ideally 1 for the cluster)
+        c2 = html2.count(f".addTo({m2.get_name()})")
+>       assert c1 > 100
+E       assert 0 > 100
+
+generation_m1\Folium\_agent_tests\test_agent_basic.py:119: AssertionError
+=========================== short test summary info ===========================
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_map_root_render_contains_leaflet_assets_and_init
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_marker_and_circlemarker_render_popup_tooltip
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_tilelayer_and_layercontrol_show_false_not_added
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_geojson_basic_and_style_constant
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_markercluster_assets_and_marker_targeting_and_single_in_control
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_markercluster_assets_included_once_for_two_clusters
+FAILED generation_m1\Folium\_agent_tests\test_agent_basic.py::test_cluster_reduces_direct_addto_map_occurrences
+7 failed in 0.48s

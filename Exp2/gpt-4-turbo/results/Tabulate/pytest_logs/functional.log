@@ -1,0 +1,64 @@
+..F..F....F.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+        output = tabulate(table, headers="firstrow", tablefmt="simple")
+        lines = _lines(output)
+    
+        assert lines[0].strip().startswith("Name")
+        assert "Age" in lines[0]
+        # separator line usually contains dashes
+>       assert "-" in lines[1].replace(" ", "")
+E       AssertionError: assert '-' in 'Alice24'
+E        +  where 'Alice24' = <built-in method replace of str object at 0x000001F7AB90F330>(' ', '')
+E        +    where <built-in method replace of str object at 0x000001F7AB90F330> = 'Alice  24'.replace
+
+tests\Tabulate\functional_test.py:123: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+        out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+        lines_gh = _lines(out_github)
+>       assert lines_gh[0].startswith("|")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001F7AB8F89B0>('|')
+E        +    where <built-in method startswith of str object at 0x000001F7AB8F89B0> = 'item  qty'.startswith
+
+tests\Tabulate\functional_test.py:172: AssertionError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Asse...
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+3 failed, 9 passed in 0.38s

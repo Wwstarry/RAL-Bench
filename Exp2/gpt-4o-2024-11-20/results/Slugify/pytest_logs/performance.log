@@ -1,0 +1,66 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_slugify_performance_smoke ________________________
+
+    def test_slugify_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_slugify_performance_benchmark(iterations=3, batch_size=100, text_length=32)
+
+tests\Slugify\performance_test.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Slugify\performance_test.py:72: in run_slugify_performance_benchmark
+    total_out_len += _run_slugify_batch(batch_size=batch_size, text_length=text_length)
+tests\Slugify\performance_test.py:56: in _run_slugify_batch
+    s = slugify(text)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'odJFCrn嗎l2edlBD_déz嗎1C5Jau2RJtBR', allow_unicode = False
+max_length = None, word_boundary = False, separator = '-', regex_pattern = None
+stopwords = None, lowercase = True, replacements = None, kwargs = {}
+
+    def slugify(
+        text,
+        allow_unicode=False,
+        max_length=None,
+        word_boundary=False,
+        separator='-',
+        regex_pattern=None,
+        stopwords=None,
+        lowercase=True,
+        replacements=None,
+        **kwargs
+    ):
+        """
+        Generate a slug for the given text.
+    
+        Parameters:
+            text (str): The input text to slugify.
+            allow_unicode (bool): Whether to allow Unicode characters in the slug.
+            max_length (int): Maximum length of the slug.
+            word_boundary (bool): Ensure truncation happens at word boundaries.
+            separator (str): Separator to use for the slug.
+            regex_pattern (str): Custom regex pattern for filtering characters.
+            stopwords (list): Words to exclude from the slug.
+            lowercase (bool): Whether to convert the slug to lowercase.
+            replacements (list): List of (search, replace) tuples for custom replacements.
+    
+        Returns:
+            str: The generated slug.
+        """
+        if not isinstance(text, str):
+            raise TypeError("Input text must be a string.")
+    
+        # Apply custom replacements if provided
+        if replacements:
+            for search, replace in replacements:
+                text = text.replace(search, replace)
+    
+        # Normalize text to NFKD form for consistent processing
+        if not allow_unicode:
+>           text = unicodedata.normalize('NFKD').encode('ascii', 'ignore').decode('ascii')
+E           TypeError: normalize expected 2 arguments, got 1
+
+generation\Slugify\slugify\slugify.py:43: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/performance_test.py::test_slugify_performance_smoke - Ty...
+1 failed in 0.35s

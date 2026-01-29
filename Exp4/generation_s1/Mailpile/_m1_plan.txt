@@ -1,0 +1,197 @@
+1) Repository layout and import graph
+- Top-level package: mailpile/
+  - __init__.py (minimal; may expose version only)
+  - safe_popen.py
+  - util.py
+  - vcard.py
+  - i18n.py
+- Import graph (keep simple, avoid circulars)
+  - mailpile.i18n: no internal imports (only stdlib gettext, os)
+  - mailpile.util: may import mailpile.i18n.gettext/_ for message wrapping; otherwise stdlib only
+  - mailpile.safe_popen: imports mailpile.util for helpers (optional), otherwise stdlib (subprocess, os, fcntl/select where available, threading)
+  - mailpile.vcard: imports mailpile.util (for CleanText / encoding helpers if needed) and mailpile.i18n for messages (optional); otherwise stdlib only
+- Goal: all modules runnable in isolation with no external dependencies beyond Python stdlib.
+
+2) Public APIs to implement (modules/classes/functions)
+A) mailpile.i18n
+- gettext passthrough helper
+  - function: gettext(msg)
+  - alias: _(msg)  (common convention)
+- Optional (if tests expect them; implement defensively):
+  - ngettext(singular, plural, n)
+  - set_language(lang) or activate(lang) (no-op or simple binding)
+  - get_language() (returns current lang code or None)
+
+B) mailpile.util
+Core utility functions/classes used by tests:
+- CleanText(text, banned=None, replace=' ')  (callable function, not class)
+  - Sanitizes text by removing/replacing control characters and/or a caller-provided banned character set.
+- base36 helpers
+  - b36(number) -> str  (int to base36 string)
+  - unb36(text) -> int  (base36 string to int)
+- Common helpers (implement if referenced by tests; otherwise safe to include):
+  - safe_str(obj, encoding='utf-8', errors='replace') -> str
+  - safe_bytes(obj, encoding='utf-8', errors='replace') -> bytes
+  - truthy(value) / boolify(value) -> bool  (handles strings like "yes/no/1/0")
+  - unicode-trimming helpers: try_decode(byte_string)
+  - basic random token generator: randomish_id(length=8) (optional)
+- Ensure module-level constants if needed:
+  - B36_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+C) mailpile.vcard
+- Class: VCardLine
+  - constructor: VCardLine(name=None, value=None, params=None, group=None)
+  - parsing:
+    - @classmethod Parse(cls, line) -> VCardLine  (parse a single vCard content line)
+    - Should handle:
+      - optional “group.” prefix: group.name; group stored separately
+      - parameters: NAME;KEY=VALUE;KEY=V1,V2:VALUE
+      - escaping in value: \n, \N, \;, \,, \\ (unescape on parse)
+      - line may already be unfolded (tests likely provide single logical line)
+  - serialization:
+    - method: as_vcardline() -> str (or __str__)
+      - Produces NAME;PARAM=...:VALUE with proper escaping
+  - accessors:
+    - get(name, default=None) for params? (optional)
+    - param keys normalized (upper-case) if tests expect (implement normalized storage)
+  - equality/representation:
+    - __repr__ for debugging (optional)
+- Minimal supporting helpers within vcard.py:
+  - escape_value(value) / unescape_value(value)
+  - parse_params(section) -> dict[str, list[str] or str]
+
+D) mailpile.safe_popen
+Safe subprocess wrapper and pipe helpers:
+- Function: SafePopen(args, *popenargs, **kwargs) -> subprocess.Popen
+  - Wraps subprocess.Popen with safer defaults:
+    - close_fds=True by default (when supported)
+    - shell=False enforced unless explicitly requested (or never allow shell=True if tests expect safety)
+    - stdin/stdout/stderr pipe handling
+    - environment sanitization optional (pass through by default)
+  - Should accept args as list (preferred) or string (if shell=False, split? but safest is to pass through unchanged; if string and shell=False, rely on subprocess rules).
+- Pipe helper functions (common in Mailpile-like code; implement minimal set used by tests):
+  - safe_popen(args, **kwargs) alias to SafePopen (optional)
+  - backtick(command, timeout=None, input=None) -> (rc, out, err) or out-only (choose what tests expect; implement both via flags)
+    - Provide deterministic behavior: run a process, capture stdout/stderr as bytes or str (prefer bytes then decode utf-8 with replace).
+  - make_pipe() -> (r_fd, w_fd) using os.pipe with CLOEXEC where possible
+- Optional robustness:
+  - communicate with timeout support (Python 3 has it; implement a fallback no-timeout if needed)
+
+3) Key behaviors & edge cases
+A) i18n.gettext
+- Should return input unchanged by default (no translation catalogs required).
+- Must accept non-str inputs gracefully (convert to str).
+- Provide "_" alias that points to gettext.
+- If language switching functions exist, keep them no-op unless a real gettext translation is loaded; tests likely validate passthrough.
+
+B) util.CleanText
+- Input types: None, bytes, str
+  - None -> '' (or None preserved if tests expect; choose '' for safety; verify with tests)
+  - bytes -> decode utf-8 with 'replace'
+- Behavior:
+  - Remove or replace ASCII control chars except common whitespace (tab, newline, carriage return) depending on expected behavior.
+  - Replace banned characters (if provided) with replace string (default single space).
+  - Collapse repeated whitespace? Only if tests expect; default: do not aggressively normalize beyond replacements.
+  - Ensure return is str.
+- Edge cases:
+  - Very long strings should be handled efficiently (use translate/map rather than per-char concatenation if possible).
+  - Preserve basic Unicode.
+
+C) base36 conversion
+- b36:
+  - Accept int >= 0
+  - 0 -> '0'
+  - Negative numbers: either raise ValueError or prefix '-' (choose raise unless tests expect '-'; implement support for negative by prefixing '-' to be safe)
+  - Use lowercase alphabet
+- unb36:
+  - Accept str with optional leading/trailing whitespace; strip
+  - Case-insensitive (accept upper-case)
+  - Empty string -> ValueError
+  - Validate characters in [0-9a-zA-Z], else ValueError
+
+D) vcard.VCardLine parsing/serialization
+- Parsing:
+  - Split at first ':' into (left, value). If no ':', treat value as '' and left as whole? (raise ValueError may be expected; implement tolerant: value='')
+  - Left side split by ';' into [name_part, param1, param2...]
+  - group handling:
+    - name_part can be "group.NAME" -> group="group", name="NAME"
+  - Param parsing:
+    - "KEY=VAL" or "KEY=V1,V2"; store as list if comma present, else single string; tests may expect list always—prefer store list for all params.
+    - Params without '=' (bare tokens) exist in older vCard; treat as key with value True or empty list; but tests likely focus on KEY=VALUE.
+  - Unescape value sequences:
+    - '\\n' or '\\N' => newline
+    - '\\,' => ','
+    - '\\;' => ';'
+    - '\\\\' => '\'
+- Serialization:
+  - Name should be uppercase (normalize) if tests assume; do same for param keys.
+  - Join params in stable order:
+    - Preserve insertion order from parse; otherwise sort keys for determinism (sorting is safer for tests unless they assert original order; assume determinism is required, so sort keys).
+  - Escape value:
+    - backslash first, then newline -> '\n', comma -> '\,', semicolon -> '\;'
+  - Output should be a single content line without folding (tests likely don’t cover folding).
+- Edge cases:
+  - Values containing ':' should be preserved (split only on first ':').
+  - Unicode values must round-trip.
+  - Params with multiple values must serialize with commas.
+
+E) safe_popen
+- Safety defaults:
+  - Do not invoke shell by default.
+  - Ensure file descriptors are closed in child where supported.
+- Capturing output:
+  - When using backtick helper, capture stdout/stderr; decode to str with utf-8 replace unless tests expect bytes; easiest is to return str.
+- Timeouts:
+  - If timeout given, use subprocess.run(..., timeout=...) for simplicity; else Popen.communicate().
+- Cross-platform:
+  - Avoid POSIX-only fcntl if not needed by tests. Use subprocess.PIPE and communicate.
+
+4) Minimal internal test plan (what to test and why)
+(Implement as unit tests or simple asserts; align with functional tests’ expectations.)
+A) i18n
+- gettext returns same string for plain ASCII and Unicode.
+- "_" alias works: _(msg) == msg.
+- Non-str input: gettext(123) returns "123".
+
+B) util
+- CleanText:
+  - bytes input decodes: b'abc' -> 'abc'
+  - control chars replaced/removed: 'a\x00b' -> 'a b' (or 'ab' depending on chosen policy; lock policy to replacement with space for banned/control)
+  - banned set: banned='@#' => replaced with spaces
+  - None => '' (confirm)
+- base36:
+  - b36(0) == '0'; b36(35) == 'z'; b36(36) == '10'
+  - unb36('10') == 36; unb36('Z') == 35
+  - round-trip for a few ints: n == unb36(b36(n))
+
+C) vcard
+- Parse simple line: "FN:John Doe" => name='FN', value='John Doe', params empty
+- Parse with params: "EMAIL;TYPE=INTERNET,HOME:me@example.com"
+  - params['TYPE'] == ['INTERNET','HOME'] (or ['INTERNET', 'HOME'])
+- Parse with group: "item1.EMAIL;TYPE=HOME:me@example.com" => group='item1', name='EMAIL'
+- Escaping round-trip:
+  - value "a,b;c\\d\n" serializes with escapes and parses back to same value
+- Serialization determinism:
+  - Parsed then serialized equals expected canonical form (uppercase keys, sorted params)
+
+D) safe_popen
+- SafePopen executes a benign command:
+  - Run [sys.executable, '-c', 'print("hi")'] and capture output via backtick helper -> "hi\n"
+- stderr capture:
+  - '-c', 'import sys; sys.stderr.write("err")' returns err properly
+- shell safety:
+  - Ensure calling SafePopen with a list does not set shell=True; and string args do not accidentally invoke shell.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Ambiguity in expected CleanText policy (remove vs replace, whitespace collapsing):
+  - Mitigation: implement conservative behavior: replace disallowed control chars with a single space; do not aggressively collapse unless tests fail; keep behavior deterministic.
+- VCard parameter ordering and casing expectations:
+  - Mitigation: normalize name and param keys to uppercase; serialize params sorted by key for stable output; always store param values as lists to simplify.
+- VCard escaping specifics differ across vCard versions:
+  - Mitigation: implement the common subset: backslash escapes for newline, comma, semicolon, and backslash; split only on first ':'; tolerate missing ':'.
+- Subprocess differences across platforms/CI:
+  - Mitigation: use sys.executable for tests; avoid POSIX-only fcntl/select; rely on subprocess.PIPE and communicate/run; default close_fds=True when supported.
+- Timeout behavior and hanging processes:
+  - Mitigation: in backtick helper, support timeout using subprocess.run(timeout=...); kill process on timeout and raise/return error code consistently.
+- Encoding issues when capturing output:
+  - Mitigation: capture as bytes and decode with utf-8 errors='replace' to avoid exceptions; keep a raw-bytes option if needed but default to str for tests.

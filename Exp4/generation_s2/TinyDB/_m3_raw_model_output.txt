@@ -1,0 +1,536 @@
+<file:name=tinydb/__init__.py>
+"""
+A tiny, file-based JSON "database" for local task management.
+
+Public API:
+- TinyDB: database wrapper
+- where: query builder helper
+- Query: query object
+- Document: dict subclass carrying a doc_id
+- JSONStorage: file storage backend
+"""
+
+from .database import TinyDB
+from .queries import Query, where
+from .table import Document
+from .storages import JSONStorage
+
+__all__ = ["TinyDB", "Query", "where", "Document", "JSONStorage"]
+</file>
+
+<file:name=tinydb/database.py>
+from __future__ import annotations
+
+from typing import Any, Dict, Optional, Union
+
+from .storages import JSONStorage, Storage
+from .table import Table
+
+
+class TinyDB:
+    """
+    Lightweight JSON file database.
+
+    Data layout in storage:
+    {
+      "_default": {
+        "1": {...},
+        "2": {...}
+      },
+      "projects": {...}
+    }
+
+    Use `db.table("tasks")` etc.
+    """
+
+    def __init__(
+        self,
+        path: str,
+        storage: type[Storage] = JSONStorage,
+        *,
+        indent: Optional[int] = 2,
+        sort_keys: bool = True,
+        ensure_ascii: bool = False,
+    ) -> None:
+        self._storage: Storage = storage(
+            path, indent=indent, sort_keys=sort_keys, ensure_ascii=ensure_ascii
+        )
+        self._tables: Dict[str, Table] = {}
+
+    @property
+    def storage(self) -> Storage:
+        return self._storage
+
+    def table(self, name: str = "_default") -> Table:
+        if name not in self._tables:
+            self._tables[name] = Table(self._storage, name)
+        return self._tables[name]
+
+    # Convenience passthrough to default table:
+    def insert(self, document: Dict[str, Any]) -> int:
+        return self.table("_default").insert(document)
+
+    def insert_multiple(self, documents: list[Dict[str, Any]]) -> list[int]:
+        return self.table("_default").insert_multiple(documents)
+
+    def all(self) -> list[Dict[str, Any]]:
+        return self.table("_default").all()
+
+    def search(self, cond) -> list[Dict[str, Any]]:
+        return self.table("_default").search(cond)
+
+    def get(self, cond=None, *, doc_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        return self.table("_default").get(cond, doc_id=doc_id)
+
+    def update(self, fields: Union[Dict[str, Any], Any], cond=None, *, doc_ids=None) -> int:
+        return self.table("_default").update(fields, cond, doc_ids=doc_ids)
+
+    def remove(self, cond=None, *, doc_ids=None) -> int:
+        return self.table("_default").remove(cond, doc_ids=doc_ids)
+
+    def truncate(self) -> None:
+        self.table("_default").truncate()
+
+    def close(self) -> None:
+        self._storage.close()
+
+    def __enter__(self) -> "TinyDB":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
+</file>
+
+<file:name=tinydb/table.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
+from .queries import Query
+from .storages import Storage
+
+
+class Document(dict):
+    """
+    A dict with an attached doc_id.
+    """
+
+    def __init__(self, *args, doc_id: int, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.doc_id = doc_id
+
+    def copy(self) -> "Document":  # type: ignore[override]
+        return Document(super().copy(), doc_id=self.doc_id)
+
+
+UpdateSpec = Union[Dict[str, Any], Callable[[Dict[str, Any]], None]]
+
+
+@dataclass(frozen=True)
+class QueryStats:
+    matched: int
+    returned: int
+
+
+class Table:
+    def __init__(self, storage: Storage, name: str) -> None:
+        self._storage = storage
+        self._name = name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def _read_table(self) -> Dict[str, Dict[str, Any]]:
+        data = self._storage.read()
+        table = data.get(self._name, {})
+        if not isinstance(table, dict):
+            return {}
+        return table  # {str(doc_id): document}
+
+    def _write_table(self, table: Dict[str, Dict[str, Any]]) -> None:
+        data = self._storage.read()
+        data[self._name] = table
+        self._storage.write(data)
+
+    def _next_id(self, table: Dict[str, Dict[str, Any]]) -> int:
+        if not table:
+            return 1
+        try:
+            return max(int(k) for k in table.keys()) + 1
+        except ValueError:
+            # If keys are not integers for some reason, reset numbering
+            return 1
+
+    def _iter_docs(self, table: Dict[str, Dict[str, Any]]) -> Iterator[Document]:
+        for k, v in table.items():
+            try:
+                doc_id = int(k)
+            except ValueError:
+                continue
+            if isinstance(v, dict):
+                yield Document(v, doc_id=doc_id)
+
+    def insert(self, document: Dict[str, Any]) -> int:
+        if not isinstance(document, dict):
+            raise TypeError("document must be a dict")
+
+        table = self._read_table()
+        doc_id = self._next_id(table)
+        table[str(doc_id)] = dict(document)
+        self._write_table(table)
+        return doc_id
+
+    def insert_multiple(self, documents: List[Dict[str, Any]]) -> List[int]:
+        table = self._read_table()
+        ids: List[int] = []
+        for doc in documents:
+            if not isinstance(doc, dict):
+                raise TypeError("each document must be a dict")
+            doc_id = self._next_id(table)
+            table[str(doc_id)] = dict(doc)
+            ids.append(doc_id)
+        self._write_table(table)
+        return ids
+
+    def all(self) -> List[Document]:
+        table = self._read_table()
+        return list(self._iter_docs(table))
+
+    def get(self, cond: Optional[Query] = None, *, doc_id: Optional[int] = None) -> Optional[Document]:
+        table = self._read_table()
+        if doc_id is not None:
+            v = table.get(str(doc_id))
+            if isinstance(v, dict):
+                return Document(v, doc_id=doc_id)
+            return None
+
+        if cond is None:
+            raise ValueError("either cond or doc_id must be provided")
+
+        for doc in self._iter_docs(table):
+            if cond(doc):
+                return doc
+        return None
+
+    def search(self, cond: Query) -> List[Document]:
+        table = self._read_table()
+        return [doc for doc in self._iter_docs(table) if cond(doc)]
+
+    def contains(self, cond: Optional[Query] = None, *, doc_id: Optional[int] = None) -> bool:
+        return self.get(cond, doc_id=doc_id) is not None
+
+    def update(
+        self,
+        fields: UpdateSpec,
+        cond: Optional[Query] = None,
+        *,
+        doc_ids: Optional[Sequence[int]] = None,
+    ) -> int:
+        if cond is None and doc_ids is None:
+            raise ValueError("either cond or doc_ids must be provided")
+
+        table = self._read_table()
+        updated = 0
+
+        target_ids: Optional[set[int]] = None
+        if doc_ids is not None:
+            target_ids = set(int(x) for x in doc_ids)
+
+        for doc in self._iter_docs(table):
+            if target_ids is not None:
+                if doc.doc_id not in target_ids:
+                    continue
+            else:
+                if cond is not None and not cond(doc):
+                    continue
+
+            # Apply update
+            new_doc = dict(doc)
+            if callable(fields):
+                fields(new_doc)
+            else:
+                if not isinstance(fields, dict):
+                    raise TypeError("fields must be a dict or callable")
+                new_doc.update(fields)
+
+            table[str(doc.doc_id)] = new_doc
+            updated += 1
+
+        if updated:
+            self._write_table(table)
+        return updated
+
+    def remove(self, cond: Optional[Query] = None, *, doc_ids: Optional[Sequence[int]] = None) -> int:
+        if cond is None and doc_ids is None:
+            raise ValueError("either cond or doc_ids must be provided")
+
+        table = self._read_table()
+        removed = 0
+
+        if doc_ids is not None:
+            for did in set(int(x) for x in doc_ids):
+                if str(did) in table:
+                    del table[str(did)]
+                    removed += 1
+        else:
+            # Remove all matching
+            to_delete: List[str] = []
+            for doc in self._iter_docs(table):
+                if cond is not None and cond(doc):
+                    to_delete.append(str(doc.doc_id))
+            for k in to_delete:
+                if k in table:
+                    del table[k]
+                    removed += 1
+
+        if removed:
+            self._write_table(table)
+        return removed
+
+    def truncate(self) -> None:
+        self._write_table({})
+
+    # Simple analytics helpers
+
+    def count(self, cond: Query) -> int:
+        return len(self.search(cond))
+
+    def sum(self, field: str, cond: Optional[Query] = None, *, default: float = 0.0) -> float:
+        total = 0.0
+        for doc in self.all() if cond is None else self.search(cond):
+            v = doc.get(field, None)
+            if isinstance(v, (int, float)):
+                total += float(v)
+        return total if total != 0.0 else float(default) if not (cond is None and self.all()) else total
+
+    def group_count(self, key: str, cond: Optional[Query] = None) -> Dict[Any, int]:
+        out: Dict[Any, int] = {}
+        docs = self.all() if cond is None else self.search(cond)
+        for d in docs:
+            k = d.get(key, None)
+            out[k] = out.get(k, 0) + 1
+        return out
+
+    def unfinished_per_project(
+        self,
+        *,
+        project_field: str = "project",
+        status_field: str = "status",
+        done_values: Iterable[Any] = ("done", "completed", "closed"),
+    ) -> Dict[Any, int]:
+        done_set = set(done_values)
+        out: Dict[Any, int] = {}
+        for d in self.all():
+            status = d.get(status_field, None)
+            if status in done_set:
+                continue
+            proj = d.get(project_field, None)
+            out[proj] = out.get(proj, 0) + 1
+        return out
+</file>
+
+<file:name=tinydb/queries.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Callable, Iterable, Optional, Sequence
+
+
+Predicate = Callable[[dict], bool]
+
+
+@dataclass(frozen=True)
+class Query:
+    """
+    A composable predicate for filtering documents.
+
+    Query objects are callable: Query(doc) -> bool.
+    Use `where("field")` to start building expressions.
+
+    Examples:
+        from tinydb import where
+        Task = where("type") == "task"
+        Open = where("status") != "done"
+        q = Task & Open & where("project").one_of(["p1", "p2"])
+    """
+    _test: Predicate
+
+    def __call__(self, doc: dict) -> bool:
+        try:
+            return bool(self._test(doc))
+        except Exception:
+            return False
+
+    def __and__(self, other: "Query") -> "Query":
+        return Query(lambda d: self(d) and other(d))
+
+    def __or__(self, other: "Query") -> "Query":
+        return Query(lambda d: self(d) or other(d))
+
+    def __invert__(self) -> "Query":
+        return Query(lambda d: not self(d))
+
+
+class Field:
+    def __init__(self, path: str) -> None:
+        if not isinstance(path, str) or not path:
+            raise ValueError("path must be a non-empty string")
+        self._path = path
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    def _get(self, doc: dict) -> Any:
+        cur: Any = doc
+        for part in self._path.split("."):
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(part, None)
+        return cur
+
+    # Comparisons
+    def __eq__(self, other: Any) -> Query:  # type: ignore[override]
+        return Query(lambda d: self._get(d) == other)
+
+    def __ne__(self, other: Any) -> Query:  # type: ignore[override]
+        return Query(lambda d: self._get(d) != other)
+
+    def __lt__(self, other: Any) -> Query:
+        return Query(lambda d: (v := self._get(d)) is not None and v < other)
+
+    def __le__(self, other: Any) -> Query:
+        return Query(lambda d: (v := self._get(d)) is not None and v <= other)
+
+    def __gt__(self, other: Any) -> Query:
+        return Query(lambda d: (v := self._get(d)) is not None and v > other)
+
+    def __ge__(self, other: Any) -> Query:
+        return Query(lambda d: (v := self._get(d)) is not None and v >= other)
+
+    # String helpers
+    def exists(self) -> Query:
+        return Query(lambda d: self._get(d) is not None)
+
+    def matches(self, predicate: Callable[[Any], bool]) -> Query:
+        return Query(lambda d: predicate(self._get(d)))
+
+    def contains(self, item: Any) -> Query:
+        def _p(d: dict) -> bool:
+            v = self._get(d)
+            if isinstance(v, (list, tuple, set)):
+                return item in v
+            if isinstance(v, str):
+                return str(item) in v
+            if isinstance(v, dict):
+                return item in v
+            return False
+
+        return Query(_p)
+
+    def one_of(self, items: Iterable[Any]) -> Query:
+        s = set(items)
+        return Query(lambda d: self._get(d) in s)
+
+    def test(self, func: Callable[[Any], bool]) -> Query:
+        return Query(lambda d: func(self._get(d)))
+
+
+def where(field_path: str) -> Field:
+    return Field(field_path)
+</file>
+
+<file:name=tinydb/storages.py>
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from typing import Any, Dict, Optional
+
+
+class Storage:
+    def read(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    def write(self, data: Dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def close(self) -> None:
+        return None
+
+
+class JSONStorage(Storage):
+    """
+    Simple JSON file storage with atomic writes.
+
+    - Creates file/directories if needed.
+    - Uses a temp file + replace for atomic-ish updates.
+    """
+
+    def __init__(
+        self,
+        path: str,
+        *,
+        indent: Optional[int] = 2,
+        sort_keys: bool = True,
+        ensure_ascii: bool = False,
+    ) -> None:
+        self._path = path
+        self._indent = indent
+        self._sort_keys = sort_keys
+        self._ensure_ascii = ensure_ascii
+
+        parent = os.path.dirname(os.path.abspath(path))
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+
+        if not os.path.exists(self._path):
+            self.write({})
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    def read(self) -> Dict[str, Any]:
+        try:
+            with open(self._path, "r", encoding="utf-8") as f:
+                raw = f.read().strip()
+                if not raw:
+                    return {}
+                data = json.loads(raw)
+                return data if isinstance(data, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except json.JSONDecodeError:
+            # If corrupted, do not crash; treat as empty.
+            return {}
+
+    def write(self, data: Dict[str, Any]) -> None:
+        if not isinstance(data, dict):
+            raise TypeError("storage data must be a dict")
+
+        directory = os.path.dirname(os.path.abspath(self._path)) or "."
+        fd, tmp_path = tempfile.mkstemp(prefix=".tinydb-", suffix=".json", dir=directory, text=True)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(
+                    data,
+                    f,
+                    indent=self._indent,
+                    sort_keys=self._sort_keys,
+                    ensure_ascii=self._ensure_ascii,
+                )
+                f.write("\n")
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, self._path)
+        finally:
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except OSError:
+                pass
+</file>

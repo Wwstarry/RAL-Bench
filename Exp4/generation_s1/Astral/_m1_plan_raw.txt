@@ -1,0 +1,177 @@
+<plan>
+1) Repository layout and import graph
+- Top-level package:
+  - astral/__init__.py
+    - Expose LocationInfo at astral.LocationInfo
+    - Expose __all__ consistent with what tests import
+    - Optionally expose AstralError exception (if tests expect it)
+  - astral/location.py
+    - LocationInfo dataclass and Observer dataclass
+  - astral/sun.py
+    - Core solar calculations and public functions: sun, dawn, sunrise, noon, sunset, dusk
+  - astral/moon.py
+    - phase(date) implementation
+  - astral/errors.py (optional but recommended)
+    - Define AstralError and specific errors for polar day/night cases if needed
+  - astral/utils.py
+    - Shared math helpers, datetime/tz helpers, angle normalization
+
+Import graph (minimal):
+- astral/__init__.py imports LocationInfo from astral/location.py
+- astral/location.py imports Observer from same module; uses zoneinfo.ZoneInfo (stdlib)
+- astral/sun.py imports Observer type (or duck-typed) + utils (math/time)
+- astral/moon.py imports utils (date handling) only
+- Avoid third-party dependencies; rely on math, datetime, zoneinfo
+
+2) Public APIs to implement (modules/classes/functions)
+A) astral.LocationInfo (core)
+- Signature compatible with reference core usage:
+  - LocationInfo(name="...", region="...", timezone="...", latitude=..., longitude=...)
+- Fields/properties:
+  - name: str
+  - region: str
+  - timezone: str (IANA name)
+  - latitude: float
+  - longitude: float
+  - elevation: float (default 0.0; accept parameter if passed)
+  - observer: property/attribute returning an Observer instance with:
+    - latitude: float
+    - longitude: float
+    - elevation: float
+- Behaviors:
+  - LocationInfo.timezone property usable to build tzinfo via zoneinfo.ZoneInfo
+  - Observer must be compatible with functions taking “observer” in astral.sun:
+    - accept either Observer or any object with latitude/longitude/elevation attributes (duck typing)
+
+B) astral.sun public API
+Implement functions with names and call patterns matching common Astral usage:
+- sun(observer, date=None, tzinfo=None, dawn_dusk_depression=6)
+  - Returns dict with keys at least:
+    - "dawn", "sunrise", "noon", "sunset", "dusk"
+  - Each value is timezone-aware datetime in requested tzinfo
+  - date default: today in tzinfo (if tzinfo provided) else local date in UTC (choose consistent approach; see behaviors)
+- sunrise(observer, date=None, tzinfo=None)
+- sunset(observer, date=None, tzinfo=None)
+- dawn(observer, date=None, tzinfo=None, depression=6)
+- dusk(observer, date=None, tzinfo=None, depression=6)
+- noon(observer, date=None, tzinfo=None)
+Implementation approach:
+- Use standard NOAA/US Naval Observatory style solar position algorithm:
+  - Convert date to Julian day at 0h UTC
+  - Compute solar mean anomaly, ecliptic longitude, declination
+  - Equation of time
+  - Hour angle for given solar elevation:
+    - sunrise/sunset elevation = -0.833 degrees (atmospheric refraction + sun radius)
+    - dawn/dusk elevation = -depression (e.g., 6 degrees for civil)
+  - Solar noon in minutes = 720 - 4*longitude - EoT (in minutes) + tz offset minutes
+  - Sunrise/sunset minutes = solar noon ± 4*hour_angle_deg
+- Return datetimes constructed by taking local midnight in tzinfo and adding computed minutes as timedelta.
+
+C) astral.moon public API
+- phase(date)
+  - Input: datetime.date (or datetime; if datetime provided, use its date)
+  - Output: numeric lunar phase value in a valid range compatible with Astral tests:
+    - Common Astral core returns 0..29.53-ish (days into synodic cycle), or an int 0..27/0..29 depending on version.
+  - Choose robust implementation:
+    - Return float “age in days” in [0, synodic_month) where synodic_month = 29.53058867
+    - Ensure stable monotonic day-to-day progression (usually +~1 each day modulo cycle)
+
+3) Key behaviors & edge cases
+A) Timezones and tzinfo handling
+- Accept tzinfo as:
+  - zoneinfo.ZoneInfo
+  - datetime.tzinfo (any)
+  - string timezone name (optional compatibility; if tests pass a string, support it)
+- Returned datetimes MUST be timezone-aware in tzinfo requested.
+- If tzinfo is None:
+  - If observer is from LocationInfo or has a timezone attribute, attempt to use it (string -> ZoneInfo)
+  - Else default to datetime.timezone.utc
+- date handling:
+  - If date is None:
+    - Determine “today” in tzinfo (i.e., datetime.now(tzinfo).date())
+  - If date is a datetime:
+    - Use date.date() (ignore time component, consistent with Astral’s date-based API)
+
+B) Agreement between sun() dict and sunrise()/sunset() helpers
+- sunrise()/sunset()/dawn()/dusk()/noon() must call the same internal computation as sun() to ensure consistent rounding and identical results.
+- Use a single internal function computing all events and reuse results.
+
+C) Polar day/night and “no event” conditions
+- At high latitudes, hour angle computation can become invalid (cos(H) < -1 or > 1):
+  - If cosH > 1: sun never rises (polar night) for that elevation
+  - If cosH < -1: sun never sets (midnight sun) for that elevation
+- Behavior choice (must match tests; typical Astral raises):
+  - Raise a custom AstralError (or ValueError) with a deterministic message.
+  - If unsure what tests expect, implement AstralError with subclasses:
+    - SunNeverRisesError
+    - SunNeverSetsError
+  - But keep minimal: raise ValueError with specific attribute name is risky; better define AstralError and raise that.
+
+D) Numerical stability and tolerances
+- Use radians internally; normalize angles to [0, 360) or [0, 2π).
+- Use float math; results should be within ~1–2 minutes of reference Astral for typical mid-latitudes if algorithm is correct.
+- Construct datetimes by rounding to nearest second (or keep microsecond=0). Use consistent rounding:
+  - Prefer rounding to nearest second to avoid systematic bias.
+  - Ensure sun() and helpers use same rounding rule.
+
+E) Observer elevation and refraction constants
+- Observer.elevation:
+  - Include simple horizon dip adjustment:
+    - dip ≈ 0.0347 * sqrt(elevation_m) degrees (common approximation)
+    - Effective sunrise elevation = -0.833 - dip
+  - This improves agreement for elevated observers; safe default if elevation=0.
+- Keep depression parameter for dawn/dusk; use depression + dip adjustment (i.e., elevation = -(depression) - dip).
+
+F) Lunar phase monotonicity and range
+- Implement phase based on known reference new moon epoch and synodic month:
+  - Choose an epoch close to Astral’s historical approach (commonly 2000-01-06 18:14 UTC new moon or similar).
+  - Compute days since epoch (UTC-based) using date at noon UTC to reduce discontinuities.
+  - age = (days_since_epoch % synodic_month)
+- Ensure for consecutive dates, age increases by ~1 day (mod cycle) without jitter:
+  - Use integer day count (date ordinal) + fixed offset, not local-time dependent.
+
+4) Minimal internal test plan (what to test and why)
+A) API/import surface
+- import astral; assert astral.LocationInfo exists
+- from astral.sun import sun, sunrise, sunset; from astral.moon import phase
+
+B) LocationInfo/Observer compatibility
+- Create LocationInfo with lat/lon/tz; verify .observer.latitude/.longitude/.elevation
+- Pass LocationInfo.observer into astral.sun functions
+
+C) Timezone correctness
+- Use a fixed known location (e.g., London) and date; call sun(..., tzinfo=ZoneInfo("Europe/London"))
+  - Assert returned datetimes have tzinfo set and date matches requested date for events (within same local date; noon should match date)
+- Verify tzinfo string support if implemented: tzinfo="Europe/London"
+
+D) Consistency between sun() and helper functions
+- Compute s = sun(observer, date, tzinfo)
+- Assert sunrise(observer, date, tzinfo) == s["sunrise"] (exact)
+- Same for sunset/noon/dawn/dusk
+
+E) Reasonable solar ordering
+- Assert dawn < sunrise < noon < sunset < dusk for typical mid-latitude summer day
+- Ensure all are aware datetimes and on the expected local day (handle cases near midnight carefully; but typical tests use common locations)
+
+F) Edge cases: polar conditions (if tests include)
+- Use Tromsø on winter solstice; expect exception for sunrise/sunset
+- Ensure deterministic error type/message (as implemented)
+
+G) Moon phase monotonicity
+- For a run of 40 consecutive dates, compute phase; assert:
+  - Values in [0, synodic_month)
+  - Day-to-day difference is ~1 (allow wrap near cycle end)
+  - Only one wrap-around in 40-day window; no backwards jumps except wrap
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Exact Astral reference algorithm differences causing minute-level mismatches
+  - Mitigation: Use widely used NOAA algorithm with equation of time + declination; include -0.833° constant and elevation dip; round consistently to nearest second; keep all computations in one shared path.
+- Risk: Tests expect specific exception classes/names for polar day/night
+  - Mitigation: Provide astral.errors with AstralError, SunNeverRisesError, SunNeverSetsError; raise these in appropriate cases. If tests only expect ValueError, AstralError still subclasses Exception and can be caught explicitly; but if tests check for ValueError, subclass ValueError instead (choose AstralError(ValueError) to satisfy both patterns).
+- Risk: tzinfo handling differences (None default, strings, ZoneInfo)
+  - Mitigation: Accept tzinfo as None/str/tzinfo; if None and observer came from LocationInfo, allow passing timezone through an optional attribute; otherwise default UTC. Ensure “today” is computed in tzinfo.
+- Risk: Moon phase range expected by tests (float vs int, 0..29 vs 0..27)
+  - Mitigation: Return float age in days (0..29.53). If tests expect int, they usually accept numeric; but to be safer, mimic Astral’s modern behavior (float age). Also keep stable monotonicity.
+- Risk: Datetime date boundary shifts around midnight for extreme longitudes/timezones
+  - Mitigation: Compute event times as minutes from local midnight in requested tzinfo (not UTC midnight), derived from solar noon formula adjusted by tz offset at that date; build local midnight with tzinfo and add timedelta; avoid converting from UTC which can cross date boundaries unexpectedly.
+</plan>

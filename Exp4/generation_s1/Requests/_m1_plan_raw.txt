@@ -1,0 +1,251 @@
+<plan>
+1) Repository layout and import graph
+- Top-level package: requests/
+  - __init__.py
+    - Expose: request, get, post, put, delete, head, options, patch, Session, Request, Response, exceptions
+    - Define __version__ (can be static)
+  - api.py
+    - High-level helpers: request(), get(), post(), put(), delete(), head(), options(), patch()
+    - Imports: from .sessions import Session
+  - sessions.py
+    - Session class, cookie handling, adapter mounting, request sending orchestration
+    - Imports: from .models import Request, PreparedRequest, Response
+               from .adapters import HTTPAdapter
+               from .cookies import RequestsCookieJar (or minimal wrapper)
+               from .auth import AuthBase, HTTPBasicAuth
+               from .exceptions import ...
+  - models.py
+    - Request, PreparedRequest, Response
+    - URL preparation, headers, body encoding, response decoding conveniences
+    - Imports: from .exceptions import ...
+               from .structures import CaseInsensitiveDict
+               from .cookies import cookiejar_from_dict, extract_cookies_to_jar
+  - auth.py
+    - AuthBase, HTTPBasicAuth
+    - Imports: base64, typing
+  - exceptions.py
+    - Exception classes matching requests’ taxonomy subset used by tests
+  - adapters.py
+    - HTTPAdapter: sends PreparedRequest via urllib3-like or stdlib http.client
+    - For this task, implement with Python stdlib (http.client, urllib.parse, ssl) to avoid external deps
+    - Imports: from .exceptions import ConnectionError, Timeout, SSLError, ProxyError, InvalidURL
+  - cookies.py
+    - Minimal cookie jar: RequestsCookieJar, cookiejar_from_dict, merge_cookies, extract_cookies_to_jar
+    - Use http.cookiejar.CookieJar and http.cookies.SimpleCookie for parsing Set-Cookie
+  - structures.py
+    - CaseInsensitiveDict for headers
+  - utils.py
+    - URL utilities, header parsing, encoding helpers, guess_json_utf, super_len, etc. (only what’s needed)
+- Import graph constraints
+  - api.py should be thin and depend only on sessions.Session
+  - sessions.py depends on models, adapters, cookies, auth, exceptions
+  - models.py depends on structures, cookies, exceptions, utils
+  - adapters.py depends on exceptions, utils
+  - Avoid circular imports by:
+    - Keeping exceptions and structures low-level with no upward imports
+    - Keeping cookie utilities low-level (no Session import)
+    - Session creates PreparedRequest via Request.prepare() and calls adapter.send()
+
+2) Public APIs to implement (modules/classes/functions)
+- requests.api
+  - request(method, url, params=None, data=None, json=None, headers=None, cookies=None, files=None,
+            auth=None, timeout=None, allow_redirects=True, proxies=None, verify=True, stream=False,
+            cert=None, **kwargs) -> Response
+  - get/post/put/delete/head/options/patch wrappers calling request()
+- requests.sessions
+  - class Session:
+    - __init__()
+    - request(method, url, params=None, data=None, json=None, headers=None, cookies=None, files=None,
+              auth=None, timeout=None, allow_redirects=True, proxies=None, verify=True, stream=False,
+              cert=None, **kwargs) -> Response
+    - get/post/put/delete/head/options/patch (convenience methods)
+    - send(prepared_request, **send_kwargs) -> Response
+    - prepare_request(request: Request) -> PreparedRequest
+    - close()
+    - mount(prefix, adapter)
+    - get_adapter(url) -> adapter
+    - cookie jar attribute: cookies
+    - headers default dict attribute: headers
+    - auth attribute (optional)
+    - adapters dict for http:// and https:// defaults
+- requests.models
+  - class Request:
+    - __init__(method=None, url=None, headers=None, files=None, data=None, params=None, auth=None,
+               cookies=None, json=None)
+    - prepare() -> PreparedRequest
+  - class PreparedRequest:
+    - prepare(method, url, headers, files, data, params, auth, cookies, json)
+    - prepare_method, prepare_url, prepare_headers, prepare_body, prepare_auth, prepare_cookies
+    - attributes: method, url, headers (CaseInsensitiveDict), body (bytes|str|None), hooks (optional)
+  - class Response:
+    - attributes: status_code, headers (CaseInsensitiveDict), url, reason, content (bytes),
+                 encoding, request (PreparedRequest), history (list[Response]),
+                 cookies (RequestsCookieJar), elapsed (timedelta, optional)
+    - properties/methods:
+      - text (decode content with encoding guess)
+      - json(**kwargs)
+      - raise_for_status()
+      - iter_content(chunk_size=1, decode_unicode=False) (minimal)
+      - iter_lines(...)
+- requests.auth
+  - class AuthBase:
+    - __call__(self, r: PreparedRequest) -> PreparedRequest
+  - class HTTPBasicAuth(AuthBase):
+    - __init__(username, password)
+    - __call__: sets Authorization: Basic ...
+- requests.exceptions
+  - class RequestException(Exception) (base)
+  - class HTTPError(RequestException)
+  - class ConnectionError(RequestException)
+  - class Timeout(RequestException)
+    - class ConnectTimeout(Timeout)
+    - class ReadTimeout(Timeout)
+  - class TooManyRedirects(RequestException)
+  - class URLRequired(RequestException)
+  - class InvalidURL(RequestException)
+  - class SSLError(ConnectionError)
+  - class ProxyError(ConnectionError)
+  - class ChunkedEncodingError(RequestException) (optional, only if streaming/chunked)
+  - class ContentDecodingError(RequestException) (optional)
+- Supporting minimal public-ish utilities often relied upon by tests:
+  - requests.__init__.py should import and expose Session and high-level methods
+  - requests.cookies: RequestsCookieJar and cookiejar_from_dict if referenced
+
+3) Key behaviors & edge cases
+- URL handling
+  - Require url for request(); raise URLRequired if missing/empty
+  - params encoding:
+    - Accept dict or list of tuples; append to existing query string
+    - Percent-encode properly via urllib.parse.urlencode(doseq=True)
+  - Support http and https schemes; raise InvalidURL for unsupported scheme
+- Headers
+  - Case-insensitive behavior; preserve original casing where possible but allow lookups insensitive
+  - Default headers in Session (at least User-Agent, Accept-Encoding optionally, Accept */*)
+  - Merge precedence:
+    - Per-request headers override session headers
+- Body handling
+  - data:
+    - If dict/list of tuples: form-encode (application/x-www-form-urlencoded) unless files provided
+    - If bytes/str: send as-is; if str, encode as utf-8 bytes for sending (keep original for PreparedRequest.body optional)
+  - json:
+    - If provided, JSON-serialize and set Content-Type: application/json unless already set
+    - json parameter should override data when both provided (match requests behavior: json used for body, data ignored)
+  - files:
+    - If files present, build multipart/form-data with boundary; accept {name: file-tuple} minimal:
+      - ("filename", bytes|str|fileobj, "content_type" optional)
+    - Ensure content-length computed
+- Authentication
+  - auth parameter:
+    - If tuple (user, pass): treat as HTTPBasicAuth
+    - If AuthBase instance: call it with PreparedRequest to modify headers
+    - Session.auth used if request.auth is None
+- Cookies
+  - Session maintains cookie jar
+  - Send Cookie header built from jar + per-request cookies (per-request overrides/adds)
+  - Parse Set-Cookie from response headers and store into session jar (domain/path scoping simplified but should be reasonable)
+  - Expose Response.cookies as jar of cookies set on that response
+- Redirects
+  - If allow_redirects:
+    - Follow 301, 302, 303, 307, 308 with Location header
+    - Limit via max_redirects (default e.g. 30); raise TooManyRedirects if exceeded
+    - Method rewriting:
+      - For 303: switch to GET (unless HEAD stays HEAD)
+      - For 302/301: in practice requests switches POST to GET for historical reasons; implement same (POST->GET) to satisfy tests likely
+      - For 307/308: preserve method and body
+    - Drop Authorization header when redirecting to different host (security)
+    - Carry cookies forward via session jar
+    - Populate Response.history with prior responses (excluding final)
+- Timeouts
+  - Accept timeout as:
+    - float/int: total timeout applied to connect and read in simple implementation
+    - tuple(connect_timeout, read_timeout): apply separately
+  - Implement connect and read timeouts using socket timeouts (http.client supports timeout param)
+  - Raise ConnectTimeout/ReadTimeout as appropriate (can map all to Timeout if granularity too hard, but prefer split)
+- Streaming
+  - If stream=False: read full response into Response.content immediately and close connection
+  - If stream=True: keep raw handle to read in iter_content; ensure close when done or Response.close() (optional)
+  - For minimal compatibility, may still buffer for simplicity if tests don’t stress streaming; but implement iter_content over buffered content at least
+- Response decoding
+  - Determine encoding:
+    - From Content-Type charset if present
+    - Else default to utf-8 if JSON, else ISO-8859-1 fallback or chardet not allowed (avoid dependency)
+  - Response.text decodes with errors="replace"
+  - Response.json parses using json.loads on text/content; raise ValueError/JSONDecodeError
+- Error handling
+  - DNS/socket errors -> ConnectionError
+  - SSL errors -> SSLError
+  - Invalid URL (bad scheme, missing host) -> InvalidURL
+  - raise_for_status:
+    - For 4xx/5xx raise HTTPError with attached response
+- Adapters/mounting
+  - Session mounts adapters by prefix; default adapters for http:// and https://
+  - get_adapter chooses longest matching prefix
+- Proxies/verify/cert
+  - For local test server, likely unused; accept arguments but:
+    - verify: if False, create SSLContext that doesn’t verify for https
+    - proxies: can be ignored unless tests require; if provided, either implement basic http proxy for http scheme or raise ProxyError for unsupported
+    - cert: accept but ignore unless tests check it; for https client cert, complex; likely not needed
+- Thread safety
+  - Session not thread-safe; acceptable
+
+4) Minimal internal test plan (what to test and why)
+- Use a local HTTP server (http.server.ThreadingHTTPServer + custom handler) bound to localhost with ephemeral port; endpoints:
+  - /echo: return method, path, query, headers, and body back as JSON
+  - /set-cookie: sets cookies; /check-cookie: verifies Cookie header
+  - /redirect/<code>: responds with redirect to /final; /final returns 200
+  - /basic-auth: requires Authorization header; returns 200/401
+  - /status/<n>: returns given status with body
+  - /json: returns JSON with Content-Type application/json; charset variations
+- Tests
+  - api helpers:
+    - requests.get/post/etc. call through and return Response
+  - params:
+    - dict with list values (doseq), existing query string merge
+  - headers:
+    - session default headers merged; per-request override
+    - CaseInsensitiveDict behavior (lookup by different casing)
+  - data/json:
+    - data dict -> form encoding and proper Content-Type
+    - json -> JSON encoding and Content-Type; json overrides data
+  - cookies:
+    - session persists cookies across requests; response.cookies contains newly set cookies
+    - per-request cookies merged
+  - auth:
+    - tuple auth and HTTPBasicAuth both produce correct Authorization header
+    - session.auth used when request auth None
+  - redirects:
+    - history populated; final url correct
+    - method rewrite for 302/303 (POST becomes GET where expected)
+    - redirect limit triggers TooManyRedirects
+    - Authorization dropped on cross-host redirect (simulate by redirecting to 127.0.0.1 vs localhost if server can accept both)
+  - raise_for_status:
+    - 200 no raise; 404/500 raises HTTPError with response attached
+  - timeout:
+    - handler that sleeps before responding; client timeout triggers Timeout/ReadTimeout
+  - adapter mounting:
+    - mount custom adapter for prefix and verify used (mock adapter that records send calls)
+- Keep tests minimal and deterministic; no external network; no flaky timing (use short but safe timeouts).
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Multipart encoding complexity (files=)
+  - Risk: subtle formatting and boundaries.
+  - Mitigation: implement only minimal subset needed by tests; add unit tests that validate server receives expected Content-Type prefix and body contains fields/files.
+- Redirect semantics differences vs real requests
+  - Risk: tests may expect requests-like POST->GET behavior on 301/302/303 and header stripping rules.
+  - Mitigation: mirror requests behavior for common cases; add explicit redirect tests for each code.
+- Cookie parsing and domain/path scoping
+  - Risk: correct RFC cookie handling is complex.
+  - Mitigation: lean on http.cookiejar.CookieJar where possible; for Set-Cookie parsing use http.cookies.SimpleCookie and create Cookie objects; keep to same-host tests to avoid domain edge cases.
+- Timeout classification (connect vs read)
+  - Risk: hard to distinguish reliably with stdlib.
+  - Mitigation: implement tuple timeout support; map ambiguous socket.timeout to ReadTimeout; connect errors to ConnectTimeout when failing during connection setup.
+- HTTPS and SSL verify behavior
+  - Risk: local tests might include self-signed cert.
+  - Mitigation: support verify=False by building unverified SSLContext; otherwise default verified context.
+- Proxy support
+  - Risk: if tests pass proxies argument.
+  - Mitigation: accept proxies but document/implement no-op for direct localhost; if used, raise ProxyError clearly rather than silent misbehavior.
+- Streaming/chunked responses
+  - Risk: chunked transfer decoding requires careful implementation.
+  - Mitigation: initially buffer full body (stream=False default); if stream=True and chunked encountered, still rely on http.client to decode; provide iter_content over buffered content if necessary.
+</plan>

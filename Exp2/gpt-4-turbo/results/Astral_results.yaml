@@ -1,0 +1,279 @@
+project_name: Astral
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Astral\astral.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Astral
+timestamp: '2026-01-01 13:16:50'
+functional_score: 1.0
+non_functional_score: 0.7267
+non_functional_subscores:
+  maintainability: 0.9075
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 0
+    stdout: '...........                                                              [100%]
+
+      11 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.276988
+    avg_memory_mb: 30.96
+    avg_cpu_percent: 100.0
+    passed: 11
+    failed: 0
+    skipped: 0
+    total: 11
+    score_inputs_passed: 11
+    score_inputs_failed: 0
+    score_inputs_total: 11
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_astral_performance_smoke ________________________\n\
+      \n    def test_astral_performance_smoke() -> None:\n        \"\"\"Smoke test\
+      \ to ensure the performance benchmark runs successfully.\"\"\"\n>       metrics\
+      \ = run_astral_performance_benchmark(iterations=5, days=10)\n\ntests\\Astral\\\
+      performance_test.py:75: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Astral\\performance_test.py:60: in run_astral_performance_benchmark\n\
+      \    _ = sun(loc.observer, date=d, tzinfo=loc.timezone)\ngeneration\\Astral\\\
+      astral\\sun.py:177: in sun\n    events[\"dawn\"] = _sun_event_time(observer,\
+      \ date, -6.0, tz, \"dawn\")\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nobserver = Observer(latitude=51.5074, longitude=-0.1278,\
+      \ elevation=0.0)\ndate_ = datetime.date(2020, 1, 1), angle = -6.0, tzinfo =\
+      \ 'Europe/London'\nevent = 'dawn'\n\n    def _sun_event_time(\n        observer:\
+      \ Observer,\n        date_: date,\n        angle: float,\n        tzinfo: Optional[Any],\n\
+      \        event: str\n    ) -> Optional[datetime]:\n        \"\"\"Compute the\
+      \ time of a sun event (rise/set/dawn/dusk) for the observer.\"\"\"\n       \
+      \ # Algorithm based on NOAA Solar Calculator\n        # https://gml.noaa.gov/grad/solcalc/solareqns.PDF\n\
+      \        # All angles in degrees\n        lw = -observer.longitude\n       \
+      \ phi = radians(observer.latitude)\n        n = _julian_cycle(_to_julian_day(datetime(date_.year,\
+      \ date_.month, date_.day, 12)), lw)\n        ds = _mean_solar_noon(_to_julian_day(datetime(date_.year,\
+      \ date_.month, date_.day, 12)), lw)\n        M = (357.5291 + 0.98560028 * (ds\
+      \ - J2000))\n        L = _ecliptic_longitude(M)\n        dec = _sun_declination(L)\n\
+      \        Jnoon = _solar_transit_j(ds, M, L)\n        # Correct for observer\
+      \ elevation\n        h0 = angle + _observer_elevation_correction(observer.elevation)\n\
+      \        try:\n            H = _hour_angle(radians(h0), phi, dec)\n        except\
+      \ ValueError:\n            # Sun does not rise/set on this day\n           \
+      \ return None\n        if event in (\"sunrise\", \"dawn\"):\n            Jrise\
+      \ = Jnoon - degrees(H) / 360.0\n            dt = _from_julian_day(Jrise)\n \
+      \       elif event in (\"sunset\", \"dusk\"):\n            Jset = Jnoon + degrees(H)\
+      \ / 360.0\n            dt = _from_julian_day(Jset)\n        else:\n        \
+      \    raise ValueError(\"Invalid event type\")\n        if tzinfo is not None:\n\
+      >           dt = dt.astimezone(tzinfo)\nE           TypeError: tzinfo argument\
+      \ must be None or of a tzinfo subclass, not type 'str'\n\ngeneration\\Astral\\\
+      astral\\sun.py:156: TypeError\n=========================== short test summary\
+      \ info ===========================\nFAILED tests/Astral/performance_test.py::test_astral_performance_smoke\
+      \ - Type...\n1 failed in 0.34s\n"
+    elapsed_time_s: 1.469076
+    avg_memory_mb: 31.88
+    avg_cpu_percent: 98.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.209133
+    score_inputs_actual_time_s: 1.469076
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________________ test_resource_usage_smoke __________________________\n\
+      \n    def test_resource_usage_smoke() -> None:\n        \"\"\"\n        Smoke\
+      \ test: run a representative batch workload and verify\n        we can observe\
+      \ process resource info without crashing.\n    \n        Note: The benchmark\
+      \ runner measures subprocess resources.\n        This test is correctness-oriented\
+      \ only.\n        \"\"\"\n        proc = psutil.Process()\n        rss_before\
+      \ = proc.memory_info().rss\n    \n        loc = _london_location()\n       \
+      \ base_date = dt.date(2020, 1, 1)\n    \n        for offset in range(60):\n\
+      \            d = base_date + dt.timedelta(days=offset)\n>           _ = sun(loc.observer,\
+      \ date=d, tzinfo=loc.timezone)\n\ntests\\Astral\\resource_test.py:65: \n_ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _\ngeneration\\Astral\\astral\\sun.py:177: in sun\n    events[\"dawn\"] =\
+      \ _sun_event_time(observer, date, -6.0, tz, \"dawn\")\n_ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nobserver = Observer(latitude=51.5074,\
+      \ longitude=-0.1278, elevation=0.0)\ndate_ = datetime.date(2020, 1, 1), angle\
+      \ = -6.0, tzinfo = 'Europe/London'\nevent = 'dawn'\n\n    def _sun_event_time(\n\
+      \        observer: Observer,\n        date_: date,\n        angle: float,\n\
+      \        tzinfo: Optional[Any],\n        event: str\n    ) -> Optional[datetime]:\n\
+      \        \"\"\"Compute the time of a sun event (rise/set/dawn/dusk) for the\
+      \ observer.\"\"\"\n        # Algorithm based on NOAA Solar Calculator\n    \
+      \    # https://gml.noaa.gov/grad/solcalc/solareqns.PDF\n        # All angles\
+      \ in degrees\n        lw = -observer.longitude\n        phi = radians(observer.latitude)\n\
+      \        n = _julian_cycle(_to_julian_day(datetime(date_.year, date_.month,\
+      \ date_.day, 12)), lw)\n        ds = _mean_solar_noon(_to_julian_day(datetime(date_.year,\
+      \ date_.month, date_.day, 12)), lw)\n        M = (357.5291 + 0.98560028 * (ds\
+      \ - J2000))\n        L = _ecliptic_longitude(M)\n        dec = _sun_declination(L)\n\
+      \        Jnoon = _solar_transit_j(ds, M, L)\n        # Correct for observer\
+      \ elevation\n        h0 = angle + _observer_elevation_correction(observer.elevation)\n\
+      \        try:\n            H = _hour_angle(radians(h0), phi, dec)\n        except\
+      \ ValueError:\n            # Sun does not rise/set on this day\n           \
+      \ return None\n        if event in (\"sunrise\", \"dawn\"):\n            Jrise\
+      \ = Jnoon - degrees(H) / 360.0\n            dt = _from_julian_day(Jrise)\n \
+      \       elif event in (\"sunset\", \"dusk\"):\n            Jset = Jnoon + degrees(H)\
+      \ / 360.0\n            dt = _from_julian_day(Jset)\n        else:\n        \
+      \    raise ValueError(\"Invalid event type\")\n        if tzinfo is not None:\n\
+      >           dt = dt.astimezone(tzinfo)\nE           TypeError: tzinfo argument\
+      \ must be None or of a tzinfo subclass, not type 'str'\n\ngeneration\\Astral\\\
+      astral\\sun.py:156: TypeError\n=========================== short test summary\
+      \ info ===========================\nFAILED tests/Astral/resource_test.py::test_resource_usage_smoke\
+      \ - TypeError: ...\n1 failed in 0.35s\n"
+    elapsed_time_s: 1.517129
+    avg_memory_mb: 34.42
+    avg_cpu_percent: 97.8
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.35
+    score_inputs_baseline_cpu_pct: 104.2
+    score_inputs_actual_mem_mb: 34.42
+    score_inputs_actual_cpu_pct: 97.8
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.305039
+    avg_memory_mb: 31.37
+    avg_cpu_percent: 101.3
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=281.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.269744
+    avg_memory_mb: 31.7
+    avg_cpu_percent: 98.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 281.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.2562 files_scanned=5.0 total_loc=281.0 max_cc=6.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.225273
+    avg_memory_mb: 31.75
+    avg_cpu_percent: 98.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.2562
+      files_scanned: 5.0
+      total_loc: 281.0
+      max_cc: 6.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 2.1658
+    score_inputs_generated_mi_min: 21.2562
+    score_inputs_ratio_g_over_b: 9.81447963800905
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.258826
+    functional_tests_total: 11
+  performance:
+    performance_suite_time_s: 1.209133
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.220496
+    resource_tests_total: 1
+    avg_memory_mb: 33.35
+    avg_cpu_percent: 104.2
+  robustness:
+    robustness_suite_time_s: 1.213882
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.42552
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 36.0
+      total_loc: 4949.0
+  maintainability:
+    maintainability_suite_time_s: 1.668661
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 2.1658
+      files_scanned: 36.0
+      total_loc: 4949.0
+      max_cc: 20.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Astral\pytest_logs

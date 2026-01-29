@@ -1,0 +1,862 @@
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fail2ban-min"
+version = "0.1.0"
+description = "Minimal offline-safe subset of Fail2Ban for regex matching and in-memory ban tracking."
+requires-python = ">=3.10"
+readme = "README.txt"
+
+[tool.setuptools]
+packages = ["fail2ban", "fail2ban.server"]
+
+[tool.pytest.ini_options]
+testpaths = ["_agent_tests"]
+</file>
+
+<file:name=README.txt>
+This repository implements a minimal, offline-safe subset of Fail2Ban.
+
+Scope:
+- Regex-based log line matching and IP extraction (IPv4/IPv6).
+- In-memory ban tracking with maxretry/findtime/bantime logic.
+- Minimal configuration reader for config/jail.conf.
+- CLI tools are stubs or offline utilities; they must not start daemons, open sockets, or modify firewall rules.
+
+Safety:
+- No root required.
+- No firewall changes.
+- No daemon or networking.
+
+Provided scripts:
+- bin/fail2ban-regex: offline regex tester against a log file (or stdin).
+- bin/fail2ban-client: help/version only (no server communication).
+- bin/fail2ban-server: help only; explicitly does not start any daemon.
+</file>
+
+<file:name=config/jail.conf>
+[DEFAULT]
+# Minimal subset of canonical configuration entrypoint.
+# Values are interpreted by fail2ban.server.configreader
+
+enabled = false
+maxretry = 3
+findtime = 600
+bantime = 600
+
+# A safe, small regex typical for sshd failures. It uses a named group "ip".
+failregex =
+    ^Failed password for .* from (?P<ip>\S+) port \d+ .*$
+
+ignoreregex =
+
+[sshd]
+enabled = true
+maxretry = 3
+findtime = 120
+bantime = 60
+failregex =
+    ^Failed password for .* from (?P<ip>\S+) port \d+ .*$
+
+ignoreregex =
+    ^Failed password for invalid user .* from 127\.0\.0\.1 .*$
+
+</file>
+
+<file:name=fail2ban/__init__.py>
+from .version import __version__
+
+__all__ = ["__version__"]
+</file>
+
+<file:name=fail2ban/version.py>
+__version__ = "0.1.0"
+</file>
+
+<file:name=fail2ban/server/__init__.py>
+from .jail import Jail
+from .filter import isValidIP, searchIP, FailRegex
+
+__all__ = ["Jail", "isValidIP", "searchIP", "FailRegex"]
+</file>
+
+<file:name=fail2ban/server/ticket.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+@dataclass(frozen=True, slots=True)
+class Ticket:
+    ip: str
+    time: float
+    line: str
+    pattern: str
+</file>
+
+<file:name=fail2ban/server/actions.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass(frozen=True, slots=True)
+class _Event:
+    type: str  # "ban" | "unban"
+    ip: str
+    reason: Optional[str] = None
+
+class Actions:
+    """
+    No-op action manager: records ban/unban events in memory only.
+    Never touches firewall rules or system configuration.
+    """
+    def __init__(self, jail_name: str):
+        self.jail_name = jail_name
+        self._banned: set[str] = set()
+        self._events: list[dict] = []
+
+    def ban(self, ip: str, reason: str | None = None) -> None:
+        if ip in self._banned:
+            return
+        self._banned.add(ip)
+        self._events.append({"type": "ban", "ip": ip, "reason": reason, "jail": self.jail_name})
+
+    def unban(self, ip: str) -> None:
+        if ip not in self._banned:
+            return
+        self._banned.remove(ip)
+        self._events.append({"type": "unban", "ip": ip, "jail": self.jail_name})
+
+    def banned(self) -> set[str]:
+        return set(self._banned)
+
+    def events(self) -> list[dict]:
+        return list(self._events)
+</file>
+
+<file:name=fail2ban/server/filter.py>
+from __future__ import annotations
+
+import ipaddress
+import re
+from typing import Optional
+
+# Conservative patterns intended for log extraction (not full RFC parsing).
+_IPV4_RE = re.compile(
+    r"(?<![\d.])"
+    r"(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}"
+    r"(?:25[0-5]|2[0-4]\d|1?\d?\d)"
+    r"(?![\d.])"
+)
+
+# For IPv6, use a broad-but-bounded token then validate via ipaddress.
+# We avoid matching very short ":" sequences by requiring at least two colons.
+_IPV6_TOKEN_RE = re.compile(
+    r"(?<![0-9A-Fa-f:])"
+    r"([0-9A-Fa-f]{0,4}(?::[0-9A-Fa-f]{0,4}){2,7})"
+    r"(?![0-9A-Fa-f:])"
+)
+
+_BRACKETED_RE = re.compile(r"\[([^\]]+)\](?::\d+)?")
+
+def isValidIP(ip: str) -> bool:
+    """
+    Validate plain IPv4/IPv6 address string.
+    Rejects:
+      - bracketed forms like "[1.2.3.4]"
+      - CIDR like "1.2.3.4/24"
+      - zone ids like "fe80::1%eth0"
+    """
+    if not isinstance(ip, str):
+        return False
+    ip = ip.strip()
+    if not ip or "[" in ip or "]" in ip or "/" in ip or "%" in ip:
+        return False
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+
+def _strip_brackets_and_port(text: str) -> str:
+    m = _BRACKETED_RE.search(text)
+    if not m:
+        return text
+    return m.group(1)
+
+def searchIP(text: str) -> Optional[str]:
+    """
+    Extract first valid IPv4 or IPv6 address from text.
+    Supports:
+      - "... from 1.2.3.4 ..."
+      - "... [1.2.3.4] ..."
+      - "... client [2001:db8::1]:1234 ..."
+    """
+    if not text:
+        return None
+
+    # Prefer bracketed forms first (common for IPv6).
+    bracket = _strip_brackets_and_port(text)
+    if bracket != text and isValidIP(bracket):
+        return bracket
+
+    m4 = _IPV4_RE.search(text)
+    if m4:
+        ip = m4.group(0)
+        if isValidIP(ip):
+            return ip
+
+    m6 = _IPV6_TOKEN_RE.search(text)
+    if m6:
+        token = m6.group(1)
+        if isValidIP(token):
+            return token
+
+    return None
+
+def compile_failregex(patterns: list[str]) -> list[re.Pattern]:
+    compiled: list[re.Pattern] = []
+    for p in patterns:
+        try:
+            compiled.append(re.compile(p))
+        except re.error as e:
+            raise ValueError(f"Invalid failregex pattern: {p!r}: {e}") from e
+    return compiled
+
+def compile_ignoreregex(patterns: list[str]) -> list[re.Pattern]:
+    compiled: list[re.Pattern] = []
+    for p in patterns:
+        try:
+            compiled.append(re.compile(p))
+        except re.error as e:
+            raise ValueError(f"Invalid ignoreregex pattern: {p!r}: {e}") from e
+    return compiled
+
+class FailRegex:
+    def __init__(self, patterns: list[str], ignoreregex: list[str] | None = None):
+        if not patterns:
+            raise ValueError("At least one failregex pattern is required")
+        self.patterns_raw = list(patterns)
+        self.ignoreregex_raw = list(ignoreregex or [])
+        self.fail = compile_failregex(self.patterns_raw)
+        self.ignore = compile_ignoreregex(self.ignoreregex_raw)
+
+    def find_ip(self, matchobj: re.Match, line: str) -> Optional[str]:
+        gd = matchobj.groupdict() if matchobj else {}
+        for key in ("ip", "host"):
+            if key in gd and gd[key]:
+                candidate = gd[key].strip()
+                # Some logs capture host:port or [ip]:port; try to normalize.
+                candidate2 = _strip_brackets_and_port(candidate)
+                if isValidIP(candidate2):
+                    return candidate2
+        # Fallback: search whole line.
+        return searchIP(line)
+
+    def match_line(self, line: str) -> Optional[dict]:
+        if line is None:
+            return None
+
+        # If any ignore matches, treat as ignored even if failregex matches.
+        for ign in self.ignore:
+            if ign.search(line):
+                return None
+
+        for raw, cre in zip(self.patterns_raw, self.fail):
+            m = cre.search(line)
+            if not m:
+                continue
+            ip = self.find_ip(m, line)
+            return {"pattern": raw, "ip": ip, "match": m}
+        return None
+</file>
+
+<file:name=fail2ban/server/configreader.py>
+from __future__ import annotations
+
+import configparser
+from pathlib import Path
+from typing import Any
+
+from .jail import Jail
+
+def _split_multiline(value: str) -> list[str]:
+    # ConfigParser keeps multiline values with embedded newlines; split and trim.
+    parts: list[str] = []
+    for line in (value or "").splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        parts.append(s)
+    return parts
+
+def load_jail_conf(path: str) -> dict[str, Any]:
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(str(p))
+
+    cp = configparser.ConfigParser(interpolation=None)
+    cp.read(p, encoding="utf-8")
+
+    defaults = dict(cp.defaults())
+    jails: dict[str, dict[str, str]] = {}
+    for section in cp.sections():
+        jails[section] = dict(cp.items(section))
+
+    return {"defaults": defaults, "jails": jails}
+
+def build_jail(name: str, conf: dict[str, Any]) -> Jail:
+    defaults = conf.get("defaults", {}) or {}
+    jails = conf.get("jails", {}) or {}
+    if name not in jails:
+        raise KeyError(f"Jail section not found: {name}")
+
+    merged: dict[str, str] = dict(defaults)
+    merged.update(jails[name])
+
+    def _get_int(key: str, default: int) -> int:
+        v = merged.get(key, str(default))
+        try:
+            return int(str(v).strip())
+        except ValueError as e:
+            raise ValueError(f"Invalid integer for {key} in jail {name}: {v!r}") from e
+
+    enabled = str(merged.get("enabled", "false")).strip().lower() in ("1", "true", "yes", "on")
+    maxretry = _get_int("maxretry", 3)
+    findtime = _get_int("findtime", 600)
+    bantime = _get_int("bantime", 600)
+
+    failregex = _split_multiline(merged.get("failregex", ""))
+    ignoreregex = _split_multiline(merged.get("ignoreregex", ""))
+
+    jail = Jail(
+        name=name,
+        failregex=failregex if failregex else None,
+        ignoreregex=ignoreregex if ignoreregex else None,
+        maxretry=maxretry,
+        findtime=findtime,
+        bantime=bantime,
+    )
+    # "enabled" is not used to start anything (offline-only), but keep attribute.
+    jail.enabled = enabled
+    return jail
+</file>
+
+<file:name=fail2ban/server/jail.py>
+from __future__ import annotations
+
+from collections import deque
+from dataclasses import dataclass
+from typing import Deque, Optional
+
+from .actions import Actions
+from .filter import FailRegex
+from .ticket import Ticket
+
+@dataclass(slots=True)
+class _BanInfo:
+    time: float
+    reason: str
+
+class Jail:
+    """
+    Minimal jail:
+    - Evaluates a set of failregex patterns (and optional ignoreregex)
+    - Tracks failures per IP within findtime
+    - "Bans" by recording in memory via Actions (no system modifications)
+    """
+    def __init__(
+        self,
+        name: str,
+        filter_regex: str | None = None,
+        failregex: list[str] | None = None,
+        ignoreregex: list[str] | None = None,
+        maxretry: int = 3,
+        findtime: int = 600,
+        bantime: int = 600,
+    ):
+        self.name = name
+        if filter_regex and not failregex:
+            failregex = [filter_regex]
+        self.failregex = list(failregex or [])
+        self.ignoreregex = list(ignoreregex or [])
+        if not self.failregex:
+            raise ValueError("Jail requires failregex (or filter_regex)")
+
+        if maxretry < 1:
+            raise ValueError("maxretry must be >= 1")
+        if findtime < 0:
+            raise ValueError("findtime must be >= 0")
+
+        self.maxretry = int(maxretry)
+        self.findtime = int(findtime)
+        self.bantime = int(bantime)
+
+        self.filter = FailRegex(self.failregex, self.ignoreregex)
+        self.actions = Actions(self.name)
+
+        self._failures: dict[str, Deque[float]] = {}
+        self._bans: dict[str, _BanInfo] = {}
+        self._stats = {"lines": 0, "matches": 0, "ignored": 0, "bans": 0}
+
+        # Optional config attribute used by configreader; no operational effect here.
+        self.enabled: bool = True
+
+    def reset(self) -> None:
+        self._failures.clear()
+        self._bans.clear()
+        self._stats = {"lines": 0, "matches": 0, "ignored": 0, "bans": 0}
+        self.actions = Actions(self.name)
+
+    def _prune_failures(self, ip: str, now: float) -> None:
+        if self.findtime <= 0:
+            return
+        dq = self._failures.get(ip)
+        if not dq:
+            return
+        cutoff = now - self.findtime
+        while dq and dq[0] < cutoff:
+            dq.popleft()
+        if not dq:
+            self._failures.pop(ip, None)
+
+    def _expire_bans(self, now: float) -> None:
+        if self.bantime <= 0:
+            return
+        expired = []
+        for ip, info in self._bans.items():
+            if now >= info.time + self.bantime:
+                expired.append(ip)
+        for ip in expired:
+            self._bans.pop(ip, None)
+            self.actions.unban(ip)
+
+    def add_log_line(self, line: str, now: float | None = None) -> list[str]:
+        if now is None:
+            # Deterministic tests pass now; if not provided, use monotonic-ish time.
+            import time
+            now = time.time()
+
+        self._stats["lines"] += 1
+        self._expire_bans(now)
+
+        # Ignore handling is implemented in FailRegex.match_line by returning None.
+        info = self.filter.match_line(line)
+        if info is None:
+            # Could be ignored or non-match. We can't distinguish precisely without
+            # re-checking ignore patterns; keep it simple: treat as non-match.
+            return []
+
+        self._stats["matches"] += 1
+        ip = info.get("ip")
+        if not ip:
+            return []
+
+        # If already banned, do not keep counting (typical behavior).
+        if ip in self._bans:
+            return []
+
+        dq = self._failures.setdefault(ip, deque())
+        dq.append(float(now))
+        self._prune_failures(ip, float(now))
+
+        if len(dq) >= self.maxretry:
+            reason = f"maxretry reached ({len(dq)}/{self.maxretry})"
+            self._bans[ip] = _BanInfo(time=float(now), reason=reason)
+            self.actions.ban(ip, reason=reason)
+            self._stats["bans"] += 1
+            return [ip]
+
+        return []
+
+    def process_lines(self, lines: list[str], now: float | None = None) -> dict:
+        banned: list[str] = []
+        matches = 0
+        for line in lines:
+            before_matches = self._stats["matches"]
+            banned.extend(self.add_log_line(line, now=now))
+            if self._stats["matches"] > before_matches:
+                matches += 1
+        out = dict(self._stats)
+        out["banned"] = set(self.get_banned())
+        out["newly_banned"] = banned
+        out["matches_in_call"] = matches
+        return out
+
+    def get_banned(self) -> set[str]:
+        # Ensure any time-based expiry when caller queries and provides no now.
+        # Here, avoid implicit time; just return current state.
+        return set(self._bans.keys())
+
+    def ticket_from_line(self, line: str, now: float | None = None) -> Optional[Ticket]:
+        if now is None:
+            import time
+            now = time.time()
+        info = self.filter.match_line(line)
+        if not info or not info.get("ip"):
+            return None
+        return Ticket(ip=info["ip"], time=float(now), line=line, pattern=info["pattern"])
+</file>
+
+<file:name=bin/fail2ban-client>
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+
+from fail2ban import __version__
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Offline-safe subset: no daemon communication implemented.",
+    )
+    parser.add_argument("--version", action="store_true", help="Print version and exit.")
+    args, unknown = parser.parse_known_args(argv)
+
+    if args.version:
+        print(__version__)
+        return 0
+
+    # Default: show help (safe).
+    parser.print_help()
+    if unknown:
+        print("\nNote: daemon communication commands are not implemented in this subset.", file=sys.stderr)
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=bin/fail2ban-server>
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-server",
+        description="Offline-safe subset: daemon mode not implemented.",
+    )
+    parser.add_argument("--help-only", action="store_true", help="No-op flag (compat).")
+    args = parser.parse_args(argv)
+    parser.print_help()
+    print("\nDaemon/server mode is not implemented in this offline-safe subset.")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=bin/fail2ban-regex>
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.server.filter import FailRegex
+
+MAX_LINE_LEN = 32 * 1024
+
+def _read_lines(path: str) -> list[str]:
+    if path == "-":
+        data = sys.stdin.read()
+        return data.splitlines()
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(str(p))
+    with p.open("r", encoding="utf-8", errors="replace") as f:
+        out = []
+        for line in f:
+            if len(line) > MAX_LINE_LEN:
+                line = line[:MAX_LINE_LEN]
+            out.append(line.rstrip("\n"))
+        return out
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex tester: scans a log file for failregex matches and extracts IPs.",
+    )
+    parser.add_argument("logfile", nargs="?", help="Path to logfile (use '-' for stdin).")
+    parser.add_argument("regex", nargs="?", help="Failregex to test (Python regex).")
+    parser.add_argument("--ignoreregex", action="append", default=[], help="Ignore regex (can repeat).")
+    parser.add_argument("--max-lines", type=int, default=None, help="Limit number of lines read.")
+    args = parser.parse_args(argv)
+
+    if not args.logfile or not args.regex:
+        parser.print_help()
+        return 0
+
+    try:
+        fr = FailRegex([args.regex], ignoreregex=args.ignoreregex)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        lines = _read_lines(args.logfile)
+    except FileNotFoundError as e:
+        print(f"ERROR: logfile not found: {e}", file=sys.stderr)
+        return 2
+
+    if args.max_lines is not None:
+        lines = lines[: max(0, args.max_lines)]
+
+    tested = 0
+    matches = 0
+    ignored_or_nomatch = 0
+    ips: set[str] = set()
+
+    for line in lines:
+        tested += 1
+        info = fr.match_line(line)
+        if not info:
+            ignored_or_nomatch += 1
+            continue
+        matches += 1
+        if info.get("ip"):
+            ips.add(info["ip"])
+
+    print(f"Lines: {tested}")
+    print(f"Matches: {matches}")
+    print(f"Non-matching/ignored: {ignored_or_nomatch}")
+    if ips:
+        print("IPs:")
+        for ip in sorted(ips):
+            print(f"  {ip}")
+    else:
+        print("IPs: (none)")
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=_agent_tests/test_filter_ip.py>
+import pytest
+
+from fail2ban.server.filter import isValidIP, searchIP
+
+@pytest.mark.parametrize(
+    "ip,expected",
+    [
+        ("1.2.3.4", True),
+        ("255.255.255.255", True),
+        ("2001:db8::1", True),
+        ("999.1.1.1", False),
+        ("1.2.3", False),
+        ("2001:::1", False),
+        ("1.2.3.4/24", False),
+        ("[1.2.3.4]", False),
+        ("fe80::1%eth0", False),
+    ],
+)
+def test_is_valid_ip(ip, expected):
+    assert isValidIP(ip) is expected
+
+def test_search_ip_ipv4():
+    line = "Failed password for root from 1.2.3.4 port 22 ssh2"
+    assert searchIP(line) == "1.2.3.4"
+
+def test_search_ip_ipv6_bracket_port():
+    line = "client [2001:db8::1]:1234 connected"
+    assert searchIP(line) == "2001:db8::1"
+
+def test_search_ip_none():
+    assert searchIP("no address here") is None
+</file>
+
+<file:name=_agent_tests/test_jail_basic.py>
+from fail2ban.server.jail import Jail
+
+SSH_FAIL = r"^Failed password for .* from (?P<ip>\S+) port \d+ .*$"
+IGNORE_LOCAL = r"^Failed password for invalid user .* from 127\.0\.0\.1 .*$"
+
+def test_jail_ban_threshold_and_once():
+    jail = Jail(
+        name="sshd",
+        failregex=[SSH_FAIL],
+        maxretry=3,
+        findtime=60,
+        bantime=0,
+    )
+    ip = "1.2.3.4"
+    lines = [
+        f"Failed password for root from {ip} port 22 ssh2",
+        f"Failed password for root from {ip} port 22 ssh2",
+    ]
+    assert jail.process_lines(lines, now=10)["banned"] == set()
+    banned = jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=11)
+    assert banned == [ip]
+    assert jail.get_banned() == {ip}
+
+    # Further matches do not re-ban
+    banned2 = jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=12)
+    assert banned2 == []
+    assert [e["type"] for e in jail.actions.events()].count("ban") == 1
+
+def test_jail_separate_ips_and_ignore():
+    jail = Jail(
+        name="sshd",
+        failregex=[SSH_FAIL],
+        ignoreregex=[IGNORE_LOCAL],
+        maxretry=2,
+        findtime=60,
+        bantime=0,
+    )
+    # Ignored line should not count (nor ban)
+    jail.add_log_line("Failed password for invalid user bob from 127.0.0.1 port 22 ssh2", now=1)
+    assert jail.get_banned() == set()
+
+    jail.add_log_line("Failed password for root from 1.1.1.1 port 22 ssh2", now=2)
+    jail.add_log_line("Failed password for root from 2.2.2.2 port 22 ssh2", now=3)
+    assert jail.get_banned() == set()
+    assert jail.add_log_line("Failed password for root from 1.1.1.1 port 22 ssh2", now=4) == ["1.1.1.1"]
+    assert jail.get_banned() == {"1.1.1.1"}
+
+def test_findtime_pruning():
+    jail = Jail(
+        name="sshd",
+        failregex=[SSH_FAIL],
+        maxretry=2,
+        findtime=5,
+        bantime=0,
+    )
+    ip = "3.3.3.3"
+    jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=0)
+    jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=10)
+    # First event should be pruned, so no ban
+    assert jail.get_banned() == set()
+    # Now another within window => ban
+    assert jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=11) == [ip]
+
+def test_bantime_expiry():
+    jail = Jail(
+        name="sshd",
+        failregex=[SSH_FAIL],
+        maxretry=2,
+        findtime=60,
+        bantime=10,
+    )
+    ip = "4.4.4.4"
+    jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=1)
+    assert jail.add_log_line(f"Failed password for root from {ip} port 22 ssh2", now=2) == [ip]
+    assert jail.get_banned() == {ip}
+
+    # Expiry is checked on subsequent processing
+    jail.add_log_line("unrelated line", now=2 + 9.9)
+    assert jail.get_banned() == {ip}
+    jail.add_log_line("unrelated line", now=2 + 10.1)
+    assert jail.get_banned() == set()
+</file>
+
+<file:name=_agent_tests/test_config_reader.py>
+from pathlib import Path
+
+from fail2ban.server.configreader import load_jail_conf, build_jail
+
+def test_config_exists_and_parses():
+    root = Path(__file__).resolve().parents[1]
+    conf_path = root / "config" / "jail.conf"
+    assert conf_path.exists()
+
+    conf = load_jail_conf(str(conf_path))
+    assert "defaults" in conf and "jails" in conf
+    assert "sshd" in conf["jails"]
+
+def test_build_jail_from_conf():
+    root = Path(__file__).resolve().parents[1]
+    conf_path = root / "config" / "jail.conf"
+    conf = load_jail_conf(str(conf_path))
+    jail = build_jail("sshd", conf)
+
+    assert jail.name == "sshd"
+    assert jail.maxretry == 3
+    assert jail.findtime == 120
+    assert jail.bantime == 60
+    assert jail.failregex and isinstance(jail.failregex, list)
+    assert hasattr(jail, "enabled") and jail.enabled is True
+</file>
+
+<file:name=_agent_tests/test_fail2ban_regex_cli.py>
+import subprocess
+import sys
+from pathlib import Path
+
+def _run(args, cwd):
+    return subprocess.run(
+        [sys.executable, *args],
+        cwd=cwd,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+def test_fail2ban_regex_help():
+    root = Path(__file__).resolve().parents[1]
+    script = root / "bin" / "fail2ban-regex"
+    p = _run([str(script), "--help"], cwd=root)
+    assert p.returncode == 0
+    assert "Offline regex tester" in p.stdout
+
+def test_fail2ban_regex_offline_match(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    script = root / "bin" / "fail2ban-regex"
+
+    log = tmp_path / "auth.log"
+    log.write_text(
+        "\n".join(
+            [
+                "noise line",
+                "Failed password for root from 1.2.3.4 port 22 ssh2",
+                "Failed password for root from 2001:db8::1 port 22 ssh2",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    regex = r"^Failed password for .* from (?P<ip>\S+) port \d+ .*$"
+    p = _run([str(script), str(log), regex], cwd=root)
+    assert p.returncode == 0
+    assert "Matches:" in p.stdout
+    assert "1.2.3.4" in p.stdout
+    assert "2001:db8::1" in p.stdout
+
+def test_fail2ban_regex_invalid_regex(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    script = root / "bin" / "fail2ban-regex"
+
+    log = tmp_path / "auth.log"
+    log.write_text("x\n", encoding="utf-8")
+
+    p = _run([str(script), str(log), r"("], cwd=root)
+    assert p.returncode == 2
+    assert "Invalid failregex pattern" in p.stderr
+</file>
+
+<file:name=_agent_tests/test_cli_stubs.py>
+import subprocess
+import sys
+from pathlib import Path
+
+def test_fail2ban_client_help_no_socket():
+    root = Path(__file__).resolve().parents[1]
+    script = root / "bin" / "fail2ban-client"
+    p = subprocess.run([sys.executable, str(script), "--help"], cwd=root, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert p.returncode == 0
+    assert "Offline-safe subset" in p.stdout
+
+def test_fail2ban_server_help_only():
+    root = Path(__file__).resolve().parents[1]
+    script = root / "bin" / "fail2ban-server"
+    p = subprocess.run([sys.executable, str(script), "--help"], cwd=root, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert p.returncode == 0
+    assert "daemon mode not implemented" in p.stdout.lower() or "not implemented" in p.stdout.lower()
+</file>

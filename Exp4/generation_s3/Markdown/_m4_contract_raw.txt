@@ -1,0 +1,177 @@
+<contract>
+1) Repository layout
+- Top-level package: markdown
+  - markdown/__init__.py
+    - Exposes public API symbols and version metadata as needed by tests.
+  - markdown/core.py
+    - Implements Markdown class and core conversion pipeline.
+    - Implements module-level convenience functions markdown() and markdownFromFile().
+  - markdown/extensions/__init__.py
+    - Minimal extension package stub to satisfy imports; no full extension system required unless tests import it.
+- No dependency on the reference repository at runtime; implementation must be pure Python and self-contained.
+
+2) Public API surface
+- Package import:
+  - `import markdown` must succeed.
+
+- markdown module attributes/functions/classes:
+  - Function: `markdown.markdown(text, **kwargs) -> str`
+    - text: Unicode string (Python str)
+    - kwargs: must accept common options used by tests (even if partially ignored), including at least:
+      - extensions=None
+      - output_format="xhtml" or "html" (accept and ignore/approximate if tests don’t assert exact)
+      - tab_length=4
+      - encoding (when used via markdownFromFile)
+  - Function: `markdown.markdownFromFile(**kwargs) -> str | None`
+    - Must accept keyword arguments compatible with Python-Markdown core usage:
+      - input (file path) OR infile (file path or file-like)
+      - output (file path) OR outfile (file path or file-like) [may be omitted]
+      - text (optional direct text override)
+      - encoding="utf-8"
+      - **kwargs forwarded to Markdown constructor and/or convert()
+    - Returns HTML string when no output/outfile is provided; otherwise may write to output and return None (match tests’ expectation).
+  - Class: `markdown.Markdown`
+    - Constructor: `Markdown(**kwargs)`
+      - Must accept same core kwargs as markdown() where applicable.
+    - Method: `convert(self, text: str) -> str`
+      - Converts Markdown text to HTML string.
+    - Method: `reset(self) -> "Markdown"`
+      - Resets any per-document state so subsequent convert() calls behave like new instance.
+    - Optional: `convertFile(...)` may exist but not required unless tests call it.
+
+- Module exposure:
+  - `markdown.Markdown` must be importable (e.g., `from markdown import Markdown`).
+  - `markdown.markdown` and `markdown.markdownFromFile` must be importable.
+
+3) Behavioral contract
+Core conversion behavior (must match reference output for tested inputs, ignoring insignificant whitespace):
+- Input/output:
+  - Input is a Unicode string; output is a Unicode HTML string.
+  - Core API must not print to stdout/stderr or read from stdin.
+  - Must be deterministic and side-effect free except where explicitly writing output files in markdownFromFile.
+
+- Block structure parsing (minimum supported constructs):
+  A) Headings (ATX):
+    - Lines starting with 1–6 '#' followed by a space create <h1>..</h1> through <h6>..</h6>.
+    - Trailing hashes may be tolerated (strip optional closing sequence) if encountered in tests.
+    - Heading content is parsed for inline emphasis/links/code and escaped appropriately.
+
+  B) Paragraphs:
+    - One or more consecutive non-blank lines that are not part of other block constructs form a paragraph.
+    - Paragraph output: <p>inline-processed-text</p>
+    - Blank lines separate paragraphs/blocks.
+
+  C) Code blocks:
+    - Indented code blocks: lines indented by >= tab_length spaces (default 4) become a code block.
+    - Fenced code blocks: triple backticks ``` or tildes ~~~ open/close fences.
+      - Content inside is not parsed for inline markdown.
+      - Raw HTML-sensitive chars inside code must be preserved (i.e., not interpreted as HTML), but must be HTML-escaped so that `<` becomes `&lt;` and `&` becomes `&amp;` in output code HTML (consistent with typical Markdown behavior). Inline parsing disabled.
+    - Output: <pre><code>...</code></pre>
+    - Preserve newlines in code content; ensure final newline handling is close to reference for test cases (allow insignificant whitespace differences).
+
+  D) Blockquotes:
+    - Lines starting with '>' (optionally followed by a space) form a blockquote.
+    - Consecutive blockquote lines are grouped.
+    - Inner content parsed as block-level markdown (at least paragraphs, lists, code blocks if present in tests).
+    - Output: <blockquote> ... </blockquote> with appropriate contained elements.
+
+  E) Lists:
+    - Unordered lists: lines starting with '-', '+', or '*' followed by space.
+    - Ordered lists: lines starting with digits + '.' followed by space (at least "1. ").
+    - Consecutive list items form a single <ul> or <ol>.
+    - Each item becomes <li>...</li>.
+    - Support simple items and paragraph-like wrapping within list items as needed by tests; at minimum, allow inline parsing within item text.
+    - Nested lists are not required unless tests include them; if present, implement basic indentation-based nesting.
+
+- Inline parsing (within headings, paragraphs, list items, etc.):
+  A) Escaping / HTML safety:
+    - In normal text (non-code), escape:
+      - '&' to '&amp;' (unless part of already-formed entity in test cases; simplest approach: escape all, tests usually accept)
+      - '<' to '&lt;'
+      - '>' to '&gt;' (optional; safe)
+    - Do not treat raw HTML tags as HTML; treat them as text and escape (unless tests explicitly expect raw HTML passthrough; default is escape for safety).
+    - In inline code spans and code blocks: escape HTML-sensitive characters so code displays literally; do not apply emphasis/link parsing inside code.
+
+  B) Emphasis:
+    - *text* or _text_ => <em>text</em>
+    - **text** or __text__ => <strong>text</strong>
+    - Handle nesting basic cases: **strong and *em* inside** if encountered.
+    - Avoid converting emphasis markers inside code spans.
+
+  C) Inline code:
+    - `code` => <code>code</code>
+    - Backtick runs: support simple single-backtick spans sufficient for tests.
+
+  D) Links:
+    - [text](url) => <a href="url">text</a>
+    - Escape attribute values for href (at minimum, replace '&' and '"' appropriately).
+    - Parse inline markdown inside link text (optional; likely not required by minimal tests).
+
+  E) Images:
+    - ![alt](url) => <img alt="alt" src="url" />
+    - Use XHTML-style self-closing if output_format indicates xhtml; otherwise allow <img ...>.
+    - Escape alt text and src attribute.
+
+- Whitespace and normalization:
+  - Output should be stable and close to reference; tests ignore insignificant whitespace differences. Avoid adding extra blank lines inside tags.
+  - Ensure block elements are separated by newlines in a consistent way.
+
+- State/reset semantics:
+  - Markdown instance may store configuration (tab_length, output_format, etc.).
+  - convert() must not accumulate output from prior calls.
+  - reset() clears any per-document caches/state; calling convert() after reset() behaves like first conversion.
+  - Creating a new instance should work equivalently.
+
+- Error handling:
+  - markdown.markdown(text, **kwargs):
+    - If text is None: raise TypeError (or coerce to "None" only if tests expect; default: TypeError).
+    - If text is bytes: decode using kwargs.get("encoding","utf-8") if provided; otherwise raise TypeError unless tests pass bytes.
+  - markdownFromFile(**kwargs):
+    - If input/infile missing and text missing: raise ValueError.
+    - If given a path that doesn’t exist: raise FileNotFoundError.
+    - Accept file-like objects with .read() and optionally .write().
+
+- Extensions:
+  - Accept `extensions` kwarg but may ignore unless tests require behavior.
+  - markdown/extensions/__init__.py must exist to satisfy import paths; can define minimal placeholders.
+
+4) Acceptance checklist
+- Import/API:
+  - `import markdown` works.
+  - `markdown.markdown("hi")` returns a str containing "<p>hi</p>" (or equivalent with safe escaping).
+  - `md = markdown.Markdown(); md.convert("hi")` returns same as markdown.markdown("hi").
+  - `md.convert("one"); md.convert("two")` returns only "two" result (no accumulation).
+  - `md.reset(); md.convert("hi")` works and equals new instance behavior.
+
+- Core syntax:
+  - Headings: "# Title" => "<h1>Title</h1>" (inline processed).
+  - Paragraphs: "a\n\nb" => two <p> blocks.
+  - Em/strong: "*a*" => <em>a</em>, "**a**" => <strong>a</strong>, underscore variants also.
+  - Inline code: "`<`" renders with &lt; inside <code>.
+  - Code blocks:
+    - Indented: "    x < y" => <pre><code>x &lt; y</code></pre>
+    - Fenced: "```\nx < y\n```" => same code behavior.
+  - Lists:
+    - "- a\n- b" => <ul><li>a</li><li>b</li></ul>
+    - "1. a\n2. b" => <ol>...</ol>
+  - Blockquotes: "> a" => <blockquote><p>a</p></blockquote>
+  - Links/images:
+    - "[t](u)" => <a href="u">t</a>
+    - "![a](u)" => <img alt="a" src="u" ...>
+
+- Escaping:
+  - Normal text "<" becomes "&lt;" in output HTML text nodes.
+  - "&" becomes "&amp;".
+  - Code spans/blocks preserve literal display via HTML-escaping within code.
+
+- File conversion:
+  - markdownFromFile(input="path.md") returns HTML equivalent to markdown(open(...).read()) when no output specified.
+  - markdownFromFile with output/outfile writes HTML to destination without printing to stdout.
+
+5) Non-goals / constraints
+- Do not implement the full Python-Markdown extension API; only accept/ignore extensions unless tests require limited hooks.
+- Do not depend on external packages or services.
+- Do not attempt to perfectly match all edge cases of the full reference Markdown spec; only what is needed for black-box tests described.
+- Do not pass through raw HTML by default; treat as text and escape (unless tests demand otherwise; keep behavior consistent across constructs).
+- No CLI program required; no stdin/stdout interactions in the core API used by tests.
+</contract>

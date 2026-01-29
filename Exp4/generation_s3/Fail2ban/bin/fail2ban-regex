@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.server.filter import RegexFilter
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex checker (safe subset). Matches regex(es) against a log file and extracts IPs.",
+    )
+    p.add_argument("logfile", help="Path to a log file to read (text).")
+    p.add_argument("regex", nargs="+", help="One or more regex patterns (failregex).")
+    p.add_argument(
+        "-i",
+        "--ignore",
+        action="append",
+        default=[],
+        help="Ignore regex (may be supplied multiple times). If any matches a line, that line is ignored.",
+    )
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    ns = parser.parse_args(argv)
+
+    path = Path(ns.logfile)
+    if not path.exists() or not path.is_file():
+        sys.stderr.write(f"fail2ban-regex: error: logfile not found: {ns.logfile}\n")
+        return 2
+
+    try:
+        rf = RegexFilter(failregex=[], ignoreregex=ns.ignore or [])
+        for pat in ns.regex:
+            rf.addFailRegex(pat)
+    except ValueError as e:
+        sys.stderr.write(f"fail2ban-regex: error: {e}\n")
+        return 2
+
+    total_lines = 0
+    matched_lines = 0
+    all_ips: list[str] = []
+
+    with path.open("r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            total_lines += 1
+            ips = rf.matchLine(line.rstrip("\n"))
+            if ips:
+                matched_lines += 1
+                all_ips.extend(ips)
+
+    unique_ips = []
+    seen = set()
+    for ip in all_ips:
+        if ip not in seen:
+            seen.add(ip)
+            unique_ips.append(ip)
+
+    sys.stdout.write(f"Lines: {total_lines}\n")
+    sys.stdout.write(f"Matched lines: {matched_lines}\n")
+    sys.stdout.write(f"Total IP matches: {len(all_ips)}\n")
+    sys.stdout.write(f"Unique IPs: {len(unique_ips)}\n")
+    if unique_ips:
+        sys.stdout.write("IPs:\n")
+        for ip in unique_ips:
+            sys.stdout.write(f"  {ip}\n")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

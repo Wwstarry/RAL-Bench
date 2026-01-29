@@ -1,0 +1,136 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- typer/
+  - __init__.py
+  - main.py (core implementation: Typer app, decorators, parsing, help, invocation)
+  - params.py (Option/Argument parameter marker objects and metadata)
+  - utils.py (echo and small helpers)
+  - exceptions.py (Exit and related internal exceptions)
+  - testing.py (CliRunner testing helper compatible with tests)
+- pyproject.toml / setup.cfg (not required by tests unless packaging is exercised; ok to omit)
+- No dependency on external packages (must be pure Python stdlib).
+
+2) Public API surface (modules/classes/functions and key signatures)
+- Package import:
+  - import typer must work.
+- typer.__init__ must expose:
+  - Typer (class) from typer.main
+  - Option (function or class factory) from typer.params
+  - Argument (function or class factory) from typer.params
+  - echo (function) from typer.utils
+  - Exit (exception) from typer.exceptions
+  - testing submodule (typer.testing), and/or CliRunner available as typer.testing.CliRunner
+- typer.main
+  - class Typer:
+    - __init__(self, *, name: str | None = None, help: str | None = None, add_help_option: bool = True)
+    - command(self, name: str | None = None, **kwargs) -> callable decorator
+      - decorator(func) registers func as a subcommand
+    - callback(self, **kwargs) -> callable decorator (optional; only if tests need; safe stub)
+    - __call__(self, args: list[str] | None = None, prog_name: str | None = None) -> int
+      - Executes CLI with provided args (or sys.argv[1:]) and returns exit code
+    - registered commands must be discoverable for help output
+- typer.params
+  - Option(default=..., *param_decls: str, help: str | None = None, **kwargs) -> OptionInfo
+  - Argument(default=..., *param_decls: str, help: str | None = None, **kwargs) -> ArgumentInfo
+  - class OptionInfo:
+    - attributes: default, param_decls, help, required(bool derived), type(optional)
+  - class ArgumentInfo:
+    - attributes: default, param_decls, help, required(bool derived), type(optional)
+  - Only support the subset needed by tests: default, help, simple flags, parsing into basic types.
+- typer.utils
+  - echo(message: object = "", *, nl: bool = True, err: bool = False, file=None) -> None
+    - Writes to stdout by default; if err True then stderr; if file provided use it.
+- typer.exceptions
+  - class Exit(Exception):
+    - __init__(self, code: int = 0)
+    - attribute: exit_code (or code) used to propagate process exit status
+- typer.testing
+  - class Result:
+    - attributes: exit_code:int, stdout:str, stderr:str, output:str (stdout+stderr or stdout; match tests), exception:Exception|None
+  - class CliRunner:
+    - __init__(self, *, mix_stderr: bool = False)
+    - invoke(self, app: Typer | callable, args: str | list[str] | None = None, input: str | None = None, env: dict | None = None, catch_exceptions: bool = True, prog_name: str | None = None) -> Result
+    - Must execute the Typer app in-process, capturing stdout/stderr, returning Result.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+- Command registration:
+  - app = Typer()
+  - @app.command() on a function registers that function as a command.
+  - Command name default: function.__name__ with underscores converted to hyphens (only if tests require; otherwise keep as-is but prefer hyphen conversion for compatibility).
+  - Multiple commands supported; selecting command is via first positional CLI token.
+- Parameter declaration:
+  - Command function parameters may be plain with Python defaults, or may have default values produced by Option(...) or Argument(...).
+  - Option(...) marks parameter as option; accepted forms:
+    - Long form: --param-name (param underscores become hyphens)
+    - If Option param_decls includes explicit flags (e.g., "--foo", "-f"), those flags are accepted.
+    - Boolean options: if default is False, presence sets True; if default True, presence sets False only if a "--no-<name>" form is provided (not required unless tests cover; ok to omit).
+    - Non-boolean options require a value: --name VALUE or --name=VALUE.
+  - Argument(...) marks parameter as positional argument.
+  - If neither OptionInfo nor ArgumentInfo is used:
+    - Treat as Argument by default for parameters without Option marker when command is invoked positionally (best-effort; ensure tests that use simple positional args pass).
+- Parsing and typing:
+  - Convert CLI strings to annotated types if annotation is present and is one of: str, int, float, bool.
+  - If no annotation, keep string.
+  - For bool options: accept "true/false/1/0" values when explicitly provided; but presence alone toggles to True for default False.
+  - Missing required argument/option:
+    - If parameter has no default and is not provided, print an error to stderr and exit with code 2 (conventional CLI usage error) unless tests expect different; keep stable.
+  - Unknown option:
+    - Print error to stderr and exit code 2.
+- Invocation and exit codes:
+  - app(args) returns an integer exit code.
+  - Normal completion returns 0.
+  - If command raises typer.Exit(code), exit code must be code; do not treat as error; do not print traceback.
+  - If command raises SystemExit, propagate its code similarly.
+  - If any other exception occurs:
+    - If catch_exceptions is True in CliRunner.invoke, capture exception in Result.exception and set exit_code=1; stderr may include traceback only if tests require (default: include traceback for visibility is optional; safer: no traceback unless explicitly needed).
+    - If catch_exceptions is False, re-raise.
+  - If a command function explicitly returns an int, treat that as exit code (non-zero supported) if tests exercise; otherwise ignore return value.
+- Help output:
+  - --help or -h at app level prints:
+    - A Usage line containing program name and “[OPTIONS] COMMAND [ARGS]...” style text (exact wording need not match Typer perfectly but must include basic usage and command list).
+    - A “Commands:” section listing registered command names with one-line help (from function docstring first line if present, else empty).
+  - --help after a command name prints:
+    - Usage showing program name and command name plus parameters.
+    - Lists arguments and options with their flags and defaults if present.
+  - Help must go to stdout and exit code 0.
+- Output:
+  - typer.echo writes exactly the string representation, ending newline by default.
+  - CliRunner captures stdout/stderr separately unless mix_stderr=True; Result.output should match stdout if mix_stderr=False, else combined.
+- Invariants:
+  - Public names and import paths must exist exactly: typer.Typer, typer.Option, typer.Argument, typer.echo, typer.Exit, typer.testing.CliRunner.
+  - No reliance on click or typer external packages.
+  - Deterministic help ordering: commands listed in registration order or sorted; choose sorted for stable tests unless reference expects registration order; prefer registration order if easy to preserve.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Import/API:
+  - `import typer` succeeds.
+  - `typer.Typer`, `typer.Option`, `typer.Argument`, `typer.echo`, `typer.Exit` exist and are callable/usable.
+  - `from typer.testing import CliRunner` succeeds and `CliRunner().invoke(...)` works.
+- Command behavior:
+  - Can define:
+    - app = typer.Typer()
+    - @app.command() def hello(name: str): typer.echo(f"Hello {name}")
+    - runner.invoke(app, ["hello", "World"]) yields exit_code 0 and stdout contains greeting.
+  - Options:
+    - @app.command() def cmd(value: int = typer.Option(3)): ... invoked with `--value 5` sets 5; missing uses default 3.
+  - Arguments:
+    - @app.command() def cmd(name: str = typer.Argument(...)): requires positional; missing triggers exit_code 2 and error on stderr.
+- Exit propagation:
+  - Raising `typer.Exit(code=5)` yields exit_code 5 with no traceback printed.
+  - Returning int from command (if used by tests) sets exit_code accordingly.
+- Help:
+  - runner.invoke(app, ["--help"]) prints usage and includes each command name in a “Commands” section; exit_code 0.
+  - runner.invoke(app, ["cmd", "--help"]) prints command usage/options/args; exit_code 0.
+- Error handling:
+  - Unknown command prints error and suggests help (minimal) and exits code 2.
+  - Unknown option exits code 2.
+- I/O capture:
+  - `typer.echo(..., err=True)` appears in Result.stderr (or in output if mix_stderr=True).
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not implement full Typer/Click feature set (callbacks, rich formatting, shell completion, parameter types beyond basic scalars, nested sub-typer groups) unless tests require.
+- Do not depend on external packages (no click, rich, colorama, etc.).
+- Do not spawn subprocesses for invocation; testing runner must invoke in-process.
+- Do not attempt to exactly match Typer’s full help formatting; only include the minimal required sections and information to satisfy black-box tests.
+- Do not implement complex environment variable integration, file parameters, prompting, hidden options, or advanced error messages unless tests explicitly cover them.
+</contract>

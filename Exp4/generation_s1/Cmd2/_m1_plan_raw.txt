@@ -1,0 +1,193 @@
+<plan>
+1) Repository layout and import graph
+   - Package layout (minimum)
+     - cmd2/__init__.py
+       - Re-export key symbols for compatibility: Cmd2, Statement, parse utilities, Transcript classes/helpers
+     - cmd2/cmd2.py
+       - Implements Cmd2 class (subclass of cmd.Cmd) and core loop/execution helpers
+     - cmd2/parsing.py
+       - Implements tokenization/parsing primitives used by Cmd2 and tests (Statement, shlex helpers)
+     - cmd2/utils.py
+       - Implements utility functions (stdout/stderr redirection/capture, strip_ansi, etc.)
+     - (Optional but likely needed for tests; still “pure Python” and internal)
+       - cmd2/transcript.py
+         - Transcript runner + parser for transcript files
+       - cmd2/exceptions.py
+         - CommandError / Cmd2ArgparseError (thin wrappers)
+   - Import graph intent
+     - cmd2/__init__.py imports from cmd2/cmd2.py, cmd2/parsing.py, cmd2/utils.py (and transcript if created)
+     - cmd2/cmd2.py imports stdlib: cmd, sys, io, traceback, contextlib, argparse, shlex, re, pathlib
+     - cmd2/cmd2.py imports cmd2.parsing (Statement + parse function), cmd2.utils (capture + formatting), cmd2.transcript (if present)
+     - cmd2/parsing.py imports shlex, dataclasses, typing, re
+     - cmd2/utils.py imports contextlib, io, os, re, sys
+
+2) Public APIs to implement (modules/classes/functions)
+   - cmd2/__init__.py
+     - __all__ should include at least:
+       - Cmd2
+       - Statement
+       - EmptyStatement (if used)
+       - Cmd2ArgumentParser (if provided)
+       - Cmd2ArgparseError / CommandError (if provided)
+       - run_transcript_tests / TranscriptRunner (if provided)
+     - Provide version placeholder: __version__ = "0.0.test"
+   - cmd2/parsing.py
+     - dataclass Statement:
+       - raw: original line
+       - command: first token (or "")
+       - args: remainder string after command (or "")
+       - arg_list: list[str] tokenized arguments (excluding command)
+       - tokens: list[str] full token list (including command)
+       - terminator: str (e.g., ";") if line ended with terminator; else ""
+       - is_empty: bool property
+     - tokenize(line: str) -> list[str]
+       - Use shlex.split with posix=True; preserve quotes semantics
+       - Handle empty/whitespace-only lines
+     - parse_statement(line: str) -> Statement
+       - Compute command, args, arg_list, tokens; keep raw
+     - (Compatibility shims commonly used)
+       - shlex_split (alias to tokenize)
+       - quote_string_if_needed(s: str) -> str (minimal for tests; can be passthrough with quoting rules)
+   - cmd2/utils.py
+     - StdSim / StringIO-like helpers if needed by tests
+     - strip_ansi(text: str) -> str
+       - Remove ANSI escape sequences for transcript comparisons if required
+     - redact(text: str) -> str (optional noop unless tests mention)
+     - context managers:
+       - redirect_std(target_stdout, target_stderr=None)
+       - capture_std() -> (stdout_str, stderr_str) or object with getvalue
+       - capture_output() (alias)
+     - ensure_str(s) -> str helper (bytes->str)
+   - cmd2/cmd2.py
+     - class Cmd2(cmd.Cmd):
+       - __init__(..., stdin=None, stdout=None, stderr=None, completekey="tab", use_ipython=False, allow_cli_args=True, **kwargs)
+         - Store self.stdin/stdout and also self.stderr
+         - Set self.prompt default ("> ")
+         - Provide “poutput”, “perror”, “pfeedback” methods writing to correct streams
+       - onecmd(self, line: str) -> bool
+         - Parse into Statement (via parsing.parse_statement)
+         - Route to do_<command> if exists; empty line handling; comments handling if needed
+         - Should propagate SystemExit only if tests expect; otherwise catch and print
+       - parseline override if necessary to align with cmd.Cmd behavior (but rely mostly on our Statement)
+       - default(self, line: str)
+         - Error for unknown command (perror like “*** Unknown syntax: <line>” or closest expected)
+       - emptyline(self)
+         - Should do nothing (cmd.Cmd repeats last cmd by default; cmd2 does not)
+       - do_help / help command
+         - Provide help for commands from docstrings and “help_<name>” methods
+         - help output format close to cmd: list commands in columns or one per line; minimal acceptable for tests: deterministic sorted list
+       - completedefault / complete_<name> hooks
+         - Provide method signature compatible with cmd module and cmd2 expectations
+       - cmdloop(self, intro=None)
+         - Use cmd.Cmd.cmdloop but ensure using self.stdin/stdout and exception formatting consistent with tests
+       - statement parsing/execution helpers:
+         - precmd(self, line) and postcmd(self, stop, line) (keep basic)
+         - postparsing hooks if tests expect (can be no-op)
+       - argument parsing utilities (core compatibility)
+         - Provide method: parse_args(self, parser: argparse.ArgumentParser, args: str | list[str]) -> argparse.Namespace
+           - If args is str: shlex split
+           - Catch SystemExit from argparse and raise Cmd2ArgparseError or print to stderr, depending on tests
+         - Provide small wrapper class Cmd2ArgumentParser(argparse.ArgumentParser):
+           - override error() to raise Cmd2ArgparseError instead of exiting
+           - override exit() similarly
+   - Transcript support (either in cmd2/cmd2.py or separate cmd2/transcript.py)
+     - Public entry points (common in cmd2 testing)
+       - run_transcript_tests(app: Cmd2, transcript_files: list[str|Path], *, fail_on_exception=True, strip_ansi=True) -> list[TranscriptResult]
+       - class TranscriptRunner:
+         - run(transcript_path) -> TranscriptResult
+     - Transcript parsing:
+       - Read file lines; detect command lines by prompt prefix (default app.prompt at time of run; also accept “(Cmd)” style if tests)
+       - Transcript format minimal:
+         - Lines starting with prompt represent a command; subsequent lines until next prompt are expected output
+         - Support blank expected output blocks
+       - Execution:
+         - For each command, run app.onecmd(command_text)
+         - Capture stdout+stderr during execution
+         - Normalize newlines; optionally strip ANSI
+         - Compare expected vs actual line-by-line; record diffs
+     - TranscriptResult:
+       - path, passed bool, failures list with (command, expected, actual, diff)
+
+3) Key behaviors & edge cases
+   - Command dispatch
+     - Map first token to do_<token>; if token is empty: treat as empty statement and return None/False
+     - Do not repeat last command on empty line (override emptyline to no-op)
+     - Unknown commands should call default() and write an error to stderr (or stdout if tests expect cmd-style). Implement both but default to stderr via perror.
+   - Output streams
+     - Provide:
+       - poutput(*args, sep=" ", end="\n") -> write to self.stdout
+       - perror(*args, sep=" ", end="\n") -> write to self.stderr (fallback to self.stdout if stderr is None)
+       - pfeedback similar to poutput (may be used by tests)
+     - Ensure writes are flushed when needed for transcript consistency.
+   - Help generation
+     - Implement do_help similar to cmd.Cmd but stable ordering:
+       - “help” with no args lists documented do_ methods excluding hidden ones (e.g., those starting with “_”)
+       - “help <cmd>” prints docstring of do_<cmd> or help_<cmd>
+     - Avoid terminal-dependent column formatting in tests; output one command per line or fixed formatting.
+   - Tab completion hooks
+     - Provide complete() behavior compatible with cmd.Cmd.
+     - If a complete_<command> exists, call it.
+     - Provide completedefault and complete_help minimal.
+   - Parsing
+     - shlex splitting should handle quotes and escaped spaces.
+     - Preserve raw line for error messages/transcript comparisons.
+     - Keep args string as raw remainder (strip leading spaces after command).
+   - Error handling / exception propagation
+     - By default in interactive cmdloop, exceptions should be printed and loop continues; but black-box tests may call onecmd directly and expect exceptions to propagate for failing commands.
+     - Strategy:
+       - In onecmd, catch exceptions only for known argparse exits (SystemExit) and convert to Cmd2ArgparseError or print usage; let other exceptions propagate unless a “debug”/“reraise” flag is set.
+       - In cmdloop, wrap onecmd in try/except Exception, print traceback to stderr, continue.
+   - Argparse integration
+     - Provide Cmd2ArgumentParser raising Cmd2ArgparseError so tests can assert errors without process exit.
+     - parse_args helper should accept either string or list.
+   - Transcript runner normalization
+     - Normalize line endings to “\n”.
+     - Strip trailing whitespace on compare only if tests are tolerant; safer: compare exact lines but allow ignoring final newline differences.
+     - Optionally strip ANSI codes.
+     - Include stderr in captured output either merged with stdout (common in transcripts) or appended; choose merged-by-default but make configurable.
+   - Prompt handling in transcripts
+     - Use current app.prompt; also accept prompt variants by stripping known prompts if transcript contains “> ”.
+     - Commands may be indented or have leading spaces; keep command text as typed after prompt.
+
+4) Minimal internal test plan (what to test and why)
+   - Smoke import tests
+     - Import cmd2; from cmd2 import Cmd2, Statement; ensure modules resolve.
+   - Basic command dispatch
+     - Define a small Cmd2 subclass with do_echo, do_fail, do_args; call onecmd with:
+       - “echo hi” => outputs “hi”
+       - unknown => outputs error containing the input
+       - empty string => no output and no repeat
+   - Parsing correctness
+     - parse_statement('cmd "a b" c') => command=cmd, arg_list=['a b','c'], args='"a b" c' (or equivalent), raw preserved.
+   - Help behavior
+     - help with no args lists echo/args/help in deterministic order.
+     - help echo prints docstring.
+   - Argparse handling
+     - Cmd2ArgumentParser with required arg; parse_args on missing arg raises Cmd2ArgparseError (not SystemExit).
+   - Output capture utilities
+     - capture_output context around poutput/perror produces expected strings.
+   - Transcript runner
+     - Create temporary transcript file:
+       - > echo hi
+         hi
+       - > unknown
+         (error line)
+     - Run transcript runner and verify pass/fail cases and diff reporting.
+   - cmdloop behavior (minimal)
+     - Provide stdin as io.StringIO("echo hi\nquit\n") with do_quit returning True; ensure loop exits and output matches.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Cmd2 reference behavior is broad; tests may rely on specific text in error/help output.
+     - Mitigation: mimic cmd.Cmd baseline messages where possible; keep formatting simple and deterministic; centralize message strings for quick adjustment.
+   - Transcript format variations (different prompts, inclusion of stderr, blank lines).
+     - Mitigation: implement tolerant transcript parser:
+       - Accept multiple prompt prefixes; allow configurable prompt regex; normalize line endings; optional ANSI stripping.
+   - Argparse exit behavior differences across Python versions.
+     - Mitigation: override ArgumentParser.error/exit to avoid SystemExit; include captured usage text in exception for assertions.
+   - Stream handling (stdout/stderr) in cmd.Cmd is subtle; cmdloop writes prompt to stdout, input reading from stdin.
+     - Mitigation: ensure Cmd2 passes stdin/stdout into cmd.Cmd correctly; override cmdloop if needed to ensure prompt writes to configured stdout; thoroughly test with StringIO.
+   - Completion API differences (readline availability).
+     - Mitigation: avoid importing/readline dependency; rely on cmd.Cmd completion methods and ensure they don’t crash when readline missing.
+   - Exception propagation expectations differ when calling onecmd vs cmdloop.
+     - Mitigation: keep onecmd mostly “pure” (raise unexpected exceptions); wrap exceptions only in cmdloop; provide flag in Cmd2 to control this if tests require.
+</plan>

@@ -1,0 +1,249 @@
+1) Repository layout
+- Package root must contain a Python package named `dataset` importable via `import dataset`.
+- Required modules/files:
+  - dataset/__init__.py
+  - dataset/database.py
+  - dataset/table.py
+- Module responsibilities:
+  - dataset/__init__.py: expose public entrypoints (`connect`) and key classes (`Database`, `Table`) for convenient imports.
+  - dataset/database.py: implement `Database` connection wrapper, transaction control, and SQL query helper.
+  - dataset/table.py: implement `Table` abstraction (lazy table creation, schema evolution, CRUD, querying, indexes, introspection).
+
+2) Public API surface
+2.1 Top-level module: dataset
+- Function:
+  - connect(url: str, **kwargs) -> dataset.database.Database
+    - Must accept at least SQLite URLs of the form:
+      - "sqlite:///:memory:"
+      - "sqlite:////absolute/path.db" (may be used by tests; keep basic support)
+    - Any extra kwargs should be accepted and ignored unless needed.
+
+- Re-exports:
+  - Database (from dataset.database)
+  - Table (from dataset.table)
+
+2.2 Module: dataset.database
+- Class: Database
+  - __init__(self, url: str, **kwargs)
+  - __getitem__(self, name: str) -> dataset.table.Table
+    - Return a Table object bound to this database and `name`.
+    - Must be idempotent: repeated access returns the same Table instance or equivalent behavior.
+  - begin(self) -> None
+  - commit(self) -> None
+  - rollback(self) -> None
+  - query(self, sql: str, **params) -> iterator[Mapping[str, Any]]
+    - Execute SQL with optional named parameters; yield row dict-like mappings.
+  - Optional/implicit helpers permitted (internal):
+    - execute(sql, params) for non-select operations
+    - close() if needed; not required by tests but safe to include
+
+2.3 Module: dataset.table
+- Class: Table
+  - Properties/attributes:
+    - name: str
+    - db: Database
+    - columns: set[str] or list[str]
+      - Must reflect known columns for the table and update when schema evolves.
+  - Special methods:
+    - __len__(self) -> int
+      - Return count of all rows in the table.
+  - Data modification methods:
+    - insert(self, row: Mapping[str, Any]) -> Any
+      - Insert a single row; return inserted primary key when available, else None.
+    - insert_many(self, rows: Iterable[Mapping[str, Any]], chunk_size: int | None = None) -> None
+      - Insert many; should be efficient for large inputs; chunk_size may be used to batch.
+    - update(self, row: Mapping[str, Any], keys: list[str] | tuple[str, ...] | str) -> int
+      - Update existing row(s) matching keys; return number of affected rows.
+    - upsert(self, row: Mapping[str, Any], keys: list[str] | tuple[str, ...] | str) -> Any
+      - Insert if not exists, else update; return inserted/updated key or affected indicator.
+    - delete(self, **filters) -> int
+      - Delete rows matching equality filters; return number of deleted rows.
+  - Query methods:
+    - all(self) -> iterator[Mapping[str, Any]]
+      - Yield all rows as dict mappings.
+    - find(self, **filters) -> iterator[Mapping[str, Any]]
+      - Yield rows matching equality filters.
+    - find_one(self, **filters) -> Mapping[str, Any] | None
+      - Return first matching row or None.
+    - distinct(self, column: str) -> iterator[Any]
+      - Yield distinct values for the given column.
+    - count(self, **filters) -> int
+      - Count rows matching equality filters (or all rows if no filters).
+  - Index helpers:
+    - create_index(self, columns: str | list[str] | tuple[str, ...]) -> None
+      - Create an index (simplified) for the specified column(s).
+    - has_index(self, columns: str | list[str] | tuple[str, ...]) -> bool
+      - Return True if an index for the specified column(s) is known/existing.
+
+3) Behavioral contract
+3.1 Backend and connectivity
+- Implementation must be pure Python and rely only on the Python standard library.
+- SQLite must be used via `sqlite3`.
+- connect("sqlite:///:memory:") must create an in-memory SQLite database.
+  - Each Database instance has its own connection unless explicitly shared; tests may create multiple connections.
+- URL parsing:
+  - Recognize scheme "sqlite".
+  - For ":memory:" special case, open sqlite3.connect(":memory:").
+  - For file paths, open sqlite3.connect(path) where path is derived from URL (strip leading "sqlite:///" semantics).
+- Row representation:
+  - Results from query/all/find/find_one must be Mapping-like; tests expect dict semantics.
+  - Use sqlite3.Row or manual mapping to dict; must support `row['col']` via dict keys at least.
+
+3.2 Lazy table creation and schema evolution
+- Accessing db['name'] must not necessarily create the physical table immediately; however, by the time an insert/update/upsert occurs, the table must exist.
+- When inserting dictionaries:
+  - If table does not exist, create it automatically.
+  - Columns are created lazily: if a row contains keys not present as table columns, ALTER TABLE to add new columns before inserting/updating.
+- Column typing:
+  - Simplified type mapping is acceptable; must not break inserts/queries.
+  - Recommended minimal mapping:
+    - int/bool -> INTEGER
+    - float -> REAL
+    - bytes -> BLOB
+    - other/non-None -> TEXT
+    - None -> TEXT (or allow NULL in any type)
+  - Primary key:
+    - Provide an auto-increment integer primary key column named "id" by default when creating a new table (unless the inserted row already includes "id"; still create id).
+  - Reserved/unsafe column names:
+    - Must quote identifiers with double quotes to avoid SQL injection and reserved keyword conflicts.
+    - Table name must be quoted similarly.
+
+3.3 CRUD semantics
+- insert(row):
+  - Accept dict-like row.
+  - If row contains unknown keys, add columns first.
+  - Insert NULL for missing known columns is acceptable (only insert provided columns is also acceptable).
+  - Return inserted row id (cursor.lastrowid) when possible.
+- insert_many(rows, chunk_size):
+  - Must handle large iterables efficiently without O(n) memory buffering.
+  - If chunk_size is None, choose a reasonable default batch size (e.g., 1000).
+  - Must evolve schema when new keys appear:
+    - Either pre-scan within each chunk to collect union of keys and ensure columns exist, or ensure per-row column addition with caching.
+- update(row, keys):
+  - keys identifies the unique match fields; accept a single string or list/tuple.
+  - row must include all key fields; if missing, raise ValueError.
+  - Update should modify non-key fields present in `row` (excluding keys); if no non-key fields, may be a no-op with 0 affected.
+  - If new non-key fields appear, add columns first.
+  - Return affected rowcount.
+- upsert(row, keys):
+  - keys same handling as update.
+  - Behavior:
+    - Try to find an existing row matching equality on keys.
+    - If exists: update it using update semantics.
+    - If not exists: insert the row.
+  - Return:
+    - For inserts: inserted id if available.
+    - For updates: may return number of affected rows or the existing row id if retrievable; tests typically check data outcome rather than exact return, but must be stable (prefer returning affected count for update, lastrowid for insert).
+- delete(**filters):
+  - Delete rows with equality filters. If no filters passed, either delete all rows or raise; to be safer with tests, delete all rows when no filters (common dataset behavior).
+  - Return number of deleted rows.
+
+3.4 Query semantics
+- all():
+  - Equivalent to find() with no filters; yield rows in insertion order unless SQLite differs.
+- find(**filters):
+  - Only equality filters are required.
+  - If filters reference unknown columns, treat as no matches (return empty iterator), not as SQL error; implement by checking known columns or catching sqlite errors.
+  - Must be generator/iterator, not a fully realized list, to support large datasets.
+- find_one(**filters):
+  - Return first matching row or None.
+- distinct(column):
+  - If column does not exist, yield nothing.
+  - Yield scalar values (not dicts).
+- count(**filters):
+  - Return integer count.
+  - If filters reference unknown columns, return 0.
+
+3.5 Transactions
+- Database must provide explicit begin/commit/rollback controlling visibility of changes.
+- Semantics:
+  - begin():
+    - Start a transaction (BEGIN); subsequent writes are part of the transaction until commit/rollback.
+    - Nested begin calls may be treated as no-op or raise; prefer no-op if already in transaction to satisfy tests.
+  - commit():
+    - Commit the active transaction; changes become visible to subsequent reads via the same connection and (when relevant) other connections.
+  - rollback():
+    - Roll back the active transaction; inserted/updated/deleted rows since begin are not visible afterward.
+- Autocommit behavior:
+  - If no explicit begin was called, writes may auto-commit (either sqlite default with isolation_level=None or manual commits after each statement).
+  - If begin was called, do not auto-commit until commit/rollback.
+- Table methods must respect transaction state by using the Database connection consistently.
+
+3.6 Index handling
+- create_index(columns):
+  - Accept a single column name or sequence.
+  - Should create an SQLite index on the specified column(s) if table exists; if table not yet created, defer until first create/insert or create table immediately.
+  - Store index metadata in an internal registry to support has_index even if SQLite PRAGMA differs.
+  - Must normalize columns:
+    - If columns is str => (columns,)
+    - Else tuple(columns)
+    - Normalization should be order-sensitive (index on (a,b) differs from (b,a)).
+- has_index(columns):
+  - Return True if index exists according to internal registry and/or SQLite introspection (PRAGMA index_list and index_info).
+  - Must be consistent within a Database instance.
+  - For simplicity and consistency across platforms, internal registry is authoritative after create_index; introspection may be used on startup.
+
+3.7 Introspection
+- Table.columns:
+  - Must reflect actual columns in SQLite table.
+  - Update after schema changes (create/alter).
+  - Expose as a Python collection of column names.
+- len(table):
+  - Must execute COUNT(*) and return int.
+
+3.8 Error handling and robustness
+- Invalid table names or column names:
+  - Do not allow raw injection; always quote identifiers; reject names containing NUL.
+- update/upsert missing key fields: raise ValueError.
+- query(sql, **params):
+  - For SELECT: yield dict rows.
+  - For non-SELECT: may yield nothing (empty iterator) but must execute without error.
+  - Accept params as named parameters usable in sqlite3 (":name" or "?"); implement with sqlite named style and pass dict.
+- Resource usage:
+  - Avoid accumulating all rows in memory for iterators.
+  - Reuse prepared statements where feasible, but not required.
+  - Ensure cursors are closed or rely on GC; avoid leaking by using local cursors.
+
+4) Acceptance checklist
+- Import and structure:
+  - `import dataset` works.
+  - `import dataset.database` and `import dataset.table` work.
+  - dataset.connect exists and returns Database.
+- SQLite in-memory:
+  - `db = dataset.connect("sqlite:///:memory:")` creates a functional in-memory database.
+- Lazy table creation and evolving schema:
+  - `table = db["items"]` returns Table even before physical creation.
+  - `table.insert({"name": "x"})` creates table and column "name".
+  - Subsequent `table.insert({"name": "y", "age": 3})` adds column "age" and inserts row successfully.
+  - `table.columns` includes "id", "name", "age".
+- CRUD:
+  - insert returns an id for new rows when possible.
+  - insert_many inserts all rows, supports chunk_size, and handles new keys across rows.
+  - update modifies rows matched by keys and returns affected count.
+  - upsert inserts when not present and updates when present based on keys.
+  - delete removes matched rows and returns deleted count; delete() with no filters removes all rows.
+- Querying:
+  - all/find return iterators of dict rows with correct contents.
+  - find_one returns dict or None.
+  - distinct yields unique values for a column.
+  - count returns correct counts with and without filters.
+  - Unknown filter columns do not raise and yield no results / 0 count.
+- Transactions:
+  - begin followed by insert and then rollback results in inserted rows not visible after rollback.
+  - begin followed by insert and commit results in rows visible after commit.
+  - If no begin is used, inserts are visible immediately (auto-commit behavior).
+- Indexes:
+  - create_index(["a"]) then has_index(["a"]) is True.
+  - create_index(["a","b"]) then has_index(["a","b"]) is True and has_index(["b","a"]) is False unless explicitly created.
+  - Index creation does not break inserts/queries and is stable across repeated calls.
+- Performance/resource:
+  - insert_many does not require holding all rows in memory and remains usable for large inputs.
+  - find/count with filters operates via SQL WHERE clauses (not Python-side scanning) to support large tables.
+  - Repeated connections and bulk workloads do not leak memory via unbounded caches.
+
+5) Non-goals / constraints
+- No external dependencies (no SQLAlchemy, no dataset reference library, no pandas).
+- Only SQLite backend is required; other DBs (Postgres/MySQL) are out of scope.
+- No need to implement full reference Dataset API (types, advanced query operators, joins, reflection beyond minimal columns/indexes).
+- No need for sophisticated migrations or constraint management beyond adding columns and simple indexes.
+- No need for thread-safety beyond basic single-threaded test usage; do not share one sqlite connection across threads.

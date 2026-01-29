@@ -1,0 +1,30 @@
+.......F.                                                                [100%]
+================================== FAILURES ===================================
+__________________ test_opt_depth_changes_reported_function ___________________
+
+    def test_opt_depth_changes_reported_function():
+        out = []
+    
+        def sink(m):
+            out.append(str(m))
+    
+        logger.remove()
+        logger.add(sink, format="{function}:{message}\n", level="INFO")
+    
+        def inner():
+            logger.opt(depth=0).info("x")
+    
+        def outer():
+            inner()
+    
+        outer()
+        # Should report "inner" (or sometimes wrapper), but with our implementation depth=0 should show caller of .info
+>       assert out[-1].startswith("inner:x\n")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002017A0B7130>('inner:x\n')
+E        +    where <built-in method startswith of str object at 0x000002017A0B7130> = 'info:x\n'.startswith
+
+generation_m1\Loguru\_agent_tests\test_agent_depth_and_format.py:23: AssertionError
+=========================== short test summary info ===========================
+FAILED generation_m1/Loguru/_agent_tests/test_agent_depth_and_format.py::test_opt_depth_changes_reported_function
+1 failed, 8 passed in 0.48s

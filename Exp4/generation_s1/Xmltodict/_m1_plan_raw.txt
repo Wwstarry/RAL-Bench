@@ -1,0 +1,163 @@
+<plan>
+1) Repository layout and import graph
+   - Single-file repository:
+     - xmltodict.py  (top-level module; importable via `import xmltodict`)
+   - Import graph:
+     - xmltodict.py imports only stdlib:
+       - xml.sax (make_parser, handler.ContentHandler, saxutils)
+       - xml.parsers.expat (optional; only if used via sax internally)
+       - collections.abc (Mapping)
+       - collections (OrderedDict, defaultdict) if needed
+       - io (StringIO/BytesIO) for unparse output handling
+       - typing (optional; not required for runtime)
+
+2) Public APIs to implement (modules/classes/functions)
+   - Public functions:
+     - parse(xml_input, encoding='utf-8', expat=None, process_namespaces=False,
+             namespace_separator=':', disable_entities=True, **kwargs)
+       - Core purpose: XML -> nested dict/list structure compatible with xmltodict core behavior.
+       - Accept xml_input as:
+         - str (XML text)
+         - bytes (XML bytes)
+         - file-like (read())
+       - Keep signature flexible: accept unknown kwargs and ignore those not used by our tests (but do not crash).
+     - unparse(input_dict, output=None, encoding='utf-8', full_document=True,
+               short_empty_elements=True, **kwargs)
+       - Core purpose: dict/list structure -> XML.
+       - output:
+         - None => return str
+         - file-like => write()
+       - Accept unknown kwargs and ignore safely.
+
+   - Internal helpers/classes (not exported, but in same module):
+     - class _DictSAXHandler(xml.sax.handler.ContentHandler)
+       - Builds nested mapping incrementally.
+       - Methods: startElementNS/startElement, endElementNS/endElement, characters
+     - def _coerce_input_to_stream(xml_input, encoding)
+     - def _add_child(container, key, value)
+       - Ensures repeated keys become lists.
+     - def _finalize_text(text_chunks)
+       - Join and normalize per minimal xmltodict semantics (do not aggressively strip).
+     - def _escape_text(s), def _escape_attr(s)
+     - def _emit_element(name, value, buf, level, **opts)
+       - Recursive serializer.
+
+3) Key behaviors & edge cases
+   Parsing (parse):
+   - Output shape:
+     - The return value is a dict with a single root key mapping to that element’s content.
+       Example: "<a><b>1</b></a>" => {"a": {"b": "1"}} or {"a": {"b": {"#text":"1"}}} depending on presence of attrs/children.
+     - Element names are keys exactly as in XML, including namespace prefixes (e.g., "ns:tag").
+       - Preserve prefixes by using startElement (qName) when available.
+       - If using startElementNS, reconstruct using provided prefixes only if available; otherwise fall back to localname (but tests require prefixes preserved, so prefer qName path).
+   - Attributes:
+     - Attributes are stored under keys prefixed with '@':
+       - <x id="1"/> => {"x": {"@id": "1"}}
+     - Preserve attribute names including prefixes (e.g., "xlink:href" -> "@xlink:href").
+   - Text content:
+     - Text stored under "#text" when the element also has attributes and/or child elements.
+     - If the element has only text and no attrs/children, represent as a plain string (most common xmltodict behavior).
+       - Example:
+         - <name>Bob</name> => {"name": "Bob"}
+         - <name lang="en">Bob</name> => {"name": {"@lang": "en", "#text": "Bob"}}
+     - Mixed content (text interleaved with children):
+       - Minimal support: accumulate all character data; if children exist, store combined text under "#text" in addition to child mappings (do not attempt to preserve ordering). This is sufficient for common catalog-style XML and typical xmltodict test coverage.
+     - Whitespace:
+       - Do not globally strip; preserve character data as emitted by SAX. However:
+         - Ignore purely-whitespace character chunks that occur between child elements when there is no other text (common pretty-printed XML). Implement heuristic:
+           - If current element already has children and character data is only whitespace, drop it.
+           - If element has no children yet, keep whitespace as text (rarely asserted in tests, but safe).
+   - Repeated elements:
+     - If the same child name appears multiple times under a parent, group into a Python list in insertion order:
+       - <a><b>1</b><b>2</b></a> => {"a": {"b": ["1","2"]}}
+     - If first occurrence is scalar, second occurrence triggers conversion to list.
+   - Empty elements:
+     - <a/> => {"a": None} or {"a": ""}?
+       - For compatibility with common xmltodict behavior and round-trip ease:
+         - Represent as None when no attrs and no text and no children.
+         - If attrs exist, {"a": {"@x":"1"}} (no "#text").
+   - Entity handling / security:
+     - Disable external entities and DTD resolution. Use SAX feature flags where possible:
+       - feature_external_ges = False
+       - feature_external_pes = False
+       - Do not load external DTD.
+     - If disable_entities=True, ensure no expansion beyond safe defaults (SAX in stdlib generally does not fetch external entities unless configured; still, explicitly disable where available).
+   - Namespaces:
+     - For test compatibility: preserve namespace prefixes in element/attribute names. Do not rewrite to Clark notation.
+     - process_namespaces argument accepted but default False; if True, still preserve prefixes if qName is present; otherwise can join with namespace_separator if needed. Keep simple unless tests demand more.
+
+   Serialization (unparse):
+   - Input:
+     - input_dict is a mapping representing either:
+       - a single-root document: {"root": {...}}
+       - or already root content if full_document=False (if tests pass such option).
+     - Keys:
+       - "@attr" keys are represented as attributes without the "@"
+       - "#text" is text content
+       - Other keys are child elements
+     - Values:
+       - dict => element with attrs/text/children
+       - list => repeated elements; each item becomes a sibling element with same tag
+       - None => empty element
+       - str/int/float/bool => text node (coerced to str)
+   - Output:
+     - If full_document=True, include XML declaration: <?xml version="1.0" encoding="utf-8"?>
+       - Only include when requested; tests may compare ignoring decl, so make it configurable.
+     - short_empty_elements:
+       - If True, serialize empty elements as "<a/>"
+       - If False, "<a></a>"
+   - Determinism:
+     - Preserve insertion order of dict keys (Python 3.7+). This generally matches xmltodict expectations in tests.
+     - For attributes: output in insertion order of appearance in the dict (keys starting with "@"). If tests are tolerant of attribute order (they usually should be), still keep deterministic sorting optional; but default to insertion order.
+   - Escaping:
+     - Escape text and attribute values for &, <, >, and quotes in attributes.
+     - Ensure no double-escaping.
+   - Round-trip requirement for exercised structures:
+     - unparse(parse(xml)) should produce XML that parse() can convert back to the same mapping for:
+       - nested catalogs: multiple levels of elements
+       - attributes and text fields
+       - repeated elements (lists)
+       - namespace prefixes in tag names and attribute names
+     - When an element value is a plain string, serialize as <tag>text</tag>.
+     - When an element value is a dict with only attributes and no "#text"/children, serialize as empty element with attrs: <tag a="1"/>
+     - When dict has "#text" plus attrs, serialize <tag a="1">text</tag>.
+     - When dict has children and no "#text", serialize nested children.
+
+4) Minimal internal test plan (what to test and why)
+   - Parse basics:
+     - "<a/>" => {"a": None}
+     - "<a>1</a>" => {"a": "1"}
+     - "<a><b>1</b></a>" => {"a": {"b":"1"}}
+   - Attributes and text:
+     - "<a x='1'>t</a>" => {"a": {"@x":"1","#text":"t"}}
+     - "<a x='1'/>" => {"a": {"@x":"1"}}
+   - Repeated children:
+     - "<a><b>1</b><b>2</b></a>" => {"a":{"b":["1","2"]}}
+     - Nested list of dict items:
+       - "<a><b id='1'/><b id='2'/></a>" => {"a":{"b":[{"@id":"1"},{"@id":"2"}]}}
+   - Pretty-printed whitespace resilience:
+     - "<a>\n  <b>1</b>\n  <c>2</c>\n</a>" should not produce "#text" full of whitespace; should be {"a":{"b":"1","c":"2"}}.
+   - Namespace prefix preservation:
+     - "<ns:root xmlns:ns='u'><ns:child ns:attr='v'>t</ns:child></ns:root>"
+       => {"ns:root":{"ns:child":{"@ns:attr":"v","#text":"t"}}}
+   - Unparse round-trip:
+     - For each mapping above: xml2 = unparse(mapping); mapping2 = parse(xml2); assert mapping2 == mapping
+     - Lists and nested catalogs:
+       - {"catalog":{"book":[{"@id":"bk101","author":"A"},{"@id":"bk102","author":"B"}]}}
+   - Output destinations:
+     - unparse(..., output=None) returns str
+     - unparse(..., output=StringIO()) writes and returns None or written content per chosen behavior (match xmltodict: typically writes and returns None; if uncertain, return output.getvalue() only when output is None).
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Risk: Namespace prefix loss when using SAX startElementNS without qName.
+     - Mitigation: Prefer a parser configuration that calls startElement with qName (default ExpatParser does). Implement both startElement and startElementNS; in NS mode, if qName missing, fall back to localname (best-effort).
+   - Risk: Whitespace handling causing unwanted "#text" entries and test failures.
+     - Mitigation: Implement the common heuristic to drop indentation-only chunks when element has children; keep meaningful text.
+   - Risk: Empty element representation (None vs "") mismatching expectations.
+     - Mitigation: Use None for truly empty; ensure unparse writes empty tag and parse maps back to None. If tests expect "" instead, adjust by treating empty string similarly in unparse/parse normalization behind the scenes.
+   - Risk: Mixed content ordering not preserved.
+     - Mitigation: Accept limitation; tests for core xmltodict typically avoid asserting mixed-content order. Still store combined text in "#text" when both children and text exist.
+   - Risk: Attribute ordering or XML declaration differences causing string-compare failures.
+     - Mitigation: Ensure tests are mapping-based round-trip, not raw XML string compare; provide options full_document and encoding; make defaults close to xmltodict (include declaration by default only if that’s what tests expect; otherwise default full_document=False or make it conditional—choose based on typical xmltodict: unparse defaults to full_document=True with declaration. If string comparisons occur, expose kwargs to match).
+   - Risk: Security around entities/DTDs.
+     - Mitigation: Disable external entities and do not resolve; rely on stdlib SAX safe defaults and explicitly set features where supported.

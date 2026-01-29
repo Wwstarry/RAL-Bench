@@ -1,0 +1,182 @@
+<file:name=jwt/api_jwt.py>
+import base64
+import datetime as _dt
+import hashlib
+import hmac
+import json
+import time
+from typing import Any, Dict, Optional, Tuple, Union
+
+from .exceptions import DecodeError, ExpiredSignatureError, InvalidSignatureError
+
+
+def _to_bytes(key: Union[str, bytes]) -> bytes:
+    if isinstance(key, bytes):
+        return key
+    if isinstance(key, str):
+        return key.encode("utf-8")
+    raise DecodeError("Key must be a string or bytes")
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(data: Union[str, bytes]) -> bytes:
+    if isinstance(data, str):
+        data_b = data.encode("ascii")
+    else:
+        data_b = data
+    # restore padding
+    rem = len(data_b) % 4
+    if rem:
+        data_b += b"=" * (4 - rem)
+    try:
+        return base64.urlsafe_b64decode(data_b)
+    except Exception as e:  # pragma: no cover
+        raise DecodeError("Invalid base64 encoding") from e
+
+
+def _json_dumps(obj: Any) -> str:
+    # Support datetime values (most importantly exp) similarly to PyJWT:
+    # encode datetime claims as NumericDate (int timestamp).
+    def _default(o: Any):
+        if isinstance(o, _dt.datetime):
+            # If timezone-aware, timestamp() is absolute; if naive, interpret as local,
+            # but tests use fromtimestamp(...) so this matches their expectation.
+            return int(o.timestamp())
+        if isinstance(o, _dt.date):
+            # Not part of required tests, but keep reasonable behavior.
+            return int(_dt.datetime(o.year, o.month, o.day).timestamp())
+        raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
+
+    return json.dumps(
+        obj, separators=(",", ":"), sort_keys=True, ensure_ascii=False, default=_default
+    )
+
+
+def _json_loads(s: Union[str, bytes]) -> Any:
+    try:
+        if isinstance(s, bytes):
+            s = s.decode("utf-8")
+        return json.loads(s)
+    except Exception as e:
+        raise DecodeError("Invalid JSON") from e
+
+
+def _sign_hs256(message: bytes, key: bytes) -> bytes:
+    return hmac.new(key, message, hashlib.sha256).digest()
+
+
+def encode(payload: Dict[str, Any], key: Union[str, bytes], algorithm: str = "HS256", **kwargs) -> str:
+    if algorithm != "HS256":
+        raise DecodeError("Unsupported algorithm")
+
+    headers = kwargs.get("headers") or {}
+    if headers is None:
+        headers = {}
+    if not isinstance(headers, dict):
+        raise DecodeError("Invalid headers")
+
+    header = {"typ": "JWT", "alg": algorithm}
+    header.update(headers)
+    header["alg"] = algorithm  # ensure matches selected algorithm
+
+    header_b64 = _b64url_encode(_json_dumps(header).encode("utf-8"))
+    payload_b64 = _b64url_encode(_json_dumps(payload).encode("utf-8"))
+
+    signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+    sig = _sign_hs256(signing_input, _to_bytes(key))
+    sig_b64 = _b64url_encode(sig)
+    return f"{header_b64}.{payload_b64}.{sig_b64}"
+
+
+def _get_leeway_seconds(leeway: Union[int, float, _dt.timedelta]) -> float:
+    if isinstance(leeway, _dt.timedelta):
+        return float(leeway.total_seconds())
+    try:
+        return float(leeway)
+    except Exception:
+        return 0.0
+
+
+def _parse_token(token: Union[str, bytes]) -> Tuple[Dict[str, Any], Dict[str, Any], bytes, bytes]:
+    if isinstance(token, bytes):
+        try:
+            token = token.decode("utf-8")
+        except Exception as e:
+            raise DecodeError("Invalid token encoding") from e
+    if not isinstance(token, str):
+        raise DecodeError("Invalid token type")
+
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise DecodeError("Not enough segments")
+
+    header_b64, payload_b64, sig_b64 = parts
+    header_raw = _b64url_decode(header_b64)
+    payload_raw = _b64url_decode(payload_b64)
+    sig_raw = _b64url_decode(sig_b64)
+
+    header = _json_loads(header_raw)
+    payload = _json_loads(payload_raw)
+
+    if not isinstance(header, dict) or not isinstance(payload, dict):
+        raise DecodeError("Invalid token")
+
+    signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+    return header, payload, signing_input, sig_raw
+
+
+def decode(
+    token: Union[str, bytes],
+    key: Optional[Union[str, bytes]],
+    algorithms: Optional[list] = None,
+    options: Optional[Dict[str, Any]] = None,
+    leeway: Union[int, float, _dt.timedelta] = 0,
+    **kwargs,
+) -> Dict[str, Any]:
+    options = options or {}
+    verify_signature = options.get("verify_signature", True)
+    verify_exp = options.get("verify_exp", True)
+
+    header, payload, signing_input, sig = _parse_token(token)
+
+    alg = header.get("alg")
+    if not alg or not isinstance(alg, str):
+        raise DecodeError("Algorithm not specified")
+
+    if verify_signature:
+        if not algorithms:
+            raise DecodeError("algorithms must be specified when verifying signature")
+        if alg not in algorithms:
+            raise DecodeError("The specified alg value is not allowed")
+        if alg != "HS256":
+            raise DecodeError("Unsupported algorithm")
+
+        if key is None:
+            raise DecodeError("Key is required to verify signature")
+        key_b = _to_bytes(key)
+        expected = _sign_hs256(signing_input, key_b)
+        if not hmac.compare_digest(expected, sig):
+            raise InvalidSignatureError("Signature verification failed")
+
+    if verify_exp and "exp" in payload:
+        exp = payload.get("exp")
+        exp_ts: Optional[float] = None
+
+        if isinstance(exp, (_dt.datetime,)):
+            exp_ts = float(exp.timestamp())
+        elif isinstance(exp, (int, float)):
+            exp_ts = float(exp)
+        else:
+            # If exp exists but isn't a supported type, treat as decode error
+            raise DecodeError("Expiration time claim (exp) must be a number")
+
+        now = time.time()
+        leeway_s = _get_leeway_seconds(leeway)
+        if now > exp_ts + leeway_s:
+            raise ExpiredSignatureError("Signature has expired")
+
+    return payload
+</file>

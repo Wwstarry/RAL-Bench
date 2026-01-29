@@ -1,0 +1,35 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\performance_test.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError("'Data' object has no attribute 'labels'") raised in repr()] Data object at 0x19e8c70c580>
+labels = [[1], [2], [3]], series = ['A', 'B', 'C']
+
+    def __init__(self, labels, series):
+        if not isinstance(labels, (list, tuple)):
+            raise TypeError("labels must be a sequence")
+    
+        if not isinstance(series, (list, tuple)):
+            raise TypeError("series must be a sequence of sequences")
+    
+        # Basic sanity ---------------------------------------------------------
+        row_count = len(labels)
+        for s in series:
+            if len(s) != row_count:
+>               raise ValueError("every series must have the same length as labels")
+E               ValueError: every series must have the same length as labels
+
+generation\Termgraph\termgraph\data.py:33: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.32s

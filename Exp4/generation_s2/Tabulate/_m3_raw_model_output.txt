@@ -1,0 +1,664 @@
+<file:name=tabulate/__init__.py>
+"""
+Pure-Python table formatting library compatible with core parts of the
+reference `tabulate` project.
+
+Exposes:
+  - tabulate()
+  - simple_separated_format()
+  - preset table formats such as "plain", "grid", "pipe"
+"""
+
+from .core import tabulate, simple_separated_format
+from .formats import tabulate_formats, TableFormat
+
+__all__ = [
+    "tabulate",
+    "simple_separated_format",
+    "tabulate_formats",
+    "TableFormat",
+]
+
+__version__ = "0.9.0-purepy"
+</file>
+
+<file:name=tabulate/formats.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Optional
+
+
+@dataclass(frozen=True)
+class Line:
+    begin: str = ""
+    hline: str = ""
+    sep: str = ""
+    end: str = ""
+
+
+@dataclass(frozen=True)
+class DataRow:
+    begin: str = ""
+    sep: str = " "
+    end: str = ""
+
+
+@dataclass(frozen=True)
+class TableFormat:
+    lineabove: Optional[Line] = None
+    linebelowheader: Optional[Line] = None
+    linebetweenrows: Optional[Line] = None
+    linebelow: Optional[Line] = None
+    headerrow: DataRow = DataRow()
+    datarow: DataRow = DataRow()
+    padding: int = 0
+    with_header_hide: Optional[list] = None
+
+
+def simple_separated_format(sep: str = "\t") -> TableFormat:
+    # Similar to tabulate's simple_separated_format: no borders, separator only.
+    return TableFormat(
+        lineabove=None,
+        linebelowheader=None,
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow(begin="", sep=sep, end=""),
+        datarow=DataRow(begin="", sep=sep, end=""),
+        padding=0,
+    )
+
+
+# Preset formats (core subset)
+tabulate_formats: Dict[str, TableFormat] = {}
+
+# plain: whitespace separated, no borders
+tabulate_formats["plain"] = TableFormat(
+    lineabove=None,
+    linebelowheader=None,
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="", sep="  ", end=""),
+    datarow=DataRow(begin="", sep="  ", end=""),
+    padding=0,
+)
+
+# simple: like plain but with a header underline (---)
+tabulate_formats["simple"] = TableFormat(
+    lineabove=None,
+    linebelowheader=Line(begin="", hline="-", sep="  ", end=""),
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="", sep="  ", end=""),
+    datarow=DataRow(begin="", sep="  ", end=""),
+    padding=0,
+)
+
+# grid: +----+ with | cells |
+tabulate_formats["grid"] = TableFormat(
+    lineabove=Line(begin="+", hline="-", sep="+", end="+"),
+    linebelowheader=Line(begin="+", hline="=", sep="+", end="+"),
+    linebetweenrows=Line(begin="+", hline="-", sep="+", end="+"),
+    linebelow=Line(begin="+", hline="-", sep="+", end="+"),
+    headerrow=DataRow(begin="|", sep="|", end="|"),
+    datarow=DataRow(begin="|", sep="|", end="|"),
+    padding=1,
+)
+
+# pipe: GitHub markdown
+tabulate_formats["pipe"] = TableFormat(
+    lineabove=None,
+    linebelowheader=Line(begin="|", hline="-", sep="|", end="|"),
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="|", sep="|", end="|"),
+    datarow=DataRow(begin="|", sep="|", end="|"),
+    padding=1,
+)
+
+# github is an alias of pipe in tabulate
+tabulate_formats["github"] = tabulate_formats["pipe"]
+
+# tsv/csv
+tabulate_formats["tsv"] = simple_separated_format("\t")
+tabulate_formats["csv"] = simple_separated_format(",")
+
+# html: simplified html table
+# (Reference tabulate supports attributes; this is a core-compatible subset.)
+tabulate_formats["html"] = TableFormat(
+    lineabove=None,
+    linebelowheader=None,
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="<tr>", sep="", end="</tr>"),
+    datarow=DataRow(begin="<tr>", sep="", end="</tr>"),
+    padding=0,
+)
+
+# jira style: || header || and | rows |
+tabulate_formats["jira"] = TableFormat(
+    lineabove=None,
+    linebelowheader=None,
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="||", sep="||", end="||"),
+    datarow=DataRow(begin="|", sep="|", end="|"),
+    padding=1,
+)
+
+# orgtbl: Emacs org-mode tables
+tabulate_formats["orgtbl"] = TableFormat(
+    lineabove=None,
+    linebelowheader=Line(begin="|", hline="-", sep="+", end="|"),
+    linebetweenrows=None,
+    linebelow=None,
+    headerrow=DataRow(begin="|", sep="|", end="|"),
+    datarow=DataRow(begin="|", sep="|", end="|"),
+    padding=1,
+)
+</file>
+
+<file:name=tabulate/core.py>
+from __future__ import annotations
+
+import math
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+
+from .formats import TableFormat, tabulate_formats, simple_separated_format as _ssf
+
+
+# Public re-export
+def simple_separated_format(sep: str = "\t") -> TableFormat:
+    return _ssf(sep)
+
+
+_MISSING = object()
+
+
+def _is_iterable_of_dicts(tabular_data: Any) -> bool:
+    if isinstance(tabular_data, dict):
+        return False
+    try:
+        it = iter(tabular_data)
+    except TypeError:
+        return False
+    for x in it:
+        return isinstance(x, dict)
+    return False
+
+
+def _is_list_of_lists(tabular_data: Any) -> bool:
+    if isinstance(tabular_data, (str, bytes, dict)):
+        return False
+    try:
+        it = iter(tabular_data)
+    except TypeError:
+        return False
+    for x in it:
+        return isinstance(x, (list, tuple))
+    return False
+
+
+def _is_number(x: Any) -> bool:
+    # bool is subclass of int; tabulate treats True/False as non-numeric for alignment.
+    if isinstance(x, bool):
+        return False
+    return isinstance(x, (int, float)) and not (isinstance(x, float) and (math.isnan(x) or math.isinf(x)))
+
+
+def _stringify(x: Any, missingval: str = "") -> str:
+    if x is None:
+        return missingval
+    return str(x)
+
+
+def _normalize_tabular_data(
+    tabular_data: Any,
+    headers: Union[str, Sequence[Any], Dict[Any, Any], None] = None,
+) -> Tuple[List[List[Any]], List[str]]:
+    # Returns rows, headers(list of strings or empty)
+    if tabular_data is None:
+        return [], []
+
+    # dict -> two-column key/value
+    if isinstance(tabular_data, dict):
+        items = list(tabular_data.items())
+        rows = [[k, v] for k, v in items]
+        hdrs: List[str] = []
+        if headers == "keys":
+            hdrs = ["key", "value"]
+        elif isinstance(headers, (list, tuple)):
+            hdrs = [str(h) for h in headers]
+        return rows, hdrs
+
+    # list of dicts
+    if _is_iterable_of_dicts(tabular_data):
+        rows_dicts = list(tabular_data)
+        if headers == "keys" or headers is None:
+            # collect keys in insertion order across rows
+            cols: List[Any] = []
+            seen = set()
+            for d in rows_dicts:
+                for k in d.keys():
+                    if k not in seen:
+                        seen.add(k)
+                        cols.append(k)
+            hdrs = [str(c) for c in cols] if headers == "keys" else []
+        elif isinstance(headers, dict):
+            # mapping key->display label
+            cols = list(headers.keys())
+            hdrs = [str(headers[k]) for k in cols]
+        else:
+            cols = list(headers)  # type: ignore[arg-type]
+            hdrs = [str(c) for c in cols]
+        rows = [[d.get(c, None) for c in cols] for d in rows_dicts]
+        return rows, hdrs
+
+    # list of lists/tuples
+    if _is_list_of_lists(tabular_data):
+        rows_ll = [list(r) for r in tabular_data]
+        hdrs2: List[str] = []
+        if headers == "firstrow":
+            if rows_ll:
+                hdrs2 = [str(x) for x in rows_ll[0]]
+                rows_ll = rows_ll[1:]
+        elif headers == "keys":
+            # for list of lists: default numeric headers 0..n-1 in tabulate; keep empty here.
+            hdrs2 = []
+        elif isinstance(headers, (list, tuple)):
+            hdrs2 = [str(h) for h in headers]
+        elif headers is None:
+            hdrs2 = []
+        else:
+            # fallback
+            hdrs2 = [str(headers)]
+        return rows_ll, hdrs2
+
+    # fallback: try to iterate rows as scalars -> one column
+    try:
+        rows = [[x] for x in list(tabular_data)]
+    except TypeError:
+        rows = [[tabular_data]]
+    hdrs3: List[str] = []
+    if isinstance(headers, (list, tuple)):
+        hdrs3 = [str(h) for h in headers]
+    return rows, hdrs3
+
+
+def _expand_rows_with_multiline(rows: List[List[str]]) -> List[List[List[str]]]:
+    # Convert rows into per-cell list of lines.
+    out: List[List[List[str]]] = []
+    for r in rows:
+        out.append([c.splitlines() if c is not None else [""] for c in r])
+    return out
+
+
+def _col_widths(cells_lines: List[List[List[str]]]) -> List[int]:
+    if not cells_lines:
+        return []
+    ncols = max((len(r) for r in cells_lines), default=0)
+    widths = [0] * ncols
+    for r in cells_lines:
+        for j in range(ncols):
+            cl = r[j] if j < len(r) else [""]
+            w = max((len(s) for s in cl), default=0)
+            if w > widths[j]:
+                widths[j] = w
+    return widths
+
+
+def _infer_alignments(
+    raw_rows: List[List[Any]],
+    headers: List[str],
+    colalign: Optional[Sequence[str]],
+    numalign: str,
+    stralign: str,
+) -> List[str]:
+    ncols = 0
+    for r in raw_rows:
+        ncols = max(ncols, len(r))
+    ncols = max(ncols, len(headers))
+    if colalign is not None:
+        a = list(colalign) + [None] * (ncols - len(colalign))
+        out = []
+        for x in a[:ncols]:
+            out.append(x if x in ("left", "right", "center", "decimal") else stralign)
+        return out
+
+    # numeric columns -> numalign else stralign
+    aligns: List[str] = [stralign] * ncols
+    for j in range(ncols):
+        any_num = False
+        any_str = False
+        for r in raw_rows:
+            if j >= len(r):
+                continue
+            v = r[j]
+            if v is None:
+                continue
+            if _is_number(v):
+                any_num = True
+            else:
+                any_str = True
+        if any_num and not any_str:
+            aligns[j] = numalign
+        else:
+            aligns[j] = stralign
+    return aligns
+
+
+def _pad(s: str, width: int, align: str) -> str:
+    if align == "right":
+        return s.rjust(width)
+    if align == "center":
+        # python center splits extra to right; tabulate is similar
+        return s.center(width)
+    # decimal: basic: align on last dot
+    if align == "decimal":
+        if "." in s:
+            left, right = s.rsplit(".", 1)
+            # We'll handle decimal alignment in a separate pass; here left align.
+            return s.ljust(width)
+        return s.rjust(width)
+    return s.ljust(width)
+
+
+def _decimal_align_column(lines_per_cell_col: List[List[str]]) -> Tuple[List[List[str]], int]:
+    # Returns adjusted cell lines and target width
+    # Align on decimal point position for numeric-looking strings.
+    max_left = 0
+    max_right = 0
+    for cell_lines in lines_per_cell_col:
+        for s in cell_lines:
+            if "." in s:
+                l, r = s.rsplit(".", 1)
+                max_left = max(max_left, len(l))
+                max_right = max(max_right, len(r))
+            else:
+                max_left = max(max_left, len(s))
+    width = max_left + (1 + max_right if max_right > 0 else 0)
+    adjusted: List[List[str]] = []
+    for cell_lines in lines_per_cell_col:
+        new_lines: List[str] = []
+        for s in cell_lines:
+            if "." in s:
+                l, r = s.rsplit(".", 1)
+                l2 = l.rjust(max_left)
+                if max_right > 0:
+                    r2 = r.ljust(max_right)
+                    new_lines.append(l2 + "." + r2)
+                else:
+                    new_lines.append(l2 + ".")
+            else:
+                new_lines.append(s.rjust(max_left) + ((" " * (1 + max_right)) if max_right > 0 else ""))
+        adjusted.append(new_lines)
+    return adjusted, width
+
+
+def _build_hline(line: Optional[Any], widths: List[int], pad: int) -> Optional[str]:
+    if line is None:
+        return None
+    begin, h, sep, end = line.begin, line.hline, line.sep, line.end
+    segs = []
+    for w in widths:
+        segs.append(h * (w + 2 * pad))
+    return begin + sep.join(segs) + end
+
+
+def _format_row(
+    row_lines: List[List[str]],
+    widths: List[int],
+    aligns: List[str],
+    rowfmt: Any,
+    pad: int,
+    html: bool = False,
+    header: bool = False,
+) -> List[str]:
+    ncols = len(widths)
+    # determine height
+    height = 1
+    for j in range(ncols):
+        cl = row_lines[j] if j < len(row_lines) else [""]
+        height = max(height, len(cl))
+    out_lines: List[str] = []
+    for i in range(height):
+        cells: List[str] = []
+        for j in range(ncols):
+            cl = row_lines[j] if j < len(row_lines) else [""]
+            text = cl[i] if i < len(cl) else ""
+            if html:
+                tag = "th" if header else "td"
+                # minimal escaping consistent with common tests
+                esc = (
+                    text.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace('"', "&quot;")
+                )
+                cells.append(f"<{tag}>{esc}</{tag}>")
+            else:
+                cell = _pad(text, widths[j], aligns[j] if j < len(aligns) else "left")
+                cells.append((" " * pad) + cell + (" " * pad))
+        out_lines.append(rowfmt.begin + rowfmt.sep.join(cells) + rowfmt.end)
+    return out_lines
+
+
+def tabulate(
+    tabular_data: Any,
+    headers: Union[str, Sequence[Any], Dict[Any, Any], None] = (),
+    tablefmt: Union[str, TableFormat] = "simple",
+    floatfmt: str = "g",
+    intfmt: str = "d",
+    numalign: str = "decimal",
+    stralign: str = "left",
+    missingval: str = "",
+    showindex: Union[bool, str, Sequence[Any]] = False,
+    colalign: Optional[Sequence[str]] = None,
+    disable_numparse: bool = False,
+) -> str:
+    rows_raw, headers_list = _normalize_tabular_data(tabular_data, headers if headers != () else None)
+
+    # showindex handling (subset)
+    indexcol: List[Any] = []
+    if showindex is True:
+        indexcol = list(range(len(rows_raw)))
+        headers_list = ([""] if headers_list else [""]) + headers_list
+    elif isinstance(showindex, (list, tuple)):
+        indexcol = list(showindex)
+        headers_list = ([""] if headers_list else [""]) + headers_list
+    elif showindex == "always":
+        indexcol = list(range(len(rows_raw)))
+        headers_list = [""] + headers_list
+
+    if indexcol:
+        new_rows = []
+        for i, r in enumerate(rows_raw):
+            idx = indexcol[i] if i < len(indexcol) else ""
+            new_rows.append([idx] + list(r))
+        rows_raw = new_rows
+
+    # determine format
+    if isinstance(tablefmt, str):
+        fmt = tabulate_formats.get(tablefmt, None)
+        if fmt is None:
+            if tablefmt.lower() in ("tsv", "csv"):
+                fmt = simple_separated_format("\t" if tablefmt.lower() == "tsv" else ",")
+            else:
+                raise ValueError(f"Unknown table format: {tablefmt}")
+    else:
+        fmt = tablefmt
+
+    html_mode = isinstance(tablefmt, str) and tablefmt.lower() == "html"
+
+    # normalize cell strings with number formatting
+    def fmt_val(v: Any) -> str:
+        if v is None:
+            return missingval
+        if disable_numparse:
+            return _stringify(v, missingval)
+        if isinstance(v, bool):
+            return str(v)
+        if isinstance(v, int) and not isinstance(v, bool):
+            try:
+                return format(v, intfmt)
+            except Exception:
+                return str(v)
+        if isinstance(v, float):
+            try:
+                return format(v, floatfmt)
+            except Exception:
+                return str(v)
+        return str(v)
+
+    rows_str: List[List[str]] = [[fmt_val(v) for v in r] for r in rows_raw]
+    headers_str: List[str] = [str(h) for h in headers_list] if headers_list else []
+
+    # ensure consistent column count
+    ncols = 0
+    for r in rows_str:
+        ncols = max(ncols, len(r))
+    ncols = max(ncols, len(headers_str))
+    if ncols == 0:
+        return "" if not html_mode else "<table></table>"
+
+    for r in rows_str:
+        if len(r) < ncols:
+            r.extend([""] * (ncols - len(r)))
+    if headers_str and len(headers_str) < ncols:
+        headers_str.extend([""] * (ncols - len(headers_str)))
+
+    aligns = _infer_alignments(rows_raw, headers_str, colalign, numalign, stralign)
+
+    # multiline: split to lines
+    data_cells_lines = _expand_rows_with_multiline(rows_str)
+    header_cells_lines = _expand_rows_with_multiline([headers_str])[0] if headers_str else None
+
+    # decimal alignment adjustment: per column
+    if not html_mode:
+        for j, a in enumerate(aligns):
+            if a == "decimal":
+                col_cells = [r[j] for r in data_cells_lines]
+                if header_cells_lines is not None:
+                    col_cells = [header_cells_lines[j]] + col_cells
+                adjusted, width = _decimal_align_column(col_cells)
+                if header_cells_lines is not None:
+                    header_cells_lines[j] = adjusted[0]
+                    for i in range(len(data_cells_lines)):
+                        data_cells_lines[i][j] = adjusted[i + 1]
+                else:
+                    for i in range(len(data_cells_lines)):
+                        data_cells_lines[i][j] = adjusted[i]
+                # widths updated later
+
+    # compute widths based on possibly adjusted lines
+    all_rows_for_width = []
+    if header_cells_lines is not None:
+        all_rows_for_width.append(header_cells_lines)
+    all_rows_for_width.extend(data_cells_lines)
+    widths = _col_widths(all_rows_for_width)
+
+    # build output
+    if html_mode:
+        lines: List[str] = ["<table>"]
+        if header_cells_lines is not None:
+            lines.append("<thead>")
+            lines.extend(_format_row(header_cells_lines, widths, aligns, fmt.headerrow, fmt.padding, html=True, header=True))
+            lines.append("</thead>")
+        lines.append("<tbody>")
+        for r in data_cells_lines:
+            lines.extend(_format_row(r, widths, aligns, fmt.datarow, fmt.padding, html=True, header=False))
+        lines.append("</tbody>")
+        lines.append("</table>")
+        return "\n".join(lines)
+
+    out: List[str] = []
+    la = _build_hline(fmt.lineabove, widths, fmt.padding)
+    lb = _build_hline(fmt.linebelow, widths, fmt.padding)
+    lbh = _build_hline(fmt.linebelowheader, widths, fmt.padding)
+    lbr = _build_hline(fmt.linebetweenrows, widths, fmt.padding)
+
+    if la is not None:
+        out.append(la)
+
+    if header_cells_lines is not None:
+        out.extend(_format_row(header_cells_lines, widths, aligns, fmt.headerrow, fmt.padding, html=False, header=True))
+        if lbh is not None:
+            out.append(lbh)
+
+    for i, r in enumerate(data_cells_lines):
+        out.extend(_format_row(r, widths, aligns, fmt.datarow, fmt.padding, html=False, header=False))
+        if i != len(data_cells_lines) - 1 and lbr is not None:
+            out.append(lbr)
+
+    if lb is not None:
+        out.append(lb)
+
+    return "\n".join(out)
+</file>
+
+<file:name=tabulate/cli.py>
+from __future__ import annotations
+
+import argparse
+import csv
+import sys
+from typing import List, Optional
+
+from .core import tabulate
+from .formats import tabulate_formats
+
+
+def _read_delimited(
+    fp,
+    delimiter: str,
+    has_header: bool,
+) -> (List[List[str]], Optional[List[str]]):
+    reader = csv.reader(fp, delimiter=delimiter)
+    rows = list(reader)
+    if not rows:
+        return [], [] if has_header else None
+    if has_header:
+        return rows[1:], rows[0]
+    return rows, None
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    p = argparse.ArgumentParser(prog="tabulate", add_help=True)
+    p.add_argument("--format", "-f", default="simple", choices=sorted(tabulate_formats.keys()) + ["csv", "tsv"])
+    p.add_argument("--separator", "-s", default=None, help="Input delimiter (default: auto for csv/tsv else tab).")
+    p.add_argument("--header", action="store_true", help="Treat first row as header.")
+    p.add_argument("--no-header", action="store_true", help="Do not treat first row as header.")
+    p.add_argument("--showindex", action="store_true", help="Show row index.")
+    p.add_argument("file", nargs="?", help="Input file (default: stdin)")
+    args = p.parse_args(argv)
+
+    fmt = args.format
+    if args.separator is not None:
+        delim = args.separator
+    else:
+        if fmt == "csv":
+            delim = ","
+        elif fmt == "tsv":
+            delim = "\t"
+        else:
+            delim = "\t"
+
+    has_header = args.header and not args.no_header
+
+    if args.file:
+        with open(args.file, "r", newline="", encoding="utf-8") as fp:
+            rows, hdr = _read_delimited(fp, delim, has_header)
+    else:
+        rows, hdr = _read_delimited(sys.stdin, delim, has_header)
+
+    headers = hdr if hdr is not None else ()
+    out = tabulate(rows, headers=headers, tablefmt=fmt, showindex=args.showindex)
+    sys.stdout.write(out)
+    if not out.endswith("\n"):
+        sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>

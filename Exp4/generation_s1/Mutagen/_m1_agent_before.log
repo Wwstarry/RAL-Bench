@@ -1,0 +1,140 @@
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+_______________________ test_easyid3_roundtrip_tag_only _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-522/test_easyid3_roundtrip_tag_onl0')
+
+    def test_easyid3_roundtrip_tag_only(tmp_path):
+        p = tmp_path / "a.mp3"
+        t = EasyID3()
+        t["title"] = ["Song Title"]
+        t["artist"] = ["Artist"]
+        t.save(str(p))
+    
+        t2 = EasyID3(str(p))
+>       assert t2["title"] == ["Song Title"]
+
+generation_m1\Mutagen\_agent_tests\test_agent_basic.py:16: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Mutagen\mutagen\easyid3.py:44: in __getitem__
+    fr = self._id3[fid]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000161BAEEBD60>, frame_id = 'TIT2'
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 'TIT2'
+
+generation_m1\Mutagen\mutagen\id3.py:246: KeyError
+________________ test_easyid3_multiple_values_overwrite_delete ________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-522/test_easyid3_multiple_values_o0')
+
+    def test_easyid3_multiple_values_overwrite_delete(tmp_path):
+        p = tmp_path / "b.mp3"
+        t = EasyID3()
+        t["artist"] = ["A1", "A2"]
+        t["title"] = "Old"
+        t.save(str(p))
+    
+        t2 = EasyID3(str(p))
+>       assert t2["artist"] == ["A1", "A2"]
+
+generation_m1\Mutagen\_agent_tests\test_agent_basic.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Mutagen\mutagen\easyid3.py:44: in __getitem__
+    fr = self._id3[fid]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000161BAEAD970>, frame_id = 'TPE1'
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 'TPE1'
+
+generation_m1\Mutagen\mutagen\id3.py:246: KeyError
+__________________ test_id3_text_comm_apic_roundtrip_and_ops __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-522/test_id3_text_comm_apic_roundt0')
+
+    def test_id3_text_comm_apic_roundtrip_and_ops(tmp_path):
+        p = tmp_path / "c.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(3, text=["T1"]))
+        tags.add(TPE1(3, text=["P1", "P2"]))
+        tags.add(COMM(3, "eng", "d1", ["hello"]))
+        tags.add(COMM(3, "eng", "d2", ["world"]))
+        data1 = b"\x89PNG\r\n\x1a\n" + b"data1"
+        data2 = b"\xff\xd8\xff" + b"data2"
+        tags.add(APIC(3, "image/png", 3, "cover", data1))
+        tags.add(APIC(3, "image/jpeg", 3, "other", data2))
+        tags.save(str(p))
+    
+        tags2 = ID3(str(p))
+>       assert tags2["TIT2"].text == ["T1"]
+
+generation_m1\Mutagen\_agent_tests\test_agent_basic.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000161BAF3C7F0>, frame_id = 'TIT2'
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 'TIT2'
+
+generation_m1\Mutagen\mutagen\id3.py:246: KeyError
+____________ test_preserve_prefix_bytes_when_tagging_existing_file ____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-522/test_preserve_prefix_bytes_whe0')
+
+    def test_preserve_prefix_bytes_when_tagging_existing_file(tmp_path):
+        p = tmp_path / "raw.mp3"
+        prefix = b"NOTANMP3" * 1000
+        p.write_bytes(prefix)
+    
+        t = EasyID3(str(p))
+        t["title"] = ["X"]
+        t.save()
+    
+        # ensure prefix preserved (file now longer because tag appended/replaced)
+        new = p.read_bytes()
+        assert new.startswith(prefix)
+    
+        # repeat save should not grow linearly
+        size1 = os.path.getsize(p)
+        t2 = EasyID3(str(p))
+        t2["title"] = ["Y"]
+        t2.save()
+        size2 = os.path.getsize(p)
+        assert size2 <= size1 + 200  # small change only
+>       assert EasyID3(str(p))["title"] == ["Y"]
+
+generation_m1\Mutagen\_agent_tests\test_agent_basic.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Mutagen\mutagen\easyid3.py:44: in __getitem__
+    fr = self._id3[fid]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000161BAE964F0>, frame_id = 'TIT2'
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 'TIT2'
+
+generation_m1\Mutagen\mutagen\id3.py:246: KeyError
+=========================== short test summary info ===========================
+FAILED generation_m1/Mutagen/_agent_tests/test_agent_basic.py::test_easyid3_roundtrip_tag_only
+FAILED generation_m1/Mutagen/_agent_tests/test_agent_basic.py::test_easyid3_multiple_values_overwrite_delete
+FAILED generation_m1/Mutagen/_agent_tests/test_agent_basic.py::test_id3_text_comm_apic_roundtrip_and_ops
+FAILED generation_m1/Mutagen/_agent_tests/test_agent_basic.py::test_preserve_prefix_bytes_when_tagging_existing_file
+4 failed in 0.61s

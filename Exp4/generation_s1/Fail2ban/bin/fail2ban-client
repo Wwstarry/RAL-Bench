@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+
+from fail2ban import __version__
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Offline-safe subset: no daemon communication implemented.",
+    )
+    parser.add_argument("--version", action="store_true", help="Print version and exit.")
+    args, unknown = parser.parse_known_args(argv)
+
+    if args.version:
+        print(__version__)
+        return 0
+
+    # Default: show help (safe).
+    parser.print_help()
+    if unknown:
+        print("\nNote: daemon communication commands are not implemented in this subset.", file=sys.stderr)
+    return 0
+
+if __name__ == "__main__":
+    raise SystemExit(main())

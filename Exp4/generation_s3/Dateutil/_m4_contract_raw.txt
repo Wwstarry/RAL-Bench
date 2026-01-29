@@ -1,0 +1,231 @@
+<contract>
+1) Repository layout (packages/modules/files must exist)
+- Top-level package: dateutil/
+  - dateutil/__init__.py
+    - Must expose __version__ (string; any value acceptable unless tests pin it)
+  - dateutil/parser/__init__.py
+    - Must expose parse (callable)
+  - dateutil/parser/_parser.py
+    - Implementation backing parser.parse (internal; name used for organization only)
+  - dateutil/relativedelta.py
+    - Must expose relativedelta class
+  - dateutil/rrule.py
+    - Must expose rrule class, rruleset (optional if tests need), constants, weekday objects (MO..SU)
+  - dateutil/tz/__init__.py
+    - Must expose UTC, gettz, tzutc, tzoffset (and minimal tzfile/tzlocal if required by tests)
+  - dateutil/tz/_common.py
+    - Shared tzinfo helpers (optional internal)
+  - dateutil/tz/_tz.py
+    - Core tzinfo implementations (optional internal)
+
+2) Public API surface (modules/classes/functions and key signatures)
+2.1 dateutil.parser
+- dateutil.parser.parse(timestr, default=None, ignoretz=False, tzinfos=None, dayfirst=False, yearfirst=False, fuzzy=False, fuzzy_with_tokens=False)
+  - Returns datetime.datetime
+  - If fuzzy_with_tokens=True: returns (datetime.datetime, tuple_of_unused_tokens)
+- dateutil.parser.ParserError exception (exported from dateutil.parser; can be custom inheriting ValueError)
+
+2.2 dateutil.relativedelta
+- class dateutil.relativedelta.relativedelta:
+  - __init__(self, dt1=None, dt2=None, years=0, months=0, days=0, leapdays=0, weeks=0,
+            hours=0, minutes=0, seconds=0, microseconds=0,
+            year=None, month=None, day=None, weekday=None,
+            yearday=None, nlyearday=None,
+            hour=None, minute=None, second=None, microsecond=None)
+  - Supports:
+    - addition: datetime/date + relativedelta -> datetime/date
+    - raddition: relativedelta + datetime/date -> datetime/date
+    - subtraction: datetime/date - relativedelta -> datetime/date
+    - relativedelta between two dates: relativedelta(dt1, dt2) yields a delta-like object
+  - Attributes commonly inspected: years, months, days, hours, minutes, seconds, microseconds; also year/month/day etc if used
+- weekday spec helpers (only if tests reference them through relativedelta):
+  - MO, TU, WE, TH, FR, SA, SU objects (may be imported from dateutil.rrule or redefined compatibly)
+
+2.3 dateutil.rrule
+- Frequency constants (ints):
+  - YEARLY, MONTHLY, WEEKLY, DAILY, HOURLY, MINUTELY, SECONDLY
+- Weekday specifiers:
+  - MO, TU, WE, TH, FR, SA, SU (instances of weekday class)
+  - class weekday:
+    - __init__(self, weekday, n=None)
+    - callable: weekday(n) returns weekday instance with nth occurrence indicator (e.g., MO(1), MO(-1))
+    - properties: weekday (0=MO..6=SU), n (or None)
+    - equality/representation stable enough for tests (repr optional)
+- class rrule:
+  - __init__(self, freq, dtstart=None, interval=1, wkst=MO, count=None, until=None,
+             bysetpos=None, bymonth=None, bymonthday=None, byyearday=None, byeaster=None,
+             byweekno=None, byweekday=None, bynweekday=None,
+             byhour=None, byminute=None, bysecond=None,
+             cache=False)
+  - Must be iterable and support:
+    - __iter__ returning iterator of datetime.datetime
+    - __getitem__ supporting slicing and integer indexing for small indices used in tests
+    - between(after, before, inc=False) -> list[datetime]
+    - after(dt, inc=False) -> datetime or None
+    - before(dt, inc=False) -> datetime or None
+- Optional if tests need:
+  - class rruleset with rrule(), exrule(), rdate(), exdate(), between(), __iter__()
+
+2.4 dateutil.tz
+- UTC singleton tzinfo:
+  - dateutil.tz.UTC (instance of tzutc)
+- tzinfo classes:
+  - class tzutc(datetime.tzinfo)
+  - class tzoffset(datetime.tzinfo):
+    - __init__(self, name, offset) where offset is seconds or datetime.timedelta
+- gettz(name=None) -> tzinfo or None
+  - Accepts: "UTC", "GMT", "Z", fixed-offset forms like "+HH:MM", "-HHMM", "+HH"
+  - Accepts IANA names at least for those used in tests (e.g., "US/Eastern", "Europe/London" etc). If full zoneinfo not implemented, must still satisfy tested names.
+  - If name is None: returns local timezone tzinfo (can be UTC if unknown; but must be consistent within process)
+- tzfile/tzlocal not required unless tests import them directly; but avoid ImportError by stubbing exports if referenced.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+3.1 General invariants
+- All public imports used by tests must succeed with correct names and module paths (dateutil.parser.parse, dateutil.relativedelta.relativedelta, dateutil.rrule.rrule, dateutil.tz.gettz, dateutil.tz.UTC, weekday constants).
+- All operations must use Python stdlib only (datetime, re, zoneinfo if available, math, calendar, functools).
+- Datetime arithmetic must preserve tzinfo where appropriate and produce correct “instant” equivalence when comparing aware datetimes.
+
+3.2 dateutil.parser.parse
+Input formats required (must parse successfully):
+- ISO-8601:
+  - "YYYY-MM-DD"
+  - "YYYY-MM-DDTHH:MM"
+  - "YYYY-MM-DDTHH:MM:SS"
+  - Optional fractional seconds: ".ffffff" (1-6 digits)
+  - Time zone suffixes:
+    - "Z" meaning UTC
+    - Offsets "+HH:MM", "-HH:MM", "+HHMM", "-HHMM", "+HH", "-HH"
+- Common human-friendly:
+  - "YYYY/MM/DD", "MM/DD/YYYY", "DD/MM/YYYY" (dayfirst/yearfirst flags control ambiguity)
+  - "Mon DD YYYY", "DD Mon YYYY", "Month DD, YYYY"
+  - Optional time "HH:MM[:SS]" optionally with AM/PM
+  - Optional timezone tokens: "UTC", "GMT", and fixed offsets as above
+Behavior:
+- Returns naive datetime when:
+  - no timezone info in string and ignoretz=False (default) and default has no tzinfo
+- Returns aware datetime when:
+  - string contains tz offset or "Z"/"UTC"/"GMT" and ignoretz=False
+  - or default contains tzinfo and parsed string lacks explicit tzinfo (inherit default.tzinfo)
+- ignoretz=True strips any parsed tzinfo, returning naive datetime with the same Y-M-D h:m:s fields.
+- default:
+  - If provided, fills missing components (year/month/day/time) from default.
+  - If None, default is datetime.now() with time 00:00:00? (Reference dateutil uses current date/time; for test stability, use datetime.now() but ensure missing components are filled consistently. If tests expect 00:00 for missing time, honor that: missing time components default to 0; missing date components default from today.)
+- tzinfos:
+  - If dict: maps timezone names/abbrevs found in string to tzinfo or offset seconds; applied when those names appear.
+  - If callable: tzinfos(tzname, tzoffset) -> tzinfo/offset/None
+- fuzzy / fuzzy_with_tokens:
+  - If fuzzy=True: ignore unknown tokens instead of raising error.
+  - If fuzzy_with_tokens=True: also return the ignored tokens in order.
+Error handling:
+- On failure to parse: raise dateutil.parser.ParserError (ValueError subclass).
+- If timestr is not str/bytes-like: TypeError.
+Equivalence:
+- Two strings representing same instant but different offsets must result in aware datetimes that compare equal when converted to UTC (tests may compare .astimezone(UTC) or timestamps).
+
+3.3 dateutil.tz
+- UTC:
+  - tzname(None) -> "UTC"
+  - utcoffset(dt) -> timedelta(0)
+  - dst(dt) -> timedelta(0)
+- tzoffset:
+  - Fixed offset tzinfo with given name and offset (seconds or timedelta).
+  - utcoffset returns fixed timedelta; dst is 0.
+- gettz:
+  - For "UTC", "GMT", "Z": return UTC singleton.
+  - For fixed offsets: return tzoffset with name like "+HH:MM" normalized; offset sign respected.
+  - For IANA names:
+    - Prefer stdlib zoneinfo.ZoneInfo when available (Python 3.9+).
+    - If ZoneInfo not available or key not found, return None unless tests require a fallback.
+  - For None: return local timezone (can be datetime.now().astimezone().tzinfo), else UTC if not determinable; must be tzinfo instance.
+Conversions:
+- .astimezone(gettz("UTC")) must work for aware datetimes.
+- Offsets must correctly reflect zone rules for IANA zones via zoneinfo (DST transitions where exercised by tests).
+
+3.4 dateutil.relativedelta.relativedelta
+Core behaviors:
+- When adding to date/datetime:
+  - Apply absolute fields (year/month/day/hour/minute/second/microsecond) first if provided (set-like behavior).
+  - Then apply relative fields (years, months, days, weeks, hours, minutes, seconds, microseconds).
+  - Month/year arithmetic is calendar-aware:
+    - Adding months that lands beyond end-of-month clamps to last valid day (e.g., Jan 31 + 1 month => Feb 28/29).
+  - weeks is converted to days (weeks*7).
+- When dt is datetime with tzinfo:
+  - Preserve tzinfo on result.
+  - Wall-time arithmetic for months/years/days should keep local time components stable; rely on datetime arithmetic and tzinfo; do not convert to UTC internally.
+- relativedelta(dt1, dt2):
+  - Produce difference components such that dt2 + relativedelta(dt1, dt2) approximates dt1 (sufficient for tests; full reference exactness not required beyond covered cases).
+- weekday handling (if used):
+  - Support weekday=MO/TU/etc or weekday=MO(n) to get nth weekday relative adjustment when adding; minimal support sufficient for tests (commonly “next Monday” patterns).
+Error handling:
+- TypeError when adding to non-date/datetime.
+- ValueError for invalid field ranges only if necessary; otherwise follow datetime errors.
+
+3.5 dateutil.rrule
+Core behaviors required by tests:
+- rrule is an iterable producing a sequence of datetimes starting at dtstart (inclusive by default).
+- Support freq at least DAILY and WEEKLY.
+- interval support (>=1).
+- count and until limiting:
+  - If count is set: produce exactly count occurrences (or fewer if until restricts earlier).
+  - If until is set: last occurrence <= until (inclusive).
+  - until may be date or datetime; if date, treat as end of that day in dtstart’s timezone (or naive).
+- byweekday filter:
+  - Accept single weekday, list of weekdays, or list including weekday(n) (nth occurrence) but nth may be ignored unless tests require.
+  - For WEEKLY: occurrences are on specified weekdays within each week; week start determined by wkst (default MO).
+  - For DAILY: byweekday filters days matching weekday.
+- dtstart:
+  - If naive, produced datetimes are naive.
+  - If aware, produced datetimes preserve tzinfo and local clock time equal to dtstart’s time fields.
+- Ordering and stability:
+  - Produced occurrences strictly increasing, no duplicates.
+  - For WEEKLY with byweekday, within a given week, order by weekday number relative to wkst.
+Indexing/slicing:
+- __getitem__(0) returns first occurrence.
+- Slices like rule[:N] return list of first N occurrences.
+- Negative indices not required unless tests use them.
+Helper methods:
+- between(after, before, inc=False):
+  - Return list of occurrences x such that:
+    - inc=False: after < x < before
+    - inc=True: after <= x <= before
+- after(dt, inc=False), before(dt, inc=False):
+  - Return next/previous occurrence relative to dt with inclusive option.
+Error handling:
+- ValueError for invalid freq.
+- If dtstart is None: default to datetime.now() (acceptable unless tests require explicit).
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Imports:
+  - import dateutil
+  - from dateutil.parser import parse
+  - from dateutil.relativedelta import relativedelta
+  - from dateutil.rrule import rrule, DAILY, WEEKLY, MO, TU, WE, TH, FR, SA, SU
+  - from dateutil.tz import UTC, gettz
+- Parser:
+  - parse("2020-01-02") returns datetime with correct Y-M-D and 00:00:00 time.
+  - parse("2020-01-02T03:04:05Z").tzinfo is UTC and converts correctly.
+  - parse with "+02:00" and "Z" forms represent equal instants when appropriate.
+  - parse uses default to fill missing parts and inherits default.tzinfo when string lacks tz.
+  - parse(..., ignoretz=True) returns naive datetime.
+  - parse(..., fuzzy=True) ignores extra words; fuzzy_with_tokens returns (dt, tokens).
+- Time zones:
+  - gettz("UTC") is UTC (or equivalent tzinfo with 0 offset).
+  - gettz("+02:00") returns fixed offset tzinfo and utcoffset matches.
+  - gettz("Z") returns UTC.
+  - For at least the zone names used in tests, gettz(name) returns tzinfo with correct offsets (via zoneinfo).
+- relativedelta:
+  - datetime(2020,1,31) + relativedelta(months=1) clamps to Feb end.
+  - Supports adding years/months/days and preserving tzinfo.
+- rrule:
+  - rrule(DAILY, count=3, dtstart=...) yields exactly 3 increasing datetimes.
+  - rrule(WEEKLY, byweekday=[MO,WE,FR], count=...) yields stable weekday pattern in correct order.
+  - between/after/before behave with inc flag.
+  - Aware dtstart keeps tzinfo and wall-clock time constant across occurrences (subject to zoneinfo DST behavior if tested).
+
+5) Non-goals / constraints
+- No external dependencies; implement in pure Python using stdlib only (including zoneinfo when available).
+- Full python-dateutil feature parity is not required; only the API surface and behaviors exercised by the tests must be implemented.
+- Do not implement advanced parsing (RFC 2822 complete, locale-specific month names beyond English) unless tests require.
+- Do not implement full rrule feature matrix (BYSETPOS, BYEASTER, complex BY* interactions) beyond what tests cover; accept parameters but may ignore unsupported ones if not tested, provided outputs for tested cases match.
+- No network or system time zone database downloads; rely on stdlib zoneinfo and system-installed tzdata if present. If missing, return None for unknown zones unless tests require a fallback mapping.
+</contract>

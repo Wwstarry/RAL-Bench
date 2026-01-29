@@ -1,0 +1,37 @@
+.......F.F                                                               [100%]
+================================== FAILURES ===================================
+____________________ test_streaming_response_iter_content _____________________
+
+    def test_streaming_response_iter_content() -> None:
+        httpd, base_url = _start_server()
+        s = _new_session()
+        try:
+>           r = s.get(base_url + "/get", stream=True)
+
+tests\Requests\functional_test.py:258: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <requests.sessions.Session object at 0x000001D7960602B0>
+url = 'http://127.0.0.1:60927/get'
+kwargs = {'allow_redirects': True, 'stream': True}
+
+    def get(self, url, **kwargs):
+        kwargs.setdefault("allow_redirects", True)
+>       return self.request("GET", url, **kwargs)
+E       TypeError: request() got an unexpected keyword argument 'stream'
+
+generation\Requests\requests\sessions.py:95: TypeError
+_______________ test_prepared_request_contains_headers_and_url ________________
+
+    def test_prepared_request_contains_headers_and_url() -> None:
+        httpd, base_url = _start_server()
+        s = _new_session()
+        try:
+>           req = requests.Request("GET", base_url + "/get", headers={"X-Test": "1"})
+E           TypeError: __init__() got an unexpected keyword argument 'headers'
+
+tests\Requests\functional_test.py:285: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Requests/functional_test.py::test_streaming_response_iter_content
+FAILED tests/Requests/functional_test.py::test_prepared_request_contains_headers_and_url
+2 failed, 8 passed in 2.23s

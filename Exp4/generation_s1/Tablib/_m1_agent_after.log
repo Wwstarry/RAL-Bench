@@ -1,0 +1,142 @@
+....FFF                                                                  [100%]
+================================== FAILURES ===================================
+________________ test_csv_roundtrip_preserves_shape_and_order _________________
+
+    def test_csv_roundtrip_preserves_shape_and_order():
+        ds = tablib.Dataset([90, 80], [70, 60], headers=["m", "n"])
+        csv_text = ds.csv
+        assert csv_text.splitlines()[0] == "m,n"
+    
+        ds2 = tablib.Dataset()
+>       ds2.csv = csv_text
+
+generation_m1\Tablib\_agent_tests\test_agent_basic.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Tablib\tablib\core.py:145: in csv
+    csvfmt.import_dataset(self, text)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+dataset = <tablib.core.Dataset object at 0x0000026FB4B91DC0>
+text = 'm,n\n90,80\n70,60\n'
+
+    def import_dataset(dataset, text: str) -> None:
+        """
+        Import CSV into an existing Dataset, replacing its contents.
+    
+        Behavior: treat first row as headers (when present). Remaining rows are data.
+        All values are imported as strings (empty string for missing cells).
+        """
+        s = io.StringIO(text or "")
+        reader = csv.reader(s)
+    
+        rows: List[List[str]] = list(reader)
+        if not rows:
+            dataset._set_data(headers=[], rows=[], title=getattr(dataset, "title", None))
+            return
+    
+        headers = rows[0]
+        data_rows = rows[1:]
+    
+        # Keep row widths as-is; dataset width will follow headers length.
+>       dataset._set_data(headers=headers, rows=[tuple(r) for r in data_rows], title=getattr(dataset, "title", None))
+E       AttributeError: 'Dataset' object has no attribute '_set_data'
+
+generation_m1\Tablib\tablib\formats\_csv.py:58: AttributeError
+____________ test_json_roundtrip_dataset_and_list_of_dicts_import _____________
+
+    def test_json_roundtrip_dataset_and_list_of_dicts_import():
+        ds = tablib.Dataset([1, None], [3, 4], headers=["a", "b"], title="T")
+        j = ds.json
+        obj = json.loads(j)
+        assert obj["title"] == "T"
+        assert obj["headers"] == ["a", "b"]
+        assert obj["data"][0] == [1, None]
+    
+        ds2 = tablib.Dataset()
+>       ds2.json = j
+
+generation_m1\Tablib\_agent_tests\test_agent_basic.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Tablib\tablib\core.py:153: in json
+    jsonfmt.import_dataset(self, text)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+dataset = <tablib.core.Dataset object at 0x0000026FB4B631C0>
+text = '{"title":"T","headers":["a","b"],"data":[[1,null],[3,4]]}'
+
+    def import_dataset(dataset, text: str) -> None:
+        """
+        Import JSON into an existing Dataset, replacing its contents.
+    
+        Supports two input shapes:
+          1) {"title":..., "headers":[...], "data":[[...], ...]}
+          2) [ {"col": value, ...}, ... ]  (list-of-dicts)
+        """
+        raw = json.loads(text or "null")
+        title = getattr(dataset, "title", None)
+    
+        if raw is None:
+            dataset._set_data(headers=[], rows=[], title=title)
+            return
+    
+        if isinstance(raw, dict) and "data" in raw and "headers" in raw:
+            headers = raw.get("headers") or []
+            title = raw.get("title", title)
+            data = raw.get("data") or []
+>           dataset._set_data(headers=headers, rows=[tuple(r) for r in data], title=title)
+E           AttributeError: 'Dataset' object has no attribute '_set_data'
+
+generation_m1\Tablib\tablib\formats\_json.py:50: AttributeError
+_________ test_databook_json_preserves_sheets_titles_headers_and_rows _________
+
+    def test_databook_json_preserves_sheets_titles_headers_and_rows():
+        s1 = tablib.Dataset([1, 2], [3, 4], headers=["a", "b"], title="Sheet1")
+        s2 = tablib.Dataset(["x"], ["y"], headers=["col"], title="Sheet2")
+        book = tablib.Databook([s1, s2])
+    
+        assert book.size == 2
+        assert [s.title for s in book.sheets()] == ["Sheet1", "Sheet2"]
+        assert [s.title for s in list(book)] == ["Sheet1", "Sheet2"]
+    
+        j = book.export("json")
+        book2 = tablib.Databook([])
+>       book2.json = j
+
+generation_m1\Tablib\_agent_tests\test_agent_basic.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation_m1\Tablib\tablib\core.py:182: in json
+    jsonfmt.import_databook(self, text)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+book = <tablib.core.Databook object at 0x0000026FB4C141C0>
+text = '{"datasets":[{"title":"Sheet1","headers":["a","b"],"data":[[1,2],[3,4]]},{"title":"Sheet2","headers":["col"],"data":[["x"],["y"]]}]}'
+
+    def import_databook(book, text: str) -> None:
+        raw = json.loads(text or "null")
+        if raw is None:
+            book._set_datasets([])
+            return
+        if not isinstance(raw, dict) or "datasets" not in raw:
+            raise ValueError("Unsupported JSON databook format")
+    
+        sheets = raw.get("datasets") or []
+        new_datasets = []
+        for sheet in sheets:
+            if not isinstance(sheet, dict):
+                raise ValueError("Invalid dataset entry in databook JSON")
+            headers = sheet.get("headers") or []
+            data = sheet.get("data") or []
+            title = sheet.get("title", None)
+            from ..core import Dataset  # local import to avoid circular import at module load time
+    
+            ds = Dataset(headers=headers, title=title)
+            # Directly set data for speed and to preserve None values.
+>           ds._set_data(headers=headers, rows=[tuple(r) for r in data], title=title)
+E           AttributeError: 'Dataset' object has no attribute '_set_data'
+
+generation_m1\Tablib\tablib\formats\_json.py:101: AttributeError
+=========================== short test summary info ===========================
+FAILED generation_m1/Tablib/_agent_tests/test_agent_basic.py::test_csv_roundtrip_preserves_shape_and_order
+FAILED generation_m1/Tablib/_agent_tests/test_agent_basic.py::test_json_roundtrip_dataset_and_list_of_dicts_import
+FAILED generation_m1/Tablib/_agent_tests/test_agent_basic.py::test_databook_json_preserves_sheets_titles_headers_and_rows
+3 failed, 4 passed in 0.41s

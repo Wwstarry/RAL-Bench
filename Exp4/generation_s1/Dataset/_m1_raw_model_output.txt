@@ -1,0 +1,548 @@
+<file:name=dataset/__init__.py>
+from __future__ import annotations
+
+from .database import Database
+
+
+def connect(url: str) -> Database:
+    """Connect to a database URL.
+
+    Supported URLs:
+      - sqlite:///:memory:
+      - sqlite:////absolute/path.db
+      - sqlite:///relative/path.db
+    """
+    return Database(url)
+
+
+__all__ = ["connect", "Database"]
+</file>
+
+<file:name=dataset/database.py>
+from __future__ import annotations
+
+import sqlite3
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Iterator, Mapping, Optional, Tuple
+
+from .table import Table
+
+
+def _parse_sqlite_url(url: str) -> str:
+    if not isinstance(url, str) or "://" not in url:
+        raise ValueError(f"Invalid URL: {url!r}")
+    scheme, rest = url.split("://", 1)
+    if scheme != "sqlite":
+        raise ValueError(f"Unsupported scheme: {scheme!r}")
+    # sqlite:///:memory:
+    if rest == "/:memory:":
+        return ":memory:"
+    # sqlite:////absolute/path -> rest startswith "///"
+    # sqlite:///relative/path -> rest startswith "//"
+    # Given split at "://", rest includes the leading slashes.
+    # Examples:
+    #   sqlite:////tmp/x.db -> rest == "//tmp/x.db"
+    #   sqlite:///x.db -> rest == "/x.db"
+    if rest.startswith("///"):
+        # rare; keep conservative
+        return rest[2:]  # drop two slashes, keep absolute leading slash
+    if rest.startswith("//"):
+        return rest[1:]  # drop one slash, keep absolute leading slash
+    if rest.startswith("/"):
+        return rest[1:]  # relative path
+    return rest
+
+
+@dataclass
+class _DDLResult:
+    ddl_ran: bool = False
+
+
+class Database:
+    def __init__(self, url: str):
+        self.url = url
+        self.path = _parse_sqlite_url(url)
+
+        self.conn = sqlite3.connect(
+            self.path,
+            isolation_level=None,  # manual transaction control
+            check_same_thread=True,
+        )
+        self.conn.row_factory = sqlite3.Row
+
+        # local state
+        self._tables: Dict[str, Table] = {}
+        self._in_transaction: bool = False
+
+        # pragmatic defaults for performance without changing semantics
+        with self.conn:
+            self.conn.execute("PRAGMA foreign_keys=ON")
+            self.conn.execute("PRAGMA journal_mode=WAL" if self.path != ":memory:" else "PRAGMA journal_mode=MEMORY")
+            self.conn.execute("PRAGMA synchronous=NORMAL")
+
+    def __getitem__(self, name: str) -> Table:
+        if name not in self._tables:
+            self._tables[name] = Table(self, name)
+        return self._tables[name]
+
+    def begin(self) -> None:
+        if not self._in_transaction:
+            self.conn.execute("BEGIN")
+            self._in_transaction = True
+
+    def commit(self) -> None:
+        if self._in_transaction:
+            self.conn.execute("COMMIT")
+            self._in_transaction = False
+
+    def rollback(self) -> None:
+        if self._in_transaction:
+            self.conn.execute("ROLLBACK")
+            self._in_transaction = False
+
+    def _after_ddl_if_needed(self) -> None:
+        # SQLite may auto-commit around DDL. If user requested an explicit
+        # transaction, restore transactional mode for subsequent DML.
+        if self._in_transaction:
+            # If already in a transaction, BEGIN will error. Try to detect quickly.
+            # sqlite3 doesn't expose transaction state reliably; just attempt BEGIN
+            # and ignore the error.
+            try:
+                self.conn.execute("BEGIN")
+            except sqlite3.OperationalError:
+                pass
+
+    def query(self, sql: str, **params: Any) -> Iterator[Mapping[str, Any]]:
+        cur = self.conn.execute(sql, params)
+        try:
+            for row in cur:
+                yield dict(row)
+        finally:
+            cur.close()
+</file>
+
+<file:name=dataset/table.py>
+from __future__ import annotations
+
+import json
+import re
+import sqlite3
+from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+
+
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _quote_ident(name: str) -> str:
+    # Always quote to be safe (reserved words, spaces, etc.)
+    name = str(name)
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _normalize_columns(columns: Union[str, Sequence[str]]) -> Tuple[str, ...]:
+    if isinstance(columns, str):
+        return (columns,)
+    return tuple(columns)
+
+
+def _normalize_keys(keys: Union[str, Sequence[str]]) -> Tuple[str, ...]:
+    if isinstance(keys, str):
+        return (keys,)
+    return tuple(keys)
+
+
+def _infer_sqlite_type(value: Any) -> str:
+    if value is None:
+        return "TEXT"
+    if isinstance(value, bool):
+        return "INTEGER"
+    if isinstance(value, int):
+        return "INTEGER"
+    if isinstance(value, float):
+        return "REAL"
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return "BLOB"
+    # everything else stored as TEXT
+    return "TEXT"
+
+
+def _adapt_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (bool, int, float, str, bytes, bytearray, memoryview)):
+        # bool is fine as int-ish; sqlite3 will convert bool to int
+        return value
+    if isinstance(value, (dict, list, tuple)):
+        return json.dumps(value, separators=(",", ":"), sort_keys=True)
+    return str(value)
+
+
+class Table:
+    def __init__(self, db: Any, name: str):
+        self.db = db
+        self.name = name
+        self._columns_cache: Optional[List[str]] = None
+        self._ensure_table()
+
+    def _ensure_table(self) -> None:
+        sql = f"""
+        CREATE TABLE IF NOT EXISTS {_quote_ident(self.name)} (
+            id INTEGER PRIMARY KEY AUTOINCREMENT
+        )
+        """
+        self.db.conn.execute(sql)
+        self.db._after_ddl_if_needed()
+        self._columns_cache = None
+
+    def _refresh_columns(self) -> List[str]:
+        cur = self.db.conn.execute(f"PRAGMA table_info({_quote_ident(self.name)})")
+        try:
+            cols = [r["name"] for r in cur.fetchall()]
+        finally:
+            cur.close()
+        self._columns_cache = cols
+        return cols
+
+    @property
+    def columns(self) -> List[str]:
+        if self._columns_cache is None:
+            return self._refresh_columns()
+        return list(self._columns_cache)
+
+    def _ensure_columns(self, keys: Iterable[str], sample_row: Optional[Mapping[str, Any]] = None) -> bool:
+        existing = set(self.columns)
+        ddl_ran = False
+        for k in keys:
+            if k in existing:
+                continue
+            # choose a type if we have a sample value
+            t = "TEXT"
+            if sample_row is not None and k in sample_row:
+                t = _infer_sqlite_type(sample_row.get(k))
+            self.db.conn.execute(
+                f"ALTER TABLE {_quote_ident(self.name)} ADD COLUMN {_quote_ident(k)} {t}"
+            )
+            ddl_ran = True
+            existing.add(k)
+        if ddl_ran:
+            self.db._after_ddl_if_needed()
+            self._columns_cache = None
+        return ddl_ran
+
+    def __len__(self) -> int:
+        return self.count()
+
+    def insert(self, row: Mapping[str, Any]) -> int:
+        if row is None:
+            row = {}
+        row = dict(row)
+        if row:
+            self._ensure_columns(row.keys(), sample_row=row)
+            cols = list(row.keys())
+            values = [_adapt_value(row.get(c)) for c in cols]
+            col_sql = ", ".join(_quote_ident(c) for c in cols)
+            ph_sql = ", ".join("?" for _ in cols)
+            sql = f"INSERT INTO {_quote_ident(self.name)} ({col_sql}) VALUES ({ph_sql})"
+            cur = self.db.conn.execute(sql, values)
+        else:
+            cur = self.db.conn.execute(f"INSERT INTO {_quote_ident(self.name)} DEFAULT VALUES")
+        try:
+            return int(cur.lastrowid)
+        finally:
+            cur.close()
+
+    def insert_many(self, rows: Iterable[Mapping[str, Any]], chunk_size: Optional[int] = None) -> None:
+        if chunk_size is None:
+            chunk_size = 1000
+        buf: List[Dict[str, Any]] = []
+        for r in rows:
+            buf.append(dict(r))
+            if len(buf) >= chunk_size:
+                self._insert_many_chunk(buf)
+                buf.clear()
+        if buf:
+            self._insert_many_chunk(buf)
+
+    def _insert_many_chunk(self, rows: List[Dict[str, Any]]) -> None:
+        if not rows:
+            return
+        # union keys across chunk
+        keys_set = set()
+        for r in rows:
+            keys_set.update(r.keys())
+        keys = sorted(keys_set)
+        if keys:
+            # ensure columns exist; choose types based on first non-None sample
+            # (best-effort; SQLite is forgiving)
+            for k in keys:
+                if k in set(self.columns):
+                    continue
+                sample = None
+                for r in rows:
+                    if k in r and r[k] is not None:
+                        sample = r[k]
+                        break
+                self._ensure_columns([k], sample_row={k: sample})
+            col_sql = ", ".join(_quote_ident(c) for c in keys)
+            ph_sql = ", ".join("?" for _ in keys)
+            sql = f"INSERT INTO {_quote_ident(self.name)} ({col_sql}) VALUES ({ph_sql})"
+            params = [tuple(_adapt_value(r.get(k)) for k in keys) for r in rows]
+            self.db.conn.executemany(sql, params)
+        else:
+            # all empty dicts
+            self.db.conn.executemany(
+                f"INSERT INTO {_quote_ident(self.name)} DEFAULT VALUES",
+                [()] * len(rows),
+            )
+
+    def _compile_where(self, filters: Mapping[str, Any]) -> Tuple[str, List[Any]]:
+        if not filters:
+            return "", []
+        parts: List[str] = []
+        params: List[Any] = []
+        for k, v in filters.items():
+            col = _quote_ident(k)
+            if v is None:
+                parts.append(f"{col} IS NULL")
+            elif isinstance(v, (list, tuple, set)):
+                vs = list(v)
+                if not vs:
+                    parts.append("1=0")
+                else:
+                    parts.append(f"{col} IN ({', '.join(['?'] * len(vs))})")
+                    params.extend([_adapt_value(x) for x in vs])
+            else:
+                parts.append(f"{col} = ?")
+                params.append(_adapt_value(v))
+        return " WHERE " + " AND ".join(parts), params
+
+    def all(self) -> Iterator[Mapping[str, Any]]:
+        return self.find()
+
+    def find(self, **filters: Any) -> Iterator[Mapping[str, Any]]:
+        where_sql, params = self._compile_where(filters)
+        sql = f"SELECT * FROM {_quote_ident(self.name)}{where_sql}"
+        cur = self.db.conn.execute(sql, params)
+        try:
+            for row in cur:
+                yield dict(row)
+        finally:
+            cur.close()
+
+    def find_one(self, **filters: Any) -> Optional[Mapping[str, Any]]:
+        where_sql, params = self._compile_where(filters)
+        sql = f"SELECT * FROM {_quote_ident(self.name)}{where_sql} LIMIT 1"
+        cur = self.db.conn.execute(sql, params)
+        try:
+            r = cur.fetchone()
+            return dict(r) if r is not None else None
+        finally:
+            cur.close()
+
+    def distinct(self, column: str) -> List[Any]:
+        sql = f"SELECT DISTINCT {_quote_ident(column)} AS v FROM {_quote_ident(self.name)}"
+        cur = self.db.conn.execute(sql)
+        try:
+            return [row["v"] for row in cur.fetchall()]
+        finally:
+            cur.close()
+
+    def count(self, **filters: Any) -> int:
+        where_sql, params = self._compile_where(filters)
+        sql = f"SELECT COUNT(*) AS c FROM {_quote_ident(self.name)}{where_sql}"
+        cur = self.db.conn.execute(sql, params)
+        try:
+            return int(cur.fetchone()["c"])
+        finally:
+            cur.close()
+
+    def update(self, row: Mapping[str, Any], keys: Union[str, Sequence[str]]) -> int:
+        row = dict(row)
+        key_cols = _normalize_keys(keys)
+        for k in key_cols:
+            if k not in row:
+                raise KeyError(f"Missing key column {k!r} in row")
+        # ensure columns for any provided fields
+        if row:
+            self._ensure_columns(row.keys(), sample_row=row)
+
+        set_cols = [c for c in row.keys() if c not in key_cols]
+        if not set_cols:
+            return 0
+
+        set_sql = ", ".join(f"{_quote_ident(c)} = ?" for c in set_cols)
+        where_sql = " AND ".join(f"{_quote_ident(k)} = ?" for k in key_cols)
+        params = [_adapt_value(row[c]) for c in set_cols] + [_adapt_value(row[k]) for k in key_cols]
+        sql = f"UPDATE {_quote_ident(self.name)} SET {set_sql} WHERE {where_sql}"
+        cur = self.db.conn.execute(sql, params)
+        try:
+            return int(cur.rowcount if cur.rowcount is not None else 0)
+        finally:
+            cur.close()
+
+    def upsert(self, row: Mapping[str, Any], keys: Union[str, Sequence[str]]) -> Any:
+        n = self.update(row, keys)
+        if n == 0:
+            return self.insert(row)
+        return n
+
+    def delete(self, **filters: Any) -> int:
+        where_sql, params = self._compile_where(filters)
+        sql = f"DELETE FROM {_quote_ident(self.name)}{where_sql}"
+        cur = self.db.conn.execute(sql, params)
+        try:
+            return int(cur.rowcount if cur.rowcount is not None else 0)
+        finally:
+            cur.close()
+
+    def create_index(self, columns: Union[str, Sequence[str]]) -> None:
+        cols = _normalize_columns(columns)
+        # ensure cols exist (best-effort)
+        self._ensure_columns(cols, sample_row={c: None for c in cols})
+        idx_name = "ix_" + re.sub(r"[^A-Za-z0-9_]+", "_", f"{self.name}_" + "_".join(cols))
+        col_sql = ", ".join(_quote_ident(c) for c in cols)
+        sql = f"CREATE INDEX IF NOT EXISTS {_quote_ident(idx_name)} ON {_quote_ident(self.name)} ({col_sql})"
+        self.db.conn.execute(sql)
+        self.db._after_ddl_if_needed()
+
+    def has_index(self, columns: Union[str, Sequence[str]]) -> bool:
+        target = _normalize_columns(columns)
+        # SQLite metadata check
+        cur = self.db.conn.execute(f"PRAGMA index_list({_quote_ident(self.name)})")
+        try:
+            idxs = cur.fetchall()
+        finally:
+            cur.close()
+        for idx in idxs:
+            idx_name = idx["name"]
+            c2 = self.db.conn.execute(f"PRAGMA index_info({_quote_ident(idx_name)})")
+            try:
+                infos = c2.fetchall()
+            finally:
+                c2.close()
+            # 'seqno' gives order
+            infos_sorted = sorted(infos, key=lambda r: r["seqno"])
+            cols = tuple(r["name"] for r in infos_sorted)
+            if cols == target:
+                return True
+        return False
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import dataset
+
+
+def test_connect_and_lazy_table_and_columns():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["people"]
+    assert "id" in t.columns  # created on access
+
+    t.insert({"name": "a"})
+    assert "name" in t.columns
+
+    t.insert({"name": "b", "age": 3})
+    cols = set(t.columns)
+    assert {"id", "name", "age"}.issubset(cols)
+
+    # first row should have age NULL/None
+    r = t.find_one(name="a")
+    assert r["name"] == "a"
+    assert r.get("age") is None
+
+
+def test_find_filters_in_and_null():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["t"]
+    t.insert_many([{"name": "a", "age": 1}, {"name": "b", "age": None}, {"name": "c", "age": 2}])
+
+    assert t.count() == 3
+    assert t.count(name="a") == 1
+    assert t.count(name=["a", "c"]) == 2
+    assert t.count(age=None) == 1
+
+    names = sorted([r["name"] for r in t.find(name=["a", "c"])])
+    assert names == ["a", "c"]
+
+
+def test_update_upsert_delete():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["items"]
+    t.insert({"sku": "x", "price": 10})
+    assert t.find_one(sku="x")["price"] == 10
+
+    n = t.update({"sku": "x", "price": 11, "desc": "ok"}, keys="sku")
+    assert n == 1
+    r = t.find_one(sku="x")
+    assert r["price"] == 11
+    assert r["desc"] == "ok"
+
+    # upsert updates
+    u = t.upsert({"sku": "x", "price": 12}, keys="sku")
+    assert t.find_one(sku="x")["price"] == 12
+
+    # upsert inserts
+    u2 = t.upsert({"sku": "y", "price": 5}, keys="sku")
+    assert t.count() == 2
+    assert t.find_one(sku="y")["price"] == 5
+
+    d = t.delete(sku="x")
+    assert d == 1
+    assert t.find_one(sku="x") is None
+</file>
+
+<file:name=_agent_tests/test_agent_transactions_indexes_query.py>
+import dataset
+
+
+def test_transactions_rollback_and_commit_visibility():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["tx"]
+
+    db.begin()
+    t.insert({"name": "a"})
+    assert t.count() == 1  # visible inside tx
+    db.rollback()
+    assert t.count() == 0  # not visible after rollback
+
+    db.begin()
+    t.insert_many([{"name": "b"}, {"name": "c"}], chunk_size=1)
+    db.commit()
+    assert t.count() == 2
+
+
+def test_transactions_with_schema_change_inside_begin():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["sch"]
+
+    db.begin()
+    # forces ALTER TABLE while "in transaction"
+    t.insert({"newcol": "x"})
+    assert t.count() == 1
+    db.rollback()
+    # insert should be rolled back even though DDL occurred
+    assert t.count() == 0
+
+
+def test_indexes_create_and_has_index_order_sensitive():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["idx"]
+    t.insert_many([{"name": "a", "age": 1}, {"name": "b", "age": 2}])
+
+    assert not t.has_index("name")
+    t.create_index("name")
+    assert t.has_index("name")
+
+    assert not t.has_index(["name", "age"])
+    t.create_index(["name", "age"])
+    assert t.has_index(["name", "age"])
+    assert not t.has_index(["age", "name"])
+
+
+def test_database_query_named_params():
+    db = dataset.connect("sqlite:///:memory:")
+    t = db["q"]
+    t.insert_many([{"name": "a"}, {"name": "b"}])
+
+    rows = list(db.query('SELECT name FROM "q" WHERE name=:name', name="a"))
+    assert rows == [{"name": "a"}]
+</file>

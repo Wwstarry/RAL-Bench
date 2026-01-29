@@ -1,0 +1,63 @@
+..F.FF                                                                   [100%]
+================================== FAILURES ===================================
+_______________________ test_recursive_sees_subdir_file _______________________
+
+observer = <watchdog.observers.api.Observer object at 0x0000014DC3ACF040>
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-531/test_recursive_sees_subdir_fil0')
+
+    def test_recursive_sees_subdir_file(observer, tmp_path: Path):
+        h = RecordingHandler()
+        observer.schedule(h, str(tmp_path), recursive=True)
+        observer.start()
+    
+        sub = tmp_path / "sub"
+        sub.mkdir()
+        f = sub / "a.txt"
+        f.write_text("x", encoding="utf-8")
+    
+>       assert wait_for(lambda: any(e[0] == "created" and e[1] == str(f.resolve()) for e in h.events), timeout=3.0)
+E       assert False
+E        +  where False = wait_for(<function test_recursive_sees_subdir_file.<locals>.<lambda> at 0x0000014DC3AF7700>, timeout=3.0)
+
+generation_m1\Watchdog\_agent_tests\test_agent_basic.py:76: AssertionError
+_______________________ test_stop_prevents_more_events ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-531/test_stop_prevents_more_events0')
+
+    def test_stop_prevents_more_events(tmp_path: Path):
+        h = RecordingHandler()
+        obs = Observer(timeout=0.05)
+        obs.schedule(h, str(tmp_path), recursive=False)
+        obs.start()
+    
+        f = tmp_path / "x.txt"
+        f.write_text("1", encoding="utf-8")
+>       assert wait_for(lambda: any(e[0] == "created" and e[1] == str(f.resolve()) for e in h.events), timeout=3.0)
+E       assert False
+E        +  where False = wait_for(<function test_stop_prevents_more_events.<locals>.<lambda> at 0x0000014DC3B26B80>, timeout=3.0)
+
+generation_m1\Watchdog\_agent_tests\test_agent_basic.py:111: AssertionError
+_______________________ test_multiple_handlers_receive ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-531/test_multiple_handlers_receive0')
+
+    def test_multiple_handlers_receive(tmp_path: Path):
+        obs = Observer(timeout=0.05)
+        h1 = RecordingHandler()
+        h2 = RecordingHandler()
+        obs.schedule(h1, str(tmp_path), recursive=False)
+        obs.schedule(h2, str(tmp_path), recursive=False)
+        obs.start()
+        try:
+            f = tmp_path / "multi.txt"
+            f.write_text("x", encoding="utf-8")
+>           assert wait_for(lambda: any(e[0] == "created" and e[1] == str(f.resolve()) for e in h1.events), timeout=3.0)
+E           assert False
+E            +  where False = wait_for(<function test_multiple_handlers_receive.<locals>.<lambda> at 0x0000014DC3B26E50>, timeout=3.0)
+
+generation_m1\Watchdog\_agent_tests\test_agent_basic.py:133: AssertionError
+=========================== short test summary info ===========================
+FAILED generation_m1/Watchdog/_agent_tests/test_agent_basic.py::test_recursive_sees_subdir_file
+FAILED generation_m1/Watchdog/_agent_tests/test_agent_basic.py::test_stop_prevents_more_events
+FAILED generation_m1/Watchdog/_agent_tests/test_agent_basic.py::test_multiple_handlers_receive
+3 failed, 3 passed in 10.82s

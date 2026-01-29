@@ -1,0 +1,574 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+
+from .formats import Line, Row, TableFormat, table_formats
+
+
+def _to_str(obj: Any) -> str:
+    if obj is None:
+        return ""
+    try:
+        return str(obj)
+    except Exception:
+        try:
+            return repr(obj)
+        except Exception:
+            return "<unprintable>"
+
+
+def _is_number(x: Any, disable_numparse: bool = False) -> bool:
+    if x is None:
+        return False
+    if isinstance(x, (int, float, Decimal)):
+        return True
+    if disable_numparse:
+        return False
+    if isinstance(x, str):
+        s = x.strip()
+        if not s:
+            return False
+        try:
+            float(s)
+            return True
+        except Exception:
+            return False
+    return False
+
+
+def _format_float(x: Any, floatfmt: str) -> str:
+    # Only format actual float values; numeric-looking strings are left as-is.
+    if not isinstance(x, float):
+        return _to_str(x)
+    try:
+        if "{" in floatfmt and "}" in floatfmt:
+            return floatfmt.format(x)
+        return format(x, floatfmt)
+    except Exception:
+        return _to_str(x)
+
+
+def _split_multiline(s: str) -> List[str]:
+    # Preserve empty lines; splitlines() without keepends drops trailing empty,
+    # so implement manually.
+    if "\n" not in s:
+        return [s]
+    parts = s.split("\n")
+    return parts
+
+
+def _wrap_text_line(line: str, width: int) -> List[str]:
+    if width is None or width <= 0:
+        return [line]
+    if len(line) <= width:
+        return [line]
+
+    out: List[str] = []
+    s = line
+    while len(s) > width:
+        # Prefer breaking at last space within width if possible.
+        cut = s.rfind(" ", 0, width + 1)
+        if cut <= 0:
+            out.append(s[:width])
+            s = s[width:]
+        else:
+            out.append(s[:cut])
+            s = s[cut + 1 :]  # drop the space
+    out.append(s)
+    return out
+
+
+def _wrap_text(s: str, width: Optional[int]) -> List[str]:
+    # Wrap after splitting existing newlines; then wrap each line.
+    lines = _split_multiline(s)
+    if width is None:
+        return lines
+    wrapped: List[str] = []
+    for ln in lines:
+        wrapped.extend(_wrap_text_line(ln, width))
+    return wrapped
+
+
+def _normalize_headers(
+    headers: Any, data_kind: str, inferred_headers: List[str]
+) -> List[str]:
+    if headers is None or headers == ():
+        return []
+    if headers == "keys":
+        return list(inferred_headers) if data_kind in ("dictrow", "listofdicts", "dictcols") else []
+    if isinstance(headers, (list, tuple)):
+        return [_to_str(h) for h in headers]
+    # Single string treated as one header (rare); keep compatible.
+    return [_to_str(headers)]
+
+
+def _normalize_tabular_data(
+    tabular_data: Any, headers: Any, missingval: str
+) -> Tuple[List[List[Any]], List[str]]:
+    # Consume generators
+    if tabular_data is None:
+        tabular_data = []
+
+    inferred_headers: List[str] = []
+    data_kind = "rows"
+
+    # Case: list of dicts
+    if isinstance(tabular_data, (list, tuple)) and tabular_data and all(
+        isinstance(r, dict) for r in tabular_data
+    ):
+        data_kind = "listofdicts"
+        rows_dicts: List[Dict[Any, Any]] = list(tabular_data)
+        if headers == "keys" or headers == () or headers is None:
+            # Stable first-seen key order across rows.
+            seen = set()
+            order: List[str] = []
+            for d in rows_dicts:
+                for k in d.keys():
+                    ks = _to_str(k)
+                    if ks not in seen:
+                        seen.add(ks)
+                        order.append(ks)
+            inferred_headers = order
+        else:
+            inferred_headers = []
+        hdrs = _normalize_headers(headers, data_kind, inferred_headers)
+        if not hdrs:
+            hdrs = list(inferred_headers)
+        # Build rows according to hdrs
+        out_rows: List[List[Any]] = []
+        for d in rows_dicts:
+            dd = { _to_str(k): v for k, v in d.items() }
+            out_rows.append([dd.get(h, missingval) for h in hdrs])
+        return out_rows, hdrs
+
+    # Case: dict
+    if isinstance(tabular_data, dict):
+        # Ambiguity: dict-of-columns vs dict as one row. Prefer single-row dict.
+        data_kind = "dictrow"
+        d = tabular_data
+        # Preserve insertion order (Py3.7+)
+        inferred_headers = [_to_str(k) for k in d.keys()]
+        hdrs = _normalize_headers(headers, data_kind, inferred_headers)
+        if not hdrs:
+            hdrs = list(inferred_headers)
+        dd = { _to_str(k): v for k, v in d.items() }
+        row = [dd.get(h, missingval) for h in hdrs]
+        return [row], hdrs
+
+    # Case: dict-of-columns (explicitly): if user passes headers="keys" and values are list-like?
+    # Keep a heuristic: if it's Mapping and all values are list/tuple and not scalar.
+    # (We already handled dict above; so this only for custom mapping types. Ignore.)
+
+    # General rows (list of lists / tuples / iterables)
+    if not isinstance(tabular_data, (list, tuple)):
+        try:
+            tabular_data = list(tabular_data)
+        except Exception:
+            tabular_data = [tabular_data]
+
+    rows_in: List[Any] = list(tabular_data)
+    out_rows2: List[List[Any]] = []
+    max_cols = 0
+    for r in rows_in:
+        if isinstance(r, dict):
+            # Mixed: treat dict as row of values by sorted keys? Prefer insertion order.
+            keys = list(r.keys())
+            if not inferred_headers:
+                inferred_headers = [_to_str(k) for k in keys]
+            row = [r.get(k, missingval) for k in keys]
+            out_rows2.append(row)
+        elif isinstance(r, (list, tuple)):
+            out_rows2.append(list(r))
+        else:
+            # Scalar row
+            out_rows2.append([r])
+        if len(out_rows2[-1]) > max_cols:
+            max_cols = len(out_rows2[-1])
+
+    hdrs2 = _normalize_headers(headers, "rows", inferred_headers)
+    # If headers provided explicitly, use them; else no headers.
+    if hdrs2:
+        if len(hdrs2) < max_cols:
+            hdrs2 = hdrs2 + [""] * (max_cols - len(hdrs2))
+        elif len(hdrs2) > max_cols:
+            max_cols = len(hdrs2)
+    # Pad rows to max_cols
+    for i, r in enumerate(out_rows2):
+        if len(r) < max_cols:
+            out_rows2[i] = r + [missingval] * (max_cols - len(r))
+        elif len(r) > max_cols:
+            # Expand if no explicit header shorter; keep all columns
+            max_cols = len(r)
+            # repad previous rows
+            for j in range(i):
+                if len(out_rows2[j]) < max_cols:
+                    out_rows2[j] = out_rows2[j] + [missingval] * (max_cols - len(out_rows2[j]))
+    # Ensure headers match final column count
+    if hdrs2 and len(hdrs2) < max_cols:
+        hdrs2 = hdrs2 + [""] * (max_cols - len(hdrs2))
+    return out_rows2, hdrs2
+
+
+def _apply_showindex(
+    rows: List[List[Any]],
+    headers: List[str],
+    showindex: Any,
+    missingval: str,
+) -> Tuple[List[List[Any]], List[str]]:
+    if showindex in (False, None, "default"):
+        return rows, headers
+
+    n = len(rows)
+    if showindex in (True, "always"):
+        idx = list(range(n))
+    elif isinstance(showindex, str):
+        # treat as "always" for behavior; label handled elsewhere minimally
+        idx = list(range(n))
+    else:
+        try:
+            idx = list(showindex)
+        except Exception:
+            idx = list(range(n))
+    if len(idx) < n:
+        idx = idx + [""] * (n - len(idx))
+    idx = idx[:n]
+
+    new_rows = [[idx[i]] + list(rows[i]) for i in range(n)]
+    new_headers = ([""] + list(headers)) if headers else ([""] + [])
+    return new_rows, new_headers
+
+
+def _compute_widths(cells: List[List[List[str]]]) -> List[int]:
+    # cells: table[row][col] = list of physical lines (already wrapped)
+    if not cells:
+        return []
+    ncols = max((len(r) for r in cells), default=0)
+    widths = [0] * ncols
+    for r in cells:
+        for c, lines in enumerate(r):
+            for ln in lines:
+                if len(ln) > widths[c]:
+                    widths[c] = len(ln)
+    return widths
+
+
+def _decimal_positions(
+    col_lines: List[str], disable_numparse: bool
+) -> Optional[int]:
+    # Return max position of decimal point among numeric strings.
+    positions = []
+    for s in col_lines:
+        if _is_number(s, disable_numparse=disable_numparse):
+            t = s.strip()
+            # find '.' or fallback: decimal at end
+            p = t.find(".")
+            if p < 0:
+                p = len(t)
+            positions.append(p)
+    if not positions:
+        return None
+    return max(positions)
+
+
+def _pad_align(
+    text: str,
+    width: int,
+    align: str,
+    *,
+    decimal_pos: Optional[int] = None,
+    disable_numparse: bool = False,
+) -> str:
+    if width <= 0:
+        return text
+    if align == "left":
+        return text.ljust(width)
+    if align == "right":
+        return text.rjust(width)
+    if align == "center":
+        # Python center puts extra on the right; reference tends to do that too.
+        return text.center(width)
+    if align == "decimal":
+        if decimal_pos is None:
+            return text.rjust(width)
+        if not _is_number(text, disable_numparse=disable_numparse):
+            return text.rjust(width)
+        t = text.strip()
+        p = t.find(".")
+        if p < 0:
+            p = len(t)
+        left_pad = max(0, decimal_pos - p)
+        tt = (" " * left_pad) + t
+        return tt.rjust(width) if len(tt) > width else tt.ljust(width)
+    return text.ljust(width)
+
+
+def _line_with_widths(line: Line, widths: List[int], padding: int) -> str:
+    parts = []
+    for w in widths:
+        parts.append(line.hline * (w + 2 * padding))
+    return f"{line.begin}{line.sep.join(parts)}{line.end}"
+
+
+def _format_row(
+    row_tmpl: Row,
+    row_cells: List[str],
+    *,
+    padding: int,
+) -> str:
+    pad = " " * padding
+    parts = [f"{pad}{c}{pad}" if padding else c for c in row_cells]
+    return f"{row_tmpl.begin}{row_tmpl.sep.join(parts)}{row_tmpl.end}"
+
+
+def _strip_trailing_spaces(lines: List[str]) -> List[str]:
+    return [ln.rstrip(" ") for ln in lines]
+
+
+def _escape_html(s: str) -> str:
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
+def _render_html(headers: List[str], rows: List[List[str]]) -> str:
+    out: List[str] = []
+    out.append("<table>")
+    if headers:
+        out.append("  <thead>")
+        out.append("    <tr>")
+        for h in headers:
+            hh = _escape_html(h).replace("\n", "<br/>")
+            out.append(f"      <th>{hh}</th>")
+        out.append("    </tr>")
+        out.append("  </thead>")
+    out.append("  <tbody>")
+    for r in rows:
+        out.append("    <tr>")
+        for c in r:
+            cc = _escape_html(c).replace("\n", "<br/>")
+            out.append(f"      <td>{cc}</td>")
+        out.append("    </tr>")
+    out.append("  </tbody>")
+    out.append("</table>")
+    return "\n".join(out)
+
+
+def tabulate(
+    tabular_data: Any,
+    headers: Any = (),
+    tablefmt: Union[str, TableFormat] = "simple",
+    floatfmt: str = "g",
+    numalign: str = "decimal",
+    stralign: str = "left",
+    missingval: str = "",
+    showindex: Any = "default",
+    disable_numparse: bool = False,
+    colalign: Optional[Sequence[str]] = None,
+    maxcolwidths: Optional[Union[int, Sequence[Optional[int]], Dict[int, int]]] = None,
+) -> str:
+    # Resolve table format
+    fmt: TableFormat
+    if isinstance(tablefmt, str):
+        fmt = table_formats.get(tablefmt, table_formats.get("simple"))
+    else:
+        fmt = tablefmt
+
+    rows_raw, hdrs = _normalize_tabular_data(tabular_data, headers, missingval)
+    rows_raw, hdrs = _apply_showindex(rows_raw, hdrs, showindex, missingval)
+
+    # Special-case HTML early (but after normalization).
+    if isinstance(tablefmt, str) and tablefmt == "html":
+        # stringify without width/padding alignment concerns
+        hdrs_s = [_to_str(h) for h in hdrs]
+        rows_s = []
+        for r in rows_raw:
+            rr = []
+            for v in r:
+                if v is None:
+                    rr.append(missingval)
+                elif isinstance(v, float):
+                    rr.append(_format_float(v, floatfmt))
+                else:
+                    rr.append(_to_str(v))
+            rows_s.append(rr)
+        return _render_html(hdrs_s, rows_s)
+
+    # If no data and no headers => empty string
+    if not rows_raw and not hdrs:
+        return ""
+
+    # Determine column count
+    ncols = max(len(hdrs), max((len(r) for r in rows_raw), default=0))
+    if hdrs and len(hdrs) < ncols:
+        hdrs = hdrs + [""] * (ncols - len(hdrs))
+    if not hdrs:
+        hdrs = []
+
+    # Normalize rows length
+    rows_raw2: List[List[Any]] = []
+    for r in rows_raw:
+        rr = list(r)
+        if len(rr) < ncols:
+            rr = rr + [missingval] * (ncols - len(rr))
+        elif len(rr) > ncols:
+            ncols = len(rr)
+            if hdrs:
+                hdrs = hdrs + [""] * (ncols - len(hdrs))
+            # repad existing
+            rows_raw2 = [x + [missingval] * (ncols - len(x)) for x in rows_raw2]
+        rows_raw2.append(rr)
+
+    # maxcolwidths normalization
+    def cap_for_col(c: int) -> Optional[int]:
+        if maxcolwidths is None:
+            return None
+        if isinstance(maxcolwidths, int):
+            return maxcolwidths
+        if isinstance(maxcolwidths, dict):
+            return maxcolwidths.get(c)
+        if isinstance(maxcolwidths, (list, tuple)):
+            return maxcolwidths[c] if c < len(maxcolwidths) else None
+        return None
+
+    # Stringify + wrap + split to physical lines:
+    # table_cells[row][col] = [line1, line2, ...]
+    header_cells: List[List[List[str]]] = []
+    data_cells: List[List[List[str]]] = []
+
+    # Build header
+    if hdrs:
+        hrow: List[List[str]] = []
+        for c in range(ncols):
+            h = hdrs[c] if c < len(hdrs) else ""
+            hs = _to_str(h)
+            cap = cap_for_col(c)
+            hrow.append(_wrap_text(hs, cap))
+        header_cells.append(hrow)
+
+    # Build data rows
+    for r in rows_raw2:
+        prow: List[List[str]] = []
+        for c in range(ncols):
+            v = r[c] if c < len(r) else missingval
+            if v is None:
+                s = missingval
+            elif isinstance(v, float):
+                s = _format_float(v, floatfmt)
+            else:
+                s = _to_str(v)
+            cap = cap_for_col(c)
+            prow.append(_wrap_text(s, cap))
+        data_cells.append(prow)
+
+    all_cells = (header_cells + data_cells) if header_cells else data_cells
+    widths = _compute_widths(all_cells)
+
+    # Determine per-column alignment
+    aligns: List[str] = []
+    if colalign is not None:
+        aligns = [a if a else stralign for a in list(colalign)]
+        if len(aligns) < ncols:
+            aligns += [stralign] * (ncols - len(aligns))
+        aligns = aligns[:ncols]
+    else:
+        # Infer numeric columns from original (unwrapped) strings/values
+        for c in range(ncols):
+            col_vals = []
+            for r in rows_raw2:
+                v = r[c] if c < len(r) else missingval
+                if v is None:
+                    continue
+                if isinstance(v, float):
+                    col_vals.append(_format_float(v, floatfmt))
+                else:
+                    col_vals.append(_to_str(v))
+            is_num_col = any(_is_number(v, disable_numparse=disable_numparse) for v in col_vals)
+            aligns.append(numalign if is_num_col else stralign)
+
+    # Decimal positions for decimal-aligned columns
+    decpos: List[Optional[int]] = [None] * ncols
+    for c in range(ncols):
+        if aligns[c] == "decimal":
+            col_lines: List[str] = []
+            for r in all_cells:
+                if c < len(r):
+                    col_lines.extend(r[c])
+            decpos[c] = _decimal_positions(col_lines, disable_numparse=disable_numparse)
+
+    # Render rows with multiline expansion
+    out_lines: List[str] = []
+
+    def emit_lineobj(lineobj: Optional[Line]):
+        if lineobj is None:
+            return
+        out_lines.append(_line_with_widths(lineobj, widths, fmt.padding))
+
+    def emit_physical_rows(row_tmpl: Row, row: List[List[str]]):
+        # row is per-column list of physical lines
+        height = max((len(cell_lines) for cell_lines in row), default=1)
+        for i in range(height):
+            rendered_cells: List[str] = []
+            for c in range(ncols):
+                lines = row[c] if c < len(row) else [""]
+                txt = lines[i] if i < len(lines) else ""
+                aligned = _pad_align(
+                    txt,
+                    widths[c],
+                    aligns[c],
+                    decimal_pos=decpos[c],
+                    disable_numparse=disable_numparse,
+                )
+                rendered_cells.append(aligned)
+            out_lines.append(_format_row(row_tmpl, rendered_cells, padding=fmt.padding))
+
+    # Top border
+    emit_lineobj(fmt.lineabove)
+
+    # Header
+    if header_cells:
+        emit_physical_rows(fmt.headerrow or fmt.datarow or Row(), header_cells[0])
+
+        # Header separator behavior for pipe: include alignment colons
+        if fmt.linebelowheader is not None:
+            if isinstance(tablefmt, str) and tablefmt == "pipe":
+                # Build markdown alignment row: :---, ---:, :---:
+                parts = []
+                for c in range(ncols):
+                    w = widths[c] + 2 * fmt.padding
+                    # Minimum 3 dashes is typical; keep at least w but not less than 3.
+                    dash_count = max(3, w)
+                    if aligns[c] == "left":
+                        seg = ":" + ("-" * (dash_count - 1))
+                    elif aligns[c] == "right":
+                        seg = ("-" * (dash_count - 1)) + ":"
+                    elif aligns[c] == "center":
+                        if dash_count == 1:
+                            seg = ":"
+                        else:
+                            seg = ":" + ("-" * (dash_count - 2)) + ":"
+                    else:
+                        seg = "-" * dash_count
+                    parts.append(seg)
+                out_lines.append(f"{fmt.linebelowheader.begin}{fmt.linebelowheader.sep.join(parts)}{fmt.linebelowheader.end}")
+            else:
+                emit_lineobj(fmt.linebelowheader)
+
+    # Data
+    for ri, row in enumerate(data_cells):
+        if ri > 0:
+            emit_lineobj(fmt.linebetweenrows)
+        emit_physical_rows(fmt.datarow or Row(), row)
+
+    # Bottom border
+    emit_lineobj(fmt.linebelow)
+
+    # For borderless formats, remove trailing spaces to match typical behavior.
+    if fmt.lineabove is None and fmt.linebelow is None and fmt.headerrow and fmt.datarow:
+        if fmt.padding == 0:
+            out_lines = _strip_trailing_spaces(out_lines)
+
+    # Return without trailing newline
+    return "\n".join(out_lines)

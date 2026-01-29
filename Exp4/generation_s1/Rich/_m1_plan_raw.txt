@@ -1,0 +1,205 @@
+<plan>
+1) Repository layout and import graph
+   - Package layout (minimum required, plus small helpers to keep logic contained):
+     - rich/__init__.py
+       - Exports: Console, Table, Column, Row, Progress, Task, Text, Theme
+       - Also export helper functions if tests expect: print (optional alias), box (optional)
+     - rich/console.py
+       - Implements Console and a small capture/record system
+       - Depends on: rich.text.Text, rich.theme.Theme
+       - Minimal internal helpers: _strip_ansi, _markup_to_text, _emoji_replace
+     - rich/text.py
+       - Implements Text (string + spans/styles), but can be simplified to “rendered string with style tags resolved” as long as APIs used by tests exist
+       - Depends on: nothing external
+     - rich/theme.py
+       - Implements Theme mapping style names -> style strings
+     - rich/table.py
+       - Implements Table, Column, Row and rendering to string/lines
+       - Depends on: rich.text.Text (cells may be Text or str), console width logic (passed in)
+     - rich/progress.py
+       - Implements Progress, Task, and minimal columns/bar rendering
+       - Depends on: rich.console.Console (for output), rich.text.Text
+   - Import graph rules (avoid circulars):
+     - rich/__init__.py imports from submodules only
+     - rich/console.py imports Text, Theme
+     - rich/table.py imports Text only (not Console); rendering accepts width param
+     - rich/progress.py imports Console, Text; does not import Table
+     - rich/text.py and rich/theme.py are leaf modules
+
+2) Public APIs to implement (modules/classes/functions)
+   - rich.__init__
+     - __all__ includes: Console, Table, Column, Row, Progress, Task, Text, Theme
+     - __version__ (optional, but common)
+   - rich.console
+     - class Console:
+       - __init__(self, *, width=None, color_system="standard"/None, force_terminal=None, file=None, record=False, emoji=True, markup=True, theme=None, soft_wrap=False)
+       - print(self, *objects, sep=" ", end="\n", style=None, justify=None, overflow=None, no_wrap=None, emoji=None, markup=None, highlight=None)
+       - render_str(self, text, *, style=None, justify=None, overflow=None, no_wrap=None, emoji=None, markup=None) -> str
+       - render(self, renderable) -> list[str] (or iterator of lines)
+       - capture(self) context manager yielding a Capture object with get()
+       - begin_capture/end_capture (optional if tests call these)
+       - export_text(self, *, clear=False) -> str (if record=True)
+       - rule(self, title="") optional if tests rely
+       - Properties: width (int), file
+     - class Capture:
+       - get(self) -> str
+   - rich.text
+     - class Text:
+       - __init__(self, text="", style=None, justify=None, overflow=None, no_wrap=False, end="")
+       - plain property (str)
+       - __str__
+       - __len__
+       - append(self, text, style=None)
+       - stylize(self, style, start=0, end=None) (no-op ok if not tested deeply)
+       - wrap(self, console, width) -> list[Text] or list[str] (needed for wrapping in tables)
+       - from_markup(cls, markup: str, *, style=None) -> Text
+       - Note: represent styles in a simplified form; final output should include ANSI only if forced by tests; otherwise output plain with markup removed.
+   - rich.theme
+     - class Theme:
+       - __init__(self, styles: dict[str, str] | None = None, inherit=True)
+       - get_style(self, name: str) -> str | None
+   - rich.table
+     - class Column:
+       - __init__(self, header="", footer="", style=None, justify="left", vertical="top", overflow="fold", width=None, min_width=None, max_width=None, ratio=None, no_wrap=False)
+     - class Row:
+       - __init__(self, cells: list[object], style=None, end_section=False)
+     - class Table:
+       - __init__(self, *headers, title=None, caption=None, width=None, padding=(0,1), pad_edge=True, expand=False, show_header=True, show_footer=False, show_lines=False, show_edge=True, box=None, safe_box=True, style=None, header_style=None, footer_style=None, border_style=None, row_styles=None)
+       - add_column(self, header="", *, style=None, justify="left", width=None, no_wrap=False, overflow="fold")
+       - add_row(self, *cells, style=None, end_section=False)
+       - add_section(self) convenience sets end_section on previous row
+       - __rich_console__(self, console, options) optional (tests may call Console.print(table))
+       - __str__/__rich__ optional; but Console.render should handle Table instances
+     - Box model:
+       - Provide minimal built-in box object (or simple tuple) to render borders:
+         - ASCII box: + - | ; and optional rounded/heavy not needed unless tests
+         - If tests use `box.SQUARE` etc, provide rich/box.py (not required but may be necessary). If not allowed, define within table.py and export via rich.__init__ as `box`.
+   - rich.progress
+     - class Task:
+       - id: int
+       - description: str
+       - total: float | None
+       - completed: float
+       - finished: bool
+       - fields: dict
+     - class Progress:
+       - __init__(self, *columns, console=None, auto_refresh=False, refresh_per_second=10, transient=False, redirect_stdout=False, redirect_stderr=False)
+       - add_task(self, description, total=None, completed=0, **fields) -> int
+       - update(self, task_id, *, completed=None, advance=None, total=None, description=None, visible=None, **fields)
+       - advance(self, task_id, advance)
+       - start(self) / stop(self) (no background thread)
+       - __enter__/__exit__
+       - track(self, sequence, total=None, description="Working...", task_id=None) -> iterator
+       - get_renderable(self) -> str or Text (deterministic single-line)
+       - __rich_console__ optional
+     - Minimal progress columns:
+       - Default output: “{description} {bar} {percent}%” or similar; must be deterministic for snapshot tests. Provide a fixed bar width (e.g., 20) unless console width dictates.
+
+3) Key behaviors & edge cases
+   - Console rendering pipeline (deterministic):
+     - Accept renderables: str, Text, Table, Progress (and basic iterables).
+     - Markup:
+       - If markup enabled, parse a minimal subset:
+         - [color]...[/color], [bold]...[/], [/]
+         - [style=...] not required unless tests
+       - Remove tags from plain output unless ANSI is expected by tests.
+       - Escape handling: treat “\[” as literal “[” (Rich behavior); implement minimal backslash escape for [ and ].
+     - Emoji handling:
+       - Replace occurrences of :name: with unicode from a small built-in map (at least common ones used in tests like :warning:, :rocket:, :white_check_mark:, :x:, :hourglass:, :sparkles:).
+       - If unknown emoji, leave as-is.
+       - Provide option emoji=False to skip replacement.
+     - Width and wrapping:
+       - Console.width:
+         - If width provided, use it.
+         - Else default to 80 for deterministic tests.
+       - Wrapping for plain text:
+         - Implement word wrap that respects existing newlines.
+         - Support soft_wrap: if True, don’t hard-wrap, only split on newlines.
+       - Justify:
+         - left/right/center implemented for lines within width when requested by Table column justify; Console.print justify can be a no-op if tests don’t use.
+     - Recording / capture:
+       - If record=True, store printed output in an internal buffer.
+       - capture() context manager should intercept output and return captured text, matching Rich’s capture API used in tests.
+     - ANSI:
+       - Keep ANSI off by default unless force_terminal=True or color_system not None and tests assert ANSI.
+       - If ANSI needed, implement minimal SGR codes for basic styles (bold, red, green, yellow, blue, magenta, cyan, white). Otherwise, strip styles.
+   - Table rendering (most snapshot-sensitive):
+     - Compute column widths:
+       - Based on headers + cell content (string width; treat wide unicode as len for simplicity unless tests include CJK; if so, implement wcwidth fallback with a small internal table or simplistic wide-char detection).
+       - Respect explicit Column.width if set; otherwise auto.
+       - Table.width if set constrains overall; if smaller than sum, shrink columns with wrapping (overflow="fold") or truncate with ellipsis if overflow="ellipsis".
+     - Padding:
+       - padding=(top_bottom, left_right) or 4-tuple; implement 2-tuple and 4-tuple. Default (0,1).
+       - pad_edge: include padding next to borders; if False, remove outer padding.
+     - Borders / box:
+       - Implement basic box drawing with ASCII:
+         - Top: +---+---+
+         - Middle header separator: +===+===+ or +---+---+ depending on show_lines / show_header
+         - Row separators when show_lines or end_section.
+         - Vertical: |
+       - show_edge: draw outer border; if False, omit top/bottom and outer verticals (still align columns).
+     - Header:
+       - show_header: render header row; apply header_style if ANSI enabled.
+     - Cell rendering:
+       - Convert each cell:
+         - If Text, use its plain or rendered with markup resolved.
+         - If None, render "".
+         - Split into lines via wrapping to column content width.
+       - Vertical alignment per row height: top/middle/bottom; default top.
+     - Alignment:
+       - Column.justify: left/right/center.
+       - Ensure padding and borders create exact whitespace expected.
+     - Newlines:
+       - Table renders to multiple lines without trailing spaces ideally, but snapshot tests sometimes include them; choose to avoid trailing spaces except inside fixed-width cells. Ensure consistent trimming policy: keep spaces inside cell area, but strip at very end of line only if no border at end (when show_edge=False).
+   - Progress rendering (deterministic, no live updates):
+     - No background refresh; printing Progress should render current state once.
+     - track():
+       - Create a task, iterate sequence, advance per item, optionally print on each iteration only if tests expect; safer: do not print per item unless Progress is used as context manager and tests call console.print(progress) manually.
+       - Provide deterministic bar:
+         - Fixed bar width 20 characters inside brackets: [##########----------]
+         - Percent:
+           - If total known: int(completed/total*100)
+           - If total None: omit percent or show “--%”; choose behavior matching tests (likely percent when total provided).
+     - Ensure Task.finished becomes True when completed >= total (if total not None).
+
+4) Minimal internal test plan (what to test and why)
+   - Console
+     - print(str) produces exact string with newline.
+     - capture() captures output and restores afterward.
+     - markup parsing:
+       - "Hello [red]World[/red]" renders "Hello World" (or ANSI if forced), and escaped "\[red]" renders "[red]".
+     - emoji replacement:
+       - "Hi :warning:" -> "Hi ⚠" (or chosen mapping), and emoji=False leaves as-is.
+     - wrapping:
+       - render_str with width=10 wraps long text deterministically.
+   - Text
+     - Text.from_markup strips tags and preserves plain.
+     - append concatenates.
+     - wrap splits into lines of max width.
+   - Table
+     - Simple 2x2 table snapshot:
+       - With header, edges, padding default; verify exact borders and spacing.
+     - Justification:
+       - Right-justified numeric column aligns.
+     - Wrapping:
+       - Long cell wraps within column width; row height expands; vertical alignment top.
+     - show_edge=False and pad_edge variations.
+     - end_section / show_lines produce separators at correct rows.
+   - Progress
+     - add_task/update/advance set completed and finished correctly.
+     - get_renderable deterministic output at 0%, 50%, 100%.
+     - track over range(3) yields items and ends at 100% when total=3.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Snapshot brittleness in table borders/spacing
+     - Mitigation: implement a single canonical ASCII box and keep line construction strictly deterministic; add internal “golden” string tests mirroring expected snapshots.
+   - Unicode width discrepancies (emoji, wide characters)
+     - Mitigation: keep a minimal wcwidth-like function:
+       - Treat characters in known wide ranges (CJK Unified, Hangul, Fullwidth forms) as width 2; treat combining marks as width 0; treat emoji as width 2 if tests require. Fall back to len otherwise.
+   - Markup/style compatibility with Rich
+     - Mitigation: implement only subset used by tests; ensure tags are removed cleanly and escapes work; keep style handling mostly no-op unless ANSI explicitly required.
+   - Progress behavior differences vs Rich live rendering
+     - Mitigation: avoid live updates entirely; expose stable string renderable; ensure Progress.__rich_console__ returns current render lines so Console.print(progress) works.
+   - Circular imports and “rich” namespace expectations
+     - Mitigation: strict import layering; keep __init__ thin; define any shared utilities in a private module (e.g., rich/_util.py) if needed, but not required by the task.
+</plan>

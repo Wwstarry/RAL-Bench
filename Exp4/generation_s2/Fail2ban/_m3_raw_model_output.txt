@@ -1,0 +1,567 @@
+<file:name=fail2ban/__init__.py>
+"""
+Minimal, safe-to-evaluate subset of Fail2Ban.
+
+This repository intentionally does NOT start daemons or modify firewall rules.
+It provides a small API surface and offline regex/log matching utilities.
+"""
+
+__all__ = ["__version__"]
+__version__ = "0.1.0"
+</file>
+
+<file:name=fail2ban/server/__init__.py>
+</file>
+
+<file:name=fail2ban/server/filter.py>
+import ipaddress
+import re
+from typing import Optional, List, Tuple, Iterable
+
+
+_IP4_RE = re.compile(
+    r"\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}"
+    r"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b"
+)
+# A deliberately permissive IPv6 candidate matcher; validated via ipaddress afterwards.
+_IP6_CANDIDATE_RE = re.compile(r"\b[0-9A-Fa-f:]{2,}\b")
+
+
+def isValidIP(ip: str) -> bool:
+    """Return True if ip is a valid IPv4 or IPv6 address."""
+    if not ip:
+        return False
+    try:
+        ipaddress.ip_address(ip.strip())
+        return True
+    except ValueError:
+        return False
+
+
+def _extract_ipv6_candidates(text: str) -> Iterable[str]:
+    # Avoid matching things like "dead:beef" that are not valid IPs; ipaddress will filter.
+    for m in _IP6_CANDIDATE_RE.finditer(text):
+        cand = m.group(0)
+        if ":" not in cand:
+            continue
+        yield cand
+
+
+def searchIP(text: str) -> Optional[str]:
+    """
+    Search for first IP address in a string and return it, else None.
+
+    Matches IPv4 using strict regex; IPv6 is matched more loosely and validated.
+    """
+    if not text:
+        return None
+
+    m4 = _IP4_RE.search(text)
+    if m4:
+        return m4.group(0)
+
+    for cand in _extract_ipv6_candidates(text):
+        if isValidIP(cand):
+            return cand
+    return None
+
+
+def findAllIPs(text: str) -> List[str]:
+    """Return all unique IPs found in text, in occurrence order."""
+    if not text:
+        return []
+    out: List[str] = []
+    seen = set()
+
+    for m in _IP4_RE.finditer(text):
+        ip = m.group(0)
+        if ip not in seen:
+            seen.add(ip)
+            out.append(ip)
+
+    for cand in _extract_ipv6_candidates(text):
+        if isValidIP(cand) and cand not in seen:
+            seen.add(cand)
+            out.append(cand)
+
+    return out
+
+
+def _compile_regex(pattern: str) -> re.Pattern:
+    # Fail2Ban regexes often use (?P<host>...) etc. We allow standard Python regex.
+    # Multiline not default; callers can embed flags like (?i).
+    return re.compile(pattern)
+
+
+def parse_failregexes(patterns: List[str]) -> List[re.Pattern]:
+    return [_compile_regex(p) for p in patterns]
+
+
+def match_failregexes(line: str, patterns: List[re.Pattern]) -> List[Tuple[re.Pattern, re.Match]]:
+    """Return list of (pattern, match) for all patterns that match the line."""
+    matches = []
+    for pat in patterns:
+        m = pat.search(line)
+        if m:
+            matches.append((pat, m))
+    return matches
+
+
+def extract_host_from_match(m: "re.Match") -> Optional[str]:
+    """
+    Extract host/IP from match groups.
+
+    Preferred group: 'host' (Fail2Ban convention). Fallback to first valid IP in match text.
+    """
+    try:
+        gd = m.groupdict()
+    except Exception:
+        gd = {}
+
+    host = gd.get("host")
+    if host and isValidIP(host):
+        return host
+
+    # Some regexes use 'ip' group; accept it too.
+    ip = gd.get("ip")
+    if ip and isValidIP(ip):
+        return ip
+
+    return searchIP(m.group(0))
+</file>
+
+<file:name=fail2ban/server/jail.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Iterable, Tuple
+import time
+import re
+
+from . import filter as f2bfilter
+
+
+@dataclass
+class JailStatus:
+    name: str
+    enabled: bool
+    bantime: int
+    findtime: int
+    maxretry: int
+    banned: List[str] = field(default_factory=list)
+    failures: Dict[str, List[float]] = field(default_factory=dict)
+
+
+class Jail:
+    """
+    Minimal Jail object coordinating filter regex matching and in-memory bans.
+
+    This is a safe, offline-only implementation:
+    - No firewall operations
+    - No daemon threads
+    - Ban list is in-memory
+    """
+
+    def __init__(
+        self,
+        name: str,
+        failregex: Optional[Iterable[str]] = None,
+        ignoreregex: Optional[Iterable[str]] = None,
+        maxretry: int = 5,
+        findtime: int = 600,
+        bantime: int = 600,
+        enabled: bool = True,
+    ):
+        self.name = name
+        self.enabled = bool(enabled)
+        self.maxretry = int(maxretry)
+        self.findtime = int(findtime)
+        self.bantime = int(bantime)
+
+        self._failregex_raw = list(failregex or [])
+        self._ignoreregex_raw = list(ignoreregex or [])
+
+        self._failregex = f2bfilter.parse_failregexes(self._failregex_raw)
+        self._ignoreregex = f2bfilter.parse_failregexes(self._ignoreregex_raw)
+
+        self._failures: Dict[str, List[float]] = {}
+        self._banned_until: Dict[str, float] = {}
+
+    def setFailRegex(self, patterns: Iterable[str]) -> None:
+        self._failregex_raw = list(patterns)
+        self._failregex = f2bfilter.parse_failregexes(self._failregex_raw)
+
+    def setIgnoreRegex(self, patterns: Iterable[str]) -> None:
+        self._ignoreregex_raw = list(patterns)
+        self._ignoreregex = f2bfilter.parse_failregexes(self._ignoreregex_raw)
+
+    def _is_ignored(self, line: str) -> bool:
+        for pat in self._ignoreregex:
+            if pat.search(line):
+                return True
+        return False
+
+    def _cleanup_old_failures(self, host: str, now: float) -> None:
+        window_start = now - self.findtime
+        times = self._failures.get(host, [])
+        times = [t for t in times if t >= window_start]
+        if times:
+            self._failures[host] = times
+        else:
+            self._failures.pop(host, None)
+
+    def _is_banned(self, host: str, now: float) -> bool:
+        until = self._banned_until.get(host)
+        if until is None:
+            return False
+        if now >= until:
+            self._banned_until.pop(host, None)
+            return False
+        return True
+
+    def unban(self, host: str) -> bool:
+        """Remove host from ban list. Returns True if it was banned."""
+        return self._banned_until.pop(host, None) is not None
+
+    def ban(self, host: str, now: Optional[float] = None) -> None:
+        """Ban host in-memory until now + bantime."""
+        if not f2bfilter.isValidIP(host):
+            return
+        if now is None:
+            now = time.time()
+        self._banned_until[host] = float(now) + self.bantime
+
+    def processLine(self, line: str, now: Optional[float] = None) -> Optional[str]:
+        """
+        Process a single log line. Return banned IP if ban occurred, else None.
+
+        Line matching:
+        - Ignore if ignoreregex matches.
+        - If any failregex matches, extract host and count failure.
+        """
+        if not self.enabled:
+            return None
+        if not line:
+            return None
+        if now is None:
+            now = time.time()
+
+        if self._is_ignored(line):
+            return None
+
+        matches = f2bfilter.match_failregexes(line, self._failregex)
+        if not matches:
+            return None
+
+        for _, m in matches:
+            host = f2bfilter.extract_host_from_match(m)
+            if not host:
+                continue
+            if not f2bfilter.isValidIP(host):
+                continue
+
+            if self._is_banned(host, now):
+                return None
+
+            self._cleanup_old_failures(host, now)
+            self._failures.setdefault(host, []).append(float(now))
+            self._cleanup_old_failures(host, now)
+
+            if len(self._failures.get(host, [])) >= self.maxretry:
+                self.ban(host, now=now)
+                return host
+
+        return None
+
+    def status(self) -> JailStatus:
+        now = time.time()
+        banned = []
+        for host in list(self._banned_until.keys()):
+            if self._is_banned(host, now):
+                banned.append(host)
+        # Present failures after cleanup
+        failures: Dict[str, List[float]] = {}
+        for host, times in list(self._failures.items()):
+            self._cleanup_old_failures(host, now)
+        for host, times in self._failures.items():
+            failures[host] = list(times)
+
+        return JailStatus(
+            name=self.name,
+            enabled=self.enabled,
+            bantime=self.bantime,
+            findtime=self.findtime,
+            maxretry=self.maxretry,
+            banned=sorted(banned),
+            failures=failures,
+        )
+</file>
+
+<file:name=fail2ban/client/__init__.py>
+</file>
+
+<file:name=fail2ban/client/regex.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Optional, Dict, Any, Iterable, Tuple
+import re
+
+from fail2ban.server import filter as f2bfilter
+
+
+@dataclass
+class RegexMatch:
+    line_no: int
+    line: str
+    regex: str
+    host: Optional[str]
+
+
+@dataclass
+class RegexReport:
+    matched: List[RegexMatch]
+    missed: int
+    ignored: int
+
+    @property
+    def total_lines(self) -> int:
+        return self.missed + self.ignored + len(self.matched)
+
+
+def _compile_list(patterns: Iterable[str]) -> List[re.Pattern]:
+    return [re.compile(p) for p in patterns]
+
+
+def run_regex(
+    log_text: str,
+    failregex: List[str],
+    ignoreregex: Optional[List[str]] = None,
+) -> RegexReport:
+    """
+    Offline equivalent of `fail2ban-regex`:
+    - Apply ignoreregex first (ignored count)
+    - If any failregex matches line -> record match with extracted host
+    """
+    fr = _compile_list(failregex)
+    ir = _compile_list(ignoreregex or [])
+
+    matched: List[RegexMatch] = []
+    missed = 0
+    ignored = 0
+
+    for idx, line in enumerate(log_text.splitlines(), start=1):
+        if any(p.search(line) for p in ir):
+            ignored += 1
+            continue
+
+        hits: List[Tuple[re.Pattern, re.Match]] = []
+        for p in fr:
+            m = p.search(line)
+            if m:
+                hits.append((p, m))
+
+        if not hits:
+            missed += 1
+            continue
+
+        # record all matching regexes (like fail2ban-regex can show multiple)
+        for p, m in hits:
+            host = f2bfilter.extract_host_from_match(m)
+            matched.append(RegexMatch(line_no=idx, line=line, regex=p.pattern, host=host))
+
+    return RegexReport(matched=matched, missed=missed, ignored=ignored)
+</file>
+
+<file:name=bin/fail2ban-regex>
+#!/usr/bin/env python3
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.client.regex import run_regex
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex tester (safe subset). Does not start daemons or ban anything.",
+    )
+    p.add_argument("logfile", nargs="?", help="Log file path to scan (optional if --text).")
+    p.add_argument(
+        "--failregex",
+        action="append",
+        default=[],
+        help="Failregex pattern (Python regex). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--ignoreregex",
+        action="append",
+        default=[],
+        help="Ignore regex pattern (Python regex). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--text",
+        help="Log text provided directly instead of a file.",
+    )
+    p.add_argument("--max-lines", type=int, default=0, help="Limit lines read from logfile (0=all).")
+    args = p.parse_args(argv)
+
+    if not args.failregex:
+        print("error: at least one --failregex is required for offline matching", file=sys.stderr)
+        return 2
+
+    if args.text is not None:
+        data = args.text
+    else:
+        if not args.logfile:
+            p.print_help(sys.stderr)
+            return 2
+        path = Path(args.logfile)
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except FileNotFoundError:
+            print(f"error: logfile not found: {path}", file=sys.stderr)
+            return 2
+        if args.max_lines and args.max_lines > 0:
+            lines = lines[: args.max_lines]
+        data = "\n".join(lines)
+
+    report = run_regex(data, args.failregex, args.ignoreregex)
+    print(f"Lines: {report.total_lines}")
+    print(f"Matched: {len(report.matched)}")
+    print(f"Ignored: {report.ignored}")
+    print(f"Missed: {report.missed}")
+
+    # Provide concise match list
+    for m in report.matched[:50]:
+        host = m.host or "-"
+        print(f"{m.line_no}: host={host} regex={m.regex}")
+    if len(report.matched) > 50:
+        print(f"... ({len(report.matched) - 50} more matches)")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=bin/fail2ban-client>
+#!/usr/bin/env python3
+import argparse
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Safe stub of fail2ban-client (offline). No server communication is performed.",
+    )
+    p.add_argument("--version", action="store_true", help="Show version and exit.")
+    p.add_argument("args", nargs="*", help="Ignored (stub).")
+    ns = p.parse_args(argv)
+    if ns.version:
+        try:
+            from fail2ban import __version__
+        except Exception:
+            __version__ = "unknown"
+        print(__version__)
+    else:
+        p.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=bin/fail2ban-server>
+#!/usr/bin/env python3
+import argparse
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-server",
+        description="Safe stub of fail2ban-server. This benchmark repository does not start daemons.",
+    )
+    p.add_argument("--help-only", action="store_true", help="No-op flag; server is not implemented.")
+    p.add_argument("--version", action="store_true", help="Show version and exit.")
+    ns = p.parse_args(argv)
+    if ns.version:
+        try:
+            from fail2ban import __version__
+        except Exception:
+            __version__ = "unknown"
+        print(__version__)
+    else:
+        p.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=config/jail.conf>
+[DEFAULT]
+# Minimal, safe subset configuration.
+# This file exists as the canonical configuration entrypoint.
+# In this benchmark repository it is NOT consumed by a daemon.
+
+bantime  = 600
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+# Example failregex similar to common sshd patterns.
+failregex = ^%(__prefix_line)s(?:Failed (?:password|publickey) for(?: invalid user)?|Invalid user) .* from <HOST>(?: port \d+)?(?: ssh2)?\s*$
+ignoreregex =
+</file>
+
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fail2ban-min"
+version = "0.1.0"
+description = "Minimal, safe-to-evaluate subset of Fail2Ban for offline regex/log matching."
+requires-python = ">=3.9"
+readme = "README.txt"
+license = {text = "MIT"}
+authors = [{name="Benchmark Generator"}]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["fail2ban*"]
+</file>
+
+<file:name=README.txt>
+This is a minimal, safe-to-evaluate subset of Fail2Ban.
+
+What it includes:
+- fail2ban.server.jail.Jail: in-memory failure tracking and banning logic (no firewall changes)
+- fail2ban.server.filter: IP parsing helpers (isValidIP, searchIP, findAllIPs)
+- bin/fail2ban-regex: offline regex tester for log files / text
+- bin/fail2ban-client, bin/fail2ban-server: safe stubs that only provide --help/--version
+- config/jail.conf: canonical config entrypoint artifact
+
+Safety:
+- No root required
+- No network, no daemon, no firewall modifications
+</file>
+
+<file:name=setup.cfg>
+[metadata]
+name = fail2ban-min
+version = 0.1.0
+
+[options]
+packages = find:
+python_requires = >=3.9
+</file>

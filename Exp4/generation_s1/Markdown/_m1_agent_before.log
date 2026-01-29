@@ -1,0 +1,34 @@
+....F.                                                                   [100%]
+================================== FAILURES ===================================
+_____________________ test_lists_blockquotes_links_images _____________________
+
+    def test_lists_blockquotes_links_images():
+        src = "\n".join(
+            [
+                "- a",
+                "- b",
+                "",
+                "1. one",
+                "2. two",
+                "",
+                "> q",
+                ">",
+                "> r",
+                "",
+                "[t](http://example.com?a=1&b=2)",
+                "",
+                "![alt](img.png)",
+            ]
+        )
+        html = mdlib.markdown(src)
+        h = norm(html)
+        assert "<ul><li>a</li><li>b</li></ul>" in h
+        assert "<ol><li>one</li><li>two</li></ol>" in h
+        assert "<blockquote><p>q</p><p>r</p></blockquote>" in h
+>       assert '<a href="http://example.com?a=1&amp;b=2">t</a>' in html
+E       assert '<a href="http://example.com?a=1&amp;b=2">t</a>' in '<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n<ol>\n<li>one</li>\n<li>two</li>\n</ol>\n<blockquote>\n<p>q</p>\n<p>r</p>\n</blockquote>\n<p><a href="http://example.com?a=1&amp;amp;b=2">t</a></p>\n<p><img alt="alt" src="img.png" /></p>'
+
+generation_m1\Markdown\_agent_tests\test_agent_basic.py:74: AssertionError
+=========================== short test summary info ===========================
+FAILED generation_m1/Markdown/_agent_tests/test_agent_basic.py::test_lists_blockquotes_links_images
+1 failed, 5 passed in 0.48s

@@ -1,0 +1,804 @@
+<file:name=requests/__init__.py>
+"""
+A tiny, self-contained subset of the 'requests' library API.
+
+This implementation is intended for local testing against a local HTTP server.
+It is NOT the third-party 'requests' package.
+"""
+
+from .api import request, get, post, put, delete, head, options, patch
+from .sessions import Session
+from .models import Request, Response
+from .auth import HTTPBasicAuth
+from . import exceptions
+
+__all__ = [
+    "request",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "head",
+    "options",
+    "patch",
+    "Session",
+    "Request",
+    "Response",
+    "HTTPBasicAuth",
+    "exceptions",
+]
+</file>
+
+<file:name=requests/api.py>
+from __future__ import annotations
+
+from .sessions import Session
+
+
+def request(method, url, **kwargs):
+    with Session() as s:
+        return s.request(method=method, url=url, **kwargs)
+
+
+def get(url, params=None, **kwargs):
+    kwargs.setdefault("allow_redirects", True)
+    return request("GET", url, params=params, **kwargs)
+
+
+def post(url, data=None, json=None, **kwargs):
+    return request("POST", url, data=data, json=json, **kwargs)
+
+
+def put(url, data=None, **kwargs):
+    return request("PUT", url, data=data, **kwargs)
+
+
+def delete(url, **kwargs):
+    return request("DELETE", url, **kwargs)
+
+
+def head(url, **kwargs):
+    # requests default is allow_redirects=False for HEAD; acceptable.
+    kwargs.setdefault("allow_redirects", False)
+    return request("HEAD", url, **kwargs)
+
+
+def options(url, **kwargs):
+    kwargs.setdefault("allow_redirects", True)
+    return request("OPTIONS", url, **kwargs)
+
+
+def patch(url, data=None, **kwargs):
+    return request("PATCH", url, data=data, **kwargs)
+</file>
+
+<file:name=requests/exceptions.py>
+class RequestException(Exception):
+    """Base exception for all request-related errors."""
+
+
+class InvalidURL(RequestException):
+    pass
+
+
+class MissingSchema(InvalidURL):
+    pass
+
+
+class InvalidSchema(InvalidURL):
+    pass
+
+
+class URLRequired(RequestException):
+    pass
+
+
+class ConnectionError(RequestException):
+    pass
+
+
+class Timeout(RequestException):
+    pass
+
+
+class TooManyRedirects(RequestException):
+    pass
+
+
+class HTTPError(RequestException):
+    pass
+
+
+class JSONDecodeError(ValueError):
+    pass
+</file>
+
+<file:name=requests/structures.py>
+from __future__ import annotations
+
+
+class CaseInsensitiveDict(dict):
+    """
+    Minimal case-insensitive dict for HTTP headers.
+
+    Stores original casing for keys as inserted last, but lookup is case-insensitive.
+    """
+
+    def __init__(self, data=None, **kwargs):
+        super().__init__()
+        self._store = {}  # lower_key -> (original_key, value)
+        if data is None:
+            data = {}
+        self.update(data, **kwargs)
+
+    def __setitem__(self, key, value):
+        lk = key.lower() if isinstance(key, str) else key
+        self._store[lk] = (key, value)
+
+    def __getitem__(self, key):
+        lk = key.lower() if isinstance(key, str) else key
+        return self._store[lk][1]
+
+    def __delitem__(self, key):
+        lk = key.lower() if isinstance(key, str) else key
+        del self._store[lk]
+
+    def __contains__(self, key):
+        lk = key.lower() if isinstance(key, str) else key
+        return lk in self._store
+
+    def get(self, key, default=None):
+        lk = key.lower() if isinstance(key, str) else key
+        if lk in self._store:
+            return self._store[lk][1]
+        return default
+
+    def items(self):
+        for _, (ok, v) in self._store.items():
+            yield ok, v
+
+    def keys(self):
+        for _, (ok, _) in self._store.items():
+            yield ok
+
+    def values(self):
+        for _, (_, v) in self._store.items():
+            yield v
+
+    def update(self, data=None, **kwargs):
+        if data is None:
+            data = {}
+        if hasattr(data, "items"):
+            for k, v in data.items():
+                self[k] = v
+        else:
+            for k, v in data:
+                self[k] = v
+        for k, v in kwargs.items():
+            self[k] = v
+
+    def copy(self):
+        return CaseInsensitiveDict(dict(self.items()))
+
+    def __iter__(self):
+        return iter(self.keys())
+
+    def __len__(self):
+        return len(self._store)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({dict(self.items())!r})"
+
+    def to_dict(self):
+        return dict(self.items())
+</file>
+
+<file:name=requests/cookies.py>
+from __future__ import annotations
+
+from http.cookies import SimpleCookie
+
+
+class RequestsCookieJar(dict):
+    """
+    Minimal cookie jar supporting dict-like access and simple Cookie header rendering.
+    Ignores domain/path scoping; suitable for local test servers.
+    """
+
+    def set(self, name, value):
+        self[name] = value
+
+    def get_cookie_header(self):
+        if not self:
+            return None
+        # Simple "name=value; name2=value2"
+        return "; ".join([f"{k}={v}" for k, v in self.items()])
+
+    def update_from_cookie_header(self, cookie_header: str | None):
+        if not cookie_header:
+            return
+        c = SimpleCookie()
+        try:
+            c.load(cookie_header)
+        except Exception:
+            return
+        for k, morsel in c.items():
+            self[k] = morsel.value
+
+    def update_from_set_cookie_headers(self, set_cookie_headers):
+        if not set_cookie_headers:
+            return
+        if isinstance(set_cookie_headers, (str, bytes)):
+            set_cookie_headers = [set_cookie_headers]
+        for h in set_cookie_headers:
+            if isinstance(h, bytes):
+                try:
+                    h = h.decode("iso-8859-1", errors="replace")
+                except Exception:
+                    continue
+            self.update_from_cookie_header(h)
+
+
+def cookiejar_from_dict(d: dict | None):
+    jar = RequestsCookieJar()
+    if d:
+        for k, v in d.items():
+            jar[str(k)] = str(v)
+    return jar
+
+
+def merge_cookies(jar: RequestsCookieJar, cookies):
+    if cookies is None:
+        return jar
+    out = RequestsCookieJar()
+    out.update(jar or {})
+    if isinstance(cookies, RequestsCookieJar):
+        out.update(cookies)
+    elif isinstance(cookies, dict):
+        for k, v in cookies.items():
+            out[str(k)] = str(v)
+    else:
+        # Unknown type; best effort: try dict()
+        try:
+            out.update(dict(cookies))
+        except Exception:
+            pass
+    return out
+</file>
+
+<file:name=requests/auth.py>
+from __future__ import annotations
+
+import base64
+
+
+class AuthBase:
+    def __call__(self, r):
+        return r
+
+
+class HTTPBasicAuth(AuthBase):
+    def __init__(self, username: str, password: str):
+        self.username = username
+        self.password = password
+
+    def __call__(self, r):
+        # Do not override if already present
+        if r.headers.get("Authorization") is None:
+            token = f"{self.username}:{self.password}".encode("utf-8")
+            b64 = base64.b64encode(token).decode("ascii")
+            r.headers["Authorization"] = f"Basic {b64}"
+        return r
+</file>
+
+<file:name=requests/models.py>
+from __future__ import annotations
+
+import json as _json
+from urllib.parse import urlencode, urlsplit, urlunsplit, parse_qsl
+
+from .exceptions import HTTPError, JSONDecodeError
+from .structures import CaseInsensitiveDict
+
+
+def _encode_params(params):
+    if params is None:
+        return ""
+    if isinstance(params, (bytes, str)):
+        return params.decode("utf-8") if isinstance(params, bytes) else params
+    # dict or list of tuples
+    return urlencode(params, doseq=True)
+
+
+def _merge_params(url: str, params) -> str:
+    if not params:
+        return url
+    split = urlsplit(url)
+    existing = parse_qsl(split.query, keep_blank_values=True)
+    new_params = []
+    if isinstance(params, dict):
+        for k, v in params.items():
+            new_params.append((k, v))
+    elif isinstance(params, (list, tuple)):
+        # list of tuples
+        new_params = list(params)
+    else:
+        # bytes/str; treat as query fragment
+        enc = _encode_params(params)
+        query = split.query
+        if query:
+            query = query + "&" + enc
+        else:
+            query = enc
+        return urlunsplit((split.scheme, split.netloc, split.path, query, split.fragment))
+
+    merged = existing + new_params
+    query = urlencode(merged, doseq=True)
+    return urlunsplit((split.scheme, split.netloc, split.path, query, split.fragment))
+
+
+def _extract_charset(content_type: str | None) -> str | None:
+    if not content_type:
+        return None
+    parts = [p.strip() for p in content_type.split(";")]
+    for p in parts[1:]:
+        if p.lower().startswith("charset="):
+            return p.split("=", 1)[1].strip().strip('"')
+    return None
+
+
+class Request:
+    def __init__(
+        self,
+        method=None,
+        url=None,
+        headers=None,
+        files=None,
+        data=None,
+        params=None,
+        auth=None,
+        cookies=None,
+        json=None,
+    ):
+        self.method = method
+        self.url = url
+        self.headers = headers or {}
+        self.files = files
+        self.data = data
+        self.params = params
+        self.auth = auth
+        self.cookies = cookies
+        self.json = json
+
+    def prepare(self):
+        p = PreparedRequest()
+        p.prepare(
+            method=self.method,
+            url=self.url,
+            headers=self.headers,
+            files=self.files,
+            data=self.data,
+            params=self.params,
+            auth=self.auth,
+            cookies=self.cookies,
+            json=self.json,
+        )
+        return p
+
+
+class PreparedRequest:
+    def __init__(self):
+        self.method = None
+        self.url = None
+        self.headers = CaseInsensitiveDict()
+        self.body = None
+
+    def prepare(
+        self,
+        method=None,
+        url=None,
+        headers=None,
+        files=None,
+        data=None,
+        params=None,
+        auth=None,
+        cookies=None,
+        json=None,
+    ):
+        self.method = (method or "").upper()
+        self.url = url
+        self.headers = CaseInsensitiveDict(headers or {})
+
+        # params onto url
+        if self.url is not None:
+            self.url = _merge_params(self.url, params)
+
+        # body
+        body = None
+        if json is not None:
+            body = _json.dumps(json).encode("utf-8")
+            if self.headers.get("Content-Type") is None:
+                self.headers["Content-Type"] = "application/json"
+        elif isinstance(data, (dict, list, tuple)):
+            # form encode
+            body = urlencode(data, doseq=True).encode("utf-8")
+            if self.headers.get("Content-Type") is None:
+                self.headers["Content-Type"] = "application/x-www-form-urlencoded"
+        elif isinstance(data, str):
+            body = data.encode("utf-8")
+        elif isinstance(data, (bytes, bytearray)):
+            body = bytes(data)
+        else:
+            body = None
+
+        self.body = body
+        # files ignored (minimal)
+
+
+class Response:
+    def __init__(self):
+        self.status_code = 0
+        self.headers = CaseInsensitiveDict()
+        self.url = ""
+        self.reason = None
+        self.content = b""
+        self.encoding = None
+        self.request = None
+        self.cookies = None
+        self.history = []
+
+    @property
+    def ok(self):
+        return 200 <= int(self.status_code) < 400
+
+    @property
+    def text(self):
+        enc = self.encoding
+        if not enc:
+            enc = _extract_charset(self.headers.get("Content-Type")) or "utf-8"
+        try:
+            return self.content.decode(enc, errors="replace")
+        except Exception:
+            return self.content.decode("utf-8", errors="replace")
+
+    def json(self):
+        try:
+            return _json.loads(self.text)
+        except ValueError as e:
+            raise JSONDecodeError(str(e)) from e
+
+    def raise_for_status(self):
+        if 400 <= int(self.status_code) < 600:
+            reason = self.reason or ""
+            msg = f"{self.status_code} {reason}".strip()
+            raise HTTPError(msg)
+</file>
+
+<file:name=requests/adapters.py>
+from __future__ import annotations
+
+import http.client
+import socket
+from urllib.parse import urlsplit
+
+from .exceptions import ConnectionError, InvalidSchema
+from .models import Response
+from .structures import CaseInsensitiveDict
+
+
+class HTTPAdapter:
+    def send(self, request, timeout=None, stream=False, verify=None):
+        split = urlsplit(request.url)
+        scheme = split.scheme.lower()
+        if scheme not in ("http", "https"):
+            raise InvalidSchema(f"Unsupported scheme: {scheme}")
+
+        host = split.hostname
+        if not host:
+            raise ConnectionError("No host specified")
+
+        port = split.port
+        path = split.path or "/"
+        if split.query:
+            path = f"{path}?{split.query}"
+
+        # headers: must be plain dict for http.client
+        headers = dict(CaseInsensitiveDict(request.headers).items())
+        body = request.body
+        if body is not None and "Content-Length" not in CaseInsensitiveDict(headers):
+            headers["Content-Length"] = str(len(body))
+
+        # Basic connection selection
+        try:
+            if scheme == "https":
+                conn = http.client.HTTPSConnection(host, port or 443, timeout=_timeout_value(timeout))
+            else:
+                conn = http.client.HTTPConnection(host, port or 80, timeout=_timeout_value(timeout))
+            conn.request(request.method, path, body=body, headers=headers)
+            resp = conn.getresponse()
+
+            r = Response()
+            r.status_code = resp.status
+            r.reason = resp.reason
+            r.url = request.url
+            r.headers = CaseInsensitiveDict({k: v for k, v in resp.getheaders()})
+            if not stream:
+                r.content = resp.read() or b""
+            else:
+                # minimal: still read eagerly (stream accepted but not implemented)
+                r.content = resp.read() or b""
+            return r
+        except (OSError, http.client.HTTPException, socket.error) as e:
+            raise ConnectionError(str(e)) from e
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def _timeout_value(timeout):
+    if timeout is None:
+        return None
+    if isinstance(timeout, (tuple, list)) and timeout:
+        # http.client uses a single timeout; prefer read timeout if provided
+        try:
+            return float(timeout[-1])
+        except Exception:
+            return None
+    try:
+        return float(timeout)
+    except Exception:
+        return None
+</file>
+
+<file:name=requests/sessions.py>
+from __future__ import annotations
+
+from urllib.parse import urlsplit, urljoin
+
+from .adapters import HTTPAdapter
+from .auth import HTTPBasicAuth
+from .cookies import RequestsCookieJar, merge_cookies, cookiejar_from_dict
+from .exceptions import (
+    URLRequired,
+    MissingSchema,
+    InvalidSchema,
+    TooManyRedirects,
+)
+from .models import Request, Response, PreparedRequest
+from .structures import CaseInsensitiveDict
+
+
+REDIRECT_STATUSES = {301, 302, 303, 307, 308}
+
+
+class Session:
+    def __init__(self):
+        self.headers = {}
+        self.cookies = RequestsCookieJar()
+        self.auth = None
+        self.adapters = {
+            "http://": HTTPAdapter(),
+            "https://": HTTPAdapter(),
+        }
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()
+        return False
+
+    def close(self):
+        # no persistent connections in this minimal adapter
+        return None
+
+    def mount(self, prefix: str, adapter):
+        self.adapters[prefix] = adapter
+
+    def request(self, method, url, **kwargs) -> Response:
+        if url is None or url == "":
+            raise URLRequired("A valid URL is required")
+        if "://" not in str(url):
+            raise MissingSchema("Invalid URL: No scheme supplied. Perhaps you meant http://...")
+
+        split = urlsplit(url)
+        scheme = split.scheme.lower()
+        if scheme not in ("http", "https"):
+            raise InvalidSchema(f"No connection adapters were found for '{scheme}://'")
+
+        params = kwargs.get("params", None)
+        data = kwargs.get("data", None)
+        json = kwargs.get("json", None)
+        headers = kwargs.get("headers", None) or {}
+        cookies = kwargs.get("cookies", None)
+        auth = kwargs.get("auth", None)
+        timeout = kwargs.get("timeout", None)
+        allow_redirects = kwargs.get("allow_redirects", None)
+        stream = kwargs.get("stream", False)
+        verify = kwargs.get("verify", None)
+        # hooks accepted but ignored
+        _ = kwargs.get("hooks", None)
+
+        if allow_redirects is None:
+            allow_redirects = method.upper() in ("GET", "OPTIONS")
+
+        # Merge headers: session.headers then request headers override
+        merged_headers = CaseInsensitiveDict(self.headers)
+        merged_headers.update(headers)
+
+        # Merge cookies: session jar + request cookies for this call
+        merged_cookiejar = merge_cookies(self.cookies, cookies)
+
+        # Build Request and prepare
+        req = Request(
+            method=method,
+            url=url,
+            headers=dict(merged_headers.items()),
+            data=data,
+            params=params,
+            auth=auth,
+            cookies=merged_cookiejar,
+            json=json,
+        )
+        prep = req.prepare()
+
+        # Attach Cookie header
+        cookie_header = merged_cookiejar.get_cookie_header() if isinstance(merged_cookiejar, RequestsCookieJar) else None
+        if cookie_header and prep.headers.get("Cookie") is None:
+            prep.headers["Cookie"] = cookie_header
+
+        # Apply auth: request auth, else session auth
+        effective_auth = auth if auth is not None else self.auth
+        if isinstance(effective_auth, tuple) and len(effective_auth) == 2:
+            effective_auth = HTTPBasicAuth(effective_auth[0], effective_auth[1])
+        if callable(effective_auth):
+            prep = effective_auth(prep) or prep
+
+        # Send with redirects
+        resp = self._send(prep, timeout=timeout, stream=stream, verify=verify)
+        resp.request = prep
+
+        # cookies from response -> response.cookies and session.cookies
+        self._extract_and_store_cookies(resp)
+
+        if allow_redirects and resp.status_code in REDIRECT_STATUSES:
+            return self._resolve_redirects(
+                resp,
+                prep,
+                timeout=timeout,
+                stream=stream,
+                verify=verify,
+                max_redirects=kwargs.get("max_redirects", 30),
+            )
+
+        return resp
+
+    def _adapter_for_url(self, url: str):
+        # Longest prefix match.
+        best = None
+        for prefix, adapter in self.adapters.items():
+            if url.startswith(prefix):
+                if best is None or len(prefix) > len(best[0]):
+                    best = (prefix, adapter)
+        if best is None:
+            raise InvalidSchema("No connection adapters were found")
+        return best[1]
+
+    def _send(self, prep: PreparedRequest, timeout=None, stream=False, verify=None) -> Response:
+        adapter = self._adapter_for_url(prep.url)
+        r = adapter.send(prep, timeout=timeout, stream=stream, verify=verify)
+        return r
+
+    def _extract_and_store_cookies(self, resp: Response):
+        # Ensure response.cookies exists
+        jar = RequestsCookieJar()
+        # Try multiple Set-Cookie headers if provided in combined form
+        set_cookie = resp.headers.get("Set-Cookie")
+        if set_cookie:
+            # Could be multiple cookies in one header; SimpleCookie handles it often.
+            jar.update_from_set_cookie_headers(set_cookie)
+        resp.cookies = jar
+        # Update session cookies
+        if jar:
+            self.cookies.update(jar)
+
+    def _resolve_redirects(self, resp: Response, prep: PreparedRequest, timeout=None, stream=False, verify=None, max_redirects=30):
+        history = []
+        current_resp = resp
+        current_prep = prep
+
+        for _i in range(int(max_redirects)):
+            if current_resp.status_code not in REDIRECT_STATUSES:
+                break
+
+            location = current_resp.headers.get("Location")
+            if not location:
+                break
+
+            history.append(current_resp)
+
+            next_url = urljoin(current_resp.url, location)
+
+            # Per RFC/requests-like behavior:
+            method = current_prep.method
+            body = current_prep.body
+            headers = CaseInsensitiveDict(current_prep.headers)
+
+            if current_resp.status_code in (301, 302, 303):
+                if method not in ("GET", "HEAD"):
+                    method = "GET"
+                    body = None
+                    # Remove content headers when switching to GET
+                    for h in ("Content-Length", "Content-Type"):
+                        if h in headers:
+                            del headers[h]
+
+            next_prep = PreparedRequest()
+            next_prep.prepare(
+                method=method,
+                url=next_url,
+                headers=dict(headers.items()),
+                data=None,
+                params=None,
+                json=None,
+                cookies=None,
+                auth=None,
+            )
+            next_prep.body = body
+
+            # Ensure cookies carried forward
+            cookie_header = self.cookies.get_cookie_header()
+            if cookie_header and next_prep.headers.get("Cookie") is None:
+                next_prep.headers["Cookie"] = cookie_header
+
+            # Re-apply session auth (do not reuse per-request auth if it was provided; minimal behavior)
+            effective_auth = self.auth
+            if isinstance(effective_auth, tuple) and len(effective_auth) == 2:
+                effective_auth = HTTPBasicAuth(effective_auth[0], effective_auth[1])
+            if callable(effective_auth):
+                next_prep = effective_auth(next_prep) or next_prep
+
+            next_resp = self._send(next_prep, timeout=timeout, stream=stream, verify=verify)
+            next_resp.request = next_prep
+            self._extract_and_store_cookies(next_resp)
+
+            current_resp = next_resp
+            current_prep = next_prep
+
+        else:
+            raise TooManyRedirects(f"Exceeded {max_redirects} redirects")
+
+        current_resp.history = history
+        return current_resp
+
+    # Convenience methods
+    def get(self, url, params=None, **kwargs):
+        kwargs.setdefault("allow_redirects", True)
+        return self.request("GET", url, params=params, **kwargs)
+
+    def post(self, url, data=None, json=None, **kwargs):
+        return self.request("POST", url, data=data, json=json, **kwargs)
+
+    def put(self, url, data=None, **kwargs):
+        return self.request("PUT", url, data=data, **kwargs)
+
+    def delete(self, url, **kwargs):
+        return self.request("DELETE", url, **kwargs)
+
+    def head(self, url, **kwargs):
+        kwargs.setdefault("allow_redirects", False)
+        return self.request("HEAD", url, **kwargs)
+
+    def options(self, url, **kwargs):
+        kwargs.setdefault("allow_redirects", True)
+        return self.request("OPTIONS", url, **kwargs)
+
+    def patch(self, url, data=None, **kwargs):
+        return self.request("PATCH", url, data=data, **kwargs)
+
+
+def session():
+    return Session()
+</file>

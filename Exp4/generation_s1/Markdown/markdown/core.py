@@ -1,0 +1,398 @@
+import io
+import os
+import re
+from html import escape as _escape
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+
+def _normalize_newlines(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _escape_html(text: str) -> str:
+    # Escape &, <, > (not quotes) for normal text nodes.
+    return _escape(text, quote=False)
+
+
+def _escape_attr(text: str) -> str:
+    # Escape for attribute values (includes quotes).
+    return _escape(text, quote=True)
+
+
+_CODE_TOKEN_RE = re.compile(r"\x00CODE(\d+)\x00")
+
+
+class Markdown:
+    def __init__(self, **kwargs):
+        self.tab_length = int(kwargs.get("tab_length", 4))
+        self.output_format = kwargs.get("output_format", "xhtml1")
+        self.extensions = kwargs.get("extensions", None)
+        self.extension_configs = kwargs.get("extension_configs", None)
+        # Accept and ignore any other kwargs for API-compat.
+        self._extra_kwargs = dict(kwargs)
+        self.reset()
+
+    def reset(self):
+        self._code_spans: List[str] = []
+        return self
+
+    def convert(self, text: str) -> str:
+        if not isinstance(text, str):
+            raise TypeError("Markdown.convert() input must be a Unicode string")
+        text = _normalize_newlines(text)
+        self.reset()
+        lines = text.split("\n")
+        html_lines, _ = self._parse_blocks(lines, 0)
+        return "\n".join(html_lines).rstrip("\n")
+
+    # -------- Block parsing --------
+
+    _re_atx = re.compile(r"^(#{1,6})\s+(.*?)(?:\s+#+\s*)?$")
+    _re_fence = re.compile(r"^\s*(```+|~~~+)\s*$")
+    _re_ul = re.compile(r"^(\s*)([-+*])\s+(.*)$")
+    _re_ol = re.compile(r"^(\s*)(\d+)\.\s+(.*)$")
+    _re_bq = re.compile(r"^\s*>\s?(.*)$")
+
+    def _parse_blocks(self, lines: List[str], start: int) -> Tuple[List[str], int]:
+        out: List[str] = []
+        i = start
+        n = len(lines)
+
+        def is_blank(s: str) -> bool:
+            return s.strip() == ""
+
+        while i < n:
+            line = lines[i]
+
+            if is_blank(line):
+                i += 1
+                continue
+
+            # Fenced code
+            m = self._re_fence.match(line)
+            if m:
+                fence = m.group(1)
+                i += 1
+                code_lines: List[str] = []
+                while i < n:
+                    m2 = self._re_fence.match(lines[i])
+                    if m2 and m2.group(1)[0] == fence[0]:
+                        i += 1
+                        break
+                    code_lines.append(lines[i])
+                    i += 1
+                code = "\n".join(code_lines)
+                out.append(self._render_codeblock(code))
+                continue
+
+            # Indented code
+            if line.startswith(" " * self.tab_length) or line.startswith("\t"):
+                code_lines: List[str] = []
+                while i < n:
+                    l = lines[i]
+                    if l.startswith(" " * self.tab_length):
+                        code_lines.append(l[self.tab_length :])
+                        i += 1
+                    elif l.startswith("\t"):
+                        code_lines.append(l[1:])
+                        i += 1
+                    elif is_blank(l):
+                        code_lines.append("")
+                        i += 1
+                    else:
+                        break
+                code = "\n".join(code_lines).rstrip("\n")
+                out.append(self._render_codeblock(code))
+                continue
+
+            # Heading
+            m = self._re_atx.match(line)
+            if m:
+                level = len(m.group(1))
+                content = m.group(2).strip()
+                out.append(f"<h{level}>{self._render_inlines(content)}</h{level}>")
+                i += 1
+                continue
+
+            # Blockquote
+            if self._re_bq.match(line):
+                bq_lines: List[str] = []
+                while i < n and (self._re_bq.match(lines[i]) or is_blank(lines[i])):
+                    if is_blank(lines[i]):
+                        bq_lines.append("")
+                    else:
+                        bq_lines.append(self._re_bq.match(lines[i]).group(1))
+                    i += 1
+                inner_html, _ = self._parse_blocks(bq_lines, 0)
+                out.append("<blockquote>")
+                out.extend(inner_html)
+                out.append("</blockquote>")
+                continue
+
+            # Lists
+            m_ul = self._re_ul.match(line)
+            m_ol = self._re_ol.match(line)
+            if m_ul or m_ol:
+                list_type = "ul" if m_ul else "ol"
+                base_indent = len((m_ul or m_ol).group(1))
+                out.append(f"<{list_type}>")
+                while i < n:
+                    line2 = lines[i]
+                    if is_blank(line2):
+                        # A blank line may end a list in this minimal parser
+                        # if next non-blank is not a list item at same indent.
+                        j = i + 1
+                        while j < n and is_blank(lines[j]):
+                            j += 1
+                        if j >= n:
+                            i = j
+                            break
+                        nxt = lines[j]
+                        m_ul2 = self._re_ul.match(nxt)
+                        m_ol2 = self._re_ol.match(nxt)
+                        if (list_type == "ul" and m_ul2 and len(m_ul2.group(1)) == base_indent) or (
+                            list_type == "ol" and m_ol2 and len(m_ol2.group(1)) == base_indent
+                        ):
+                            i = j
+                            continue
+                        else:
+                            i = j
+                            break
+
+                    m_item = self._re_ul.match(line2) if list_type == "ul" else self._re_ol.match(line2)
+                    if not m_item or len(m_item.group(1)) != base_indent:
+                        break
+
+                    first_text = m_item.group(3)
+                    i += 1
+                    cont: List[str] = [first_text]
+                    while i < n:
+                        l = lines[i]
+                        if is_blank(l):
+                            cont.append("")
+                            i += 1
+                            continue
+                        ind = len(l) - len(l.lstrip(" "))
+                        if ind > base_indent:
+                            cont.append(l[base_indent + 2 :] if len(l) >= base_indent + 2 else l.lstrip())
+                            i += 1
+                            continue
+                        break
+
+                    item_src = "\n".join(cont).strip("\n")
+                    if "\n\n" in item_src:
+                        item_lines = item_src.split("\n")
+                        item_html, _ = self._parse_blocks(item_lines, 0)
+                        out.append("<li>")
+                        out.extend(item_html)
+                        out.append("</li>")
+                    else:
+                        out.append(f"<li>{self._render_inlines(item_src.strip())}</li>")
+
+                out.append(f"</{list_type}>")
+                continue
+
+            # Paragraph
+            para_lines: List[str] = []
+            while i < n and not is_blank(lines[i]):
+                # stop if a new block starts
+                l = lines[i]
+                if self._re_fence.match(l) or self._re_atx.match(l) or self._re_bq.match(l) or self._re_ul.match(l) or self._re_ol.match(l):
+                    if para_lines:
+                        break
+                para_lines.append(l)
+                i += 1
+            para_text = "\n".join(para_lines).strip("\n")
+            out.append(f"<p>{self._render_inlines(para_text)}</p>")
+
+        return out, i
+
+    def _render_codeblock(self, code: str) -> str:
+        # Escape &, <, > within code.
+        code_esc = _escape_html(code)
+        return f"<pre><code>{code_esc}\n</code></pre>" if not code_esc.endswith("\n") else f"<pre><code>{code_esc}</code></pre>"
+
+    # -------- Inline parsing --------
+
+    def _stash_code_span(self, content: str) -> str:
+        # Strip one leading/trailing space if both present (common Markdown behavior).
+        if len(content) >= 2 and content[0] == " " and content[-1] == " ":
+            content = content[1:-1]
+        content_esc = _escape_html(content)
+        idx = len(self._code_spans)
+        self._code_spans.append(f"<code>{content_esc}</code>")
+        return f"\x00CODE{idx}\x00"
+
+    def _extract_code_spans(self, text: str) -> str:
+        # Minimal multi-backtick support: find the next run of backticks and match same run.
+        out = []
+        i = 0
+        n = len(text)
+        while i < n:
+            if text[i] != "`":
+                out.append(text[i])
+                i += 1
+                continue
+            j = i
+            while j < n and text[j] == "`":
+                j += 1
+            delim = text[i:j]
+            k = text.find(delim, j)
+            if k == -1:
+                out.append(delim)
+                i = j
+                continue
+            content = text[j:k]
+            out.append(self._stash_code_span(content))
+            i = k + len(delim)
+        return "".join(out)
+
+    def _restore_code_spans(self, text: str) -> str:
+        def repl(m):
+            idx = int(m.group(1))
+            return self._code_spans[idx] if 0 <= idx < len(self._code_spans) else m.group(0)
+
+        return _CODE_TOKEN_RE.sub(repl, text)
+
+    def _render_inlines(self, text: str) -> str:
+        # Order matters: stash code first so nothing else touches it.
+        text = self._extract_code_spans(text)
+
+        # Escape normal text.
+        text = _escape_html(text)
+
+        # IMPORTANT: links/images attribute escaping must not double-escape already-escaped '&amp;'
+        # coming from the previous HTML escaping step. Decode minimal entities first.
+        def _unescape_basic_entities(s: str) -> str:
+            return s.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+
+        # Images: ![alt](url)
+        def img_repl(m):
+            alt = m.group(1)
+            url_esc_text = m.group(2)
+            url_raw = _unescape_basic_entities(url_esc_text)
+            src = _escape_attr(url_raw)
+            if "xhtml" in str(self.output_format).lower():
+                return f'<img alt="{alt}" src="{src}" />'
+            return f'<img alt="{alt}" src="{src}">'
+
+        text = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", img_repl, text)
+
+        # Links: [text](url)
+        def link_repl(m):
+            label = m.group(1)
+            url_esc_text = m.group(2)
+            url_raw = _unescape_basic_entities(url_esc_text)
+            href = _escape_attr(url_raw)
+            # Allow emphasis inside label.
+            inner = self._apply_emphasis(label)
+            return f'<a href="{href}">{inner}</a>'
+
+        text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link_repl, text)
+
+        # Emphasis / strong
+        text = self._apply_emphasis(text)
+
+        # Restore code spans
+        text = self._restore_code_spans(text)
+        return text
+
+    def _apply_emphasis(self, text: str) -> str:
+        # Strong first
+        text = self._apply_delimited(text, "**", "strong", allow_intraword=True)
+        text = self._apply_delimited(text, "__", "strong", allow_intraword=False)
+        # Then emphasis
+        text = self._apply_delimited(text, "*", "em", allow_intraword=True)
+        text = self._apply_delimited(text, "_", "em", allow_intraword=False)
+        return text
+
+    def _apply_delimited(self, text: str, delim: str, tag: str, allow_intraword: bool) -> str:
+        # Avoid transforming inside code placeholders.
+        parts = re.split(r"(\x00CODE\d+\x00)", text)
+        for pi in range(0, len(parts), 2):
+            parts[pi] = self._apply_delimited_to_plain(parts[pi], delim, tag, allow_intraword)
+        return "".join(parts)
+
+    def _apply_delimited_to_plain(self, s: str, delim: str, tag: str, allow_intraword: bool) -> str:
+        if delim not in s:
+            return s
+        out = []
+        i = 0
+        n = len(s)
+        dl = len(delim)
+
+        def is_word(ch: str) -> bool:
+            return ch.isalnum()
+
+        while i < n:
+            j = s.find(delim, i)
+            if j == -1:
+                out.append(s[i:])
+                break
+
+            # opening boundary check for '_' / '__'
+            if not allow_intraword:
+                prev = s[j - 1] if j > 0 else ""
+                nxt = s[j + dl] if j + dl < n else ""
+                if (prev and is_word(prev)) or (not nxt or nxt.isspace()):
+                    out.append(s[i : j + dl])
+                    i = j + dl
+                    continue
+
+            k = s.find(delim, j + dl)
+            if k == -1:
+                out.append(s[i:])
+                break
+
+            # closing boundary check for '_' / '__'
+            if not allow_intraword:
+                prevc = s[k - 1] if k > 0 else ""
+                nextc = s[k + dl] if k + dl < n else ""
+                if (prevc and prevc.isspace()) or (nextc and is_word(nextc)):
+                    out.append(s[i : k + dl])
+                    i = k + dl
+                    continue
+
+            out.append(s[i:j])
+            inner = s[j + dl : k]
+            out.append(f"<{tag}>{inner}</{tag}>")
+            i = k + dl
+
+        return "".join(out)
+
+
+def markdown(text: str, **kwargs) -> str:
+    md = Markdown(**kwargs)
+    return md.convert(text)
+
+
+def markdownFromFile(
+    input: Optional[Union[str, os.PathLike, io.TextIOBase]] = None,
+    output: Optional[Union[str, os.PathLike, io.TextIOBase]] = None,
+    encoding: Optional[str] = None,
+    **kwargs,
+):
+    if input is None:
+        raise TypeError("markdownFromFile() missing required argument: 'input'")
+
+    encoding = encoding or "utf-8"
+
+    if hasattr(input, "read"):
+        text = input.read()
+    else:
+        p = Path(input)
+        text = p.read_text(encoding=encoding)
+
+    html = markdown(text, **kwargs)
+
+    if output is None:
+        return html
+
+    if hasattr(output, "write"):
+        output.write(html)
+        return None
+
+    out_path = Path(output)
+    out_path.write_text(html, encoding=encoding)
+    return None

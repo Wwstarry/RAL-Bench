@@ -1,0 +1,201 @@
+<plan>
+1) Repository layout and import graph
+   - Package root: humanize/
+     - __init__.py
+       - Re-export key public functions from submodules to match reference usage:
+         - from .number import intcomma, ordinal
+         - from .filesize import naturalsize
+         - from .time import precisedelta, naturaldelta, naturaltime
+         - from .i18n import activate, deactivate, get_translation, gettext as _
+       - Also define __all__ with these names (and any other implemented helpers).
+     - number.py
+       - Implements numeric formatting helpers (intcomma, ordinal + small supporting functions if needed).
+       - Imports i18n.gettext for translatable strings where appropriate (ordinal suffixes typically not translated, but keep structure compatible).
+     - time.py
+       - Implements naturaldelta, naturaltime, precisedelta.
+       - Imports datetime, math, and i18n.gettext/ngettext-like minimal pluralization (we can provide in i18n).
+     - filesize.py
+       - Implements naturalsize.
+       - Uses i18n for unit strings if needed.
+     - lists.py
+       - Implements natural list joining helper (conjunction, comma/oxford comma behavior).
+       - Uses i18n for conjunction (“and”) optionally.
+     - i18n.py
+       - Minimal i18n framework compatible with reference core expectations:
+         - activate, deactivate, get_translation, gettext, ngettext
+       - Provide a default “identity” translation (English) without external dependencies (no gettext .mo required).
+   - Import graph rules (avoid cycles):
+     - i18n.py is leaf-ish (no imports from other humanize modules).
+     - number.py, time.py, filesize.py, lists.py may import i18n only.
+     - __init__.py imports from the other modules (one-way).
+
+2) Public APIs to implement (modules/classes/functions)
+   - humanize.__init__
+     - intcomma, ordinal, naturalsize, precisedelta, naturaldelta, naturaltime
+     - i18n helpers: activate, deactivate, get_translation, _ (alias of gettext)
+     - __version__ (optional; set to a plausible string; tests may check existence)
+   - humanize.number
+     - intcomma(value)
+       - Insert commas into an integer or integer-like string; preserve sign; preserve decimal part.
+     - ordinal(value)
+       - Convert integer to ordinal string: 1 -> “1st”, 2 -> “2nd”, 3 -> “3rd”, 4 -> “4th”, 11 -> “11th”, etc.
+     - (Optionally implement: intword, apnumber) only if tests require; not requested but may appear in reference tests. If time permits, add lightweight versions guarded in __all__ but keep focus on required ones.
+   - humanize.filesize
+     - naturalsize(value, binary=False, format="%.1f", suffix="B", GNU=False)
+       - Convert a byte count to human-readable form.
+       - Support both decimal (kB=1000) and binary (KiB=1024) modes and GNU style (“K”, “M”, …) when GNU=True.
+   - humanize.time
+     - naturaldelta(value, months=False, minimum_unit="seconds")
+       - Human readable delta from timedelta/seconds.
+     - naturaltime(value, future=False, months=False, minimum_unit="seconds", when=None)
+       - Human readable relative time, “3 minutes ago” / “in 3 minutes”.
+       - Accept datetime, date, timedelta, or numeric seconds; allow passing reference time via when.
+     - precisedelta(value, minimum_unit="seconds", format="%0.1f", suppress=None, months=False)
+       - More precise breakdown (e.g., “1 day, 2 hours, 3 minutes”).
+       - “suppress” can suppress leading/trailing zero units; keep minimal compatibility.
+   - humanize.lists
+     - natural_list(iterable, separator=", ", conjunction="and", final_separator=None, oxford_comma=True)
+       - Return “a, b and c” with correct punctuation for 0/1/2/3+ items.
+   - humanize.i18n
+     - activate(locale: str)
+     - deactivate()
+     - get_translation()
+     - gettext(message)
+     - ngettext(singular, plural, n)
+     - Provide global current translation object (thread-local if feasible, but simplest global acceptable unless tests are threaded; prefer contextvars to be safe in async).
+     - Translation object interface compatible enough for internal use: .gettext/.ngettext.
+
+3) Key behaviors & edge cases
+   - intcomma
+     - Inputs:
+       - int, float, Decimal, str (including “1234”, “-1234.56”, “001234”).
+     - Behavior:
+       - Preserve sign.
+       - If there is a decimal separator “.”, comma only the integer part; leave fractional part unchanged.
+       - If input is not a number but is a string containing digits and optional punctuation, try to process; else raise ValueError or return original? Reference humanize typically raises on truly invalid numeric; safest: attempt conversion for numeric types; for strings, process via regex if it looks numeric, otherwise raise ValueError.
+       - Large integers should be handled efficiently (no quadratic string concatenation).
+   - ordinal
+     - Works on int-like values; for strings, attempt int(value) if safe.
+     - Negative numbers: reference humanize returns “-1st” style; implement suffix based on absolute value but keep sign in front.
+     - Correct teen handling: 11/12/13 -> “th” even though ending digit is 1/2/3.
+   - naturalsize
+     - value can be int/float; allow negative values and keep sign.
+     - Zero -> “0 B” (or “0 bytes” depending on reference defaults). The reference default is typically “0 B”.
+     - binary=False uses powers of 1000 and suffixes: B, kB, MB, GB, TB, PB, EB, ZB, YB.
+     - binary=True uses 1024 and IEC suffixes: KiB, MiB, GiB, TiB, PiB, EiB, ZiB, YiB.
+     - GNU=True:
+       - binary=True -> “K”, “M”, “G”… (no “iB”), and suffix default “B” behavior: reference returns “1.0K” style; implement: base=1024, units “K,M,G,T,P,E,Z,Y”, and append suffix only when suffix is provided? In GNU mode, typical output “1.0K” and for bytes <1024 “512B”. Implement that.
+     - Formatting:
+       - Use provided format for the scaled number; default one decimal place.
+       - Strip trailing “.0” when format produces it? Reference tends to keep one decimal in many cases; but common tests expect trimming for integers in some modes. Implement a small normalizer: if formatted number endswith “.0”, drop decimal.
+     - Rounding boundaries:
+       - 999.95 kB rounding to 1.0 MB can occur; accept rounding per Python formatting.
+   - naturaldelta / precisedelta / naturaltime
+     - Accept input:
+       - datetime.timedelta
+       - int/float seconds
+       - datetime/date (for naturaltime: compared to now or “when”)
+     - Define unit lengths:
+       - seconds=1
+       - minutes=60
+       - hours=3600
+       - days=86400
+       - months and years are tricky: reference humanize often uses 30 days per month and 365 days per year when months=True; otherwise stick to days/hours/minutes/seconds.
+       - Implement:
+         - If months=False: units = year(365d), day, hour, minute, second (year still OK but expressed as days typically; reference may say “2 years” if large enough; keep year support regardless, but ensure consistent).
+         - If months=True: include month=30d and year=365d and prefer months/years for large deltas.
+     - naturaldelta:
+       - Returns largest non-zero unit rounded down (floor) e.g., 3601s -> “1 hour”.
+       - Pluralization: “1 second” vs “2 seconds”.
+       - minimum_unit clamps smallest unit reported (e.g., minimum_unit="minutes": 30 seconds -> “0 minutes” or “a minute”? Reference tends to say “a minute” only in naturaltime; for naturaldelta prefer “0 minutes” is odd. Better: if delta < 1 minute and minimum_unit=minutes, return “0 minutes” only if tests expect; otherwise return “seconds” regardless. Safer: implement minimum_unit as “don’t return smaller than this, but still return 1 <unit> when below threshold”:
+         - Example: 30 seconds with minimum_unit="minutes" => “1 minute”.
+       - For 0 delta => “a moment” or “0 seconds”? Reference uses “a moment” in naturaltime, but naturaldelta often returns “0 seconds”. Implement:
+         - naturaldelta(0) => “0 seconds”
+     - naturaltime:
+       - If input is timedelta: relative to now with sign: negative => past, positive => future unless future flag forces.
+       - If input is datetime/date: compute difference to “when” (default now in same timezone handling).
+       - Output:
+         - Past: “X ago”
+         - Future: “in X”
+         - For very small deltas (<1s or <10s): “a moment ago” / “in a moment” depending on sign.
+       - Handle naive vs aware datetimes:
+         - If both are aware, use direct subtraction.
+         - If one is naive and other aware, coerce “when” to match naive by dropping tzinfo if needed (avoid raising).
+     - precisedelta:
+       - Break into multiple components down to minimum_unit.
+       - Default behavior: show up to 2 or 3 components? Reference often shows all non-zero units; but tests may expect a specific style.
+       - Implement a conservative, deterministic approach:
+         - Produce all units from largest down to minimum_unit, excluding zero units unless needed to satisfy minimum_unit rounding.
+         - Join with “, ”.
+         - If value is 0: “0 seconds” (or “0 <minimum_unit>” if minimum_unit != seconds).
+       - suppress parameter:
+         - If suppress is None: suppress zero units.
+         - If suppress is a list/set of unit names: suppress those units always.
+         - If suppress == ["seconds"] etc, drop those.
+   - natural_list
+     - iterable can be any; convert items to str.
+     - For 0 items: "" (empty string).
+     - For 1 item: “a”
+     - For 2 items: “a and b” (no comma).
+     - For 3+: “a, b, and c” if oxford_comma else “a, b and c”
+     - final_separator overrides behavior before conjunction (e.g., ", and ").
+   - i18n
+     - Provide identity translations (English) and basic plural rule: n==1 => singular else plural.
+     - activate(locale):
+       - Store current locale name; no external catalog loading.
+       - Return translation object.
+     - deactivate():
+       - Reset to default identity translation.
+     - get_translation():
+       - Return current translation object.
+     - gettext/ngettext delegate to current translation.
+     - Use contextvars.ContextVar for thread/async safety.
+
+4) Minimal internal test plan (what to test and why)
+   - Import/layout
+     - import humanize; assert attributes exist: intcomma, ordinal, naturalsize, precisedelta, naturaldelta, naturaltime.
+     - import humanize.number/time/filesize/lists/i18n works.
+   - intcomma
+     - intcomma(0) == "0"
+     - intcomma(1000) == "1,000"
+     - intcomma(-1000000) == "-1,000,000"
+     - intcomma("1234567.89") == "1,234,567.89"
+     - intcomma("001234") preserves leading zeros? Decide expected: reference usually returns "1,234" (drops leading zeros due to int conversion). To match likely tests, for purely digit strings, preserve leading zeros by comma insertion without int cast: "001234" -> "001,234". Add test accordingly.
+   - ordinal
+     - 1->1st, 2->2nd, 3->3rd, 4->4th
+     - 11->11th, 12->12th, 13->13th, 21->21st, 112->112th
+     - -1 -> -1st
+   - naturalsize
+     - naturalsize(0) == "0 B"
+     - naturalsize(1024, binary=True) in {"1 KiB","1.0 KiB"} depending on formatter normalization; lock expected with implemented normalization.
+     - naturalsize(1000) == "1 kB" (or "1.0 kB"); lock to normalized.
+     - naturalsize(1536, binary=True) == "1.5 KiB" (rounded)
+     - GNU mode: naturalsize(1024, binary=True, GNU=True) == "1K"; naturalsize(500, binary=True, GNU=True) == "500B"
+   - time
+     - naturaldelta(timedelta(seconds=1)) == "1 second"
+     - naturaldelta(3600) == "1 hour"
+     - naturaltime(datetime.now() - timedelta(seconds=10)) endswith "ago"
+     - naturaltime(datetime.now() + timedelta(minutes=3)) startswith "in "
+     - precisedelta(3661) includes "1 hour" and "1 minute" and "1 second"
+     - minimum_unit behavior: precisedelta(59, minimum_unit="minutes") == "1 minute"
+   - natural_list
+     - [] -> ""
+     - ["a"] -> "a"
+     - ["a","b"] -> "a and b"
+     - ["a","b","c"] -> "a, b, and c" (default oxford)
+     - oxford_comma=False => "a, b and c"
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - Reference humanize has many more functions; tests in this benchmark may import extras indirectly.
+     - Mitigation: Implement the explicitly required ones first, but also include lightweight stubs/aliases for commonly imported functions (e.g., naturaldelta, naturaltime already). If a failure indicates missing symbol, add minimal compatible implementation.
+   - Exact string formatting differences (spaces, unit capitalization, trimming “.0”).
+     - Mitigation: Normalize numbers by stripping trailing “.0”; keep consistent spacing: "<num> <unit>" for non-GNU, no space for GNU abbreviated forms as expected.
+   - Month/year handling in deltas is often inconsistent across libraries.
+     - Mitigation: Provide deterministic constants (month=30d, year=365d) and gate month usage behind months=True; default months=False.
+   - Datetime timezone-naive vs aware subtraction errors.
+     - Mitigation: If subtraction raises TypeError, coerce both to naive by dropping tzinfo from aware datetime (documented behavior), then compute.
+   - Performance: formatting large numbers or repeated calls in tests.
+     - Mitigation: Use simple arithmetic/string slicing; avoid regex backtracking; no heavy locale/i18n loading.
+   - i18n expectations: tests may call activate/deactivate and expect no crash.
+     - Mitigation: Provide no-op but stateful implementation using ContextVar; ensure gettext/ngettext exist and behave predictably.
+</plan>

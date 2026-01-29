@@ -1,0 +1,119 @@
+FFFF....F.F.                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_basic_every_and_run_all _________________________
+
+    def test_basic_every_and_run_all() -> None:
+        """every(...).seconds/minutes + run_all execute jobs."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+        schedule.every(5).seconds.do(job1).tag("sec", "common")
+        schedule.every().minutes.do(job2).tag("min", "common")
+    
+>       jobs = schedule.get_jobs()
+E       AttributeError: module 'schedule' has no attribute 'get_jobs'
+
+tests\Schedule\functional_test.py:100: AttributeError
+_________________________ test_tags_and_clear_by_tag __________________________
+
+    def test_tags_and_clear_by_tag() -> None:
+        """Jobs can be tagged, selected by tag, and cleared by tag."""
+        _clear()
+        calls: List[str] = []
+    
+        def job_keep() -> None:
+            calls.append("keep")
+    
+        def job_drop() -> None:
+            calls.append("drop")
+    
+        schedule.every().hour.do(job_keep).tag("keep", "group")
+        schedule.every().hour.do(job_drop).tag("drop", "group")
+    
+>       drop_jobs = schedule.get_jobs("drop")
+E       AttributeError: module 'schedule' has no attribute 'get_jobs'
+
+tests\Schedule\functional_test.py:124: AttributeError
+_____________________ test_cancel_job_removes_single_job ______________________
+
+    def test_cancel_job_removes_single_job() -> None:
+        """cancel_job removes a single job from the scheduler."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+        j1 = schedule.every().day.do(job1)
+        j2 = schedule.every().day.at("10:30").do(job2)
+    
+        schedule.cancel_job(j2)
+    
+        schedule.run_all()
+        assert calls == ["job1"]
+>       assert j1 in schedule.get_jobs()
+E       AttributeError: module 'schedule' has no attribute 'get_jobs'
+
+tests\Schedule\functional_test.py:155: AttributeError
+__________________ test_repeat_decorator_registers_and_runs ___________________
+
+    def test_repeat_decorator_registers_and_runs() -> None:
+        """@repeat(every(...)) schedules a function correctly and run_all triggers it."""
+        _clear()
+        call_count = 0
+    
+>       @schedule.repeat(schedule.every().seconds)
+E       AttributeError: module 'schedule' has no attribute 'repeat'
+
+tests\Schedule\functional_test.py:164: AttributeError
+________________ test_every_to_creates_job_with_interval_range ________________
+
+    def test_every_to_creates_job_with_interval_range() -> None:
+        """every(A).to(B).seconds should create a job and be runnable via run_all."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("x")
+    
+        j = schedule.every(2).to(5).seconds.do(job)
+>       assert j in schedule.get_jobs()
+E       AttributeError: module 'schedule' has no attribute 'get_jobs'
+
+tests\Schedule\functional_test.py:240: AttributeError
+_____________________ test_get_jobs_by_tag_filters_subset _____________________
+
+    def test_get_jobs_by_tag_filters_subset() -> None:
+        """get_jobs(tag) should return only jobs with that tag."""
+        _clear()
+    
+        def a() -> None:
+            return None
+    
+        def b() -> None:
+            return None
+    
+        schedule.every().minute.do(a).tag("alpha")
+        schedule.every().minute.do(b).tag("beta")
+    
+>       alpha_jobs = schedule.get_jobs("alpha")
+E       AttributeError: module 'schedule' has no attribute 'get_jobs'
+
+tests\Schedule\functional_test.py:272: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all - Attr...
+FAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag - Attrib...
+FAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job
+FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs
+FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range
+FAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset
+6 failed, 6 passed in 0.41s

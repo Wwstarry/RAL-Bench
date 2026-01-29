@@ -1,0 +1,154 @@
+<contract>
+1) Repository layout
+- Top-level Python package: imageio/
+  - imageio/__init__.py
+    - Must make `import imageio` work.
+    - Must expose a `v3` attribute/module compatible with `import imageio.v3`.
+  - imageio/v3.py
+    - Must implement the v3 API functions required by tests: imread, imwrite, imiter, improps, immeta.
+- No other files are required by contract (may exist, but tests rely only on the above).
+
+2) Public API surface
+- Module: imageio (package)
+  - Must support:
+    - `import imageio`
+    - `import imageio.v3`
+    - Access via `imageio.v3.imread`, etc.
+- Module: imageio.v3
+  - Functions:
+    - imwrite(uri, image, *, plugin=None, extension=None, **kwargs) -> None
+      - Only `uri` and `image` are required; other parameters may be accepted for compatibility and ignored.
+    - imread(uri, *, plugin=None, extension=None, **kwargs) -> numpy.ndarray
+    - imiter(uri, *, plugin=None, extension=None, **kwargs) -> iterable/iterator yielding numpy.ndarray
+    - improps(uri, *, plugin=None, extension=None, **kwargs) -> object with attributes:
+      - shape: tuple-like
+      - dtype: numpy.dtype
+    - immeta(uri, *, plugin=None, extension=None, **kwargs) -> dict
+      - Must include key "mode" with a string value.
+  - Supporting types:
+    - A lightweight properties container type (e.g., class ImageProperties or collections.namedtuple/dataclass)
+      - Must expose `.shape` and `.dtype` attributes.
+
+3) Behavioral contract
+3.1 General I/O and supported inputs
+- uri:
+  - Must accept a filesystem path as:
+    - str path
+    - pathlib.Path
+  - Must write to and read from the local filesystem.
+- image:
+  - Must accept numpy.ndarray as the image container.
+  - Primary tested dtype is numpy.uint8; implementation must support it.
+  - Required shapes to handle on write:
+    - Single images:
+      - (H, W) grayscale
+      - (H, W, C) where C is 1 or 3
+    - Animated images (multiple frames):
+      - (N, H, W) grayscale frames
+      - (N, H, W, C) where C is 1 or 3
+- Must be a pure-Python implementation from the repository’s perspective, but may rely on common Python libraries available in the environment (e.g., numpy and Pillow) to perform actual encoding/decoding.
+
+3.2 Format selection and file extensions
+- For still images:
+  - If uri suffix indicates PNG (".png"), write/read as PNG.
+  - Otherwise, may default to PNG for still images (but should respect provided extension if common).
+- For animated images:
+  - If uri suffix indicates GIF (".gif") OR input is multi-frame (N dimension present), write as animated GIF.
+  - When writing multi-frame and uri has a non-GIF extension, implementation may still write GIF data but should prefer using ".gif" when possible; tests will use appropriate extensions.
+- immeta must return mode string consistent with decoded content, e.g. "L" for grayscale, "RGB" for color.
+
+3.3 Data fidelity and dtype/shape preservation
+- PNG roundtrip exactness:
+  - For images written as PNG from a single (H, W, 3) uint8 array, imread must return an ndarray with:
+    - exact same shape (H, W, 3)
+    - exact same dtype (uint8)
+    - exact same values (byte-for-byte), suitable for np.testing.assert_array_equal.
+  - For grayscale PNG written from (H, W) uint8:
+    - imread should return (H, W) uint8 or (H, W, 1) uint8 is acceptable only if tests don’t assert full shape; however improps.shape must match original input shape exactly, so preferred is returning same shape as written.
+- Animated GIF roundtrip requirements:
+  - Writing from (N, H, W) or (N, H, W, C) must produce an animated file such that imiter yields exactly N frames.
+  - Each yielded frame must have:
+    - first two dimensions equal to (H, W)
+    - dtype compatible with uint8 (prefer uint8)
+  - Frame channel dimension on readback is flexible for grayscale:
+    - Acceptable to yield (H, W) or (H, W, 3); tests only require height/width match.
+  - Exact pixel equality for GIF is not required by tests; do not promise lossless equality beyond dtype/shape constraints.
+- improps(uri):
+  - Must report shape and dtype describing how imread(uri) would return the image.
+  - Tests expect:
+    - tuple(props.shape) == original_image.shape that was passed to imwrite
+    - props.dtype == original_image.dtype
+  - Therefore, implementation must persist original shape and dtype information in a sidecar metadata mechanism or an embedded mechanism sufficient for later retrieval, even if the underlying format changes representation (e.g., GIF palette).
+  - Acceptable mechanism:
+    - Write a small sidecar file alongside the image (e.g., "<filename>.imageio.json") containing:
+      - original shape
+      - original dtype string
+      - mode info
+      - frame count for animated
+    - Sidecar must be read by improps/immeta (and optionally by imread/imiter) to satisfy shape/dtype expectations.
+
+3.4 Iterator semantics (imiter)
+- imiter(uri) must return an iterable that:
+  - Opens the image resource lazily where practical.
+  - Does not pre-load all frames into memory for large animations.
+  - Yields frame arrays sequentially and releases resources when iteration ends.
+- For a still image:
+  - imiter may yield a single frame (the image as an array) or behave as a one-frame iterator; tests focus on animated images but should not break on stills.
+
+3.5 Memory/performance constraints
+- Must avoid unbounded caching:
+  - No global caches of decoded images/frames.
+  - Sidecar metadata should be small and read on demand.
+- Repeated write/read cycles should not accumulate memory:
+  - Ensure PIL Image objects/file handles are closed promptly.
+  - For GIF writing, avoid building huge Python lists when not necessary; however tests may use moderate sizes; still prefer streaming-friendly approach when possible.
+- Bulk performance:
+  - Writing/reading many small PNGs should be straightforward; avoid expensive conversions.
+  - Conversions should be minimal:
+    - uint8 arrays to Pillow images via fromarray with correct mode.
+    - Ensure RGB stays RGB and not converted to RGBA unless required.
+
+3.6 Error handling
+- If uri path is invalid/unwritable: raise OSError/IOError propagated from filesystem operations.
+- If image is not a numpy ndarray: raise TypeError with a clear message.
+- If image dtype unsupported for encoding:
+  - Prefer to support uint8; for others:
+    - Either convert safely when possible (e.g., bool->uint8, float in [0,1]->uint8) OR raise ValueError.
+  - Tests primarily use uint8, so correctness for uint8 is mandatory; other dtypes are best-effort.
+- If shape is unsupported:
+  - Raise ValueError indicating expected shapes.
+- If reading a file without sidecar metadata:
+  - imread/imiter should still attempt to read via Pillow.
+  - improps should infer from decoded data if sidecar absent, but tests expect exact original; sidecar must exist for files created by this library.
+
+4) Acceptance checklist
+- Package import:
+  - `import imageio` succeeds.
+  - `import imageio.v3` succeeds.
+  - `imageio.v3` exposes imread/imwrite/imiter/improps/immeta.
+- PNG single-image roundtrip:
+  - Given uint8 RGB array shaped (H, W, 3), writing to a .png with imwrite and reading with imread returns same dtype, same shape, and identical values.
+- Animated GIF:
+  - Given uint8 grayscale frames shaped (N, H, W), writing to .gif and iterating with imiter yields exactly N frames.
+  - Each yielded frame has first two dimensions (H, W).
+  - Frames are uint8 (or safely convertible to uint8 without failing tests).
+- Properties:
+  - After writing any supported image/animation, improps(uri).shape matches the original input array shape exactly.
+  - improps(uri).dtype matches the original input dtype exactly.
+- Metadata:
+  - immeta(uri) returns a dict with key "mode" and a string value ("L", "RGB", etc.).
+- Resource behavior:
+  - Repeated write/read cycles do not retain references causing unbounded memory growth.
+  - File handles are closed; temporary objects are released.
+
+5) Non-goals / constraints
+- Not required:
+  - Full Imageio v3 feature parity (plugins, URIs beyond filesystem, reading videos, etc.).
+  - Support for all dtypes and all channel counts beyond specified (C=1 or 3).
+  - Perfect lossless roundtrip for GIF pixel values (not required by tests).
+  - Advanced metadata (EXIF, ICC, duration control) beyond providing "mode" and internal sidecar for shape/dtype.
+- Must not:
+  - Use external network/services.
+  - Maintain large persistent in-memory caches of image data across calls.
+  - Depend on nonstandard system binaries (e.g., ffmpeg). Only Python libs assumed available in test environment (notably numpy; Pillow can be used if present).
+</contract>

@@ -1,0 +1,193 @@
+<file:name=glances/__init__.py>
+"""
+Minimal, API-compatible subset of the Glances project for one-shot CSV output.
+
+This package provides a CLI via `python -m glances` supporting:
+- --help
+- -V / --version
+- --stdout-csv <FIELDS>
+"""
+
+from __future__ import annotations
+
+__all__ = ["__version__"]
+
+__version__ = "0.1.0"
+</file>
+
+<file:name=glances/__main__.py>
+from __future__ import annotations
+
+import sys
+
+from .cli import main
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
+</file>
+
+<file:name=glances/cli.py>
+from __future__ import annotations
+
+import argparse
+import sys
+from typing import List
+
+from . import __version__
+from .csvout import csv_one_shot
+from .exceptions import GlancesError
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="glances",
+        add_help=True,
+        description="Minimal Glances-compatible CLI (subset) for one-shot CSV output.",
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action="store_true",
+        help="print version and exit",
+    )
+    parser.add_argument(
+        "--stdout-csv",
+        dest="stdout_csv",
+        metavar="FIELDS",
+        help="print one CSV line to stdout with given comma-separated fields and exit",
+    )
+    return parser
+
+
+def main(argv: List[str] | None = None) -> int:
+    if argv is None:
+        argv = []
+
+    parser = _build_parser()
+
+    # argparse already handles --help with exit code 0
+    args = parser.parse_args(argv)
+
+    if args.version:
+        sys.stdout.write(f"glances {__version__}\n")
+        return 0
+
+    if args.stdout_csv is None:
+        # Predictable failure for missing invocation.
+        sys.stderr.write("error: --stdout-csv requires an argument\n")
+        return 2
+
+    try:
+        line = csv_one_shot(args.stdout_csv)
+    except GlancesError as e:
+        msg = str(e).strip()
+        if not msg:
+            msg = "error"
+        sys.stderr.write(msg + "\n")
+        return 2
+
+    sys.stdout.write(line + "\n")
+    return 0
+</file>
+
+<file:name=glances/csvout.py>
+from __future__ import annotations
+
+import time
+from typing import Callable, Dict, List
+
+import psutil
+
+from .exceptions import UnknownFieldError
+
+
+def _now() -> str:
+    # Epoch seconds with fractional part; numeric and parseable.
+    return f"{time.time():.6f}"
+
+
+def _cpu_user() -> str:
+    # user percentage over a very short interval; numeric parseable.
+    # interval=0.0 gives last computed value; first call may be 0.0 which is fine.
+    v = psutil.cpu_times_percent(interval=0.0).user
+    return f"{float(v):.2f}"
+
+
+def _cpu_total() -> str:
+    # total busy percentage: 100 - idle
+    v = 100.0 - float(psutil.cpu_times_percent(interval=0.0).idle)
+    # Clamp for safety
+    if v < 0.0:
+        v = 0.0
+    elif v > 100.0:
+        v = 100.0
+    return f"{v:.2f}"
+
+
+def _mem_used() -> str:
+    # bytes used
+    v = int(psutil.virtual_memory().used)
+    return str(v)
+
+
+def _load() -> str:
+    # 1-minute load average if available; else approximate with normalized CPU percent.
+    try:
+        la1, _, _ = psutil.getloadavg()  # may raise AttributeError/OSError on some platforms
+        return f"{float(la1):.2f}"
+    except Exception:
+        # Approximation: CPU percent (0-100) scaled to cores -> "load-like"
+        try:
+            pct = float(psutil.cpu_percent(interval=0.0))
+        except Exception:
+            pct = 0.0
+        cores = psutil.cpu_count() or 1
+        load_like = (pct / 100.0) * cores
+        return f"{load_like:.2f}"
+
+
+_FIELD_FUNCS: Dict[str, Callable[[], str]] = {
+    "now": _now,
+    "cpu.user": _cpu_user,
+    "cpu.total": _cpu_total,
+    "mem.used": _mem_used,
+    "load": _load,
+}
+
+
+def _parse_fields(fields: str) -> List[str]:
+    items = [f.strip() for f in (fields or "").split(",")]
+    items = [f for f in items if f]
+    return items
+
+
+def csv_one_shot(fields: str) -> str:
+    req = _parse_fields(fields)
+    if not req:
+        raise UnknownFieldError("error: --stdout-csv requires at least one field")
+
+    unknown = [f for f in req if f not in _FIELD_FUNCS]
+    if unknown:
+        raise UnknownFieldError("error: unknown field(s): " + ", ".join(unknown))
+
+    # Compute values in requested order.
+    vals = [_FIELD_FUNCS[f]() for f in req]
+    return ",".join(vals)
+</file>
+
+<file:name=glances/exceptions.py>
+from __future__ import annotations
+
+
+class GlancesError(Exception):
+    """Base error for predictable CLI failures."""
+
+
+class UnknownFieldError(GlancesError):
+    """Raised when an unknown CSV field is requested."""
+</file>
+
+<file:name=requirements.txt>
+psutil
+</file>

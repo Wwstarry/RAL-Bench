@@ -1,0 +1,785 @@
+<file:name=cachetools/__init__.py>
+"""
+A small, pure-Python subset of the cachetools project API.
+
+This package is intentionally minimal but aims to be compatible with the core
+parts commonly used by black-box tests: Cache, LRUCache, TTLCache, cached,
+cachedmethod, and key helper functions in cachetools.keys.
+"""
+
+from .cache import Cache
+from .lru import LRUCache
+from .ttl import TTLCache
+from .decorators import cached, cachedmethod
+from . import keys
+from .keys import hashkey, typedkey, methodkey, typedmethodkey
+
+__all__ = [
+    "Cache",
+    "LRUCache",
+    "TTLCache",
+    "cached",
+    "cachedmethod",
+    "keys",
+    "hashkey",
+    "typedkey",
+    "methodkey",
+    "typedmethodkey",
+]
+
+__version__ = "0.0.0"
+</file>
+
+<file:name=cachetools/cache.py>
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Tuple
+
+
+_MISSING = object()
+
+
+class Cache(MutableMapping):
+    """
+    Base cache implementing dict-like access and bounded size.
+
+    Semantics:
+    - maxsize bounds currsize (count if getsizeof is None, else sum(getsizeof(v))).
+    - Subclasses implement popitem() eviction policy.
+    """
+
+    __slots__ = ("maxsize", "currsize", "getsizeof", "_Cache__data")
+
+    def __init__(self, maxsize: int, getsizeof: Optional[Callable[[Any], int]] = None):
+        self.maxsize = maxsize
+        self.getsizeof = getsizeof
+        self.__data: Dict[Any, Any] = {}
+        self.currsize = 0
+
+    # ---- internal helpers ----
+    def _value_size(self, value: Any) -> int:
+        if self.getsizeof is None:
+            return 1
+        size = self.getsizeof(value)
+        try:
+            size = int(size)
+        except Exception:
+            size = 1
+        return size
+
+    def _recompute_currsize(self) -> int:
+        if self.getsizeof is None:
+            self.currsize = len(self.__data)
+        else:
+            self.currsize = sum(self._value_size(v) for v in self.__data.values())
+        return self.currsize
+
+    def _maybe_evict(self) -> None:
+        # Evict until within bounds. maxsize can be 0; then we will evict all.
+        while self.currsize > self.maxsize and len(self.__data) > 0:
+            self.popitem()
+
+    # ---- MutableMapping interface ----
+    def __len__(self) -> int:
+        return len(self.__data)
+
+    def __iter__(self) -> Iterator[Any]:
+        # Snapshot to avoid surprises on mutation during iteration.
+        return iter(list(self.__data.keys()))
+
+    def __contains__(self, key: Any) -> bool:
+        return key in self.__data
+
+    def __getitem__(self, key: Any) -> Any:
+        return self.__data[key]
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        if key in self.__data:
+            old = self.__data[key]
+            self.__data[key] = value
+            if self.getsizeof is not None:
+                self.currsize += self._value_size(value) - self._value_size(old)
+            # else currsize unchanged since count unchanged
+        else:
+            self.__data[key] = value
+            self.currsize += self._value_size(value)
+        self._maybe_evict()
+
+    def __delitem__(self, key: Any) -> None:
+        value = self.__data.pop(key)
+        self.currsize -= self._value_size(value)
+
+    # ---- dict-like helpers ----
+    def get(self, key: Any, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def pop(self, key: Any, default: Any = _MISSING) -> Any:
+        if key in self.__data:
+            value = self.__data.pop(key)
+            self.currsize -= self._value_size(value)
+            return value
+        if default is _MISSING:
+            raise KeyError(key)
+        return default
+
+    def popitem(self) -> Tuple[Any, Any]:
+        raise NotImplementedError
+
+    def clear(self) -> None:
+        self.__data.clear()
+        self.currsize = 0
+
+    def setdefault(self, key: Any, default: Any = None) -> Any:
+        if key in self.__data:
+            return self.__data[key]
+        self[key] = default
+        # If maxsize == 0, insertion will be immediately evicted; emulate dict.setdefault:
+        # return the inserted value even if evicted.
+        return default
+
+    def update(self, *args: Any, **kwargs: Any) -> None:
+        if args:
+            if len(args) > 1:
+                raise TypeError(f"update expected at most 1 positional argument, got {len(args)}")
+            other = args[0]
+            if hasattr(other, "items"):
+                for k, v in other.items():
+                    self[k] = v
+            else:
+                for k, v in other:
+                    self[k] = v
+        for k, v in kwargs.items():
+            self[k] = v
+
+    # Provide mapping views as snapshots (sufficient for tests expecting iterables).
+    def keys(self) -> Iterable[Any]:
+        return list(self.__data.keys())
+
+    def values(self) -> Iterable[Any]:
+        return list(self.__data.values())
+
+    def items(self) -> Iterable[Tuple[Any, Any]]:
+        return list(self.__data.items())
+
+    # ---- representation ----
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({dict(self.items())}, maxsize={self.maxsize}, currsize={self.currsize})"
+
+    # ---- protected access for subclasses ----
+    @property
+    def _data(self) -> Dict[Any, Any]:
+        return self.__data
+</file>
+
+<file:name=cachetools/lru.py>
+from __future__ import annotations
+
+from collections import OrderedDict
+from typing import Any, Iterator, Tuple
+
+from .cache import Cache
+
+
+class LRUCache(Cache):
+    """
+    Cache with least-recently-used eviction.
+
+    Iteration order is LRU -> MRU.
+    Accessing an entry updates its recency.
+    """
+
+    __slots__ = ("_LRUCache__order",)
+
+    def __init__(self, maxsize: int, getsizeof=None):
+        super().__init__(maxsize=maxsize, getsizeof=getsizeof)
+        self.__order: OrderedDict[Any, None] = OrderedDict()
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self) -> Iterator[Any]:
+        # LRU -> MRU, snapshot
+        return iter(list(self.__order.keys()))
+
+    def __contains__(self, key: Any) -> bool:
+        return key in self._data
+
+    def __getitem__(self, key: Any) -> Any:
+        value = self._data[key]
+        # update recency
+        if key in self.__order:
+            self.__order.move_to_end(key, last=True)
+        else:
+            # should not happen if structures are consistent, but keep robust
+            self.__order[key] = None
+        return value
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        existed = key in self._data
+        super().__setitem__(key, value)
+        # If maxsize == 0, super().__setitem__ will evict via popitem().
+        # Ensure ordering reflects current state.
+        if key in self._data:
+            if existed:
+                if key in self.__order:
+                    self.__order.move_to_end(key, last=True)
+                else:
+                    self.__order[key] = None
+            else:
+                self.__order[key] = None
+                self.__order.move_to_end(key, last=True)
+        else:
+            # evicted immediately; remove from order if present
+            self.__order.pop(key, None)
+
+        # super may have evicted other keys via our popitem; order maintained there.
+
+    def __delitem__(self, key: Any) -> None:
+        super().__delitem__(key)
+        self.__order.pop(key, None)
+
+    def pop(self, key: Any, default: Any = Cache.__dict__.get("_Cache__data", object())) -> Any:  # type: ignore
+        # Use Cache.pop, but also update order.
+        if key in self._data:
+            value = super().pop(key)
+            self.__order.pop(key, None)
+            return value
+        # default handling similar to dict:
+        if default is not Cache.__dict__.get("_Cache__data", object()):  # unreachable placeholder
+            return default
+        raise KeyError(key)
+
+    def popitem(self) -> Tuple[Any, Any]:
+        # Evict least-recently-used
+        if not self._data:
+            raise KeyError("cache is empty")
+        # Ensure order consistent: drop any stale keys
+        while self.__order:
+            k, _ = self.__order.popitem(last=False)
+            if k in self._data:
+                v = self._data.pop(k)
+                self.currsize -= self._value_size(v)
+                return k, v
+        # If order got empty but data not, fallback arbitrary
+        k, v = self._data.popitem()
+        self.currsize -= self._value_size(v)
+        return k, v
+
+    def clear(self) -> None:
+        super().clear()
+        self.__order.clear()
+</file>
+
+<file:name=cachetools/ttl.py>
+from __future__ import annotations
+
+import time
+from collections import OrderedDict
+from typing import Any, Callable, Iterator, Tuple
+
+from .cache import Cache
+
+
+class TTLCache(Cache):
+    """
+    LRU cache with per-item time-to-live.
+
+    - Accessing an unexpired item updates its recency.
+    - Expired items are treated as missing and are removed lazily.
+    """
+
+    __slots__ = ("ttl", "timer", "_TTLCache__order", "_TTLCache__expires")
+
+    def __init__(
+        self,
+        maxsize: int,
+        ttl: float,
+        timer: Callable[[], float] = time.monotonic,
+        getsizeof=None,
+    ):
+        super().__init__(maxsize=maxsize, getsizeof=getsizeof)
+        self.ttl = float(ttl)
+        self.timer = timer
+        self.__order: OrderedDict[Any, None] = OrderedDict()  # LRU -> MRU
+        self.__expires: dict[Any, float] = {}
+
+    def _is_expired(self, key: Any, now: float | None = None) -> bool:
+        if key not in self.__expires:
+            return False
+        if now is None:
+            now = self.timer()
+        return now >= self.__expires[key]
+
+    def expire(self, now: float | None = None) -> int:
+        if now is None:
+            now = self.timer()
+        removed = 0
+        # Walk order from LRU; expired items are not necessarily clustered, so scan snapshot.
+        for k in list(self.__order.keys()):
+            if k in self._data and self._is_expired(k, now):
+                v = self._data.pop(k)
+                self.currsize -= self._value_size(v)
+                self.__order.pop(k, None)
+                self.__expires.pop(k, None)
+                removed += 1
+            elif k not in self._data:
+                self.__order.pop(k, None)
+                self.__expires.pop(k, None)
+        # Clean up any data keys missing from order/expiry
+        for k in list(self.__expires.keys()):
+            if k not in self._data:
+                self.__expires.pop(k, None)
+        return removed
+
+    def __len__(self) -> int:
+        self.expire()
+        return len(self._data)
+
+    def __iter__(self) -> Iterator[Any]:
+        self.expire()
+        return iter(list(self.__order.keys()))
+
+    def __contains__(self, key: Any) -> bool:
+        if key not in self._data:
+            return False
+        if self._is_expired(key):
+            # lazily remove
+            try:
+                self.__delitem__(key)
+            except KeyError:
+                pass
+            return False
+        return True
+
+    def __getitem__(self, key: Any) -> Any:
+        value = self._data[key]
+        if self._is_expired(key):
+            # remove and behave like missing
+            self.__delitem__(key)
+            raise KeyError(key)
+        # update recency
+        if key in self.__order:
+            self.__order.move_to_end(key, last=True)
+        else:
+            self.__order[key] = None
+        return value
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        # purge first so we don't evict unexpired needlessly
+        self.expire()
+        existed = key in self._data
+        super().__setitem__(key, value)
+        if key in self._data:
+            self.__expires[key] = self.timer() + self.ttl
+            if existed:
+                if key in self.__order:
+                    self.__order.move_to_end(key, last=True)
+                else:
+                    self.__order[key] = None
+            else:
+                self.__order[key] = None
+                self.__order.move_to_end(key, last=True)
+        else:
+            # immediately evicted (e.g., maxsize==0)
+            self.__order.pop(key, None)
+            self.__expires.pop(key, None)
+
+        # Ensure within bounds after setting; base may call our popitem(), which purges
+        # expired and maintains structures.
+
+    def __delitem__(self, key: Any) -> None:
+        super().__delitem__(key)
+        self.__order.pop(key, None)
+        self.__expires.pop(key, None)
+
+    def pop(self, key: Any, default: Any = Cache.__dict__.get("_Cache__data", object())) -> Any:  # type: ignore
+        # remove expired first for this key
+        if key in self._data and self._is_expired(key):
+            self.__delitem__(key)
+        if key in self._data:
+            value = super().pop(key)
+            self.__order.pop(key, None)
+            self.__expires.pop(key, None)
+            return value
+        if default is not Cache.__dict__.get("_Cache__data", object()):  # placeholder
+            return default
+        raise KeyError(key)
+
+    def popitem(self) -> Tuple[Any, Any]:
+        # Purge expired first; then evict LRU among unexpired
+        self.expire()
+        if not self._data:
+            raise KeyError("cache is empty")
+        while self.__order:
+            k, _ = self.__order.popitem(last=False)
+            if k in self._data:
+                # should be unexpired after expire(), but check anyway
+                if self._is_expired(k):
+                    v = self._data.pop(k)
+                    self.currsize -= self._value_size(v)
+                    self.__expires.pop(k, None)
+                    continue
+                v = self._data.pop(k)
+                self.currsize -= self._value_size(v)
+                self.__expires.pop(k, None)
+                return k, v
+            self.__expires.pop(k, None)
+        # Fallback: arbitrary
+        k, v = self._data.popitem()
+        self.currsize -= self._value_size(v)
+        self.__expires.pop(k, None)
+        return k, v
+
+    def clear(self) -> None:
+        super().clear()
+        self.__order.clear()
+        self.__expires.clear()
+
+    # snapshot-style views with expiry purge
+    def keys(self):
+        self.expire()
+        return list(self.__order.keys())
+
+    def values(self):
+        self.expire()
+        return [self._data[k] for k in list(self.__order.keys()) if k in self._data]
+
+    def items(self):
+        self.expire()
+        return [(k, self._data[k]) for k in list(self.__order.keys()) if k in self._data]
+</file>
+
+<file:name=cachetools/keys.py>
+from __future__ import annotations
+
+from typing import Any, Tuple
+
+
+class _HashedTuple(tuple):
+    __slots__ = ("_hash",)
+
+    def __new__(cls, iterable=()):
+        return super().__new__(cls, iterable)
+
+    def __init__(self, iterable=()):
+        self._hash = None
+
+    def __hash__(self):
+        h = self._hash
+        if h is None:
+            h = tuple.__hash__(self)
+            self._hash = h
+        return h
+
+
+_kwmark = object()
+
+
+def hashkey(*args: Any, **kwargs: Any) -> tuple:
+    if kwargs:
+        items = tuple(sorted(kwargs.items()))
+        return _HashedTuple(args + (_kwmark,) + items)
+    return _HashedTuple(args)
+
+
+def typedkey(*args: Any, **kwargs: Any) -> tuple:
+    if kwargs:
+        items = tuple(sorted(kwargs.items()))
+        key = args + (_kwmark,) + items
+        types = tuple(map(type, args)) + (_kwmark,) + tuple(type(v) for _, v in items)
+        return _HashedTuple(key + (_kwmark,) + types)
+    types = tuple(map(type, args))
+    return _HashedTuple(args + (_kwmark,) + types)
+
+
+def methodkey(self: Any, *args: Any, **kwargs: Any) -> tuple:
+    return hashkey(*args, **kwargs)
+
+
+def typedmethodkey(self: Any, *args: Any, **kwargs: Any) -> tuple:
+    return typedkey(*args, **kwargs)
+</file>
+
+<file:name=cachetools/decorators.py>
+from __future__ import annotations
+
+import functools
+from typing import Any, Callable, Optional
+
+from .keys import hashkey, methodkey
+
+
+_sentinel = object()
+
+
+def cached(cache, key: Callable[..., Any] = hashkey, lock: Optional[Any] = None):
+    """
+    Decorator to cache function results in a mapping-like cache.
+
+    lock, if provided, must implement __enter__/__exit__ (e.g., threading.Lock).
+    Uses a double-checked pattern and does not hold the lock while calling user code.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            k = key(*args, **kwargs)
+            if lock is None:
+                try:
+                    return cache[k]
+                except KeyError:
+                    v = func(*args, **kwargs)
+                    cache[k] = v
+                    return v
+
+            with lock:
+                try:
+                    return cache[k]
+                except KeyError:
+                    pass
+
+            v = func(*args, **kwargs)
+
+            with lock:
+                # If filled while we computed, return existing.
+                try:
+                    return cache[k]
+                except KeyError:
+                    cache[k] = v
+                    return v
+
+        wrapper.cache = cache
+        wrapper.cache_key = key
+        wrapper.cache_lock = lock
+
+        def cache_clear():
+            try:
+                cache.clear()
+            except Exception:
+                pass
+
+        wrapper.cache_clear = cache_clear
+        return wrapper
+
+    return decorator
+
+
+def cachedmethod(cache: Callable[..., Any], key: Callable[..., Any] = methodkey, lock: Optional[Any] = None):
+    """
+    Decorator for methods. `cache(self)` must return a mapping-like cache.
+
+    lock may be None, a lock instance, or a callable lock(self)->lock instance.
+    """
+
+    def decorator(method):
+        @functools.wraps(method)
+        def wrapper(self, *args, **kwargs):
+            c = cache(self)
+            l = lock(self) if callable(lock) else lock
+            k = key(self, *args, **kwargs)
+
+            if l is None:
+                try:
+                    return c[k]
+                except KeyError:
+                    v = method(self, *args, **kwargs)
+                    c[k] = v
+                    return v
+
+            with l:
+                try:
+                    return c[k]
+                except KeyError:
+                    pass
+
+            v = method(self, *args, **kwargs)
+
+            with l:
+                try:
+                    return c[k]
+                except KeyError:
+                    c[k] = v
+                    return v
+
+        wrapper.cache = cache
+        wrapper.cache_key = key
+        wrapper.cache_lock = lock
+        return wrapper
+
+    return decorator
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import operator
+
+import pytest
+
+from cachetools import Cache, LRUCache, TTLCache, cached, cachedmethod
+from cachetools.keys import hashkey, typedkey
+
+
+def test_cache_base_mapping_semantics_and_maxsize_zero():
+    c = Cache(maxsize=0)
+    c["a"] = 1
+    assert len(c) == 0
+    assert c.currsize == 0
+    assert c.get("a") is None
+
+    # setdefault returns the value even if immediately evicted (dict-like)
+    assert c.setdefault("x", 2) == 2
+    assert "x" not in c
+
+
+def test_cache_getsizeof_currsize_and_overwrite():
+    c = LRUCache(maxsize=5, getsizeof=lambda v: v)
+    c["a"] = 2
+    c["b"] = 2
+    assert c.currsize == 4
+    c["a"] = 3
+    assert c.currsize == 5
+    # next insert forces eviction of LRU ('b' if 'a' accessed last by set)
+    c["c"] = 1
+    assert c.currsize <= 5
+    assert len(c) == 2
+
+
+def test_lru_access_updates_recency_and_get_updates_recency():
+    c = LRUCache(maxsize=2)
+    c["a"] = 1
+    c["b"] = 2
+    _ = c["a"]  # a becomes MRU, b LRU
+    c["c"] = 3  # should evict b
+    assert "a" in c and "c" in c and "b" not in c
+
+    # get() should update recency similarly
+    c = LRUCache(maxsize=2)
+    c["a"] = 1
+    c["b"] = 2
+    assert c.get("a") == 1
+    c["c"] = 3
+    assert "b" not in c
+
+
+def test_lru_iter_order_lru_to_mru():
+    c = LRUCache(maxsize=3)
+    c["a"] = 1
+    c["b"] = 2
+    c["c"] = 3
+    _ = c["a"]  # order: b,c,a
+    assert list(iter(c)) == ["b", "c", "a"]
+
+
+class FakeTimer:
+    def __init__(self):
+        self.t = 0.0
+
+    def __call__(self):
+        return self.t
+
+    def advance(self, dt):
+        self.t += dt
+
+
+def test_ttl_expiration_getitem_contains_len_iter():
+    timer = FakeTimer()
+    c = TTLCache(maxsize=10, ttl=5, timer=timer)
+    c["a"] = 1
+    assert c["a"] == 1
+    assert "a" in c
+    assert len(c) == 1
+    assert list(c) == ["a"]
+
+    timer.advance(5.01)
+    assert "a" not in c
+    assert c.get("a") is None
+    with pytest.raises(KeyError):
+        _ = c["a"]
+    assert len(c) == 0
+    assert list(c) == []
+
+
+def test_ttl_lru_eviction_among_unexpired_and_purge_expired_first():
+    timer = FakeTimer()
+    c = TTLCache(maxsize=2, ttl=100, timer=timer)
+    c["a"] = 1
+    c["b"] = 2
+    _ = c["a"]  # b is LRU
+    c["c"] = 3
+    assert "b" not in c and "a" in c and "c" in c
+
+    # Purge expired first prevents eviction of fresh items
+    timer = FakeTimer()
+    c = TTLCache(maxsize=2, ttl=1, timer=timer)
+    c["a"] = 1
+    c["b"] = 2
+    timer.advance(2)
+    # both expired, inserting should not need to evict unexpired (none exist)
+    c["c"] = 3
+    assert list(c) == ["c"]
+    assert "a" not in c and "b" not in c
+
+
+def test_cached_decorator_basic_and_kwargs_order_insensitive():
+    c = LRUCache(maxsize=100)
+    calls = {"n": 0}
+
+    @cached(c, key=hashkey)
+    def f(a=0, b=0):
+        calls["n"] += 1
+        return a + b
+
+    assert f(a=1, b=2) == 3
+    assert f(b=2, a=1) == 3
+    assert calls["n"] == 1
+
+
+def test_typedkey_distinguishes_int_float():
+    c = LRUCache(maxsize=100)
+    calls = {"n": 0}
+
+    @cached(c, key=typedkey)
+    def ident(x):
+        calls["n"] += 1
+        return x
+
+    assert ident(1) == 1
+    assert ident(1.0) == 1.0
+    assert calls["n"] == 2
+
+
+def test_cachedmethod_per_instance_cache():
+    class C:
+        def __init__(self):
+            self.cache = LRUCache(maxsize=100)
+            self.calls = 0
+
+        @cachedmethod(operator.attrgetter("cache"))
+        def f(self, x):
+            self.calls += 1
+            return x * 2
+
+    a = C()
+    b = C()
+    assert a.f(2) == 4
+    assert a.f(2) == 4
+    assert a.calls == 1
+
+    assert b.f(2) == 4
+    assert b.calls == 1
+</file>

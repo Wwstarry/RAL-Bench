@@ -1,0 +1,50 @@
+<file:name=fail2ban/server/actions.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set
+
+
+@dataclass(frozen=True)
+class ActionEvent:
+    kind: str  # "ban" or "unban"
+    ip: str
+    jail: str
+    reason: Optional[str] = None
+
+
+class Actions:
+    """
+    No-op action manager for the offline subset.
+
+    Records ban/unban events in memory only. Does not touch firewall, does not
+    require privileges, and has no side effects outside this process.
+    """
+
+    def __init__(self, jail_name: str):
+        self.jail_name = jail_name
+        self._banned: Set[str] = set()
+        self._events: List[ActionEvent] = []
+
+    def ban(self, ip: str, reason: str | None = None) -> None:
+        if ip in self._banned:
+            return
+        self._banned.add(ip)
+        self._events.append(ActionEvent(kind="ban", ip=ip, jail=self.jail_name, reason=reason))
+
+    def unban(self, ip: str) -> None:
+        if ip not in self._banned:
+            return
+        self._banned.remove(ip)
+        self._events.append(ActionEvent(kind="unban", ip=ip, jail=self.jail_name, reason=None))
+
+    def banned(self) -> Set[str]:
+        return set(self._banned)
+
+    def events(self) -> List[Dict[str, object]]:
+        # Provide a simple JSON-ish structure for tests/debug
+        return [
+            {"kind": e.kind, "ip": e.ip, "jail": e.jail, "reason": e.reason}
+            for e in self._events
+        ]
+</file>

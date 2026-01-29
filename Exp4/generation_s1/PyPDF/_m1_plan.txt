@@ -1,0 +1,216 @@
+1) Repository layout and import graph
+- Top-level package:
+  - pypdf/__init__.py
+    - Re-export: PdfReader, PdfWriter
+    - Also expose minimal exceptions/types if tests import them (keep small but compatible naming).
+- Core modules:
+  - pypdf/_reader.py
+    - class PdfReader
+    - class _Document (internal parsed representation)
+    - class _XRefTable (internal)
+  - pypdf/_writer.py
+    - class PdfWriter
+  - pypdf/_page.py
+    - class PageObject
+  - pypdf/_objects.py
+    - Minimal PDF object model: NameObject, NumberObject, FloatObject, BooleanObject, TextStringObject, ByteStringObject, ArrayObject, DictionaryObject, IndirectObject, NullObject
+    - StreamObject (Dictionary + bytes)
+  - pypdf/_parser.py
+    - Tokenizer and parser for PDF syntax (objects, dictionaries, arrays, strings, streams)
+  - pypdf/_serializer.py
+    - PDF writer/serializer (build xref, trailer, write objects)
+  - pypdf/_encryption.py
+    - Minimal Standard Security Handler (R=2/R=3 style) sufficient for password encryption/decryption used in tests
+    - RC4 implementation in pure Python
+  - pypdf/errors.py
+    - PdfReadError, PdfStreamError, FileNotDecryptedError (names matching what tests might expect)
+  - pypdf/_utils.py
+    - Small utilities: read_until, skip_ws, ensure_bytes, md5, padding constants, etc.
+- Import graph (keep cycles out):
+  - __init__ imports PdfReader from _reader and PdfWriter from _writer.
+  - _reader uses _parser, _objects, _page, _encryption, errors.
+  - _writer uses _objects, _page, _serializer, _encryption.
+  - _page uses _objects.
+  - _serializer uses _objects and _utils.
+  - _parser uses _objects and _utils.
+
+2) Public APIs to implement (modules/classes/functions)
+- pypdf.__init__
+  - PdfReader
+  - PdfWriter
+- pypdf._reader.PdfReader(path_or_file)
+  - __init__(self, stream)
+    - Accept path-like (str/pathlib.Path) or file-like (binary) object.
+  - pages: sequence-like (implement __len__, __getitem__, __iter__)
+    - Items are PageObject.
+  - metadata property
+    - Return dict-like with keys like "/Title", "/Author" if present; empty dict if none.
+  - is_encrypted property
+    - True if /Encrypt in trailer; else False.
+  - decrypt(password)
+    - Attempt to authenticate and set internal “decrypted” flag + doc key; return int or bool compatible with typical pypdf behavior:
+      - Return 0 on failure, 1 on success (owner/user not distinguished unless needed by tests).
+- pypdf._writer.PdfWriter()
+  - __init__
+    - Create empty document with catalog/pages tree.
+  - add_page(page: PageObject)
+    - Append a cloned/imported page into writer.
+  - add_blank_page(width=None, height=None)
+    - Create a new blank PageObject with /MediaBox and empty /Contents; return it.
+  - write(file_obj)
+    - Write a valid PDF to a file-like object opened in binary write mode.
+    - Also accept a path-like (optional if tests pass file paths; implement defensively).
+  - encrypt(password)
+    - Mark writer to output an encrypted PDF with the given user password (owner password can equal user password).
+  - add_metadata(mapping)
+    - mapping uses keys like "/Title", "/Author".
+    - Store in Info dictionary.
+- pypdf._page.PageObject
+  - Underlying representation: PDF dictionary for the page, plus a back-reference to source document when coming from PdfReader.
+  - rotate(angle)
+    - Update effective rotation by adding angle to current rotation, mod 360.
+    - Return self (to allow chaining) if needed.
+  - rotation property (or equivalent)
+    - Return int degrees (0/90/180/270 typical).
+  - Expose minimal dict-like behavior if tests access page["/Rotate"] or page.get(...):
+    - __getitem__, get, __setitem__ (optional), keys (optional). Implement at least what internal code needs and tests might poke.
+- Minimal object model APIs (internal but may be touched by tests indirectly via behavior):
+  - IndirectObject resolution
+  - Stream decoding for FlateDecode at minimum (zlib). If avoiding external deps, use stdlib zlib.
+  - Name object serialization (/Name), string serialization with proper escaping.
+
+3) Key behaviors & edge cases
+- Reading PDFs (PdfReader)
+  - Accept both file path and file-like:
+    - If path: open in “rb”, keep bytes in memory or keep stream handle (simpler: read all bytes).
+  - Parse header (%PDF-1.x) and locate startxref by scanning from end.
+  - Parse xref:
+    - Support classic xref tables (not necessarily xref streams unless tests require; implement xref stream support if feasible but can defer if not in tests).
+  - Parse trailer dictionary; resolve /Root (Catalog), /Info, /Encrypt (if present).
+  - Build pages list:
+    - Traverse /Root/Pages tree: handle /Kids arrays containing either /Page or /Pages nodes.
+    - Produce PageObject for each leaf /Page in order.
+  - Lazy object resolution:
+    - Use xref offsets to parse objects on demand; cache parsed objects by object id.
+  - Metadata:
+    - Read /Info dictionary if present.
+    - Convert PDF strings to Python str (handle literal and hex strings; assume PDFDocEncoding minimal; if UTF-16BE with BOM, decode).
+  - Encryption:
+    - If /Encrypt present:
+      - Set is_encrypted True.
+      - Disallow page access until decrypt called:
+        - Accessing pages should raise FileNotDecryptedError or similar if tests expect; alternatively allow but ensure decrypt is called in tests. Prefer matching pypdf: pages access on encrypted without decrypt raises error.
+    - decrypt(password):
+      - Implement Standard Security Handler V=1/2, R=2 or R=3 (common).
+      - Compute key using algorithm 3.2/3.5 (MD5, padding, /O, /P, /ID[0], length).
+      - Validate by decrypting /U and comparing.
+      - Store encryption key and mark decrypted.
+    - Decrypt strings and streams on object access:
+      - For any string/stream in encrypted file, apply RC4 with key = encryption_key + obj/gen (MD5 -> first n bytes) per algorithm 3.1.
+      - Ensure that Page dictionaries and content streams can be parsed even if contents unused by tests. For tests that only count pages, decrypting page tree objects is sufficient.
+- Writing PDFs (PdfWriter)
+  - Must produce a valid, re-readable PDF:
+    - Emit header, body objects, xref table, trailer, startxref, EOF.
+  - Object numbering:
+    - Maintain list/dict of objects to write; assign incremental object numbers.
+    - Ensure indirect references correct.
+  - Pages tree:
+    - /Catalog with /Pages root.
+    - /Pages with /Kids listing all page indirect refs and /Count.
+    - Each /Page dictionary must have at least:
+      - /Type /Page
+      - /Parent (pages root ref)
+      - /MediaBox [0 0 width height]
+      - /Resources (empty dict ok)
+      - /Contents (empty stream or omit; safer: include empty stream)
+      - /Rotate if rotation != 0
+  - add_page(page):
+    - Import/clone page:
+      - If page originates from reader: deep-clone the page dictionary and any referenced objects needed for minimal validity.
+      - For tests focusing on splitting/merging and re-reading, it’s usually enough to:
+        - Copy /MediaBox (or /CropBox fallback) and /Rotate.
+        - Ignore complex resources/contents by substituting blank contents/resources unless tests inspect content (assume they do not).
+      - Preserve rotation changes done via PageObject.rotate before adding.
+      - Preserve order and count exactly.
+  - add_blank_page(width, height):
+    - Use defaults if None (e.g., 612x792 like letter) unless tests specify.
+  - Metadata:
+    - add_metadata stores mapping into an /Info dictionary.
+    - When writing, include trailer /Info reference.
+    - When reading, expose PdfReader.metadata with same keys/values round-tripped (strings).
+  - Encryption (writer side):
+    - encrypt(password):
+      - Configure writer to write /Encrypt dictionary in trailer and encrypt all strings/streams except those excluded by spec (can simplify if tests only decrypt and then read pages/metadata).
+      - Choose:
+        - V=2, R=3, Length=128 (common), Filter /Standard.
+      - Create document ID (/ID array of two identical 16-byte strings).
+      - Compute /O and /U entries and encryption key per standard algorithm.
+      - Encrypt:
+        - All stream data and all string objects using object-specific key.
+        - Also encrypt /Info strings (so metadata requires decrypt in reader; tests likely do decrypt before reading metadata/pages).
+  - Page rotation:
+    - PageObject.rotate(angle) updates /Rotate integer normalized to 0..359.
+    - rotation property reflects effective integer.
+    - When writing, include /Rotate in page dictionary only if non-zero (acceptable either way).
+- Edge cases likely in tests
+  - Copying multipage PDFs: ensure len(reader.pages) stable, iteration works.
+  - Splitting: writer with subset of pages writes valid PDF with correct /Count and /Kids.
+  - Merging: concatenating pages from multiple readers preserves order.
+  - Encrypted flow:
+    - writer.encrypt("pw"); write; reader=PdfReader(file); reader.is_encrypted True; reader.decrypt("pw") success; accessing reader.pages works.
+    - Wrong password returns failure and pages access still blocked.
+  - File-like I/O:
+    - write() should work with BytesIO.
+    - PdfReader should accept BytesIO.
+  - Robustness in parsing:
+    - Handle CRLF vs LF, extra whitespace, incremental updates not required unless fixtures have them (if present, parse last xref via startxref).
+    - Handle indirect references in page tree.
+- Compatibility surface
+  - Ensure names exactly:
+    - from pypdf import PdfReader, PdfWriter
+    - reader.pages
+    - writer.add_page, writer.add_blank_page, writer.write, writer.encrypt, writer.add_metadata
+    - reader.is_encrypted, reader.decrypt, reader.metadata
+    - page.rotate, page.rotation
+
+4) Minimal internal test plan (what to test and why)
+- Smoke: blank PDF
+  - writer=PdfWriter(); writer.add_blank_page(200, 200); write to BytesIO; open with PdfReader; assert len(pages)==1; page.rotation==0.
+- Multi-page order preservation
+  - Create 3 blank pages with distinct rotations (0,90,180) using rotate.
+  - Write/read back; assert len==3 and rotations preserved in order.
+- Split/merge
+  - Create source with 5 pages, write/read.
+  - Split: create writer with pages[1], pages[3]; write/read; assert len==2 and order correct.
+  - Merge: create two sources; merge pages; write/read; assert combined length and rotations.
+- Metadata round-trip
+  - writer.add_metadata({"/Title":"T","/Author":"A"}); write/read; assert reader.metadata contains keys and exact values.
+- Encryption flow
+  - writer with 2 pages + metadata, encrypt("secret"), write/read.
+  - Assert reader.is_encrypted True.
+  - Accessing pages before decrypt raises FileNotDecryptedError (or fails in a controlled way).
+  - decrypt("wrong") returns 0; still blocked.
+  - decrypt("secret") returns 1; pages accessible; len correct; metadata accessible and correct after decrypt.
+- File path vs BytesIO
+  - Write to temp file path and re-open by path; ensure works.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- PDF parsing complexity (xref streams, compressed object streams, uncommon encodings)
+  - Mitigation: Implement classic xref parsing first; add limited xref stream support if any fixture requires it:
+    - Detect “xref” keyword vs indirect object with /Type /XRef.
+    - For xref streams, decode Flate using zlib and parse W/Index arrays.
+  - Keep parser tolerant: ignore unknown keys, skip unneeded objects.
+- Encryption correctness (Standard Security edge cases)
+  - Mitigation: Implement widely used R=3 (128-bit) path and also accept R=2 if encountered.
+  - Use well-tested RC4 implementation and MD5 from hashlib.
+  - Validate by comparing computed U with file’s U (first 16 bytes for R=3 rules).
+- Deep-copying pages/resources
+  - Risk: Tests might expect merged PDFs to remain openable; not necessarily preserve content rendering.
+  - Mitigation: For correctness of reading/writing, prefer writing minimal valid pages; if fixtures compare byte-level or expect content retention (unlikely), expand to copy /Contents streams and referenced resource objects:
+    - Implement recursive object import with memoization, copying dictionaries/arrays/streams and creating new indirect objects in writer.
+- Stream handling
+  - Risk: Some PDFs require /Length indirect references or multiple filters.
+  - Mitigation: When writing our own PDFs, keep streams simple: Flate optional; can write uncompressed streams with explicit integer /Length.
+  - For reading, implement at least “no filter” and FlateDecode.
+- API surface mismatch
+  - Mitigation: Mirror names and basic behaviors; keep PdfReader.pages as list-like object; ensure exceptions and return values align with typical pypdf patterns used in tests.

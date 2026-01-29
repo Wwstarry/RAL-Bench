@@ -1,0 +1,197 @@
+<plan>
+1) Repository layout and import graph
+- Top-level package: folium/
+  - folium/__init__.py
+    - Expose: Map, Marker, CircleMarker, GeoJson, TileLayer, LayerControl
+    - Expose subpackage: plugins
+  - folium/utilities.py
+    - JSON/HTML escaping, safe dumps, id generation, color/option helpers
+  - folium/elements.py
+    - Core element tree: Element, Figure, MacroElement, Template
+    - Rendering pipeline: .get_root(), .render()
+  - folium/map.py
+    - Map, Layer base, FeatureGroup (optional), LayerControl, TileLayer
+  - folium/vector_layers.py
+    - Marker, CircleMarker, GeoJson (+ simple style handling)
+  - folium/plugins/__init__.py
+    - Export MarkerCluster
+  - folium/plugins/marker_cluster.py
+    - MarkerCluster implementation
+- Import graph principles
+  - folium/__init__.py imports public classes from folium/map.py, folium/vector_layers.py, folium/plugins/*
+  - Rendering primitives live in folium/elements.py; map and layers depend on elements.py; utilities used everywhere.
+  - No external dependencies beyond Python stdlib (json, uuid, html, pathlib, re, math).
+
+2) Public APIs to implement (modules/classes/functions)
+A) Core rendering (folium/elements.py)
+- class Element:
+  - attrs: _name (optional), _id (string), _children (ordered dict), parent
+  - methods:
+    - add_child(child, name=None, index=None): store child, set parent
+    - get_name(): stable JS-safe name (e.g., “map_abcdef123”)
+    - get_root(): climb parents until root Figure
+    - render(**kwargs): render children concatenated (base impl)
+- class Figure(Element):
+  - Represents full HTML document root.
+  - attrs: header (Element), html (Element), script (Element)
+  - methods:
+    - render(): returns complete HTML document string, including Leaflet assets and all scripts.
+- class MacroElement(Element):
+  - attrs: _template (callable or string template), options
+  - methods:
+    - render(): expands template with this element context; then renders children if needed.
+- Template mechanism (minimal):
+  - Accept either format strings with placeholders or small callable renderer function.
+  - Avoid Jinja2 dependency.
+
+B) Map and controls (folium/map.py)
+- class Map(MacroElement):
+  - __init__(location=(lat, lon), zoom_start=10, tiles="OpenStreetMap", width="100%", height="100%", control_scale=False, prefer_canvas=False, **kwargs)
+  - methods:
+    - add_child(obj, name=None): adds layers/controls; return self
+    - add_to(parent): add self to Figure or other container
+    - get_root(): if not attached, create Figure and attach self
+    - render(): ensure Figure exists, inject CSS/JS assets, generate Leaflet map init script and add layers.
+  - properties:
+    - location normalization (list/tuple), bounds optional
+- class TileLayer(MacroElement):
+  - __init__(tiles="OpenStreetMap", name=None, attr=None, overlay=False, control=True, show=True, **kwargs)
+  - Support named providers:
+    - "OpenStreetMap" (default): https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+    - Optionally: "Stamen Terrain"/"Stamen Toner" if tests expect; otherwise accept custom URL templates.
+  - render: Leaflet L.tileLayer(...).addTo(map) if show.
+- class LayerControl(MacroElement):
+  - __init__(position="topright", collapsed=True, autoZIndex=True, **kwargs)
+  - render: L.control.layers(baseLayers, overlays, options).addTo(map)
+  - Must discover layers added to the Map:
+    - base layers: TileLayer with overlay=False and control=True
+    - overlays: anything with overlay=True and control=True, plus MarkerCluster, GeoJson, etc.
+- Optional helper class Layer(MacroElement):
+  - common attrs: name, overlay, control, show
+  - common behavior: register into Map’s layer registry.
+
+C) Vector layers (folium/vector_layers.py)
+- class Marker(MacroElement):
+  - __init__(location, popup=None, tooltip=None, icon=None, draggable=False, **kwargs)
+  - render: L.marker([lat, lon], options).addTo(parent_map_or_group)
+  - popup/tooltip: accept str; embed as bindPopup/bindTooltip with proper escaping.
+- class CircleMarker(MacroElement):
+  - __init__(location, radius=10, popup=None, tooltip=None, color="#3388ff", weight=3, fill=True, fill_color=None, fill_opacity=0.2, **kwargs)
+  - render: L.circleMarker([..], options).addTo(...)
+- class GeoJson(MacroElement):
+  - __init__(data, name=None, overlay=True, control=True, show=True, style_function=None, highlight_function=None, tooltip=None, popup=None, **kwargs)
+  - data inputs:
+    - dict (GeoJSON)
+    - JSON string
+    - path-like (read file)
+  - render:
+    - Define JS var with embedded GeoJSON object (JSON dump)
+    - L.geoJSON(geojson, {style: ..., onEachFeature: ...}).addTo(...)
+  - Minimal style_function:
+    - If callable provided, attempt to compute per-feature style in Python only if data is FeatureCollection and function is simple.
+    - But simplest: ignore Python callable and allow fixed style dict via kwargs "style" OR accept style_function returning dict and apply by generating a JS function that returns a constant (if function returns same for all features in pre-scan).
+    - Implement the following pragmatic behavior:
+      - If style_function is dict: use directly.
+      - If callable: try calling once on a dummy feature (or first feature) and if returns dict, treat as constant style.
+  - tooltip/popup: if str, bind to each feature with that content; if None, skip.
+
+D) Plugins (folium/plugins/marker_cluster.py)
+- class MarkerCluster(MacroElement):
+  - __init__(name="MarkerCluster", overlay=True, control=True, show=True, options=None, **kwargs)
+  - add_child(marker): markers added to cluster rather than directly to map
+  - render:
+    - Include Leaflet.markercluster JS/CSS assets once in Figure header.
+    - JS: var cluster = L.markerClusterGroup(options); add markers; addTo(map) if show.
+  - Performance requirement:
+    - Ensure cluster holds many markers without each marker also being separately registered in LayerControl as overlay (cluster itself appears as single overlay).
+- folium/plugins/__init__.py exports MarkerCluster.
+
+E) folium/__init__.py public surface
+- from .map import Map, TileLayer, LayerControl
+- from .vector_layers import Marker, CircleMarker, GeoJson
+- from . import plugins
+- __all__ includes above.
+
+3) Key behaviors & edge cases
+- Element composition and get_root().render()
+  - If user creates Map() and calls m.get_root().render(), it must return a complete HTML document.
+  - If Map is not attached to a Figure yet, Map.get_root() creates Figure, adds Map, returns Figure.
+  - All children must be rendered into appropriate places:
+    - CSS/JS asset <link>/<script> go to <head>
+    - Map container <div id="..."> in <body>
+    - Initialization scripts in end-of-body <script> block
+- Deterministic naming
+  - Each element gets unique but stable name per instance via uuid4 hex shortened.
+  - get_name() must be JS identifier friendly (letters, digits, underscore).
+- Escaping and JSON safety
+  - Popup/tooltip strings must be HTML-escaped, then JS-string escaped (or embedded as JSON string literal).
+  - GeoJSON dumped with json.dumps(..., ensure_ascii=False, separators=(',', ':')) to reduce size.
+- Layer attachment target
+  - Marker/CircleMarker/GeoJson must add to either Map or a group-like parent (MarkerCluster).
+  - Implement a common “_parent” behavior: when render, reference parent’s JS variable name (map or group).
+- LayerControl discovery
+  - Maintain registries on Map:
+    - _base_layers: name -> js_var
+    - _overlays: name -> js_var
+  - When a Layer is added with control=True, it registers itself during render or at add_to time.
+  - Ensure TileLayer overlay=False is base layer; others default overlay=True.
+  - If show=False, do not call .addTo(map) automatically, but still register in control so it can be toggled.
+- TileLayer providers
+  - tiles may be:
+    - recognized name => map to URL template + attribution
+    - URL template string containing {x}{y}{z} => use as provided
+  - attr is required by Leaflet for some tiles; provide default OSM attribution.
+- MarkerCluster assets
+  - Add assets once, even if multiple clusters exist. Figure should have an asset registry (set).
+- Performance / HTML size
+  - Rendering many markers: avoid pretty-printing; use compact JSON dumps and concatenated strings.
+  - MarkerCluster should reduce HTML size only if user uses it; tests likely compare that cluster produces fewer independent layer constructs (e.g., fewer “addTo(map)” direct calls, or markers added to cluster var instead).
+  - Ensure MarkerCluster markers are rendered as “L.marker(...).addTo(cluster_var)” or “cluster_var.addLayer(L.marker(...))” to avoid extra map adds.
+- GeoJson data loading
+  - If path provided, read text; if it parses as JSON -> dict.
+  - If invalid, raise ValueError with clear message.
+- Minimal compatibility expectations with Folium
+  - Accept .add_to(map) chaining.
+  - Accept map.add_child(layer).
+  - Accept name parameter used in LayerControl labels.
+
+4) Minimal internal test plan (what to test and why)
+- HTML document generation
+  - Create Map(location=[0,0], zoom_start=2); html = m.get_root().render()
+  - Assert contains: "<div" with map id, "L.map(", "leaflet.css", "leaflet.js"
+- Marker/CircleMarker rendering
+  - Add Marker([1,2], popup="Hello"); render; assert contains "L.marker([1,2]" and "bindPopup" and escaped content.
+  - Add CircleMarker; assert "L.circleMarker" and radius option present.
+- TileLayer and LayerControl
+  - Map(tiles=None) + add TileLayer("OpenStreetMap", name="OSM", control=True)
+  - Add another TileLayer(custom url, overlay=False) and LayerControl()
+  - Assert HTML includes "L.control.layers" and layer names in JS object.
+  - Assert show=False does not include ".addTo(map)" for that layer.
+- GeoJson
+  - Add GeoJson({"type":"FeatureCollection","features":[...]}, name="geo"); render
+  - Assert "L.geoJSON(" and embedded coordinates.
+  - With constant style dict: ensure style appears in options.
+- MarkerCluster plugin
+  - from folium.plugins import MarkerCluster
+  - mc = MarkerCluster(); add to map; add 100 markers to mc
+  - Render and assert includes markercluster asset URLs and "L.markerClusterGroup"
+  - Assert markers add to cluster var not directly to map (e.g., contains ".addTo(marker_cluster_" and not excessive ".addTo(map)" for each marker).
+- Size/performance sanity checks (non-timing but structural)
+  - Compare HTML length for 200 markers direct vs 200 inside MarkerCluster; clustered version should not include 200 occurrences of ".addTo(map)".
+- Deterministic asset injection
+  - Two clusters: ensure markercluster assets included once (count occurrences of markercluster script link is 1).
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- No Jinja2 templating (Folium uses Jinja2)
+  - Mitigation: implement a tiny template approach using Python format strings/callables; keep output simple and predictable for tests (mostly substring assertions).
+- LayerControl bookkeeping can be fragile
+  - Mitigation: centralize layer metadata on each layer (name/overlay/control/show) and have Map register layers on add_child; render LayerControl last so registries are complete.
+- Escaping bugs causing invalid JS/HTML
+  - Mitigation: always embed user strings via json.dumps(str) for JS literals; HTML-escape only when injecting into HTML, not inside JS literals.
+- GeoJson style_function complexity
+  - Mitigation: support only constant dict or callable returning constant dict (probe first feature). Document limitation; tests typically only require basic presence.
+- Performance with many markers (string concatenation)
+  - Mitigation: use list append + ''.join, compact json separators, avoid recursion overhead where possible; keep render methods lightweight.
+- Asset URLs and integrity
+  - Mitigation: use common CDN URLs without SRI to avoid mismatch; keep versions stable; allow offline by embedding minimal local placeholders if needed (but default CDN likely sufficient for tests).
+</plan>

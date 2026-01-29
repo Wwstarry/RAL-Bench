@@ -1,0 +1,35 @@
+......F..                                                                [100%]
+================================== FAILURES ===================================
+______________ test_007_alignment_api_surface_symbols_importable ______________
+
+    def test_007_alignment_api_surface_symbols_importable():
+        """
+        Alignment anchors (must exist in BOTH reference and generated repos):
+    
+          - lib.parse.cmdline.cmdLineParser
+          - lib.core.option.init, lib.core.option.initOptions
+          - lib.core.data: cmdLineOptions, conf, kb
+          - lib.core.settings: VERSION, DESCRIPTION
+          - lib.controller.controller.start
+    
+        Only checks importability + symbol presence; does not execute scanning logic.
+        """
+        repo = _repo_root()
+        sys.path.insert(0, str(repo))
+        try:
+            from lib.parse.cmdline import cmdLineParser  # noqa: F401
+            from lib.core.option import init, initOptions  # noqa: F401
+            from lib.core.data import cmdLineOptions, conf, kb  # noqa: F401
+            from lib.core.settings import VERSION, DESCRIPTION  # noqa: F401
+            from lib.controller.controller import start  # noqa: F401
+    
+            assert callable(cmdLineParser)
+            assert callable(init)
+            assert callable(initOptions)
+>           assert cmdLineOptions is not None
+E           assert None is not None
+
+tests\Sqlmap\functional_test.py:119: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_007_alignment_api_surface_symbols_importable
+1 failed, 8 passed in 2.09s

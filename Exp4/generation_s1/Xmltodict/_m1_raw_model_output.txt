@@ -1,0 +1,380 @@
+<file:name=xmltodict.py>
+"""
+A small, pure-Python subset of the xmltodict project.
+
+Implements:
+- parse(xml_input, ...)
+- unparse(mapping, ...)
+
+Mapping conventions:
+- element names as keys
+- attributes as "@attr"
+- text content as "#text" when needed
+- repeated elements become lists
+- namespace prefixes preserved when present in input (via qName)
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from io import StringIO
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler, feature_external_ges, feature_external_pes
+from xml.sax.saxutils import escape as _sax_escape
+
+
+__all__ = ["parse", "unparse"]
+
+
+def _coerce_to_text(xml_input, encoding: str) -> str:
+    if hasattr(xml_input, "read"):
+        data = xml_input.read()
+    else:
+        data = xml_input
+    if isinstance(data, bytes):
+        return data.decode(encoding, errors="strict")
+    if isinstance(data, str):
+        return data
+    raise TypeError("xml_input must be str, bytes, or a file-like object with read()")
+
+
+def _add_child(container: dict, key: str, value):
+    if key in container:
+        cur = container[key]
+        if isinstance(cur, list):
+            cur.append(value)
+        else:
+            container[key] = [cur, value]
+    else:
+        container[key] = value
+
+
+def _is_all_whitespace(s: str) -> bool:
+    return s.strip() == ""
+
+
+class _DictSAXHandler(ContentHandler):
+    def __init__(self):
+        super().__init__()
+        # stack of frames: (name, obj_dict, text_chunks, has_child)
+        self._stack = []
+        self._root = None
+
+    @property
+    def root(self):
+        return self._root
+
+    def startElement(self, name, attrs):
+        # push new frame
+        obj = {}
+        # attributes (attrs is AttributesImpl; keys are qName)
+        for k in attrs.keys():
+            obj[f"@{k}"] = attrs.getValue(k)
+        frame = {
+            "name": name,
+            "obj": obj,
+            "text": [],
+            "has_child": False,
+        }
+        self._stack.append(frame)
+
+    def endElement(self, name):
+        frame = self._stack.pop()
+        obj = frame["obj"]
+        text = "".join(frame["text"])
+        has_child = frame["has_child"]
+
+        # whitespace heuristic: if there are children and text is only indentation, drop it
+        if has_child and _is_all_whitespace(text):
+            text = ""
+
+        value = None
+        if obj:
+            # there are attributes and/or children already stored in obj
+            if text != "":
+                obj["#text"] = text
+            value = obj
+        else:
+            # no attrs/children
+            if text == "":
+                value = None
+            else:
+                value = text
+
+        if self._stack:
+            parent = self._stack[-1]
+            parent["has_child"] = True
+            _add_child(parent["obj"], frame["name"], value)
+        else:
+            self._root = {frame["name"]: value}
+
+    def characters(self, content):
+        if not self._stack:
+            return
+        # always accumulate; we'll drop indentation-only when children exist at endElement
+        self._stack[-1]["text"].append(content)
+
+    # Best-effort namespace-aware methods; keep qName when possible
+    def startElementNS(self, name, qname, attrs):
+        # qname may be None depending on parser; prefer qname to preserve prefix
+        ename = qname if qname else name[1]
+        obj = {}
+        # attrs is mapping of (uri, localname) -> value, but may expose getQNames()
+        try:
+            qnames = attrs.getQNames()
+        except Exception:
+            qnames = None
+
+        if qnames:
+            for qn in qnames:
+                obj[f"@{qn}"] = attrs.getValueByQName(qn)
+        else:
+            for (uri, local), v in attrs.items():
+                obj[f"@{local}"] = v
+
+        frame = {"name": ename, "obj": obj, "text": [], "has_child": False}
+        self._stack.append(frame)
+
+    def endElementNS(self, name, qname):
+        ename = qname if qname else name[1]
+        self.endElement(ename)
+
+
+def parse(
+    xml_input,
+    encoding: str = "utf-8",
+    expat=None,
+    process_namespaces: bool = False,
+    namespace_separator: str = ":",
+    disable_entities: bool = True,
+    **kwargs,
+):
+    """
+    Parse XML into nested dict/list structures.
+
+    This is a subset compatible with core xmltodict behaviors needed by tests.
+    Unknown kwargs are accepted and ignored.
+    """
+    xml_text = _coerce_to_text(xml_input, encoding)
+
+    handler = _DictSAXHandler()
+    parser = make_parser()
+
+    # security: attempt to disable external entities
+    if disable_entities:
+        for feat in (feature_external_ges, feature_external_pes):
+            try:
+                parser.setFeature(feat, False)
+            except Exception:
+                pass
+
+    # namespaces: if enabled, SAX may call startElementNS
+    try:
+        parser.setFeature("http://xml.org/sax/features/namespaces", bool(process_namespaces))
+    except Exception:
+        pass
+
+    parser.setContentHandler(handler)
+
+    from xml.sax import InputSource
+    import io
+
+    src = InputSource()
+    src.setCharacterStream(io.StringIO(xml_text))
+    parser.parse(src)
+    return handler.root
+
+
+def _escape_text(s: str) -> str:
+    # Escape &, <, >. Quotes are fine in text nodes.
+    return _sax_escape(s, entities=None)
+
+
+def _escape_attr(s: str) -> str:
+    # Escape &, <, >, " and '
+    return _sax_escape(s, entities={'"': "&quot;", "'": "&apos;"})
+
+
+def _coerce_scalar(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        # match common xmltodict-ish coercion: bool as "true"/"false" is not guaranteed;
+        # but deterministic string is important.
+        return "true" if value else "false"
+    return str(value)
+
+
+def _emit_element(name: str, value, buf: list[str], short_empty_elements: bool):
+    if isinstance(value, list):
+        for item in value:
+            _emit_element(name, item, buf, short_empty_elements)
+        return
+
+    attrs = []
+    text = None
+    children_items = []
+
+    if isinstance(value, Mapping):
+        # attrs first
+        for k, v in value.items():
+            if isinstance(k, str) and k.startswith("@"):
+                aname = k[1:]
+                attrs.append((aname, _coerce_scalar(v)))
+        text = value.get("#text", None) if isinstance(value.get("#text", None), (str, int, float, bool)) or value.get("#text", None) is None else _coerce_scalar(value.get("#text"))
+        # children
+        for k, v in value.items():
+            if not (isinstance(k, str) and (k.startswith("@") or k == "#text")):
+                children_items.append((k, v))
+    elif value is None:
+        attrs = []
+        text = None
+        children_items = []
+    else:
+        # scalar text
+        text = _coerce_scalar(value)
+
+    # start tag
+    buf.append("<")
+    buf.append(name)
+    for aname, aval in attrs:
+        buf.append(" ")
+        buf.append(aname)
+        buf.append('="')
+        buf.append(_escape_attr(aval))
+        buf.append('"')
+
+    if (text is None or text == "") and not children_items:
+        if short_empty_elements:
+            buf.append("/>")
+            return
+        buf.append("></")
+        buf.append(name)
+        buf.append(">")
+        return
+
+    buf.append(">")
+    if text not in (None, ""):
+        buf.append(_escape_text(_coerce_scalar(text)))
+    for ck, cv in children_items:
+        _emit_element(ck, cv, buf, short_empty_elements)
+    buf.append("</")
+    buf.append(name)
+    buf.append(">")
+
+
+def unparse(
+    input_dict,
+    output=None,
+    encoding: str = "utf-8",
+    full_document: bool = True,
+    short_empty_elements: bool = True,
+    **kwargs,
+):
+    """
+    Serialize a mapping (xmltodict-like) into XML.
+
+    If output is None, returns a str.
+    If output is a file-like, writes to it and returns None.
+    Unknown kwargs are accepted and ignored.
+    """
+    if not isinstance(input_dict, Mapping):
+        raise TypeError("unparse() expects a mapping as input")
+
+    if len(input_dict) != 1:
+        raise ValueError("unparse() expects a single root element (one top-level key)")
+
+    (root_name, root_value), = input_dict.items()
+
+    parts: list[str] = []
+    if full_document:
+        parts.append(f'<?xml version="1.0" encoding="{encoding}"?>')
+
+    _emit_element(root_name, root_value, parts, short_empty_elements=short_empty_elements)
+
+    xml = "".join(parts)
+    if output is None:
+        return xml
+    output.write(xml)
+    return None
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import io
+import xmltodict
+
+
+def test_parse_empty_and_text():
+    assert xmltodict.parse("<a/>") == {"a": None}
+    assert xmltodict.parse("<a>1</a>") == {"a": "1"}
+
+
+def test_parse_nested_and_repeated():
+    xml = "<a><b>1</b><b>2</b><c><d>3</d></c></a>"
+    assert xmltodict.parse(xml) == {"a": {"b": ["1", "2"], "c": {"d": "3"}}}
+
+
+def test_parse_attributes_and_text():
+    xml = "<a x='1'>t</a>"
+    assert xmltodict.parse(xml) == {"a": {"@x": "1", "#text": "t"}}
+
+    xml2 = "<a x='1'/>"
+    assert xmltodict.parse(xml2) == {"a": {"@x": "1"}}
+
+
+def test_pretty_printed_whitespace_ignored_between_children():
+    xml = "<a>\n  <b>1</b>\n  <c>2</c>\n</a>"
+    assert xmltodict.parse(xml) == {"a": {"b": "1", "c": "2"}}
+
+
+def test_namespace_prefix_preserved_in_names_and_attrs():
+    xml = "<ns:root xmlns:ns='u'><ns:child ns:attr='v'>t</ns:child></ns:root>"
+    assert xmltodict.parse(xml) == {"ns:root": {"ns:child": {"@ns:attr": "v", "#text": "t"}}}
+
+
+def test_unparse_roundtrip_basic_cases():
+    mappings = [
+        {"a": None},
+        {"a": "1"},
+        {"a": {"@x": "1"}},
+        {"a": {"@x": "1", "#text": "t"}},
+        {"a": {"b": ["1", "2"], "c": {"@id": "3", "#text": "z"}}},
+        {"ns:root": {"ns:child": {"@ns:attr": "v", "#text": "t"}}},
+        {"catalog": {"book": [{"@id": "bk101", "author": "A"}, {"@id": "bk102", "author": "B"}]}},
+    ]
+    for m in mappings:
+        xml = xmltodict.unparse(m, full_document=False)
+        m2 = xmltodict.parse(xml)
+        assert m2 == m
+
+
+def test_unparse_output_filelike():
+    m = {"a": {"b": "1"}}
+    f = io.StringIO()
+    ret = xmltodict.unparse(m, output=f, full_document=False)
+    assert ret is None
+    assert xmltodict.parse(f.getvalue()) == m
+</file>
+
+<file:name=_agent_tests/test_agent_escaping.py>
+import xmltodict
+
+
+def test_escaping_text_and_attrs_roundtrip():
+    m = {"a": {"@x": '1&2"3\'4<5>', "#text": "a&b<c>d"}}
+    xml = xmltodict.unparse(m, full_document=False)
+    # Ensure parse returns same mapping
+    assert xmltodict.parse(xml) == m
+
+
+def test_short_empty_elements_toggle():
+    m = {"a": {"b": None}}
+    xml_short = xmltodict.unparse(m, full_document=False, short_empty_elements=True)
+    assert "<b/>" in xml_short
+
+    xml_long = xmltodict.unparse(m, full_document=False, short_empty_elements=False)
+    assert "<b></b>" in xml_long
+
+    assert xmltodict.parse(xml_short) == m
+    assert xmltodict.parse(xml_long) == m
+</file>

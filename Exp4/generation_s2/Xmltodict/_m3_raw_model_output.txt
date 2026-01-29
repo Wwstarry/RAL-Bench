@@ -1,0 +1,359 @@
+<file:name=xmltodict.py>
+"""
+A small, pure-Python subset of the xmltodict project.
+
+Goals:
+- Provide xmltodict.parse and xmltodict.unparse with compatible core behavior.
+- Preserve element names (including namespace prefixes) as keys.
+- Represent attributes with "@attr", text with "#text".
+- Group repeated elements into lists.
+- Round-trip for typical structures used in tests.
+
+This is not a full reimplementation of all xmltodict features, but aims to be
+black-box compatible for the core APIs.
+"""
+
+from __future__ import annotations
+
+from collections import OrderedDict
+from xml.etree import ElementTree as ET
+from xml.sax.saxutils import escape as _xml_escape, quoteattr as _xml_quoteattr
+
+
+__all__ = ["parse", "unparse"]
+
+
+# ----------------------------
+# Parsing
+# ----------------------------
+
+def parse(
+    xml_input,
+    encoding="utf-8",
+    process_namespaces=False,
+    namespace_separator=":",
+    attr_prefix="@",
+    cdata_key="#text",
+    dict_constructor=dict,
+    **kwargs,
+):
+    """
+    Parse an XML document into a nested dictionary.
+
+    Supported core behavior:
+    - element tag names as keys
+    - attributes as "@attr": value
+    - text content as "#text"
+    - repeated sibling elements => list
+    - namespace prefixes preserved if present in source. If ElementTree expands
+      namespaces to "{uri}local", we keep that literal form unless
+      process_namespaces=True, where we map to prefixes by scanning xmlns
+      declarations in the raw text (best-effort) and produce "prefix:local".
+    """
+    # Accept str/bytes/file-like
+    if hasattr(xml_input, "read"):
+        data = xml_input.read()
+    else:
+        data = xml_input
+
+    if isinstance(data, bytes):
+        xml_text = data.decode(encoding, errors="replace")
+    else:
+        xml_text = str(data)
+
+    # Parse
+    root = ET.fromstring(xml_text)
+
+    # Build namespace mapping (URI -> prefix) if requested (best-effort).
+    uri_to_prefix = None
+    if process_namespaces:
+        uri_to_prefix = _scan_namespaces(xml_text)
+
+    def qname(tag):
+        # Preserve namespace prefixes where possible.
+        if not process_namespaces:
+            return tag
+        return _convert_etree_tag_to_prefixed(tag, uri_to_prefix, namespace_separator)
+
+    def build_elem(elem):
+        obj = dict_constructor()
+        # Attributes
+        if elem.attrib:
+            for k, v in elem.attrib.items():
+                ak = qname(k) if k.startswith("{") else k
+                obj[f"{attr_prefix}{ak}"] = v
+
+        # Children
+        child_map = dict_constructor()
+        for child in list(elem):
+            key = qname(child.tag)
+            val = build_elem(child)
+            # val is a dict representing child's content OR text/attrs
+            if key in child_map:
+                cur = child_map[key]
+                if isinstance(cur, list):
+                    cur.append(val)
+                else:
+                    child_map[key] = [cur, val]
+            else:
+                child_map[key] = val
+
+        # Text handling:
+        # - If element has children, ignore tail text in mapping (as reference does).
+        # - If element has only text (and/or attributes), store as cdata_key.
+        text = elem.text if elem.text is not None else ""
+        text = text.strip()
+        if child_map:
+            # Merge child_map into obj
+            for k, v in child_map.items():
+                obj[k] = v
+            # If there is significant text as well, keep it under cdata_key.
+            if text:
+                obj[cdata_key] = text
+        else:
+            if text:
+                obj[cdata_key] = text
+
+        # If no attributes/children and only text -> return text? xmltodict returns
+        # dict with '#text' only by default for round-trip stability. We'll keep dict.
+        return obj
+
+    result = dict_constructor()
+    result[qname(root.tag)] = build_elem(root)
+    return result
+
+
+def _scan_namespaces(xml_text):
+    """
+    Best-effort scan of xmlns declarations to build {uri: prefix} mapping.
+    Handles:
+      xmlns="uri" -> '' prefix
+      xmlns:pre="uri" -> 'pre'
+    This is simplistic but sufficient for many tests.
+    """
+    uri_to_prefix = {}
+    import re
+
+    # Find xmlns declarations anywhere
+    # xmlns="..."
+    for m in re.finditer(r'\bxmlns="([^"]+)"', xml_text):
+        uri_to_prefix[m.group(1)] = ""  # default namespace
+
+    # xmlns:prefix="..."
+    for m in re.finditer(r'\bxmlns:([A-Za-z_][\w.\-]*)="([^"]+)"', xml_text):
+        uri_to_prefix[m.group(2)] = m.group(1)
+
+    return uri_to_prefix
+
+
+def _convert_etree_tag_to_prefixed(tag, uri_to_prefix, sep=":"):
+    """
+    Convert ElementTree expanded tag '{uri}local' into 'prefix:local'
+    using uri_to_prefix mapping when available.
+    """
+    if not tag.startswith("{"):
+        return tag
+    if uri_to_prefix is None:
+        return tag
+    try:
+        uri, local = tag[1:].split("}", 1)
+    except ValueError:
+        return tag
+    prefix = uri_to_prefix.get(uri)
+    if prefix is None:
+        # unknown mapping; keep expanded form
+        return tag
+    if prefix == "":
+        # default namespace; keep local name
+        return local
+    return f"{prefix}{sep}{local}"
+
+
+# ----------------------------
+# Unparsing
+# ----------------------------
+
+def unparse(
+    input_dict,
+    output=None,
+    encoding="utf-8",
+    full_document=True,
+    short_empty_elements=True,
+    attr_prefix="@",
+    cdata_key="#text",
+    pretty=False,
+    indent="  ",
+    newl="\n",
+    **kwargs,
+):
+    """
+    Convert a nested mapping into XML.
+
+    Core supported behavior:
+    - attributes from keys starting with "@"
+    - text from "#text"
+    - lists create repeated elements
+    - dict nesting creates nested elements
+
+    If output is a file-like object, writes to it and returns None.
+    Otherwise returns a str (or bytes if encoding is not 'unicode').
+
+    Note: This is a minimal subset; it aims to round-trip with parse() for common
+    structures used in tests.
+    """
+    if not isinstance(input_dict, dict) or len(input_dict) != 1:
+        raise ValueError("unparse() expects a dict with a single root element")
+
+    root_name = next(iter(input_dict))
+    root_value = input_dict[root_name]
+
+    parts = []
+    if full_document:
+        if encoding is None or encoding == "unicode":
+            parts.append('<?xml version="1.0"?>')
+        else:
+            parts.append(f'<?xml version="1.0" encoding="{encoding}"?>')
+
+    xml = _emit_element(
+        root_name,
+        root_value,
+        attr_prefix=attr_prefix,
+        cdata_key=cdata_key,
+        pretty=pretty,
+        indent=indent,
+        newl=newl,
+        level=0,
+        short_empty_elements=short_empty_elements,
+    )
+    parts.append(xml)
+
+    out_text = (newl if pretty and full_document else "").join(parts) if full_document else xml
+    if pretty and full_document:
+        # Ensure trailing newline? Reference doesn't guarantee; leave as-is.
+        pass
+
+    if output is not None:
+        if hasattr(output, "write"):
+            if isinstance(out_text, str):
+                if encoding is None or encoding == "unicode":
+                    output.write(out_text)
+                else:
+                    output.write(out_text.encode(encoding))
+            else:
+                output.write(out_text)
+            return None
+        raise TypeError("output must be a file-like object with write()")
+
+    if encoding is None or encoding == "unicode":
+        return out_text
+    return out_text.encode(encoding)
+
+
+def _emit_element(
+    name,
+    value,
+    attr_prefix="@",
+    cdata_key="#text",
+    pretty=False,
+    indent="  ",
+    newl="\n",
+    level=0,
+    short_empty_elements=True,
+):
+    pad = (indent * level) if pretty else ""
+    child_pad = (indent * (level + 1)) if pretty else ""
+
+    # Normalize value: allow None, str, dict, list
+    if value is None:
+        # empty element
+        if short_empty_elements:
+            return f"{pad}<{name}/>"
+        return f"{pad}<{name}></{name}>"
+
+    if isinstance(value, (str, int, float, bool)):
+        text = _xml_escape(str(value))
+        return f"{pad}<{name}>{text}</{name}>"
+
+    if isinstance(value, list):
+        # repeated elements at this level
+        chunks = []
+        for item in value:
+            chunks.append(_emit_element(
+                name, item,
+                attr_prefix=attr_prefix,
+                cdata_key=cdata_key,
+                pretty=pretty,
+                indent=indent,
+                newl=newl,
+                level=level,
+                short_empty_elements=short_empty_elements
+            ))
+        return (newl.join(chunks)) if pretty else "".join(chunks)
+
+    if not isinstance(value, dict):
+        text = _xml_escape(str(value))
+        return f"{pad}<{name}>{text}</{name}>"
+
+    # dict: split attributes, text, children
+    attrs = []
+    text = None
+    children = []
+
+    for k, v in value.items():
+        if k.startswith(attr_prefix):
+            aname = k[len(attr_prefix):]
+            # attribute values are strings
+            attrs.append((aname, "" if v is None else str(v)))
+        elif k == cdata_key:
+            text = "" if v is None else str(v)
+        else:
+            children.append((k, v))
+
+    attr_str = "".join(f" {an}={_xml_quoteattr(av)}" for an, av in attrs)
+
+    if not children and (text is None or text == ""):
+        if short_empty_elements:
+            return f"{pad}<{name}{attr_str}/>"
+        return f"{pad}<{name}{attr_str}></{name}>"
+
+    if not children:
+        txt = _xml_escape(text or "")
+        return f"{pad}<{name}{attr_str}>{txt}</{name}>"
+
+    # Has children
+    if pretty:
+        inner = []
+        if text is not None and text.strip() != "":
+            # mixed content: put text on its own line (best-effort)
+            inner.append(f"{child_pad}{_xml_escape(text)}")
+        for ck, cv in children:
+            inner.append(_emit_element(
+                ck, cv,
+                attr_prefix=attr_prefix,
+                cdata_key=cdata_key,
+                pretty=pretty,
+                indent=indent,
+                newl=newl,
+                level=level + 1,
+                short_empty_elements=short_empty_elements,
+            ))
+        inner_xml = newl.join(inner)
+        return f"{pad}<{name}{attr_str}>{newl}{inner_xml}{newl}{pad}</{name}>"
+
+    # compact
+    inner = []
+    if text is not None:
+        inner.append(_xml_escape(text))
+    for ck, cv in children:
+        inner.append(_emit_element(
+            ck, cv,
+            attr_prefix=attr_prefix,
+            cdata_key=cdata_key,
+            pretty=False,
+            indent=indent,
+            newl=newl,
+            level=0,
+            short_empty_elements=short_empty_elements,
+        ))
+    return f"<{name}{attr_str}>{''.join(inner)}</{name}>"
+</file>

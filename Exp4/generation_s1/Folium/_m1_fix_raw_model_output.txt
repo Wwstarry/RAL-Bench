@@ -1,0 +1,804 @@
+<file:name=folium/elements.py>
+from __future__ import annotations
+
+from collections import OrderedDict
+import uuid
+from typing import Any, Optional
+
+
+class Element:
+    """
+    Minimal element tree with parent/children and a render pipeline.
+    Children are stored in insertion order.
+    """
+
+    _name: str = "element"
+
+    def __init__(self) -> None:
+        self._id = uuid.uuid4().hex[:12]
+        self._children: "OrderedDict[str, Element]" = OrderedDict()
+        self.parent: Optional["Element"] = None
+
+    def get_name(self) -> str:
+        # JS identifier friendly
+        base = getattr(self, "_name", self.__class__.__name__).lower()
+        base = "".join(ch if (ch.isalnum() or ch == "_") else "_" for ch in base)
+        if not base or base[0].isdigit():
+            base = f"e_{base}"
+        return f"{base}_{self._id}"
+
+    def add_child(self, child: "Element", name: Optional[str] = None, index: Optional[int] = None) -> "Element":
+        if name is None:
+            name = child.get_name()
+        child.parent = self
+        if index is None or index >= len(self._children):
+            self._children[name] = child
+        else:
+            items = list(self._children.items())
+            items.insert(index, (name, child))
+            self._children = OrderedDict(items)
+        return child
+
+    def add_to(self, parent: "Element") -> "Element":
+        parent.add_child(self)
+        return self
+
+    def get_root(self) -> "Element":
+        node: Element = self
+        while node.parent is not None:
+            node = node.parent
+        return node
+
+    def render(self, **kwargs: Any) -> str:
+        # Default: just render children in order.
+        parts = []
+        for child in self._children.values():
+            parts.append(child.render(**kwargs))
+        return "".join(parts)
+
+
+class _HtmlContainer(Element):
+    _name = "container"
+
+    def __init__(self, tag: str = "div", attrs: Optional[dict] = None) -> None:
+        super().__init__()
+        self.tag = tag
+        self.attrs = attrs or {}
+
+    def render(self, **kwargs: Any) -> str:
+        attr_str = "".join(f' {k}="{v}"' for k, v in self.attrs.items())
+        inner = super().render(**kwargs)
+        return f"<{self.tag}{attr_str}>{inner}</{self.tag}>"
+
+
+class Figure(Element):
+    """
+    Represents a full HTML document.
+    Has three main regions: header (<head>), html (<body> content), and script (end-of-body scripts).
+    Also keeps an asset registry to avoid duplicated inclusions.
+    """
+
+    _name = "figure"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.header = _HtmlContainer("head")
+        self.html = _HtmlContainer("body", attrs={"style": "margin:0;padding:0;"})
+        self.script = _HtmlContainer("script")
+        self._asset_keys: set[str] = set()
+
+    def add_asset(self, key: str) -> bool:
+        if key in self._asset_keys:
+            return False
+        self._asset_keys.add(key)
+        return True
+
+    def render(self, **kwargs: Any) -> str:
+        head_inner = (
+            '<meta charset="utf-8"/>'
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>'
+            + self.header.render(**kwargs)
+        )
+        body_inner = self.html.render(**kwargs) + self.script.render(**kwargs)
+        return f"<!DOCTYPE html><html>{head_inner}{body_inner}</html>"
+
+
+class MacroElement(Element):
+    """
+    Element that mainly renders into the Figure.script section (or custom containers),
+    using a callable template for simplicity (no jinja2).
+    """
+
+    _name = "macro_element"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _template(self) -> str:
+        return super().render()
+
+    def render(self, **kwargs: Any) -> str:
+        # By default, macro elements render their own template plus their children.
+        # Subclasses usually override _template().
+        return self._template()
+</file>
+
+<file:name=folium/utilities.py>
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Union
+
+
+def json_dumps(obj: Any) -> str:
+    return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+
+
+def js_str(s: Any) -> str:
+    # Safe JS string literal via JSON
+    return json_dumps("" if s is None else str(s))
+
+
+def normalize_location(location: Any) -> list[float]:
+    if location is None:
+        return [0.0, 0.0]
+    if isinstance(location, (list, tuple)) and len(location) >= 2:
+        return [float(location[0]), float(location[1])]
+    raise ValueError("location must be a (lat, lon) pair")
+
+
+def read_geojson(data: Any) -> Union[dict, list]:
+    if isinstance(data, (dict, list)):
+        return data
+    if isinstance(data, (str, bytes)):
+        s = data.decode("utf-8") if isinstance(data, bytes) else data
+        # If it's a path, read it
+        p = Path(s)
+        if p.exists() and p.is_file():
+            s = p.read_text(encoding="utf-8")
+        try:
+            return json.loads(s)
+        except Exception as e:
+            raise ValueError("Invalid GeoJSON input") from e
+    # Path-like
+    try:
+        p = Path(data)
+        if p.exists() and p.is_file():
+            s = p.read_text(encoding="utf-8")
+            return json.loads(s)
+    except Exception:
+        pass
+    raise ValueError("Invalid GeoJSON input")
+</file>
+
+<file:name=folium/map.py>
+from __future__ import annotations
+
+from typing import Any, Optional
+
+from .elements import Element, Figure, MacroElement, _HtmlContainer
+from .utilities import json_dumps, normalize_location
+
+
+LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+
+PROVIDERS: dict[str, tuple[str, str]] = {
+    "OpenStreetMap": (
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    ),
+}
+
+
+class Layer(MacroElement):
+    _name = "layer"
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        overlay: bool = True,
+        control: bool = True,
+        show: bool = True,
+    ) -> None:
+        super().__init__()
+        self.layer_name = name
+        self.overlay = overlay
+        self.control = control
+        self.show = show
+
+    def get_control_name(self) -> str:
+        return self.layer_name or self.__class__.__name__
+
+
+class Map(MacroElement):
+    _name = "map"
+
+    def __init__(
+        self,
+        location=(0, 0),
+        zoom_start: int = 10,
+        tiles: Any = "OpenStreetMap",
+        width: str = "100%",
+        height: str = "100%",
+        control_scale: bool = False,
+        prefer_canvas: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
+        self.location = normalize_location(location)
+        self.zoom_start = int(zoom_start)
+        self.width = width
+        self.height = height
+        self.control_scale = bool(control_scale)
+        self.prefer_canvas = bool(prefer_canvas)
+        self.options = dict(kwargs)
+
+        self._figure: Optional[Figure] = None
+
+        # Layer registry for LayerControl
+        self._base_layers: dict[str, str] = {}
+        self._overlays: dict[str, str] = {}
+
+        # Map container div
+        self._div = _HtmlContainer(
+            "div",
+            attrs={
+                "id": self.get_name(),
+                "style": f"width:{self.width};height:{self.height};",
+            },
+        )
+
+        if tiles is not None:
+            TileLayer(tiles=tiles, name=str(tiles), overlay=False, control=True, show=True).add_to(self)
+
+    def add_child(self, child: Element, name: Optional[str] = None, index: Optional[int] = None) -> Element:
+        return super().add_child(child, name=name, index=index)
+
+    def add_to(self, parent: Element) -> "Map":
+        parent.add_child(self)
+        return self
+
+    def get_root(self) -> Figure:
+        root = super().get_root()
+        if isinstance(root, Figure):
+            self._figure = root
+            return root
+        # Not attached: create a figure and attach
+        fig = Figure()
+        fig.add_child(self)
+        self._figure = fig
+        return fig
+
+    def _ensure_assets(self, fig: Figure) -> None:
+        if fig.add_asset("leaflet.css"):
+            fig.header.add_child(_Raw(f'<link rel="stylesheet" href="{LEAFLET_CSS}"/>'))
+        if fig.add_asset("leaflet.js"):
+            fig.header.add_child(_Raw(f'<script src="{LEAFLET_JS}"></script>'))
+
+    def _template(self) -> str:
+        fig = self.get_root()
+        self._ensure_assets(fig)
+
+        # Place container in body once
+        if self._div.parent is None:
+            fig.html.add_child(self._div)
+
+        # Map init script
+        opts = {}
+        if self.control_scale:
+            opts["controlScale"] = True
+        if self.prefer_canvas:
+            opts["preferCanvas"] = True
+        opts.update(self.options)
+
+        parts = []
+        parts.append(f"var {self.get_name()} = L.map({json_dumps(self.get_name())}, ")
+        parts.append(json_dumps({"center": self.location, "zoom": self.zoom_start, **opts}))
+        parts.append(");\n")
+        return "".join(parts)
+
+
+class _Raw(Element):
+    _name = "raw"
+
+    def __init__(self, html: str) -> None:
+        super().__init__()
+        self.html = html
+
+    def render(self, **kwargs: Any) -> str:
+        return self.html
+
+
+class TileLayer(Layer):
+    _name = "tile_layer"
+
+    def __init__(
+        self,
+        tiles: str = "OpenStreetMap",
+        name: Optional[str] = None,
+        attr: Optional[str] = None,
+        overlay: bool = False,
+        control: bool = True,
+        show: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(name=name or str(tiles), overlay=overlay, control=control, show=show)
+        self.tiles = tiles
+        self.attr = attr
+        self.kwargs = kwargs
+
+    def _resolve(self) -> tuple[str, str]:
+        if self.tiles in PROVIDERS:
+            url, attr = PROVIDERS[self.tiles]
+            return url, self.attr or attr
+        # custom template url
+        return self.tiles, self.attr or ""
+
+    def _template(self) -> str:
+        m = self._find_map()
+        fig = m.get_root()
+        m._ensure_assets(fig)
+
+        url, attr = self._resolve()
+        opts = dict(self.kwargs)
+        if attr:
+            opts["attribution"] = attr
+        js = []
+        js.append(f"var {self.get_name()} = L.tileLayer({json_dumps(url)},{json_dumps(opts)});\n")
+
+        if self.control:
+            (m._overlays if self.overlay else m._base_layers)[self.get_control_name()] = self.get_name()
+
+        if self.show:
+            js.append(f"{self.get_name()}.addTo({m.get_name()});\n")
+        return "".join(js)
+
+    def _find_map(self) -> Map:
+        node: Optional[Element] = self.parent
+        while node is not None and not isinstance(node, Map):
+            node = node.parent
+        if node is None:
+            raise ValueError("TileLayer must be added to a Map before rendering")
+        return node
+
+
+class LayerControl(MacroElement):
+    _name = "layer_control"
+
+    def __init__(
+        self,
+        position: str = "topright",
+        collapsed: bool = True,
+        autoZIndex: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
+        self.position = position
+        self.collapsed = collapsed
+        self.autoZIndex = autoZIndex
+        self.kwargs = kwargs
+
+    def _template(self) -> str:
+        m = self._find_map()
+        fig = m.get_root()
+        m._ensure_assets(fig)
+
+        base = "{" + ",".join(f"{json_dumps(k)}:{v}" for k, v in m._base_layers.items()) + "}"
+        over = "{" + ",".join(f"{json_dumps(k)}:{v}" for k, v in m._overlays.items()) + "}"
+        opts = {"position": self.position, "collapsed": self.collapsed, "autoZIndex": self.autoZIndex}
+        opts.update(self.kwargs)
+        return f"L.control.layers({base},{over},{json_dumps(opts)}).addTo({m.get_name()});\n"
+
+    def _find_map(self) -> Map:
+        node: Optional[Element] = self.parent
+        while node is not None and not isinstance(node, Map):
+            node = node.parent
+        if node is None:
+            raise ValueError("LayerControl must be added to a Map before rendering")
+        return node
+</file>
+
+<file:name=folium/vector_layers.py>
+from __future__ import annotations
+
+from typing import Any, Optional
+
+from .elements import Element, MacroElement
+from .utilities import json_dumps, js_str, normalize_location, read_geojson
+from .map import Layer, Map
+
+
+def _find_map_or_group(node: Optional[Element]) -> Element:
+    cur = node
+    while cur is not None:
+        # Map or plugin group (e.g., MarkerCluster) should be an Element with get_name()
+        if isinstance(cur, (Map,)):
+            return cur
+        # MarkerCluster will be MacroElement subclass with get_name; we treat any MacroElement
+        # that is not Map but can host markers as group; it will define _is_group = True.
+        if getattr(cur, "_is_group", False):
+            return cur
+        cur = cur.parent
+    raise ValueError("Layer must be added to a Map (or group) before rendering")
+
+
+class Marker(MacroElement):
+    _name = "marker"
+
+    def __init__(
+        self,
+        location,
+        popup: Optional[str] = None,
+        tooltip: Optional[str] = None,
+        icon: Any = None,
+        draggable: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
+        self.location = normalize_location(location)
+        self.popup = popup
+        self.tooltip = tooltip
+        self.icon = icon
+        self.draggable = draggable
+        self.kwargs = kwargs
+
+    def _template(self) -> str:
+        parent = _find_map_or_group(self.parent)
+        opts = dict(self.kwargs)
+        if self.draggable:
+            opts["draggable"] = True
+
+        js = []
+        js.append(f"var {self.get_name()} = L.marker({json_dumps(self.location)},{json_dumps(opts)}).addTo({parent.get_name()});\n")
+        if self.popup is not None:
+            js.append(f"{self.get_name()}.bindPopup({js_str(self.popup)});\n")
+        if self.tooltip is not None:
+            js.append(f"{self.get_name()}.bindTooltip({js_str(self.tooltip)});\n")
+        return "".join(js)
+
+
+class CircleMarker(MacroElement):
+    _name = "circle_marker"
+
+    def __init__(
+        self,
+        location,
+        radius: int = 10,
+        popup: Optional[str] = None,
+        tooltip: Optional[str] = None,
+        color: str = "#3388ff",
+        weight: int = 3,
+        fill: bool = True,
+        fill_color: Optional[str] = None,
+        fill_opacity: float = 0.2,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__()
+        self.location = normalize_location(location)
+        self.radius = radius
+        self.popup = popup
+        self.tooltip = tooltip
+        self.options = dict(
+            radius=radius,
+            color=color,
+            weight=weight,
+            fill=fill,
+            fillColor=fill_color or color,
+            fillOpacity=fill_opacity,
+        )
+        self.options.update(kwargs)
+
+    def _template(self) -> str:
+        parent = _find_map_or_group(self.parent)
+        js = []
+        js.append(
+            f"var {self.get_name()} = L.circleMarker({json_dumps(self.location)},{json_dumps(self.options)}).addTo({parent.get_name()});\n"
+        )
+        if self.popup is not None:
+            js.append(f"{self.get_name()}.bindPopup({js_str(self.popup)});\n")
+        if self.tooltip is not None:
+            js.append(f"{self.get_name()}.bindTooltip({js_str(self.tooltip)});\n")
+        return "".join(js)
+
+
+class GeoJson(Layer):
+    _name = "geo_json"
+
+    def __init__(
+        self,
+        data: Any,
+        name: Optional[str] = None,
+        overlay: bool = True,
+        control: bool = True,
+        show: bool = True,
+        style_function: Any = None,
+        highlight_function: Any = None,
+        tooltip: Optional[str] = None,
+        popup: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(name=name or "GeoJson", overlay=overlay, control=control, show=show)
+        self.data = read_geojson(data)
+        self.style_function = style_function
+        self.highlight_function = highlight_function
+        self.tooltip = tooltip
+        self.popup = popup
+        self.kwargs = kwargs
+
+    def _constant_style(self) -> Optional[dict]:
+        sf = self.style_function
+        if sf is None:
+            return None
+        if isinstance(sf, dict):
+            return sf
+        if callable(sf):
+            # Try first feature as constant probe
+            try:
+                feat = None
+                if isinstance(self.data, dict) and self.data.get("type") == "FeatureCollection":
+                    feats = self.data.get("features") or []
+                    if feats:
+                        feat = feats[0]
+                if feat is None:
+                    feat = {"type": "Feature", "properties": {}, "geometry": None}
+                out = sf(feat)
+                if isinstance(out, dict):
+                    return out
+            except Exception:
+                return None
+        return None
+
+    def _template(self) -> str:
+        m = self._find_map()
+        fig = m.get_root()
+        m._ensure_assets(fig)
+
+        opts = dict(self.kwargs)
+        style = self._constant_style()
+        if style is not None:
+            opts["style"] = style
+
+        js = []
+        js.append(f"var {self.get_name()}_data = {json_dumps(self.data)};\n")
+        js.append(f"var {self.get_name()} = L.geoJSON({self.get_name()}_data,{json_dumps(opts)});\n")
+
+        if self.tooltip is not None:
+            js.append(
+                f"{self.get_name()}.eachLayer(function(l){{l.bindTooltip({js_str(self.tooltip)});}});\n"
+            )
+        if self.popup is not None:
+            js.append(
+                f"{self.get_name()}.eachLayer(function(l){{l.bindPopup({js_str(self.popup)});}});\n"
+            )
+
+        if self.control:
+            (m._overlays if self.overlay else m._base_layers)[self.get_control_name()] = self.get_name()
+
+        if self.show:
+            js.append(f"{self.get_name()}.addTo({m.get_name()});\n")
+        return "".join(js)
+
+    def _find_map(self) -> Map:
+        node: Optional[Element] = self.parent
+        while node is not None and not isinstance(node, Map):
+            node = node.parent
+        if node is None:
+            raise ValueError("GeoJson must be added to a Map before rendering")
+        return node
+</file>
+
+<file:name=folium/plugins/marker_cluster.py>
+from __future__ import annotations
+
+from typing import Any, Optional
+
+from ..elements import Element, MacroElement, _Raw
+from ..utilities import json_dumps
+from ..map import Layer, Map
+
+
+MC_CSS = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+MC_CSS_DEFAULT = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+MC_JS = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+
+
+class MarkerCluster(Layer):
+    _name = "marker_cluster"
+    _is_group = True  # allow markers to addTo(this group)
+
+    def __init__(
+        self,
+        name: str = "MarkerCluster",
+        overlay: bool = True,
+        control: bool = True,
+        show: bool = True,
+        options: Optional[dict] = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(name=name, overlay=overlay, control=control, show=show)
+        self.options = options or {}
+        self.options.update(kwargs)
+
+    def _find_map(self) -> Map:
+        node: Optional[Element] = self.parent
+        while node is not None and not isinstance(node, Map):
+            node = node.parent
+        if node is None:
+            raise ValueError("MarkerCluster must be added to a Map before rendering")
+        return node
+
+    def _ensure_assets(self, fig) -> None:
+        if fig.add_asset("leaflet.markercluster.css"):
+            fig.header.add_child(_Raw(f'<link rel="stylesheet" href="{MC_CSS}"/>'))
+            fig.header.add_child(_Raw(f'<link rel="stylesheet" href="{MC_CSS_DEFAULT}"/>'))
+        if fig.add_asset("leaflet.markercluster.js"):
+            fig.header.add_child(_Raw(f'<script src="{MC_JS}"></script>'))
+
+    def _template(self) -> str:
+        m = self._find_map()
+        fig = m.get_root()
+        m._ensure_assets(fig)
+        self._ensure_assets(fig)
+
+        js = []
+        js.append(f"var {self.get_name()} = L.markerClusterGroup({json_dumps(self.options)});\n")
+
+        # Register single overlay in control
+        if self.control:
+            (m._overlays if self.overlay else m._base_layers)[self.get_control_name()] = self.get_name()
+
+        # Render child markers (they will addTo(cluster_var) because of _is_group)
+        for child in self._children.values():
+            js.append(child.render())
+
+        if self.show:
+            js.append(f"{self.get_name()}.addTo({m.get_name()});\n")
+        return "".join(js)
+</file>
+
+<file:name=folium/__init__.py>
+from .map import Map, TileLayer, LayerControl
+from .vector_layers import Marker, CircleMarker, GeoJson
+from . import plugins
+
+__all__ = [
+    "Map",
+    "TileLayer",
+    "LayerControl",
+    "Marker",
+    "CircleMarker",
+    "GeoJson",
+    "plugins",
+]
+</file>
+
+<file:name=folium/plugins/__init__.py>
+from .marker_cluster import MarkerCluster
+
+__all__ = ["MarkerCluster"]
+</file>
+
+<file:name=folium/elements.py>
+from __future__ import annotations
+
+from collections import OrderedDict
+import uuid
+from typing import Any, Optional
+
+
+class Element:
+    _name: str = "element"
+
+    def __init__(self) -> None:
+        self._id = uuid.uuid4().hex[:12]
+        self._children: "OrderedDict[str, Element]" = OrderedDict()
+        self.parent: Optional["Element"] = None
+
+    def get_name(self) -> str:
+        base = getattr(self, "_name", self.__class__.__name__).lower()
+        base = "".join(ch if (ch.isalnum() or ch == "_") else "_" for ch in base)
+        if not base or base[0].isdigit():
+            base = f"e_{base}"
+        return f"{base}_{self._id}"
+
+    def add_child(self, child: "Element", name: Optional[str] = None, index: Optional[int] = None) -> "Element":
+        if name is None:
+            name = child.get_name()
+        child.parent = self
+        if index is None or index >= len(self._children):
+            self._children[name] = child
+        else:
+            items = list(self._children.items())
+            items.insert(index, (name, child))
+            self._children = OrderedDict(items)
+        return child
+
+    def add_to(self, parent: "Element") -> "Element":
+        parent.add_child(self)
+        return self
+
+    def get_root(self) -> "Element":
+        node: Element = self
+        while node.parent is not None:
+            node = node.parent
+        return node
+
+    def render(self, **kwargs: Any) -> str:
+        parts = []
+        for child in self._children.values():
+            parts.append(child.render(**kwargs))
+        return "".join(parts)
+
+
+class _HtmlContainer(Element):
+    _name = "container"
+
+    def __init__(self, tag: str = "div", attrs: Optional[dict] = None) -> None:
+        super().__init__()
+        self.tag = tag
+        self.attrs = attrs or {}
+
+    def render(self, **kwargs: Any) -> str:
+        attr_str = "".join(f' {k}="{v}"' for k, v in self.attrs.items())
+        inner = super().render(**kwargs)
+        return f"<{self.tag}{attr_str}>{inner}</{self.tag}>"
+
+
+class Figure(Element):
+    _name = "figure"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.header = _HtmlContainer("head")
+        self.html = _HtmlContainer("body", attrs={"style": "margin:0;padding:0;"})
+        self.script = _HtmlContainer("script")
+        self._asset_keys: set[str] = set()
+
+    def add_asset(self, key: str) -> bool:
+        if key in self._asset_keys:
+            return False
+        self._asset_keys.add(key)
+        return True
+
+    def render(self, **kwargs: Any) -> str:
+        # Render root children into the script area by default (e.g., Map + layers).
+        # This ensures m.get_root().render() includes map init/layers.
+        script_inner = "".join(child.render(**kwargs) for child in self._children.values())
+        if script_inner and (not self.script._children):
+            # Insert as raw string container child for stability.
+            self.script.add_child(_Raw(script_inner))
+
+        head_inner = (
+            '<meta charset="utf-8"/>'
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>'
+            + self.header.render(**kwargs)
+        )
+        body_inner = self.html.render(**kwargs) + self.script.render(**kwargs)
+        return f"<!DOCTYPE html><html>{head_inner}{body_inner}</html>"
+
+
+class _Raw(Element):
+    _name = "raw"
+
+    def __init__(self, html: str) -> None:
+        super().__init__()
+        self.html = html
+
+    def render(self, **kwargs: Any) -> str:
+        return self.html
+
+
+class MacroElement(Element):
+    _name: str = "macro_element"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def _template(self) -> str:
+        return super().render()
+
+    def render(self, **kwargs: Any) -> str:
+        return self._template()
+</file>

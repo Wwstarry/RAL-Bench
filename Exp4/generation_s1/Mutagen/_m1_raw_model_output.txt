@@ -1,0 +1,488 @@
+<file:name=mutagen/__init__.py>
+"""
+A tiny pure-Python subset of the Mutagen API required by the benchmark tests.
+
+This is NOT a real ID3 implementation. It provides a stable round-trippable
+storage format for ID3-like metadata with an API compatible with a small subset
+of Mutagen used by the test suite.
+"""
+
+from .easyid3 import EasyID3
+from .id3 import ID3, TIT2, TPE1, COMM, APIC
+
+__all__ = ["EasyID3", "ID3", "TIT2", "TPE1", "COMM", "APIC"]
+__version__ = "0.0.0-agent"
+</file>
+
+<file:name=mutagen/id3.py>
+from __future__ import annotations
+
+import base64
+import io
+import json
+import os
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+_MAGIC = b"MTGL"  # Mutagen Tag GLue
+_FOOTER_LEN = 4 + 8  # magic + payload length (uint64 BE)
+
+
+def _ensure_list_of_str(value: Any) -> List[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value]
+    return [str(value)]
+
+
+@dataclass
+class _TextFrame:
+    FrameID: str
+    encoding: int = 3
+    text: Any = None  # typically list[str]
+
+    def __post_init__(self) -> None:
+        self.text = _ensure_list_of_str(self.text)
+
+
+class TIT2(_TextFrame):
+    FrameID = "TIT2"
+
+    def __init__(self, encoding: int, text: Any = None):
+        super().__init__(FrameID="TIT2", encoding=encoding, text=text)
+
+
+class TPE1(_TextFrame):
+    FrameID = "TPE1"
+
+    def __init__(self, encoding: int, text: Any = None):
+        super().__init__(FrameID="TPE1", encoding=encoding, text=text)
+
+
+class COMM:
+    FrameID = "COMM"
+
+    def __init__(self, encoding: int, lang: str, desc: str, text: Any):
+        self.encoding = int(encoding)
+        self.lang = str(lang)
+        self.desc = str(desc)
+        self.text = _ensure_list_of_str(text)
+
+
+class APIC:
+    FrameID = "APIC"
+
+    def __init__(self, encoding: int, mime: str, type: int, desc: str, data: bytes):
+        self.encoding = int(encoding)
+        self.mime = str(mime)
+        self.type = int(type)
+        self.desc = str(desc)
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError("APIC.data must be bytes-like")
+        self.data = bytes(data)
+
+
+def _frame_to_obj(frame: Any) -> Dict[str, Any]:
+    fid = getattr(frame, "FrameID", None)
+    if not fid:
+        raise TypeError("Frame has no FrameID")
+
+    if fid in ("TIT2", "TPE1") or isinstance(frame, _TextFrame):
+        return {"id": fid, "encoding": int(frame.encoding), "text": list(_ensure_list_of_str(frame.text))}
+    if fid == "COMM":
+        return {
+            "id": "COMM",
+            "encoding": int(frame.encoding),
+            "lang": str(frame.lang),
+            "desc": str(frame.desc),
+            "text": list(_ensure_list_of_str(frame.text)),
+        }
+    if fid == "APIC":
+        return {
+            "id": "APIC",
+            "encoding": int(frame.encoding),
+            "mime": str(frame.mime),
+            "type": int(frame.type),
+            "desc": str(frame.desc),
+            "data_b64": base64.b64encode(frame.data).decode("ascii"),
+        }
+    # Generic text-ish frame fallback (used by EasyID3 mapping for common keys)
+    # Store as a normal text object.
+    enc = int(getattr(frame, "encoding", 3))
+    txt = _ensure_list_of_str(getattr(frame, "text", []))
+    return {"id": str(fid), "encoding": enc, "text": list(txt)}
+
+
+def _obj_to_frame(obj: Dict[str, Any]) -> Any:
+    fid = obj.get("id")
+    if not isinstance(fid, str):
+        raise ValueError("Bad frame object")
+    if fid == "TIT2":
+        return TIT2(obj.get("encoding", 3), text=obj.get("text", []))
+    if fid == "TPE1":
+        return TPE1(obj.get("encoding", 3), text=obj.get("text", []))
+    if fid == "COMM":
+        return COMM(
+            obj.get("encoding", 3),
+            obj.get("lang", "eng"),
+            obj.get("desc", ""),
+            obj.get("text", []),
+        )
+    if fid == "APIC":
+        data_b64 = obj.get("data_b64", "")
+        data = base64.b64decode(data_b64.encode("ascii")) if isinstance(data_b64, str) else b""
+        return APIC(
+            obj.get("encoding", 3),
+            obj.get("mime", "application/octet-stream"),
+            obj.get("type", 0),
+            obj.get("desc", ""),
+            data,
+        )
+    # Generic text frame
+    return _TextFrame(FrameID=fid, encoding=int(obj.get("encoding", 3)), text=obj.get("text", []))
+
+
+def _serialize_frames(frames_by_id: Dict[str, List[Any]]) -> bytes:
+    frames_list: List[Dict[str, Any]] = []
+    for fid, frames in frames_by_id.items():
+        for fr in frames:
+            frames_list.append(_frame_to_obj(fr))
+    payload_obj = {"frames": frames_list}
+    payload = json.dumps(payload_obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return _MAGIC + len(payload).to_bytes(8, "big") + payload
+
+
+def _try_parse_tag_from_file_end(f: io.BufferedReader) -> Tuple[Optional[int], Optional[Dict[str, List[Any]]]]:
+    """
+    Returns (tag_start_offset, frames_by_id) or (None, None) if not present.
+    """
+    try:
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        if size < _FOOTER_LEN:
+            return None, None
+        f.seek(size - _FOOTER_LEN, os.SEEK_SET)
+        footer = f.read(_FOOTER_LEN)
+        if len(footer) != _FOOTER_LEN:
+            return None, None
+        if footer[:4] != _MAGIC:
+            return None, None
+        payload_len = int.from_bytes(footer[4:12], "big")
+        if payload_len < 2:
+            return None, None
+        tag_start = size - _FOOTER_LEN - payload_len
+        if tag_start < 0:
+            return None, None
+        f.seek(tag_start, os.SEEK_SET)
+        payload = f.read(payload_len)
+        if len(payload) != payload_len:
+            return None, None
+        try:
+            obj = json.loads(payload.decode("utf-8"))
+        except Exception:
+            return None, None
+        if not isinstance(obj, dict) or "frames" not in obj or not isinstance(obj["frames"], list):
+            return None, None
+        frames_by_id: Dict[str, List[Any]] = {}
+        for fr_obj in obj["frames"]:
+            if not isinstance(fr_obj, dict):
+                continue
+            try:
+                fr = _obj_to_frame(fr_obj)
+            except Exception:
+                continue
+            fid = getattr(fr, "FrameID", None) or fr_obj.get("id")
+            if not isinstance(fid, str):
+                continue
+            frames_by_id.setdefault(fid, []).append(fr)
+        return tag_start, frames_by_id
+    except Exception:
+        return None, None
+
+
+def _copy_prefix(src: io.BufferedReader, dst: io.BufferedWriter, prefix_len: int, bufsize: int = 64 * 1024) -> None:
+    remaining = prefix_len
+    src.seek(0, os.SEEK_SET)
+    while remaining > 0:
+        chunk = src.read(min(bufsize, remaining))
+        if not chunk:
+            break
+        dst.write(chunk)
+        remaining -= len(chunk)
+    if remaining != 0:
+        # Source shorter than expected; treat as full copy already.
+        pass
+
+
+class ID3:
+    def __init__(self, filename: Optional[str] = None):
+        self.filename: Optional[str] = None
+        self._frames: Dict[str, List[Any]] = {}
+        if filename is not None:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self.filename = filename
+        self._frames = {}
+        with open(filename, "rb") as f:
+            _tag_start, frames_by_id = _try_parse_tag_from_file_end(f)
+            if frames_by_id:
+                self._frames = frames_by_id
+
+    def add(self, frame: Any) -> None:
+        fid = getattr(frame, "FrameID", None)
+        if not isinstance(fid, str) or not fid:
+            raise TypeError("frame must have a FrameID")
+        self._frames.setdefault(fid, []).append(frame)
+
+    def getall(self, frame_id: str) -> List[Any]:
+        return list(self._frames.get(frame_id, []))
+
+    def delall(self, frame_id: str) -> None:
+        self._frames.pop(frame_id, None)
+
+    def setall(self, frame_id: str, frames: Iterable[Any]) -> None:
+        frames_list = list(frames)
+        for fr in frames_list:
+            fid = getattr(fr, "FrameID", None)
+            if fid is None:
+                # allow generic; assume caller intends this frame_id
+                setattr(fr, "FrameID", frame_id)
+            elif str(fid) != frame_id:
+                # Normalize to requested ID for consistency
+                setattr(fr, "FrameID", frame_id)
+        if frames_list:
+            self._frames[frame_id] = frames_list
+        else:
+            self._frames.pop(frame_id, None)
+
+    def __getitem__(self, frame_id: str) -> Any:
+        frames = self._frames.get(frame_id)
+        if not frames:
+            raise KeyError(frame_id)
+        return frames[0]
+
+    def save(self, filename: Optional[str] = None) -> None:
+        target = filename or self.filename
+        if not target:
+            raise ValueError("No filename specified for save()")
+        # If saving to explicit filename, bind it for subsequent save()
+        self.filename = target
+
+        tag_block = _serialize_frames(self._frames)
+
+        # If file doesn't exist, create tag-only.
+        if not os.path.exists(target):
+            os.makedirs(os.path.dirname(os.path.abspath(target)) or ".", exist_ok=True)
+            with open(target, "wb") as out:
+                out.write(tag_block)
+            return
+
+        tmp = target + ".tmp"
+        with open(target, "rb") as src:
+            src.seek(0, os.SEEK_END)
+            size = src.tell()
+            tag_start, _frames_existing = _try_parse_tag_from_file_end(src)
+            if tag_start is None:
+                prefix_len = size
+            else:
+                prefix_len = tag_start
+
+            with open(tmp, "wb") as dst:
+                _copy_prefix(src, dst, prefix_len)
+                dst.write(tag_block)
+
+        os.replace(tmp, target)
+</file>
+
+<file:name=mutagen/easyid3.py>
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import Any, Dict, Iterator, List, Optional
+
+from .id3 import ID3, TIT2, TPE1, _TextFrame  # type: ignore
+
+
+_KEY_TO_FRAMEID: Dict[str, str] = {
+    "title": "TIT2",
+    "artist": "TPE1",
+    "tracknumber": "TRCK",
+    "album": "TALB",
+    "genre": "TCON",
+    "date": "TDRC",
+}
+
+
+class EasyID3(MutableMapping):
+    def __init__(self, filename: Optional[str] = None):
+        self._id3 = ID3()
+        self.filename: Optional[str] = None
+        if filename is not None:
+            self.load(filename)
+
+    def load(self, filename: str) -> None:
+        self._id3 = ID3(filename)
+        self.filename = filename
+
+    def save(self, filename: Optional[str] = None) -> None:
+        target = filename or self.filename
+        if not target:
+            raise ValueError("No filename specified for save()")
+        self.filename = target
+        self._id3.save(target)
+
+    def _frameid_for_key(self, key: str) -> str:
+        if key not in _KEY_TO_FRAMEID:
+            raise KeyError(key)
+        return _KEY_TO_FRAMEID[key]
+
+    def __getitem__(self, key: str) -> List[str]:
+        fid = self._frameid_for_key(key)
+        fr = self._id3[fid]
+        text = getattr(fr, "text", None)
+        if isinstance(text, list):
+            return list(text)
+        if text is None:
+            return []
+        return [str(text)]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        fid = self._frameid_for_key(key)
+        if isinstance(value, (list, tuple)):
+            vals = [str(v) for v in value]
+        else:
+            vals = [str(value)]
+        if fid == "TIT2":
+            self._id3.setall(fid, [TIT2(3, text=vals)])
+        elif fid == "TPE1":
+            self._id3.setall(fid, [TPE1(3, text=vals)])
+        else:
+            # generic text frame
+            self._id3.setall(fid, [_TextFrame(FrameID=fid, encoding=3, text=vals)])
+
+    def __delitem__(self, key: str) -> None:
+        fid = self._frameid_for_key(key)
+        # If the key isn't present, behave like a mapping and raise KeyError
+        if not self._id3.getall(fid):
+            raise KeyError(key)
+        self._id3.delall(fid)
+
+    def __iter__(self) -> Iterator[str]:
+        # only return keys that currently exist
+        present = set()
+        for k, fid in _KEY_TO_FRAMEID.items():
+            if self._id3.getall(fid):
+                present.add(k)
+        return iter(sorted(present))
+
+    def __len__(self) -> int:
+        return sum(1 for _ in self.__iter__())
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import os
+import pytest
+
+from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3, TIT2, TPE1, COMM, APIC
+
+
+def test_easyid3_roundtrip_tag_only(tmp_path):
+    p = tmp_path / "a.mp3"
+    t = EasyID3()
+    t["title"] = ["Song Title"]
+    t["artist"] = ["Artist"]
+    t.save(str(p))
+
+    t2 = EasyID3(str(p))
+    assert t2["title"] == ["Song Title"]
+    assert t2["artist"] == ["Artist"]
+
+
+def test_easyid3_multiple_values_overwrite_delete(tmp_path):
+    p = tmp_path / "b.mp3"
+    t = EasyID3()
+    t["artist"] = ["A1", "A2"]
+    t["title"] = "Old"
+    t.save(str(p))
+
+    t2 = EasyID3(str(p))
+    assert t2["artist"] == ["A1", "A2"]
+    assert t2["title"] == ["Old"]
+
+    t2["title"] = ["New"]
+    del t2["artist"]
+    t2.save()
+
+    t3 = EasyID3(str(p))
+    assert t3["title"] == ["New"]
+    with pytest.raises(KeyError):
+        _ = t3["artist"]
+    assert "artist" not in list(t3)
+
+
+def test_id3_text_comm_apic_roundtrip_and_ops(tmp_path):
+    p = tmp_path / "c.mp3"
+
+    tags = ID3()
+    tags.add(TIT2(3, text=["T1"]))
+    tags.add(TPE1(3, text=["P1", "P2"]))
+    tags.add(COMM(3, "eng", "d1", ["hello"]))
+    tags.add(COMM(3, "eng", "d2", ["world"]))
+    data1 = b"\x89PNG\r\n\x1a\n" + b"data1"
+    data2 = b"\xff\xd8\xff" + b"data2"
+    tags.add(APIC(3, "image/png", 3, "cover", data1))
+    tags.add(APIC(3, "image/jpeg", 3, "other", data2))
+    tags.save(str(p))
+
+    tags2 = ID3(str(p))
+    assert tags2["TIT2"].text == ["T1"]
+    assert tags2["TPE1"].text == ["P1", "P2"]
+
+    comms = tags2.getall("COMM")
+    assert len(comms) == 2
+    assert {(c.lang, c.desc, tuple(c.text)) for c in comms} == {("eng", "d1", ("hello",)), ("eng", "d2", ("world",))}
+
+    apics = tags2.getall("APIC")
+    assert len(apics) == 2
+    assert apics[0].data.startswith(b"\x89PNG\r\n\x1a\n") or apics[1].data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert apics[0].data[:3] in (b"\x89PN", b"\xff\xd8\xff") or apics[1].data[:3] in (b"\x89PN", b"\xff\xd8\xff")
+
+    # overwrite TIT2 via setall
+    tags2.setall("TIT2", [TIT2(3, text=["T2"])])
+    tags2.save()
+    tags3 = ID3(str(p))
+    assert tags3["TIT2"].text == ["T2"]
+    assert len(tags3.getall("TIT2")) == 1
+
+    # delall APIC
+    tags3.delall("APIC")
+    tags3.save()
+    tags4 = ID3(str(p))
+    assert tags4.getall("APIC") == []
+
+
+def test_preserve_prefix_bytes_when_tagging_existing_file(tmp_path):
+    p = tmp_path / "raw.mp3"
+    prefix = b"NOTANMP3" * 1000
+    p.write_bytes(prefix)
+
+    t = EasyID3(str(p))
+    t["title"] = ["X"]
+    t.save()
+
+    # ensure prefix preserved (file now longer because tag appended/replaced)
+    new = p.read_bytes()
+    assert new.startswith(prefix)
+
+    # repeat save should not grow linearly
+    size1 = os.path.getsize(p)
+    t2 = EasyID3(str(p))
+    t2["title"] = ["Y"]
+    t2.save()
+    size2 = os.path.getsize(p)
+    assert size2 <= size1 + 200  # small change only
+    assert EasyID3(str(p))["title"] == ["Y"]
+</file>

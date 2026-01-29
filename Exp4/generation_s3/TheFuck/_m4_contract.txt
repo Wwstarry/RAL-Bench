@@ -1,0 +1,159 @@
+1) Repository layout (what packages/modules/files must exist)
+- thefuck/__init__.py
+  - Must define __version__ (string) and expose key items if tests import them from package root.
+- thefuck/__main__.py
+  - Must call the CLI entry function and exit with its return code.
+- thefuck/main.py
+  - Must implement main(argv=None) -> int (or raise SystemExit(code)).
+- thefuck/types.py (or thefuck/models.py)
+  - Must define Command class representing a previously executed command.
+- thefuck/corrector.py (or thefuck/engine.py)
+  - Must implement suggestion generation: get_corrected_commands(command, settings=None) -> list[str] and/or get_suggestions(command, settings=None) -> list[Suggestion].
+- thefuck/rules/__init__.py
+  - Must expose rule discovery/load functions and/or a stable list of default rules.
+- thefuck/rules/<rule_modules>.py
+  - Provide a small set of built-in rules sufficient for tests (typo/unknown command, wrong subcommand, missing argument, option ordering).
+- thefuck/utils.py
+  - Common helpers: shell-quoting, string distance, tokenization, deterministic ordering helpers.
+- thefuck/settings.py (optional but recommended)
+  - Minimal Settings object/dict with flags used by CLI/tests (e.g., no_interactive, debug, max_suggestions).
+- pyproject.toml/setup.cfg/setup.py (not required by tests unless they import metadata; keep minimal if present).
+
+2) Public API surface (modules/classes/functions and key signatures)
+- thefuck.main.main(argv: list[str] | None = None) -> int
+  - Parses argv (default: sys.argv[1:]).
+  - Returns an integer exit code OR raises SystemExit(code).
+  - Must not prompt interactively in test paths (see Behavioral contract).
+- thefuck.types.Command (or thefuck.models.Command)
+  - Constructor signature: Command(script: str, stdout: str = '', stderr: str = '', returncode: int = 0)
+  - Required attributes/properties:
+    - script (full command line as a string)
+    - stdout (string)
+    - stderr (string)
+    - returncode (int)
+    - args (list[str]) derived from script splitting (shell-like split; deterministic)
+  - Optional convenience:
+    - @classmethod from_raw(script, stdout, stderr, returncode) -> Command
+- thefuck.corrector.get_corrected_commands(command: Command, settings: dict | None = None) -> list[str]
+  - Returns ordered list of corrected command strings, best first.
+  - Must be deterministic for identical inputs.
+- thefuck.corrector.get_suggestions(command: Command, settings: dict | None = None) -> list[Suggestion]
+  - Suggestion may be a small dataclass/namedtuple with fields:
+    - command (str) corrected script
+    - rule_name (str)
+    - priority (int) lower means higher priority (or inverse, but must be consistent)
+    - confidence (float) for tie-breaking (optional)
+- thefuck.rules (package) must support rule discovery/loading:
+  - thefuck.rules.get_rules(settings: dict | None = None) -> list[Rule]
+  - Rule is an object (dataclass or simple module protocol) with:
+    - name (str)
+    - match(command: Command) -> bool
+    - get_new_command(command: Command) -> str | list[str]
+    - priority (int; default 1000) used for ordering suggestions across rules
+  - Implementation may model rules as modules with top-level match/get_new_command/priority and wrap them, or as classes; tests must be able to load and apply them via get_rules and corrector functions.
+- thefuck.utils
+  - shell_split(s: str) -> list[str]
+  - shell_join(args: list[str]) -> str (or quote(str) -> str)
+  - levenshtein_or_distance(a: str, b: str) -> int (or similar) used for typo corrections
+  - unique_stable(seq) -> list preserving first occurrence
+- thefuck.__main__ must run:
+  - python -m thefuck <args...> which calls thefuck.main.main and exits accordingly.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+Core flow:
+- Input to engine is a “previous command” described by:
+  - script: original command line string
+  - stdout/stderr: output text from previous run
+  - returncode: non-zero indicates failure; zero may still be corrected if tests pass such a case, but default is only correct on non-zero unless forced by settings.
+- Rule evaluation:
+  - get_rules returns a stable ordered list of rules (deterministic order across runs).
+  - For each rule where rule.match(command) is True, collect proposed corrected command(s) from rule.get_new_command.
+  - Normalize proposals into list[str].
+  - Remove duplicates deterministically (keep first occurrence).
+  - Sort final suggestions by:
+    1) rule.priority ascending (or defined ordering) then
+    2) suggestion confidence/heuristic score descending if used then
+    3) lexicographic order as final tie-breaker
+  - Must produce stable, reproducible ordering for identical inputs.
+- CLI behavior (minimal subset compatible with tests):
+  - main(argv) supports non-interactive invocation that prints suggestions or best suggestion depending on flags.
+  - Must not block for user input in tests:
+    - Provide a default “non-interactive” behavior when stdout is not a TTY OR when --yes/--force or equivalent flag is used.
+    - If tests call main without flags, it must still not prompt; instead it should print best suggestion (or all suggestions) and return a code.
+  - Accept at least these common CLI patterns (only those used by tests must be correct):
+    - `thefuck -l` or `--list` prints all suggestions, one per line.
+    - No flags: print best suggestion only.
+    - `--version` prints version and exits 0.
+    - `-h/--help` prints usage and exits 0.
+  - How previous command is supplied:
+    - Since tests can’t rely on shell integration, support passing previous command explicitly, e.g.:
+      - `python -m thefuck --command "<script>" --stdout "<out>" --stderr "<err>" --returncode N`
+    - If tests don’t pass these flags, allow a fallback:
+      - Accept remaining argv as the “script” to correct (joined with spaces), with empty outputs and returncode=1 by default.
+- Error patterns to detect (synthetic cases covered by tests; must be deterministic):
+  A) Unknown command / typo in command name:
+    - Match on stderr/stdout containing typical patterns: "command not found", "not recognized as an internal or external command", "No such file or directory", "Unknown command".
+    - Suggest closest known command from a small built-in dictionary (configurable) using string distance:
+      - At minimum include common commands likely in tests: git, python, pip, ls, cd, mkdir, rm, mv, cp, cat, echo.
+    - Example: "gti status" -> "git status"
+  B) Wrong git subcommand:
+    - Match when script starts with "git " and stderr contains "is not a git command" or "unknown subcommand".
+    - Suggest closest subcommand from a static list (commit, checkout, branch, status, add, push, pull, clone, merge, rebase, log, diff, fetch, init, remote, tag).
+    - Example: "git statsu" -> "git status"
+  C) Missing required argument:
+    - Match on stderr containing "missing argument", "requires an argument", "expected one argument", "the following arguments are required".
+    - Suggest appending a placeholder or common default:
+      - If command is "cd" with no arg and error indicates missing operand, suggest "cd .." or "cd ~" (choose one deterministically; prefer "cd .." unless tests specify otherwise).
+      - If option like "-m" missing value in git commit, suggest `git commit -m ""` (empty message) deterministically.
+    - For generic cases, suggest adding "" (empty quoted string) after the offending option token if detect pattern like "-m" at end.
+  D) Wrong option ordering / misplaced option:
+    - Match basic known patterns:
+      - For git: "git commit -am 'msg'" is valid; but if tests have an ordering requirement, implement a simple reorder rule:
+        - If script matches "git commit (.*) -m (.*) -a" reorder to "... -a -m ..."
+      - For commands that require options before args, move flags before positional args deterministically.
+    - If unsure, do not propose speculative reorder; only propose when pattern clearly matches.
+- Quoting and formatting:
+  - Suggested commands must be valid shell strings; implement conservative quoting:
+    - Preserve existing quoting if possible.
+    - When inserting placeholders, use "" (double quotes) for empty strings.
+  - Output suggestion strings exactly as produced by shell_join; stable across platforms.
+- Return codes:
+  - main returns:
+    - 0 if it printed at least one suggestion (or successfully handled --help/--version).
+    - 1 if no suggestion found or invalid invocation.
+    - 2 for argument parsing errors (optional; consistent with argparse default).
+- Logging/debug:
+  - If --debug present, may print extra info to stderr but must not break tests expecting exact stdout; default no debug output.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Import and module structure:
+  - `import thefuck` succeeds.
+  - `python -m thefuck --version` prints a version and exits 0.
+  - `python -m thefuck` executes without crashing and without waiting for input.
+- Public API:
+  - `from thefuck.main import main` provides callable main(argv=None).
+  - `from thefuck.types import Command` (or documented equivalent module path used by tests) exists and stores script/stdout/stderr/returncode with args tokenization.
+  - `from thefuck.corrector import get_corrected_commands` returns list[str] ordered deterministically.
+  - `from thefuck.rules import get_rules` returns iterable of rule objects/modules usable by corrector.
+- Deterministic suggestions:
+  - For the same Command input, repeated calls return identical suggestion lists with identical ordering.
+  - Duplicate suggestions are removed with stable first-win behavior.
+- Behavior on synthetic errors:
+  - Unknown/typo command produces a corrected command name suggestion based on distance from known commands.
+  - Git wrong subcommand produces corrected subcommand suggestion from static list.
+  - Missing argument cases produce deterministic placeholder/default suggestions.
+  - Option ordering rule only triggers on clearly matched patterns; results are deterministic.
+- CLI output modes:
+  - Default mode prints best suggestion only (single line) and exits 0 when suggestions exist.
+  - List mode prints all suggestions (one per line) and exits 0.
+  - No suggestions => prints nothing (or a short message if tests allow) and exits 1.
+- Non-interactive guarantee:
+  - No calls to input()/readline prompts in core execution path used by tests.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not depend on external binaries, shell history, or actual last command retrieval; tests must supply previous command via args or direct API.
+- Do not implement full TheFuck feature set (aliases, instant mode, shell integrations, extensive rule set); only minimal rules required for tests.
+- Do not introduce non-determinism (randomness, time-based ordering, OS locale-dependent sorting).
+- Do not use network access or external services.
+- Avoid heavy third-party dependencies; use only Python standard library.
+- Avoid interactive prompts; if confirmation is part of reference behavior, it must be bypassed automatically in tests via default non-interactive behavior and/or flags.

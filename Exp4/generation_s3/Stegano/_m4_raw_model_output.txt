@@ -1,0 +1,640 @@
+<file:name=stegano/__init__.py>
+"""
+Pure-Python steganography library implementing a subset of the public API of
+the reference "Stegano" project.
+
+This package exposes the following subpackages:
+- stegano.lsb
+- stegano.red
+- stegano.exifHeader
+- stegano.wav
+"""
+
+from __future__ import annotations
+
+from . import lsb, red, exifHeader, wav  # re-export for API compatibility
+
+__all__ = ["lsb", "red", "exifHeader", "wav"]
+</file>
+
+<file:name=stegano/lsb/__init__.py>
+from __future__ import annotations
+
+from .lsb import hide, reveal
+
+__all__ = ["hide", "reveal"]
+</file>
+
+<file:name=stegano/lsb/generators.py>
+from __future__ import annotations
+
+from typing import Iterator
+
+
+def eratosthenes() -> Iterator[int]:
+    """
+    Infinite generator yielding prime numbers in ascending order.
+
+    Used by the LSB backend as a pixel-index generator.
+    """
+    # Incremental sieve (dictionary of composites -> step)
+    # Based on a common "incremental Sieve of Eratosthenes" implementation.
+    D: dict[int, int] = {}
+    q = 2
+    while True:
+        if q not in D:
+            yield q
+            D[q * q] = q
+        else:
+            p = D.pop(q)
+            x = q + p
+            while x in D:
+                x += p
+            D[x] = p
+        q += 1
+</file>
+
+<file:name=stegano/lsb/lsb.py>
+from __future__ import annotations
+
+from typing import Iterable, Iterator, Optional, Sequence, Tuple, Union
+
+from PIL import Image
+
+from stegano.tools.bititerator import bits_from_bytes, bytes_from_bits
+from stegano.tools.utils import (
+    DEFAULT_TERMINATOR,
+    ensure_image,
+    find_terminator_index,
+    iter_channel_positions,
+)
+
+
+ImageInput = Union[str, Image.Image]
+
+
+def _get_mode_channels(mode: str) -> Tuple[str, ...]:
+    # We support "L", "RGB", "RGBA" (but do not write to alpha).
+    if mode == "L":
+        return ("L",)
+    if mode == "RGB":
+        return ("R", "G", "B")
+    if mode == "RGBA":
+        return ("R", "G", "B")  # keep alpha untouched
+    raise ValueError(f"Unsupported image mode: {mode!r}")
+
+
+def _capacity_bits(img: Image.Image, channels: Sequence[str]) -> int:
+    w, h = img.size
+    return w * h * len(channels)
+
+
+def _iter_positions_sequential(img: Image.Image, channels: Sequence[str]) -> Iterator[Tuple[int, int, int]]:
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            for c in range(len(channels)):
+                yield (x, y, c)
+
+
+def _iter_positions_generator(
+    img: Image.Image,
+    channels: Sequence[str],
+    generator: Iterable[int],
+    shift: int,
+) -> Iterator[Tuple[int, int, int]]:
+    """
+    Convert a pixel-index generator into per-channel positions.
+    Each pixel index yields up to len(channels) embedding positions.
+    """
+    w, h = img.size
+    n_pixels = w * h
+    for idx in generator:
+        pixel_index = idx + shift
+        if pixel_index < 0 or pixel_index >= n_pixels:
+            # Reference behavior isn't fully specified; skipping out-of-range keeps iterator usable.
+            # This also avoids infinite loops if a generator yields small primes with huge shift.
+            continue
+        x = pixel_index % w
+        y = pixel_index // w
+        for c in range(len(channels)):
+            yield (x, y, c)
+
+
+def hide(
+    image: ImageInput,
+    message: Union[str, bytes],
+    generator: Optional[Iterable[int]] = None,
+    shift: int = 0,
+    encoding: str = "UTF-8",
+    auto_convert_rgb: bool = False,
+) -> Image.Image:
+    img = ensure_image(image)
+
+    if img.mode not in ("L", "RGB", "RGBA"):
+        if auto_convert_rgb:
+            img = img.convert("RGB")
+        else:
+            raise ValueError(f"Unsupported image mode {img.mode!r}. Use auto_convert_rgb=True to convert.")
+    channels = _get_mode_channels(img.mode)
+
+    if isinstance(message, str):
+        payload = message.encode(encoding)
+    elif isinstance(message, (bytes, bytearray)):
+        payload = bytes(message)
+    else:
+        raise TypeError("message must be str or bytes")
+
+    payload += DEFAULT_TERMINATOR
+    required_bits = len(payload) * 8
+    capacity = _capacity_bits(img, channels)
+    if required_bits > capacity:
+        raise ValueError("Insufficient capacity to hide message in image.")
+
+    out = img.copy()
+    pixels = out.load()
+
+    bit_iter = iter(bits_from_bytes(payload))
+    if generator is None:
+        pos_iter = _iter_positions_sequential(out, channels)
+    else:
+        pos_iter = _iter_positions_generator(out, channels, generator, shift)
+
+    # Write bits
+    for (x, y, c) in pos_iter:
+        try:
+            bit = next(bit_iter)
+        except StopIteration:
+            break
+
+        px = pixels[x, y]
+        if out.mode == "L":
+            val = int(px)
+            val = (val & ~1) | bit
+            pixels[x, y] = val
+        elif out.mode in ("RGB", "RGBA"):
+            if out.mode == "RGB":
+                r, g, b = px
+                rgb = [r, g, b]
+                rgb[c] = (int(rgb[c]) & ~1) | bit
+                pixels[x, y] = tuple(rgb)
+            else:
+                r, g, b, a = px
+                rgb = [r, g, b]
+                rgb[c] = (int(rgb[c]) & ~1) | bit
+                pixels[x, y] = (rgb[0], rgb[1], rgb[2], a)
+        else:
+            # should not happen due to checks
+            raise ValueError(f"Unsupported image mode: {out.mode!r}")
+
+    # Ensure all bits were written (generator could be too sparse due to skipping OOR indices)
+    try:
+        next(bit_iter)
+        raise ValueError("Insufficient usable capacity with provided generator/shift to hide message.")
+    except StopIteration:
+        pass
+
+    return out
+
+
+def reveal(
+    image: ImageInput,
+    generator: Optional[Iterable[int]] = None,
+    shift: int = 0,
+    encoding: str = "UTF-8",
+) -> str:
+    img = ensure_image(image)
+    if img.mode not in ("L", "RGB", "RGBA"):
+        raise ValueError(f"Unsupported image mode: {img.mode!r}")
+
+    channels = _get_mode_channels(img.mode)
+    pixels = img.load()
+
+    if generator is None:
+        pos_iter = _iter_positions_sequential(img, channels)
+    else:
+        pos_iter = _iter_positions_generator(img, channels, generator, shift)
+
+    bits = []
+    collected = bytearray()
+
+    # Read bits and build bytes incrementally to detect terminator early
+    for (x, y, c) in pos_iter:
+        px = pixels[x, y]
+        if img.mode == "L":
+            val = int(px)
+        elif img.mode == "RGB":
+            val = int(px[c])
+        else:  # RGBA but we only read RGB channels
+            val = int(px[c])
+
+        bits.append(val & 1)
+        if len(bits) == 8:
+            collected.extend(bytes_from_bits(bits))
+            bits.clear()
+            idx = find_terminator_index(collected, DEFAULT_TERMINATOR)
+            if idx != -1:
+                data = bytes(collected[:idx])
+                return data.decode(encoding)
+
+    raise ValueError("No hidden message found (terminator not present).")
+</file>
+
+<file:name=stegano/red/__init__.py>
+from __future__ import annotations
+
+from .red import hide, reveal
+
+__all__ = ["hide", "reveal"]
+</file>
+
+<file:name=stegano/red/red.py>
+from __future__ import annotations
+
+from typing import Union
+
+from PIL import Image
+
+from stegano.tools.bititerator import bits_from_bytes, bytes_from_bits
+from stegano.tools.utils import DEFAULT_TERMINATOR, ensure_image, find_terminator_index
+
+ImageInput = Union[str, Image.Image]
+
+
+def hide(image: ImageInput, message: str) -> Image.Image:
+    img = ensure_image(image).convert("RGB")
+    payload = message.encode("UTF-8") + DEFAULT_TERMINATOR
+    required_bits = len(payload) * 8
+
+    w, h = img.size
+    capacity = w * h  # 1 bit per pixel (red channel LSB)
+    if required_bits > capacity:
+        raise ValueError("Insufficient capacity to hide message in red channel.")
+
+    out = img.copy()
+    pixels = out.load()
+
+    bit_iter = iter(bits_from_bytes(payload))
+    for y in range(h):
+        for x in range(w):
+            try:
+                bit = next(bit_iter)
+            except StopIteration:
+                return out
+            r, g, b = pixels[x, y]
+            r = (int(r) & ~1) | bit
+            pixels[x, y] = (r, g, b)
+
+    # If we didn't return, we ran out of pixels
+    raise ValueError("Insufficient capacity to hide message in red channel.")
+
+
+def reveal(image: ImageInput) -> str:
+    img = ensure_image(image).convert("RGB")
+    w, h = img.size
+    pixels = img.load()
+
+    bits = []
+    collected = bytearray()
+
+    for y in range(h):
+        for x in range(w):
+            r, g, b = pixels[x, y]
+            bits.append(int(r) & 1)
+            if len(bits) == 8:
+                collected.extend(bytes_from_bits(bits))
+                bits.clear()
+                idx = find_terminator_index(collected, DEFAULT_TERMINATOR)
+                if idx != -1:
+                    return bytes(collected[:idx]).decode("UTF-8")
+
+    raise ValueError("No hidden message found (terminator not present).")
+</file>
+
+<file:name=stegano/exifHeader/__init__.py>
+from __future__ import annotations
+
+from .exifHeader import hide, reveal
+
+__all__ = ["hide", "reveal"]
+</file>
+
+<file:name=stegano/exifHeader/exifHeader.py>
+from __future__ import annotations
+
+import base64
+from typing import Any, Union
+
+from PIL import Image, TiffImagePlugin
+
+from stegano.tools.utils import ensure_image
+
+ImageInput = Union[str, Image.Image]
+
+# We store in EXIF UserComment (37510) as ASCII with a prefix for identification.
+_TAG_USER_COMMENT = 37510
+_PREFIX = b"STEGANO_EXIF_B64:"
+
+
+def _get_exif_dict(img: Image.Image) -> dict[int, Any]:
+    exif = img.getexif()
+    # PIL Exif object behaves like a dict; convert to plain dict for manipulation.
+    return {int(k): exif.get(k) for k in exif.keys()}
+
+
+def hide(
+    input_image_file: str,
+    output_path: str,
+    secret_message: bytes = b"",
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """
+    Embed arbitrary bytes into EXIF metadata and write to output_path.
+
+    Accepts extra args/kwargs for compatibility; they are ignored.
+    """
+    if not isinstance(secret_message, (bytes, bytearray)):
+        raise TypeError("secret_message must be bytes")
+
+    img = Image.open(input_image_file)
+    exif_dict = _get_exif_dict(img)
+
+    b64 = base64.b64encode(bytes(secret_message))
+    value = _PREFIX + b64
+
+    # Store as bytes; PIL will marshal appropriately for EXIF.
+    exif_dict[_TAG_USER_COMMENT] = value
+
+    exif = Image.Exif()
+    for k, v in exif_dict.items():
+        try:
+            exif[k] = v
+        except Exception:
+            # If some tags cannot be set, ignore them; our tag is the important one.
+            pass
+    exif[_TAG_USER_COMMENT] = value
+
+    save_kwargs: dict[str, Any] = {"exif": exif.tobytes()}
+    # Preserve format if possible; PIL chooses from output extension.
+    img.save(output_path, **save_kwargs)
+
+
+def reveal(image: ImageInput) -> bytes:
+    img = ensure_image(image)
+    exif = img.getexif()
+    if not exif:
+        raise ValueError("No EXIF metadata found.")
+
+    raw = exif.get(_TAG_USER_COMMENT)
+    if raw is None:
+        raise ValueError("No hidden message found in EXIF metadata.")
+
+    # raw might be bytes, str, or a tuple depending on PIL/version; normalize.
+    if isinstance(raw, str):
+        raw_bytes = raw.encode("utf-8", errors="ignore")
+    elif isinstance(raw, (bytes, bytearray)):
+        raw_bytes = bytes(raw)
+    elif isinstance(raw, (tuple, list)):
+        # Some representations return a sequence of ints
+        try:
+            raw_bytes = bytes(raw)
+        except Exception as e:
+            raise ValueError("Unsupported EXIF UserComment type.") from e
+    else:
+        raise ValueError("Unsupported EXIF UserComment type.")
+
+    if not raw_bytes.startswith(_PREFIX):
+        raise ValueError("No hidden message found in EXIF metadata.")
+
+    b64 = raw_bytes[len(_PREFIX) :]
+    try:
+        return base64.b64decode(b64, validate=False)
+    except Exception as e:
+        raise ValueError("Corrupted hidden message in EXIF metadata.") from e
+</file>
+
+<file:name=stegano/wav/__init__.py>
+from __future__ import annotations
+
+from .wav import hide, reveal
+
+__all__ = ["hide", "reveal"]
+</file>
+
+<file:name=stegano/wav/wav.py>
+from __future__ import annotations
+
+import wave
+from typing import Any, Optional
+
+from stegano.tools.bititerator import bits_from_bytes, bytes_from_bits
+from stegano.tools.utils import DEFAULT_TERMINATOR, find_terminator_index
+
+
+def hide(
+    input_file: str,
+    message: str,
+    output_file: str,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """
+    Hide a text message in the LSB of PCM WAV samples and write output_file.
+
+    Accepted kwargs (optional):
+      - encoding: str (default "UTF-8")
+      - num_lsb: int (default 1)  [currently only 1 supported]
+    """
+    encoding = kwargs.get("encoding", "UTF-8")
+    num_lsb = int(kwargs.get("num_lsb", 1))
+    if num_lsb != 1:
+        raise ValueError("Only num_lsb=1 is supported in this implementation.")
+
+    payload = message.encode(encoding) + DEFAULT_TERMINATOR
+    bits = list(bits_from_bytes(payload))
+
+    with wave.open(input_file, "rb") as r:
+        params = r.getparams()
+        frames = r.readframes(r.getnframes())
+
+    # We embed into the least significant bit of each byte of the raw frame data.
+    # This works for common PCM encodings and preserves container parameters.
+    capacity_bits = len(frames)  # 1 bit per byte
+    if len(bits) > capacity_bits:
+        raise ValueError("Insufficient capacity to hide message in WAV file.")
+
+    frame_bytes = bytearray(frames)
+    for i, bit in enumerate(bits):
+        frame_bytes[i] = (frame_bytes[i] & 0xFE) | bit
+
+    with wave.open(output_file, "wb") as w:
+        w.setparams(params)
+        w.writeframes(bytes(frame_bytes))
+
+
+def reveal(
+    input_file: str,
+    *args: Any,
+    **kwargs: Any,
+) -> str:
+    """
+    Reveal a text message hidden in the LSB of PCM WAV samples.
+
+    Accepted kwargs (optional):
+      - encoding: str (default "UTF-8")
+      - num_lsb: int (default 1)  [currently only 1 supported]
+    """
+    encoding = kwargs.get("encoding", "UTF-8")
+    num_lsb = int(kwargs.get("num_lsb", 1))
+    if num_lsb != 1:
+        raise ValueError("Only num_lsb=1 is supported in this implementation.")
+
+    with wave.open(input_file, "rb") as r:
+        frames = r.readframes(r.getnframes())
+
+    bits = []
+    collected = bytearray()
+
+    for b in frames:
+        bits.append(b & 1)
+        if len(bits) == 8:
+            collected.extend(bytes_from_bits(bits))
+            bits.clear()
+            idx = find_terminator_index(collected, DEFAULT_TERMINATOR)
+            if idx != -1:
+                data = bytes(collected[:idx])
+                return data.decode(encoding)
+
+    raise ValueError("No hidden message found (terminator not present).")
+</file>
+
+<file:name=stegano/tools/__init__.py>
+from __future__ import annotations
+
+from .bititerator import bits_from_bytes, bytes_from_bits
+from .utils import DEFAULT_TERMINATOR
+
+__all__ = ["bits_from_bytes", "bytes_from_bits", "DEFAULT_TERMINATOR"]
+</file>
+
+<file:name=stegano/tools/bititerator.py>
+from __future__ import annotations
+
+from typing import Iterable, Iterator, List, Sequence
+
+
+def bits_from_bytes(data: bytes) -> Iterator[int]:
+    """
+    Yield bits (0/1) MSB-first for each byte in data.
+    """
+    for b in data:
+        for i in range(7, -1, -1):
+            yield (b >> i) & 1
+
+
+def bytes_from_bits(bits: Sequence[int]) -> bytes:
+    """
+    Convert exactly 8 bits (MSB-first) into a single byte.
+    """
+    if len(bits) != 8:
+        raise ValueError("bytes_from_bits requires exactly 8 bits")
+    val = 0
+    for bit in bits:
+        val = (val << 1) | (1 if bit else 0)
+    return bytes([val])
+
+
+def iter_bytes_from_bitstream(bitstream: Iterable[int]) -> Iterator[int]:
+    """
+    Consume a bit iterable and yield reconstructed bytes (as ints 0..255).
+    """
+    buf: List[int] = []
+    for bit in bitstream:
+        buf.append(1 if bit else 0)
+        if len(buf) == 8:
+            yield bytes_from_bits(buf)[0]
+            buf.clear()
+</file>
+
+<file:name=stegano/tools/utils.py>
+from __future__ import annotations
+
+from typing import Iterable, Iterator, Optional, Tuple, Union
+
+from PIL import Image
+
+DEFAULT_TERMINATOR: bytes = b"\x00\xff\x00\xff\x00\xff\x00\xff"
+
+
+def ensure_image(image: Union[str, Image.Image]) -> Image.Image:
+    """
+    Accept either a PIL.Image.Image or a path-like string.
+    Returns a PIL image.
+    """
+    if isinstance(image, Image.Image):
+        return image
+    if isinstance(image, str):
+        return Image.open(image)
+    raise TypeError("image must be a PIL.Image.Image or a path string")
+
+
+def find_terminator_index(data: Union[bytes, bytearray], terminator: bytes = DEFAULT_TERMINATOR) -> int:
+    """
+    Return the start index of terminator in data, or -1 if not found.
+    """
+    return bytes(data).find(terminator)
+
+
+def iter_channel_positions(width: int, height: int, n_channels: int) -> Iterator[Tuple[int, int, int]]:
+    """
+    Helper to iterate (x,y,channel_index) in raster order.
+    """
+    for y in range(height):
+        for x in range(width):
+            for c in range(n_channels):
+                yield (x, y, c)
+</file>
+
+<file:name=stegano/console/__init__.py>
+from __future__ import annotations
+</file>
+
+<file:name=stegano/console/main.py>
+from __future__ import annotations
+
+import sys
+from typing import List, Optional
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """
+    Minimal console entry point placeholder.
+
+    The reference project provides a rich CLI; for this kata we only need this
+    module to be importable. This function prints a short help and exits.
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    out = (
+        "stegano.console.main: minimal placeholder CLI.\n"
+        "This repository implements the library APIs (lsb/red/exifHeader/wav).\n"
+    )
+    sys.stdout.write(out)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=stegano/steganalysis/__init__.py>
+from __future__ import annotations
+
+"""
+Placeholder steganalysis namespace.
+
+The upstream Stegano project includes analysis utilities; tests for this kata
+require only that the module imports successfully.
+"""
+</file>

@@ -1,0 +1,362 @@
+<file:name=petl/__init__.py>
+"""
+Lightweight, pure-Python subset of the petl API used by the test suite.
+
+This package implements lazy table semantics: transformations return iterable
+wrappers which only evaluate when iterated.
+"""
+
+from .io.csv import fromcsv, tocsv
+from .transform.conversions import convert
+from .transform.selects import select, selectge, selectgt
+from .transform.sort import sort
+from .transform.joins import join
+
+
+def fromdicts(records, header=None):
+    """
+    Create a table from an iterable of dict-like records.
+
+    Parameters
+    ----------
+    records : iterable of mapping
+        Each record provides values by field name.
+    header : list/tuple of str, optional
+        If provided, determines field order and included fields.
+        If not provided, inferred from first record's keys (iteration order).
+
+    Returns
+    -------
+    table : iterable
+        First row is header tuple, subsequent rows are tuples of values.
+    """
+
+    class _FromDictsTable:
+        def __init__(self, recs, hdr):
+            self._records = recs
+            self._header = hdr
+
+        def __iter__(self):
+            it = iter(self._records)
+            if self._header is None:
+                try:
+                    first = next(it)
+                except StopIteration:
+                    # empty -> just header row (empty)
+                    yield tuple()
+                    return
+                hdr = list(first.keys())
+                yield tuple(hdr)
+                yield tuple(first.get(f) for f in hdr)
+                for rec in it:
+                    yield tuple(rec.get(f) for f in hdr)
+            else:
+                hdr = list(self._header)
+                yield tuple(hdr)
+                for rec in it:
+                    yield tuple(rec.get(f) for f in hdr)
+
+    return _FromDictsTable(records, header)
+
+
+def addfield(table, fieldname, func):
+    """
+    Add a new field computed from each row.
+
+    func may accept either:
+      - the entire row as a tuple (data row), or
+      - a dict mapping field -> value (rowdict), depending on its signature.
+    """
+
+    class _AddFieldTable:
+        def __init__(self, src, name, f):
+            self._src = src
+            self._name = name
+            self._func = f
+
+        def __iter__(self):
+            it = iter(self._src)
+            header = next(it)
+            header = tuple(header)
+            out_header = header + (self._name,)
+            yield out_header
+
+            # attempt to call func with dict first (more petl-like), fallback to tuple
+            for row in it:
+                row = tuple(row)
+                rowdict = dict(zip(header, row))
+                try:
+                    val = self._func(rowdict)
+                except TypeError:
+                    val = self._func(row)
+                yield row + (val,)
+
+    return _AddFieldTable(table, fieldname, func)
+
+
+__all__ = [
+    "fromcsv",
+    "tocsv",
+    "fromdicts",
+    "convert",
+    "select",
+    "selectge",
+    "selectgt",
+    "sort",
+    "addfield",
+    "join",
+]
+</file>
+
+<file:name=petl/io/csv.py>
+import csv
+
+
+class _CSVTable:
+    def __init__(self, path, **csv_kwargs):
+        self.path = path
+        self.csv_kwargs = csv_kwargs
+
+    def __iter__(self):
+        # newline='' is required by csv module docs for correct handling
+        with open(self.path, "r", newline="") as f:
+            reader = csv.reader(f, **self.csv_kwargs)
+            for row in reader:
+                # keep as tuples for consistency
+                yield tuple(row)
+
+
+def fromcsv(path, **csv_kwargs):
+    """
+    Create a lazy table from a CSV file.
+
+    Returns an iterable where the first row is the header.
+    """
+    return _CSVTable(path, **csv_kwargs)
+
+
+def tocsv(table, path, **csv_kwargs):
+    """
+    Write a table to a CSV file.
+    """
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f, **csv_kwargs)
+        for row in table:
+            writer.writerow(list(row))
+    return path
+</file>
+
+<file:name=petl/transform/conversions.py>
+def convert(table, field, func):
+    """
+    Convert values in a field using func.
+
+    field may be a field name (str) or column index (int).
+    func is applied to the existing value; exceptions are allowed to propagate.
+    """
+
+    class _ConvertTable:
+        def __init__(self, src, fld, f):
+            self._src = src
+            self._field = fld
+            self._func = f
+
+        def __iter__(self):
+            it = iter(self._src)
+            header = next(it)
+            header = tuple(header)
+            yield header
+
+            if isinstance(self._field, int):
+                idx = self._field
+            else:
+                try:
+                    idx = header.index(self._field)
+                except ValueError:
+                    raise KeyError(self._field)
+
+            for row in it:
+                row = list(row)
+                row[idx] = self._func(row[idx])
+                yield tuple(row)
+
+    return _ConvertTable(table, field, func)
+</file>
+
+<file:name=petl/transform/selects.py>
+def select(table, predicate):
+    """
+    Select rows where predicate(row) is truthy.
+
+    predicate may accept either:
+      - row tuple, or
+      - dict mapping field -> value (rowdict).
+    """
+
+    class _SelectTable:
+        def __init__(self, src, pred):
+            self._src = src
+            self._pred = pred
+
+        def __iter__(self):
+            it = iter(self._src)
+            header = next(it)
+            header = tuple(header)
+            yield header
+
+            for row in it:
+                row = tuple(row)
+                rowdict = dict(zip(header, row))
+                try:
+                    keep = self._pred(rowdict)
+                except TypeError:
+                    keep = self._pred(row)
+                if keep:
+                    yield row
+
+    return _SelectTable(table, predicate)
+
+
+def _select_compare(table, field, threshold, op):
+    class _SelectCompareTable:
+        def __init__(self, src, fld, thr, op_):
+            self._src = src
+            self._field = fld
+            self._threshold = thr
+            self._op = op_
+
+        def __iter__(self):
+            it = iter(self._src)
+            header = next(it)
+            header = tuple(header)
+            yield header
+
+            if isinstance(self._field, int):
+                idx = self._field
+            else:
+                try:
+                    idx = header.index(self._field)
+                except ValueError:
+                    raise KeyError(self._field)
+
+            thr = self._threshold
+            op_ = self._op
+            for row in it:
+                row = tuple(row)
+                if op_(row[idx], thr):
+                    yield row
+
+    return _SelectCompareTable(table, field, threshold, op)
+
+
+def selectge(table, field, threshold):
+    return _select_compare(table, field, threshold, lambda a, b: a >= b)
+
+
+def selectgt(table, field, threshold):
+    return _select_compare(table, field, threshold, lambda a, b: a > b)
+</file>
+
+<file:name=petl/transform/sort.py>
+def sort(table, field):
+    """
+    Sort rows by a field (name or index).
+
+    Note: sorting requires materializing data rows (not the whole pipeline).
+    Header is preserved.
+    """
+
+    class _SortTable:
+        def __init__(self, src, fld):
+            self._src = src
+            self._field = fld
+
+        def __iter__(self):
+            it = iter(self._src)
+            header = next(it)
+            header = tuple(header)
+
+            if isinstance(self._field, int):
+                idx = self._field
+            else:
+                try:
+                    idx = header.index(self._field)
+                except ValueError:
+                    raise KeyError(self._field)
+
+            rows = list(it)
+            rows.sort(key=lambda r: r[idx])
+            yield header
+            for r in rows:
+                yield tuple(r)
+
+    return _SortTable(table, field)
+</file>
+
+<file:name=petl/transform/joins.py>
+def join(left, right, key="id"):
+    """
+    Inner join of two tables on key.
+
+    key may be a field name (str) or index (int). If str, it is resolved against
+    each table's header. Result header includes all left fields plus right fields
+    excluding the key field (if present as a name in right).
+    """
+
+    class _JoinTable:
+        def __init__(self, l, r, k):
+            self._left = l
+            self._right = r
+            self._key = k
+
+        def __iter__(self):
+            lit = iter(self._left)
+            rit = iter(self._right)
+            lhdr = tuple(next(lit))
+            rhdr = tuple(next(rit))
+
+            # resolve key indices
+            if isinstance(self._key, int):
+                lk = self._key
+                rk = self._key
+                keyname = None
+            else:
+                keyname = self._key
+                try:
+                    lk = lhdr.index(keyname)
+                except ValueError:
+                    raise KeyError(keyname)
+                try:
+                    rk = rhdr.index(keyname)
+                except ValueError:
+                    raise KeyError(keyname)
+
+            # output header: all left + right without duplicate key field name
+            if keyname is not None:
+                rfields = [f for i, f in enumerate(rhdr) if i != rk]
+            else:
+                # if joining by index only, avoid duplicating the column at that index
+                rfields = [f for i, f in enumerate(rhdr) if i != rk]
+            out_header = tuple(lhdr) + tuple(rfields)
+            yield out_header
+
+            # build index of right side on join key (materialize right, typical join impl)
+            index = {}
+            for rrow in rit:
+                rrow = tuple(rrow)
+                k = rrow[rk]
+                index.setdefault(k, []).append(rrow)
+
+            for lrow in lit:
+                lrow = tuple(lrow)
+                k = lrow[lk]
+                matches = index.get(k)
+                if not matches:
+                    continue
+                for rrow in matches:
+                    out = list(lrow)
+                    out.extend(rrow[i] for i in range(len(rhdr)) if i != rk)
+                    yield tuple(out)
+
+    return _JoinTable(left, right, key)
+</file>

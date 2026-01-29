@@ -1,0 +1,147 @@
+FF..F..FFF.                                                              [100%]
+================================== FAILURES ===================================
+______________ test_dataset_export_import_csv_and_json_roundtrip ______________
+
+    def test_dataset_export_import_csv_and_json_roundtrip() -> None:
+        """Exercise core CSV/JSON export and import roundtrips on Dataset."""
+        data = _build_sample_dataset()
+    
+        # CSV roundtrip via export + .csv setter.
+        csv_text = data.export("csv")
+        assert isinstance(csv_text, str)
+    
+        loaded_csv = tablib.Dataset()
+        loaded_csv.csv = csv_text
+    
+        assert loaded_csv.headers == data.headers
+        assert loaded_csv.height == data.height
+        assert loaded_csv.width == data.width
+    
+        orig_dict_norm = _normalize_dict_rows(data.dict)
+        loaded_dict_norm = _normalize_dict_rows(loaded_csv.dict)
+        assert loaded_dict_norm == orig_dict_norm
+    
+        # JSON roundtrip via export + .json setter.
+        json_text = data.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'data': [['John', 'Adams', 90], ['George', 'Washington', 67], ['Ada', 'Lovelace', 36]], 'headers': ['first_name', 'last_name', 'age']}, list)
+
+tests\Tablib\functional_test.py:146: AssertionError
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000128F941DF70>, fmt = 'tsv'
+
+    def export(self, fmt: str) -> str:
+        fmt = (fmt or "").lower()
+        if fmt == "csv":
+            return csv_format.export_dataset(self)
+        if fmt == "json":
+            return json_format.export_dataset(self)
+>       raise ValueError(f"Unsupported format: {fmt}")
+E       ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:135: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+________________ test_dataset_export_json_contains_all_records ________________
+
+    def test_dataset_export_json_contains_all_records() -> None:
+        """JSON export should serialize all dataset records in a list-like structure."""
+        data = _build_sample_dataset()
+        json_text = data.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'data': [['John', 'Adams', 90], ['George', 'Washington', 67], ['Ada', 'Lovelace', 36]], 'headers': ['first_name', 'last_name', 'age']}, list)
+
+tests\Tablib\functional_test.py:278: AssertionError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000128F93FF970>, fmt = 'html'
+
+    def export(self, fmt: str) -> str:
+        fmt = (fmt or "").lower()
+        if fmt == "csv":
+            return csv_format.export_dataset(self)
+        if fmt == "json":
+            return json_format.export_dataset(self)
+>       raise ValueError(f"Unsupported format: {fmt}")
+E       ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:135: ValueError
+__________________ test_databook_multi_sheet_json_roundtrip ___________________
+
+    def test_databook_multi_sheet_json_roundtrip() -> None:
+        """Databook should preserve sheet structure when exported/imported as JSON."""
+        sheet1 = tablib.Dataset(
+            (1, "a"),
+            (2, "b"),
+            headers=("id", "value"),
+        )
+        sheet1.title = "First"
+    
+        sheet2 = tablib.Dataset(
+            (3, "c"),
+            (4, "d"),
+            headers=("id", "value"),
+        )
+        sheet2.title = "Second"
+    
+        book = tablib.Databook([sheet1, sheet2])
+    
+        json_text = book.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'sheets': [{'data': [[1, 'a'], [2, 'b']], 'headers': ['id', 'value'], 'title': 'First'}, {'data': [[3, 'c'], [4, 'd']], 'headers': ['id', 'value'], 'title': 'Second'}]}, list)
+
+tests\Tablib\functional_test.py:324: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_csv_and_json_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_json_contains_all_records
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_multi_sheet_json_roundtrip
+6 failed, 5 passed in 0.55s

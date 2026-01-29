@@ -1,0 +1,42 @@
+FFF..                                                                    [100%]
+================================== FAILURES ===================================
+______________ test_001_invalid_location_type_raises_or_handles _______________
+
+    def test_001_invalid_location_type_raises_or_handles():
+        _prepend_import_path()
+        import folium
+    
+        with pytest.raises(Exception):
+>           _ = folium.Map(location="not-a-latlng", zoom_start=2)
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Folium\robustness_test.py:33: Failed
+_____________ test_002_marker_invalid_location_raises_or_handles ______________
+
+    def test_002_marker_invalid_location_raises_or_handles():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        with pytest.raises(Exception):
+>           folium.Marker(location="bad").add_to(m)
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Folium\robustness_test.py:42: Failed
+_______________ test_003_geojson_invalid_object_raises_cleanly ________________
+
+    def test_003_geojson_invalid_object_raises_cleanly():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        with pytest.raises(Exception):
+>           folium.GeoJson(object()).add_to(m)
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Folium\robustness_test.py:51: Failed
+=========================== short test summary info ===========================
+FAILED tests/Folium/robustness_test.py::test_001_invalid_location_type_raises_or_handles
+FAILED tests/Folium/robustness_test.py::test_002_marker_invalid_location_raises_or_handles
+FAILED tests/Folium/robustness_test.py::test_003_geojson_invalid_object_raises_cleanly
+3 failed, 2 passed in 0.33s

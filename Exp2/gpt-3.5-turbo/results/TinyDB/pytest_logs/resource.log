@@ -1,0 +1,32 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_task_database_integration ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-347/test_task_database_integration0')
+
+    def test_task_database_integration(tmp_path: Path) -> None:
+        """
+        End-to-end integration test for TinyDB as a local task manager backend.
+        """
+        db_path = tmp_path / "tasks.json"
+>       stats = _build_task_database(db_path, num_tasks=250)
+
+tests\TinyDB\resource_test.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TinyDB\resource_test.py:31: in _build_task_database
+    db = TinyDB(db_path)
+generation\TinyDB\tinydb\database.py:25: in __init__
+    self._read()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tinydb.database.TinyDB object at 0x000002CE12E60A60>
+
+    def _read(self):
+        with self._lock:
+>           self._data = self._storage.read() or {}
+E           AttributeError: 'WindowsPath' object has no attribute 'read'
+
+generation\TinyDB\tinydb\database.py:29: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/TinyDB/resource_test.py::test_task_database_integration - Attrib...
+1 failed in 0.37s

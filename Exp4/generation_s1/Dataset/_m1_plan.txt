@@ -1,0 +1,212 @@
+1) Repository layout and import graph
+   - Files:
+     - dataset/__init__.py
+       - Expose dataset.connect
+       - Re-export Database and Table (optional but helpful)
+     - dataset/database.py
+       - Implement Database class
+       - Internal helper: normalize sqlite URL, connection management, transaction state
+     - dataset/table.py
+       - Implement Table class
+       - Schema evolution (ADD COLUMN), CRUD, query helpers, index helpers
+   - Import graph:
+     - dataset/__init__.py imports Database from dataset.database
+     - dataset.database imports Table from dataset.table
+     - dataset.table does not import dataset.database (avoid cycles); it receives Database reference instance
+
+2) Public APIs to implement (modules/classes/functions)
+   - dataset.connect(url)
+     - Supported URL: sqlite:///:memory: and sqlite:////absolute/path and sqlite:///relative/path
+     - Return Database(url)
+   - dataset.database.Database
+     - __init__(self, url)
+       - Parse URL, open sqlite3 connection with appropriate flags:
+         - detect_types optional; set row_factory to sqlite3.Row for mapping behavior
+         - isolation_level=None to enable manual transaction control with BEGIN/COMMIT/ROLLBACK
+       - Maintain:
+         - self.conn (sqlite3.Connection)
+         - self._tables (name->Table cache)
+         - self._in_transaction (bool)
+     - __getitem__(self, name) -> Table
+       - Return cached Table; if not cached, create Table(self, name)
+       - Table should ensure table exists lazily (create on first actual use or immediately on Table init; but tests expect lazy-on-access via db['name'], so creation can happen in Table init)
+     - begin()
+       - Execute "BEGIN" if not already in transaction; set flag
+     - commit()
+       - Execute "COMMIT" if in transaction; set flag false
+     - rollback()
+       - Execute "ROLLBACK" if in transaction; set flag false
+     - query(sql, **params)
+       - Execute with named parameters (":param") support; accept both ":x" in SQL and passing x in params
+       - Return generator/iterable of dict-like rows:
+         - for each sqlite3.Row, yield dict(row) so keys map to values
+   - dataset.table.Table
+     - __init__(self, db, name)
+       - Store db, name
+       - Ensure table exists (CREATE TABLE IF NOT EXISTS)
+         - Minimal schema: id INTEGER PRIMARY KEY AUTOINCREMENT
+         - But avoid forcing id existence in tests that insert their own id; still OK in sqlite if you insert explicit id
+       - Maintain:
+         - self._columns_cache (set/list) refreshed lazily
+     - columns attribute
+       - Property returning list of column names in table (use PRAGMA table_info)
+       - Should reflect schema changes after inserts with new keys
+     - __len__(self)
+       - Return count() with no filters
+     - insert(row)
+       - row is mapping; if empty, insert default row
+       - Ensure all keys exist as columns (ALTER TABLE ADD COLUMN)
+       - Type affinity: keep simple mapping:
+         - None -> TEXT (or NULL allowed)
+         - bool/int -> INTEGER
+         - float -> REAL
+         - bytes -> BLOB
+         - else -> TEXT (store str(value) unless already str); for dict/list store JSON string via json.dumps
+       - Execute INSERT; return inserted primary key (cursor.lastrowid)
+     - insert_many(rows, chunk_size=None)
+       - rows iterable of dicts
+       - If chunk_size None: choose e.g. 1000 for performance
+       - Must handle rows with varying keys:
+         - First pass per chunk: union keys; ensure columns exist
+         - For each row: build value tuple aligned to columns of that INSERT statement
+       - Use executemany for speed
+       - Return list of inserted ids not required; can return None unless tests expect count changes only (safe: return lastrowid or None). Prefer return None for memory/perf.
+     - find(**filters)
+       - Build SELECT * FROM table WHERE col = :param AND ...
+       - Support special filter values:
+         - if value is list/tuple/set -> IN (...)
+         - if value is None -> IS NULL
+       - Yield dict rows
+     - find_one(**filters)
+       - Return first row dict or None
+     - all()
+       - Equivalent to find() with no filters
+     - distinct(column)
+       - SELECT DISTINCT column FROM table WHERE column IS NOT NULL (reference often includes NULL; but tests usually expect unique non-null values; safer: include NULL if present by not filtering; return list of values including None once)
+       - Return list (or generator). Implement as list for simplicity.
+     - count(**filters)
+       - SELECT COUNT(*) with same filter compilation as find
+       - Return int
+     - update(row, keys)
+       - keys can be string or list/tuple of strings
+       - Require key fields present in row; use them in WHERE
+       - Update all other fields in row (excluding keys)
+       - Ensure columns exist for any updated fields
+       - If no non-key fields, do nothing and return 0/False
+       - Return number of affected rows (cursor.rowcount)
+     - upsert(row, keys)
+       - Try update(row, keys); if affected rows == 0 then insert(row)
+       - Return inserted id on insert, or affected rowcount / key value on update; tests typically care about data state, not return. Return value can be update count or inserted id.
+     - delete(**filters)
+       - DELETE FROM table WHERE ...
+       - Return affected rows count
+     - create_index(columns)
+       - columns can be string or iterable
+       - Normalize to tuple of column names in provided order
+       - Ensure columns exist (if not, create them as TEXT; this matches dataset behavior of adding columns on demand)
+       - Create sqlite index with deterministic name, e.g. "ix_{table}_{col1}_{col2}" with safe chars
+       - Use CREATE INDEX IF NOT EXISTS
+       - Track index existence by querying PRAGMA index_list and PRAGMA index_info to match columns/order
+     - has_index(columns)
+       - Normalize columns as above
+       - Check sqlite metadata:
+         - PRAGMA index_list(table)
+         - for each index, PRAGMA index_info(index_name) -> column sequence
+         - Return True if any index matches exactly the normalized column tuple (order-sensitive)
+       - If sqlite metadata not available (should be), fallback to internal cache set maintained by create_index
+   - Internal helpers (non-public but needed)
+     - SQL quoting for identifiers: wrap table/column names in double quotes and escape embedded quotes
+     - URL parsing: accept sqlite:/// and sqlite:///
+     - Schema management:
+       - _ensure_table()
+       - _ensure_columns(keys)
+       - _refresh_columns()
+
+3) Key behaviors & edge cases
+   - SQLite in-memory behavior
+     - dataset.connect("sqlite:///:memory:") must create a new independent in-memory DB per call.
+     - Ensure no global connection cache; Database owns one connection; closing not required by tests but avoid global state.
+   - Lazy table creation
+     - db['name'] should be sufficient to create a Table object; actual SQL table can be created either immediately in Table.__init__ or on first write.
+     - To match “created lazily when accessed”, creating on Table init is acceptable because access is the trigger.
+   - Dynamic columns on insert/update/upsert
+     - When inserting dict with new key, ALTER TABLE ADD COLUMN must happen before INSERT.
+     - SQLite supports ADD COLUMN but not IF NOT EXISTS in older versions; implement check with PRAGMA table_info first.
+     - Handle reserved words / weird column names: always quote identifiers.
+   - Transactions
+     - Use isolation_level=None and explicit BEGIN/COMMIT/ROLLBACK so that:
+       - begin() starts a transaction; subsequent inserts visible within same connection.
+       - rollback() removes uncommitted changes; subsequent reads from same connection should not see rolled back rows.
+       - commit() persists within the same in-memory DB connection scope.
+     - Ensure insert_many respects transaction boundaries (don’t auto-commit).
+     - Avoid implicit commits by DDL (ALTER TABLE/CREATE TABLE/CREATE INDEX) in SQLite:
+       - SQLite can auto-commit around some DDL; tests likely tolerate this, but it can break rollback expectations if inserts are mixed with schema changes inside a transaction.
+       - Mitigation: if in_transaction and schema needs change, perform schema evolution before begin() where possible; but tests may insert new columns inside a transaction. Practical approach:
+         - When in transaction and need ALTER TABLE, execute it anyway; SQLite will commit implicitly. To preserve semantic expectations for data rollback, advise: perform schema changes before data operations when possible.
+         - More robust: if in_transaction and new columns are needed, temporarily:
+           - ROLLBACK current transaction (or COMMIT) -> apply DDL -> BEGIN again -> proceed
+           - But that changes visibility semantics for earlier operations.
+         - Best compromise for tests: pre-create columns for each insert statement before doing any row modifications in that statement; if tests begin() then first operation is insert with new keys, DDL will occur before actual insert; the insert itself still can be rolled back if DDL caused auto-commit? In SQLite, ALTER TABLE forces an implicit commit of the current transaction, so the subsequent insert is in autocommit unless we BEGIN again. Therefore:
+           - If _in_transaction is True and we execute any DDL (CREATE TABLE, ALTER TABLE, CREATE INDEX), immediately re-issue "BEGIN" after DDL to restore transaction mode for subsequent DML.
+           - Track that begin() was requested; after DDL, call "BEGIN" again (idempotent if no active transaction).
+   - Query parameter binding
+     - Database.query(sql, **params) should accept named params; ensure params are passed through to cursor.execute.
+   - Filtering semantics
+     - Equality only is sufficient for tests; support IN for lists/tuples/sets and NULL checks.
+     - Ensure deterministic iteration order not required; but stable results helpful.
+   - distinct/count correctness
+     - distinct returns unique values, preferably as a list.
+     - count respects filters.
+   - Performance and memory
+     - insert_many must be chunked, use executemany, avoid building giant intermediate structures.
+     - find() should yield generator; avoid loading entire result set unless required.
+   - Index handling consistency
+     - create_index/has_index must be consistent even if simplified:
+       - Use real SQLite indexes so that large filtered query tests can be performant.
+       - has_index checks metadata so it matches indexes created outside create_index too (if any).
+   - Introspection
+     - Table.columns reflects actual DB schema; refresh after schema changes.
+   - Row mappings
+     - All query methods should yield plain dict so tests can compare easily.
+
+4) Minimal internal test plan (what to test and why)
+   - Connection and basic table access
+     - connect("sqlite:///:memory:") returns Database; db['t'] returns Table; table exists after access.
+   - Insert and schema evolution
+     - Insert {'name':'a'} then insert {'name':'b','age':3}; verify columns include name, age and first row has age None.
+   - Transaction semantics
+     - begin(); insert row; verify find_one sees it; rollback(); verify not found.
+     - begin(); insert; commit(); verify persists.
+     - begin(); insert_many; rollback(); verify count==0.
+     - begin(); insert with new column triggers DDL; verify rollback still rolls back inserted rows (using “re-BEGIN after DDL” logic).
+   - Query helpers
+     - find filters equality, IN, NULL.
+     - all returns all rows.
+     - count with and without filters.
+     - distinct returns expected set (including None behavior checked explicitly).
+   - Update/upsert/delete
+     - update by key updates fields, returns affected rows.
+     - upsert inserts when missing and updates when existing.
+     - delete with filter removes correct rows.
+   - Index helpers
+     - create_index('name'); has_index('name') True
+     - create_index(['name','age']); has_index(['name','age']) True; has_index(['age','name']) False (order-sensitive)
+   - __len__ and columns
+     - len(table) equals count()
+     - columns updates after inserts with new keys
+   - Database.query
+     - query("select ... where name=:name", name="a") yields dict rows
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+   - SQLite DDL implicit commits can break rollback expectations
+     - Mitigation: set isolation_level=None and explicitly manage transactions; after any DDL while _in_transaction True, immediately execute "BEGIN" to restore transaction for subsequent DML. Ensure inserts happen after that BEGIN.
+   - Identifier quoting / odd column names
+     - Mitigation: always quote identifiers with double quotes and escape internal quotes.
+   - Column type inference mismatches
+     - Mitigation: SQLite is type-flexible; choose simple affinities (INTEGER/REAL/TEXT/BLOB) and JSON-encode dict/list. Don’t overfit types; tests usually check values, not schema types.
+   - Bulk insert performance
+     - Mitigation: chunking + executemany; minimize per-row PRAGMA calls by caching columns and only refreshing when schema changes.
+   - Memory usage under repeated connections
+     - Mitigation: no global caches; keep per-Database state minimal; ensure cursors are not retained; iterate rows streaming.
+   - API compatibility gaps vs reference Dataset
+     - Mitigation: implement only core methods used by tests; keep signatures permissive (accept columns as str or iterable, keys as str or iterable, chunk_size optional).

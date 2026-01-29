@@ -1,0 +1,441 @@
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glances"
+version = "0.1.0"
+description = "Minimal cross-platform system monitoring tool with a subset of Glances CLI behavior"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+
+[tool.setuptools]
+packages = ["glances"]
+
+[tool.pytest.ini_options]
+testpaths = ["_agent_tests"]
+</file>
+
+<file:name=README.md>
+This is a minimal, test-focused implementation of a subset of the Glances CLI.
+
+Supported:
+- python -m glances --help
+- python -m glances -V / --version
+- python -m glances --stdout-csv <FIELDS>
+
+Allowed CSV fields:
+now, cpu.user, cpu.total, mem.used, load
+</file>
+
+<file:name=glances/__init__.py>
+from .version import __version__
+
+__all__ = ["__version__"]
+</file>
+
+<file:name=glances/version.py>
+__version__ = "0.1.0"
+</file>
+
+<file:name=glances/__main__.py>
+from .cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+</file>
+
+<file:name=glances/errors.py>
+class GlancesError(Exception):
+    """Base error for this minimal glances implementation."""
+
+
+class UsageError(GlancesError):
+    """Raised for invalid user input/usage."""
+
+
+class UnknownFieldError(GlancesError):
+    """Raised when unknown CSV fields are requested."""
+</file>
+
+<file:name=glances/metrics.py>
+from __future__ import annotations
+
+import os
+import sys
+import time
+from typing import Dict, Union
+
+Number = Union[int, float]
+
+
+def now_timestamp() -> float:
+    # Numeric epoch seconds; easy to parse and cross-platform.
+    return time.time()
+
+
+def _cpu_times_psutil() -> Dict[str, Number] | None:
+    try:
+        import psutil  # type: ignore
+    except Exception:
+        return None
+
+    try:
+        ct = psutil.cpu_times()
+        # cpu_times() returns a namedtuple with varying fields across platforms.
+        user = float(getattr(ct, "user", 0.0))
+        total = 0.0
+        for v in ct:
+            try:
+                total += float(v)
+            except Exception:
+                pass
+        return {"user": user, "total": total}
+    except Exception:
+        return None
+
+
+def cpu_times() -> Dict[str, Number]:
+    """
+    Returns cumulative CPU times with keys:
+      - user: user time
+      - total: sum of available time fields
+
+    Note: Without psutil, this may be process-level times (os.times), but tests
+    only require numeric values.
+    """
+    ps = _cpu_times_psutil()
+    if ps is not None:
+        return ps
+
+    try:
+        t = os.times()
+        # os.times: user, system, children_user, children_system, elapsed
+        user = float(getattr(t, "user", 0.0))
+        total = float(getattr(t, "user", 0.0)) + float(getattr(t, "system", 0.0))
+        total += float(getattr(t, "children_user", 0.0)) + float(getattr(t, "children_system", 0.0))
+        return {"user": user, "total": total}
+    except Exception:
+        return {"user": 0.0, "total": 0.0}
+
+
+def _mem_used_psutil() -> int | None:
+    try:
+        import psutil  # type: ignore
+    except Exception:
+        return None
+
+    try:
+        vm = psutil.virtual_memory()
+        used = int(getattr(vm, "used", 0))
+        return used
+    except Exception:
+        return None
+
+
+def _mem_used_linux_proc() -> int | None:
+    # MemUsed ~= MemTotal - MemAvailable
+    path = "/proc/meminfo"
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            meminfo = f.read().splitlines()
+    except Exception:
+        return None
+
+    vals_kib = {}
+    for line in meminfo:
+        if ":" not in line:
+            continue
+        key, rest = line.split(":", 1)
+        parts = rest.strip().split()
+        if not parts:
+            continue
+        try:
+            vals_kib[key] = int(parts[0])
+        except Exception:
+            continue
+
+    if "MemTotal" in vals_kib and "MemAvailable" in vals_kib:
+        used_kib = vals_kib["MemTotal"] - vals_kib["MemAvailable"]
+        if used_kib < 0:
+            used_kib = 0
+        return int(used_kib) * 1024
+
+    # Fallback using MemFree+Buffers+Cached if MemAvailable missing (older kernels)
+    if "MemTotal" in vals_kib and ("MemFree" in vals_kib or "Cached" in vals_kib):
+        free_kib = vals_kib.get("MemFree", 0) + vals_kib.get("Buffers", 0) + vals_kib.get("Cached", 0)
+        used_kib = vals_kib["MemTotal"] - free_kib
+        if used_kib < 0:
+            used_kib = 0
+        return int(used_kib) * 1024
+
+    return None
+
+
+def _mem_used_windows_ctypes() -> int | None:
+    if not sys.platform.startswith("win"):
+        return None
+
+    try:
+        import ctypes
+        from ctypes import wintypes
+    except Exception:
+        return None
+
+    class MEMORYSTATUSEX(ctypes.Structure):
+        _fields_ = [
+            ("dwLength", wintypes.DWORD),
+            ("dwMemoryLoad", wintypes.DWORD),
+            ("ullTotalPhys", ctypes.c_ulonglong),
+            ("ullAvailPhys", ctypes.c_ulonglong),
+            ("ullTotalPageFile", ctypes.c_ulonglong),
+            ("ullAvailPageFile", ctypes.c_ulonglong),
+            ("ullTotalVirtual", ctypes.c_ulonglong),
+            ("ullAvailVirtual", ctypes.c_ulonglong),
+            ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+        ]
+
+    stat = MEMORYSTATUSEX()
+    stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+    try:
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat)) == 0:
+            return None
+        used = int(stat.ullTotalPhys - stat.ullAvailPhys)
+        if used < 0:
+            used = 0
+        return used
+    except Exception:
+        return None
+
+
+def mem_used_bytes() -> int:
+    """
+    Returns memory used in bytes. Best-effort cross-platform.
+    If unavailable, returns 0 (still numeric and parseable).
+    """
+    used = _mem_used_psutil()
+    if used is not None:
+        return used
+
+    if sys.platform.startswith("linux"):
+        used = _mem_used_linux_proc()
+        if used is not None:
+            return used
+
+    used = _mem_used_windows_ctypes()
+    if used is not None:
+        return used
+
+    return 0
+
+
+def load_1() -> float:
+    try:
+        getloadavg = getattr(os, "getloadavg", None)
+        if getloadavg is None:
+            return 0.0
+        return float(getloadavg()[0])
+    except Exception:
+        return 0.0
+
+
+def get_snapshot() -> Dict[str, Number]:
+    ct = cpu_times()
+    return {
+        "now": now_timestamp(),
+        "cpu.user": ct.get("user", 0.0),
+        "cpu.total": ct.get("total", 0.0),
+        "mem.used": mem_used_bytes(),
+        "load": load_1(),
+    }
+</file>
+
+<file:name=glances/csvout.py>
+from __future__ import annotations
+
+from typing import List
+
+from .errors import UnknownFieldError, UsageError
+from .metrics import get_snapshot
+
+ALLOWED_FIELDS = {"now", "cpu.user", "cpu.total", "mem.used", "load"}
+
+
+def parse_fields(spec: str) -> List[str]:
+    if spec is None:
+        raise UsageError("Missing CSV field specification.")
+    s = str(spec).strip()
+    if not s:
+        raise UsageError("Empty CSV field specification.")
+    parts = [p.strip() for p in s.split(",")]
+    if any(p == "" for p in parts):
+        raise UsageError("CSV field specification contains empty field name.")
+    return parts
+
+
+def validate_fields(fields: List[str]) -> None:
+    unknown = [f for f in fields if f not in ALLOWED_FIELDS]
+    if unknown:
+        raise UnknownFieldError("Unknown CSV field(s): " + ", ".join(unknown))
+
+
+def collect_row(fields: List[str]) -> List[str]:
+    validate_fields(fields)
+    snap = get_snapshot()
+    values = []
+    for f in fields:
+        v = snap.get(f, 0)
+        values.append(str(v))
+    return values
+
+
+def format_csv_row(values: List[str]) -> str:
+    # Values are numeric; minimal formatting (no quoting) is sufficient.
+    return ",".join(values)
+</file>
+
+<file:name=glances/cli.py>
+from __future__ import annotations
+
+import argparse
+import sys
+from typing import List, Optional
+
+from .csvout import collect_row, format_csv_row, parse_fields
+from .errors import GlancesError
+from .version import __version__
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="glances", add_help=True)
+    p.add_argument(
+        "-V",
+        "--version",
+        action="version",
+        version=f"Glances {__version__}",
+        help="Print version and exit.",
+    )
+    p.add_argument(
+        "--stdout-csv",
+        metavar="FIELDS",
+        help="Output one CSV row with the specified comma-separated fields, then exit.",
+    )
+    return p
+
+
+def _err(msg: str) -> None:
+    sys.stderr.write(str(msg).rstrip() + "\n")
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.stdout_csv is None:
+        # Minimal subset requires explicit action; do not start interactive UI.
+        parser.print_help(sys.stderr)
+        return 2
+
+    try:
+        fields = parse_fields(args.stdout_csv)
+        values = collect_row(fields)
+        line = format_csv_row(values)
+        sys.stdout.write(line + "\n")
+        return 0
+    except GlancesError as e:
+        _err(str(e) if str(e).strip() else "Error")
+        return 1
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import subprocess
+import sys
+
+
+def run_glances(args):
+    return subprocess.run(
+        [sys.executable, "-m", "glances", *args],
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_help_ok():
+    p = run_glances(["--help"])
+    assert p.returncode == 0
+    assert "usage" in p.stdout.lower() or "usage" in p.stderr.lower()
+
+
+def test_version_ok():
+    p = run_glances(["-V"])
+    assert p.returncode == 0
+    out = p.stdout.strip()
+    assert out
+    assert "glances" in out.lower()
+
+
+def test_stdout_csv_basic_fields():
+    p = run_glances(["--stdout-csv", "now,cpu.user,mem.used,load"])
+    assert p.returncode == 0
+    lines = [ln for ln in p.stdout.splitlines() if ln.strip() != ""]
+    assert len(lines) == 1
+    cols = lines[0].split(",")
+    assert len(cols) == 4
+
+    # cpu.user, mem.used, load must be numeric parseable
+    float(cols[1])
+    float(cols[2])
+    float(cols[3])
+
+
+def test_stdout_csv_missing_arg_nonzero():
+    p = run_glances(["--stdout-csv"])
+    assert p.returncode != 0
+    assert (p.stderr.strip() or p.stdout.strip())
+
+
+def test_unknown_field_nonzero_and_message():
+    p = run_glances(["--stdout-csv", "now,wat"])
+    assert p.returncode != 0
+    assert p.stderr.strip() != ""
+    assert p.stdout.strip() == ""
+</file>
+
+<file:name=_agent_tests/test_agent_units.py>
+import pytest
+
+from glances.csvout import parse_fields, validate_fields
+from glances.errors import UnknownFieldError, UsageError
+from glances.metrics import get_snapshot
+
+
+def test_parse_fields_strips():
+    assert parse_fields(" now , cpu.user ") == ["now", "cpu.user"]
+
+
+def test_parse_fields_rejects_empty():
+    with pytest.raises(UsageError):
+        parse_fields("")
+    with pytest.raises(UsageError):
+        parse_fields("now,,cpu.user")
+
+
+def test_validate_fields_unknown():
+    with pytest.raises(UnknownFieldError) as ei:
+        validate_fields(["now", "nope"])
+    assert "nope" in str(ei.value)
+
+
+def test_snapshot_has_required_keys_and_numeric():
+    snap = get_snapshot()
+    for k in ["now", "cpu.user", "cpu.total", "mem.used", "load"]:
+        assert k in snap
+    # Must be parseable as floats when stringified
+    float(str(snap["now"]))
+    float(str(snap["cpu.user"]))
+    float(str(snap["cpu.total"]))
+    float(str(snap["mem.used"]))
+    float(str(snap["load"]))
+</file>

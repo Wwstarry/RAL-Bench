@@ -1,0 +1,54 @@
+.F......F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', kwargs = {}, headers = None, json_encoder = None
+
+    def encode(
+        payload: Dict[str, Any],
+        key: Union[str, bytes],
+        algorithm: str = "HS256",
+        **kwargs: Any,
+    ) -> str:
+        """
+        Create a JWT from a payload and key using HS256 by default.
+    
+        Supported kwargs:
+        - headers: optional dict to merge into header
+        - json_encoder: optional custom JSON encoder class
+        """
+        headers = kwargs.get("headers")
+        json_encoder = kwargs.get("json_encoder")
+    
+        if algorithm != "HS256":
+            # Keep behavior minimal; only HS256 supported
+>           raise InvalidAlgorithmError(f"Unsupported algorithm: {algorithm}")
+E           jwt.exceptions.InvalidAlgorithmError: Unsupported algorithm: HS512
+
+generation\PyJWT\jwt\api_jwt.py:142: InvalidAlgorithmError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - j...
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+2 failed, 8 passed, 1 skipped in 0.48s

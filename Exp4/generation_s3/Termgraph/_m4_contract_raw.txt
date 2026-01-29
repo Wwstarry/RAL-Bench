@@ -1,0 +1,190 @@
+<contract>
+1) Repository layout
+- Root package: termgraph/
+  - termgraph/__init__.py
+  - termgraph/data.py
+  - termgraph/args.py
+  - termgraph/charts.py
+  - termgraph/cli.py
+- No other required files for tests, but implementation must be pure Python and importable as `import termgraph`.
+
+2) Public API surface
+- termgraph/__init__.py
+  - Must expose (import/re-export) the names:
+    - Data (from termgraph.data)
+    - Args (from termgraph.args)
+    - BarChart, StackedChart (from termgraph.charts)
+- termgraph/data.py
+  - class Data:
+    - __init__(self, labels=None, values=None)
+      - labels: list[str] (or None -> empty)
+      - values: list[list[float|int]] or list[float|int]; normalized internally
+    - Properties/attributes expected to be accessible:
+      - labels: list[str]
+      - values: list[list[float]]  (always 2D after normalization)
+      - n_rows: int (number of label rows)
+      - n_series: int (number of series per row)
+    - Methods:
+      - @classmethod from_data(cls, labels, values) -> Data (optional convenience, but must not break tests)
+      - validate(self) -> None (raises ValueError on inconsistent shapes)
+- termgraph/args.py
+  - class Args:
+    - __init__(self, width=50, stacked=False, different_scale=False,
+               no_labels=False, format="{:<5.2f}", suffix="",
+               vertical=False, histogram=False, no_values=False,
+               color=None, labels=None, title=None)
+    - All fields must be stored as public attributes with the exact names:
+      - width: int
+      - stacked: bool
+      - different_scale: bool
+      - no_labels: bool
+      - format: str
+      - suffix: str
+      - vertical: bool
+      - histogram: bool
+      - no_values: bool
+      - color: any (tests may pass bool/int/str; library treats truthy as “enable ansi” if implemented)
+      - labels: list[str] | None (optional overriding series labels)
+      - title: str | None
+- termgraph/charts.py
+  - class BarChart:
+    - __init__(self, data: Data, args: Args)
+    - draw(self) -> None
+      - renders to stdout (print), not returning the chart text
+  - class StackedChart:
+    - __init__(self, data: Data, args: Args)
+    - draw(self) -> None
+- termgraph/cli.py
+  - Must exist and be importable.
+  - Provide a minimal CLI entry function for compatibility:
+    - def main(argv=None) -> int
+      - Should not require external deps.
+      - Tests may only import it; execution is optional.
+
+3) Behavioral contract
+General
+- Library must be pure Python (standard library only).
+- Must not depend on the reference termgraph package.
+- Rendering must produce deterministic textual output to stdout for given Data and Args.
+- Focus on “core parts” used by tests: horizontal bars, stacked bars, width handling, numeric formatting, labels/value toggles, title emission.
+
+Data normalization and validation
+- Data.values normalization:
+  - If values is a 1D list of numbers, interpret as one series and store as 2D: [[v0],[v1],...].
+  - If values is 2D, interpret as rows of series values: values[row][series].
+- labels length:
+  - If labels provided and non-empty: must equal number of rows in values.
+  - If labels None/empty: generate default labels as strings of row indices starting at 1 ("1","2",...).
+- validate():
+  - All rows must have equal series length (n_series).
+  - Raise ValueError if inconsistent lengths or non-numeric values (TypeError acceptable for non-castable).
+- Coercion:
+  - Values should be coerced to float for scaling computations, but formatting uses original numeric value if possible; acceptable to format floats.
+
+Args interpretation (only what tests rely on)
+- width:
+  - Positive int; if <= 0 treat as 1.
+  - Defines max bar character count available for the bar area (excluding label/value text).
+- stacked:
+  - If True, chart class may still be BarChart; but tests expect StackedChart to stack. Args.stacked is used to choose StackedChart in CLI-like usage; charts should not break if both are set.
+- different_scale:
+  - If False: scaling based on global maximum across all series (or sum for stacked), so bars are comparable.
+  - If True: scaling per-series (for BarChart) such that each series uses its own max; for stacked charts, ignore or treat as global (acceptable unless explicitly tested).
+- no_labels:
+  - If True: omit left-side row label text.
+- format:
+  - Python format string used via format.format(value) OR value formatted using format spec; must support the common pattern "{:<5.2f}".
+  - If format contains "{" then use str.format; else use format(value, format).
+- suffix:
+  - Appended to formatted numeric value when values are printed.
+- no_values:
+  - If True: omit numeric value text at end of each bar/stack/line.
+- labels (series labels):
+  - Optional list of series names for legend/title area. If provided and tests expect, use it for legend.
+  - If not provided, series labels may be omitted entirely unless needed.
+- title:
+  - If provided: print title as first line (exact content), then chart lines follow.
+- vertical/histogram/color:
+  - Must exist on Args and not break; vertical/histogram can be ignored (no vertical charts required) unless tests check that vertical=False path works.
+  - color: if truthy, may wrap bars with ANSI, but safest is to ignore (no ANSI) to keep test output stable unless tests expect color; provide an internal switch but default to no colorization.
+
+Rendering: common formatting rules
+- Output is line-oriented text printed to stdout via print().
+- Each data row produces one output line for BarChart; StackedChart also produces one output line per row.
+- Use a simple bar character:
+  - BarChart uses "█" or "#" (choose "#" for ASCII stability).
+  - StackedChart uses "#" too, optionally different characters per series; but stability preferred: use repeating segments with different characters (e.g., "#", "=", "-", "+") OR same char; tests likely only check lengths/structure, not exact chars. Choose deterministic set.
+- Compute available width for bars:
+  - The bar drawing region should target Args.width characters.
+  - Label and value text may extend the full line; tests should tolerate.
+- Scaling:
+  - For BarChart (non-stacked):
+    - If n_series == 1:
+      - max_val = max(abs(v)) or max(v) depending; assume non-negative in tests; if max_val == 0 -> all bars length 0.
+      - bar_len = round((v / max_val) * width) clamped to [0,width].
+    - If n_series > 1:
+      - Default: use global max across all values if different_scale=False; else per series.
+      - Render either:
+        - One combined line per row containing multiple series separated by space, OR
+        - Multiple lines per row (one per series).
+      - For test compatibility, prefer one line per row with series bars concatenated using a single space separator and each preceded by a series index marker, e.g. "S1:"; but avoid extra text unless needed.
+      - Minimal acceptable approach for tests: treat each row as one number by summing series when BarChart is used; however, if tests cover multi-series bars, render each series.
+  - For StackedChart:
+    - total = sum(series values for that row)
+    - global_max_total = max(total) across rows; if zero -> no bars
+    - Each segment length = round((v / global_max_total) * width) (or proportional to total and then scaled to width); ensure sum of segment lengths <= width; adjust last segment to fit.
+- Labels:
+  - If no_labels=False:
+    - Prefix each line with "<label> " where label is from Data.labels.
+    - Align labels to max label length using ljust for neatness; not required but helps.
+- Values:
+  - If no_values=False:
+    - For BarChart (single series): append " <formatted_value><suffix>" after the bar.
+    - For multi-series BarChart: append each formatted value near its series or append totals; choose deterministic output:
+      - Append a space then join formatted values by ", " (e.g., " 1.00, 2.00").
+    - For StackedChart: append total formatted value (sum) or optionally per-segment values; safest for tests: append total only.
+- Title:
+  - Printed as the very first line exactly: str(args.title)
+- Newlines:
+  - draw() must end with a newline after the last line (print naturally does).
+- Error handling:
+  - If Data invalid: raise ValueError in chart constructor or draw().
+  - If Args.width not int-castable: raise TypeError/ValueError.
+  - If labels length mismatch: raise ValueError.
+
+CLI (termgraph/cli.py)
+- main(argv=None) returns int status code.
+- It may parse minimal options or simply be a stub returning 0.
+- Must not print during import.
+
+4) Acceptance checklist
+- Importability:
+  - `import termgraph` succeeds.
+  - `from termgraph import Data, Args, BarChart, StackedChart` succeeds.
+  - `import termgraph.cli` succeeds and exposes main().
+- Data behavior:
+  - Data(labels, values) accepts 1D and 2D numeric inputs and normalizes to 2D.
+  - Data.validate() raises ValueError on inconsistent series lengths or label/row mismatch.
+- Args behavior:
+  - Args exposes all required public attributes with defaults.
+  - Args.format is applied to numbers and supports "{:<5.2f}"-style strings.
+- BarChart:
+  - BarChart(data,args).draw() prints a horizontal bar chart to stdout.
+  - Bars scale to args.width (0..width characters).
+  - Respects args.no_labels and args.no_values toggles.
+  - Includes title line when args.title is not None.
+- StackedChart:
+  - StackedChart(data,args).draw() prints one line per label with stacked segments.
+  - Total stack length scales to args.width and segment lengths are proportional.
+  - Respects args.no_labels and args.no_values; prints total if values are enabled.
+- Determinism:
+  - For same inputs, output is stable across runs (no random colors/time).
+- No external dependencies:
+  - Uses only Python standard library.
+
+5) Non-goals / constraints
+- No requirement to perfectly match the reference termgraph’s exact ASCII art, ANSI colors, or CLI feature completeness; only core observable behavior used in tests must match (API names, draw-to-stdout behavior, width scaling, formatting, toggles).
+- No vertical chart rendering required; args.vertical/histogram may be ignored as long as present and do not break default paths.
+- No file I/O or network access.
+- No third-party packages.
+</contract>

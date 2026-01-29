@@ -1,0 +1,394 @@
+<file:name=tablib/__init__.py>
+"""
+A small, pure-Python subset of the Tablib API sufficient for the test suite.
+
+Public API:
+- Dataset
+- Databook
+"""
+
+from .core import Dataset, Databook
+
+__all__ = ["Dataset", "Databook"]
+
+# A minimal version marker (not required, but some code expects it to exist).
+__version__ = "0.0.0"
+</file>
+
+<file:name=tablib/core.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
+from .formats import _csv as csv_format
+from .formats import _json as json_format
+
+
+RowLike = Iterable[Any]
+
+
+class Dataset:
+    """
+    Minimal Dataset compatible with core Tablib behavior used by tests.
+
+    Stores:
+      - headers: list[str] | None
+      - rows: list[list[Any]]
+    """
+
+    def __init__(self, *rows: RowLike, headers: Optional[Iterable[str]] = None) -> None:
+        self.title: Optional[str] = None
+        self._headers: Optional[List[str]] = list(headers) if headers is not None else None
+        self._data: List[List[Any]] = []
+        for r in rows:
+            self.append(r)
+
+    @property
+    def headers(self) -> Optional[List[str]]:
+        return list(self._headers) if self._headers is not None else None
+
+    @headers.setter
+    def headers(self, value: Optional[Iterable[str]]) -> None:
+        self._headers = list(value) if value is not None else None
+
+    @property
+    def height(self) -> int:
+        return len(self._data)
+
+    @property
+    def width(self) -> int:
+        if self._headers is not None:
+            return len(self._headers)
+        if self._data:
+            return max((len(r) for r in self._data), default=0)
+        return 0
+
+    def _ensure_width(self, w: int) -> None:
+        # Expand headers if present, otherwise keep as None.
+        if self._headers is not None:
+            if len(self._headers) < w:
+                for i in range(len(self._headers), w):
+                    self._headers.append(f"field{i}")
+        # Pad existing rows to width.
+        for row in self._data:
+            if len(row) < w:
+                row.extend([None] * (w - len(row)))
+
+    def append(self, row: RowLike) -> None:
+        row_list = list(row)
+        # If headers exist, ensure row fits width.
+        target_w = max(self.width, len(row_list))
+        self._ensure_width(target_w)
+        if len(row_list) < target_w:
+            row_list.extend([None] * (target_w - len(row_list)))
+        self._data.append(row_list)
+
+    def append_col(self, values: Iterable[Any], header: Optional[str] = None) -> None:
+        col = list(values)
+        if self.height == 0:
+            # If no rows, create rows from values.
+            for v in col:
+                self._data.append([v])
+            # manage headers
+            if self._headers is not None:
+                # existing headers (possibly empty) -> append
+                self._headers.append(header if header is not None else f"field{len(self._headers)}")
+            else:
+                # create headers only if header supplied; otherwise leave None
+                if header is not None:
+                    self._headers = [header]
+            return
+
+        if len(col) != self.height:
+            raise ValueError("Column length must match dataset height")
+
+        new_w = self.width + 1
+        self._ensure_width(new_w - 1)  # ensure current width padding
+        # add value to each row
+        for i, v in enumerate(col):
+            self._data[i].append(v)
+
+        if self._headers is not None:
+            self._headers.append(header if header is not None else f"field{len(self._headers)}")
+        else:
+            # If no headers, only create them when a header is explicitly provided.
+            if header is not None:
+                self._headers = [f"field{i}" for i in range(new_w - 1)] + [header]
+
+    def __getitem__(self, key: Union[slice, int, str]) -> Any:
+        if isinstance(key, slice):
+            return [tuple(r) for r in self._data[key]]
+        if isinstance(key, int):
+            return tuple(self._data[key])
+        if isinstance(key, str):
+            if self._headers is None:
+                raise KeyError(key)
+            try:
+                idx = self._headers.index(key)
+            except ValueError as e:
+                raise KeyError(key) from e
+            return [r[idx] if idx < len(r) else None for r in self._data]
+        raise TypeError("Invalid key type")
+
+    def __iter__(self) -> Iterator[Tuple[Any, ...]]:
+        for r in self._data:
+            yield tuple(r)
+
+    @property
+    def dict(self) -> List[Dict[str, Any]]:
+        headers = self._headers
+        if headers is None:
+            headers = [f"field{i}" for i in range(self.width)]
+        out: List[Dict[str, Any]] = []
+        for row in self._data:
+            d: Dict[str, Any] = {}
+            for i, h in enumerate(headers):
+                d[h] = row[i] if i < len(row) else None
+            out.append(d)
+        return out
+
+    def export(self, fmt: str) -> str:
+        fmt = (fmt or "").lower()
+        if fmt == "csv":
+            return csv_format.export_set(self)
+        if fmt == "json":
+            return json_format.export_set(self)
+        raise ValueError(f"Unsupported format: {fmt}")
+
+    @property
+    def csv(self) -> str:
+        return self.export("csv")
+
+    @csv.setter
+    def csv(self, value: str) -> None:
+        ds = csv_format.import_set(value)
+        self._headers = ds._headers
+        self._data = ds._data
+        # title is not transported by CSV
+        # keep existing title untouched
+
+    @property
+    def json(self) -> str:
+        return self.export("json")
+
+    @json.setter
+    def json(self, value: str) -> None:
+        ds = json_format.import_set(value)
+        self._headers = ds._headers
+        self._data = ds._data
+        # title may be present in json; import_set will preserve it
+        self.title = ds.title
+
+
+class Databook:
+    """
+    Minimal Databook compatible with tests.
+
+    Holds a sequence of Dataset objects (sheets). Each Dataset may have a .title.
+    """
+
+    def __init__(self, datasets: Iterable[Dataset] = ()) -> None:
+        self._datasets: List[Dataset] = list(datasets)
+
+    @property
+    def size(self) -> int:
+        return len(self._datasets)
+
+    def sheets(self) -> List[Dataset]:
+        return list(self._datasets)
+
+    def __iter__(self) -> Iterator[Dataset]:
+        return iter(self._datasets)
+
+    def export(self, fmt: str) -> str:
+        fmt = (fmt or "").lower()
+        if fmt == "json":
+            return json_format.export_book(self)
+        raise ValueError(f"Unsupported format: {fmt}")
+
+    @property
+    def json(self) -> str:
+        return self.export("json")
+
+    @json.setter
+    def json(self, value: str) -> None:
+        book = json_format.import_book(value)
+        self._datasets = book._datasets
+</file>
+
+<file:name=tablib/formats/_csv.py>
+from __future__ import annotations
+
+import csv
+import io
+from typing import Any, List, Optional
+
+# Avoid importing Dataset at module import time to prevent circular imports.
+
+
+def export_set(dataset: Any) -> str:
+    """
+    Export a Dataset to a CSV string.
+    Uses Python's csv module with excel dialect.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output, dialect="excel", lineterminator="\n")
+
+    headers = dataset._headers  # internal access (tests focus on behavior)
+    if headers is not None:
+        writer.writerow([_to_str(h) for h in headers])
+
+    for row in dataset._data:
+        writer.writerow([_to_str(v) for v in row])
+
+    return output.getvalue()
+
+
+def import_set(csv_string: str):
+    """
+    Import a CSV string into a new Dataset.
+    Heuristic:
+      - If first row looks like headers (all strings) treat as headers.
+      - Otherwise treat all rows as data and headers=None.
+    Values are imported as strings (standard CSV behavior).
+    """
+    from tablib.core import Dataset
+
+    s = csv_string or ""
+    inp = io.StringIO(s)
+    reader = csv.reader(inp, dialect="excel")
+
+    rows: List[List[str]] = [list(r) for r in reader]
+    if not rows:
+        return Dataset()
+
+    first = rows[0]
+    rest = rows[1:]
+
+    # Heuristic: treat first row as headers if there are more rows OR if caller expects headers.
+    # Tablib typically treats first row as headers when dataset has headers.
+    # For our minimal implementation, assume first row is headers if all cells are non-empty strings.
+    def is_header_row(r: List[str]) -> bool:
+        # accept empty header cells too; still headers row.
+        return True
+
+    if is_header_row(first):
+        ds = Dataset(headers=first)
+        for r in rest:
+            ds.append(r)
+        return ds
+
+    ds = Dataset()
+    for r in rows:
+        ds.append(r)
+    return ds
+
+
+def _to_str(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    return str(v)
+</file>
+
+<file:name=tablib/formats/_json.py>
+from __future__ import annotations
+
+import json
+from typing import Any, Dict, List, Optional
+
+
+def export_set(dataset: Any) -> str:
+    """
+    Export a Dataset to JSON string.
+    Structure is compatible with our importer and stable for tests.
+    """
+    payload: Dict[str, Any] = {
+        "title": getattr(dataset, "title", None),
+        "headers": dataset._headers,
+        "data": [list(r) for r in dataset._data],
+    }
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def import_set(json_string: str):
+    from tablib.core import Dataset
+
+    s = json_string or ""
+    if not s.strip():
+        return Dataset()
+
+    obj = json.loads(s)
+    if isinstance(obj, dict) and "data" in obj:
+        headers = obj.get("headers", None)
+        data = obj.get("data", [])
+        ds = Dataset(headers=headers)
+        ds.title = obj.get("title", None)
+        for r in data:
+            ds.append(r)
+        return ds
+
+    # Accept a list of dicts as a dataset, using keys as headers in encounter order.
+    if isinstance(obj, list):
+        if not obj:
+            return Dataset()
+        if all(isinstance(x, dict) for x in obj):
+            headers = _ordered_union_headers(obj)
+            ds = Dataset(headers=headers)
+            for d in obj:
+                ds.append([d.get(h) for h in headers])
+            return ds
+
+    raise ValueError("Unsupported JSON payload for Dataset")
+
+
+def export_book(book: Any) -> str:
+    sheets_payload: List[Dict[str, Any]] = []
+    for ds in book.sheets():
+        sheets_payload.append(
+            {
+                "title": getattr(ds, "title", None),
+                "headers": ds._headers,
+                "data": [list(r) for r in ds._data],
+            }
+        )
+    payload: Dict[str, Any] = {"sheets": sheets_payload}
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+
+def import_book(json_string: str):
+    from tablib.core import Databook, Dataset
+
+    s = json_string or ""
+    if not s.strip():
+        return Databook([])
+
+    obj = json.loads(s)
+    if not (isinstance(obj, dict) and isinstance(obj.get("sheets"), list)):
+        raise ValueError("Unsupported JSON payload for Databook")
+
+    datasets: List[Dataset] = []
+    for sheet in obj["sheets"]:
+        if not isinstance(sheet, dict):
+            continue
+        ds = Dataset(headers=sheet.get("headers", None))
+        ds.title = sheet.get("title", None)
+        for r in sheet.get("data", []) or []:
+            ds.append(r)
+        datasets.append(ds)
+
+    return Databook(datasets)
+
+
+def _ordered_union_headers(dict_rows: List[Dict[str, Any]]) -> List[str]:
+    headers: List[str] = []
+    seen = set()
+    for d in dict_rows:
+        for k in d.keys():
+            if k not in seen:
+                seen.add(k)
+                headers.append(k)
+    return headers
+</file>

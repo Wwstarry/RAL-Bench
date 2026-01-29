@@ -1,0 +1,418 @@
+<file:name=lifelines/__init__.py>
+from __future__ import annotations
+
+from .fitters.kaplan_meier_fitter import KaplanMeierFitter
+from .fitters.coxph_fitter import CoxPHFitter
+
+__all__ = [
+    "KaplanMeierFitter",
+    "CoxPHFitter",
+]
+</file>
+
+<file:name=lifelines/fitters/__init__.py>
+from .kaplan_meier_fitter import KaplanMeierFitter
+from .coxph_fitter import CoxPHFitter
+
+__all__ = ["KaplanMeierFitter", "CoxPHFitter"]
+</file>
+
+<file:name=lifelines/fitters/kaplan_meier_fitter.py>
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+
+
+class KaplanMeierFitter:
+    """
+    Minimal Kaplan-Meier estimator compatible with core lifelines API.
+    """
+
+    def __init__(self, alpha: float = 0.05, label: str = "KM_estimate"):
+        self.alpha = alpha
+        self._label = label
+        self.survival_function_: pd.DataFrame | None = None
+        self.event_table_: pd.DataFrame | None = None
+        self.timeline: np.ndarray | None = None
+
+    def fit(self, durations, event_observed=None, timeline=None, label: str | None = None):
+        durations = np.asarray(durations, dtype=float)
+        if event_observed is None:
+            event_observed = np.ones_like(durations, dtype=int)
+        event_observed = np.asarray(event_observed).astype(int)
+
+        if durations.ndim != 1 or event_observed.ndim != 1 or len(durations) != len(event_observed):
+            raise ValueError("durations and event_observed must be 1D arrays of the same length.")
+
+        if np.any(~np.isfinite(durations)):
+            raise ValueError("durations must be finite.")
+        if np.any(durations < 0):
+            raise ValueError("durations must be non-negative.")
+
+        label = self._label if label is None else label
+
+        # Create event table at unique times (including censoring times for at_risk updates)
+        order = np.argsort(durations, kind="mergesort")
+        t = durations[order]
+        e = event_observed[order]
+
+        unique_times, first_idx = np.unique(t, return_index=True)
+        # counts at each time
+        # deaths: events==1
+        # censored: events==0
+        deaths = np.zeros_like(unique_times, dtype=float)
+        censored = np.zeros_like(unique_times, dtype=float)
+        # vectorized counting with groupby-like approach
+        # For each unique time, count occurrences and sum events
+        _, inv, counts = np.unique(t, return_inverse=True, return_counts=True)
+        deaths = np.bincount(inv, weights=e, minlength=len(unique_times)).astype(float)
+        censored = counts.astype(float) - deaths
+
+        n = float(len(t))
+        # at_risk at time just prior to each unique time
+        # since sorted, at risk decreases by all individuals with time < current time
+        # For discrete times, at_risk at unique_times[i] equals number with duration >= that time
+        # We can compute cumulative removed before i:
+        removed_before = np.concatenate([[0.0], np.cumsum(counts[:-1]).astype(float)])
+        at_risk = n - removed_before
+
+        # KM estimate at event times (and flat at censor-only times)
+        # S(t_i) = S(t_{i-1}) * (1 - d_i / n_i)
+        surv = np.ones(len(unique_times), dtype=float)
+        prev = 1.0
+        for i in range(len(unique_times)):
+            ni = at_risk[i]
+            di = deaths[i]
+            if ni <= 0:
+                prev = max(min(prev, 1.0), 0.0)
+                surv[i] = prev
+                continue
+            frac = 1.0
+            if di > 0:
+                frac = 1.0 - (di / ni)
+            prev = prev * frac
+            prev = max(min(prev, 1.0), 0.0)
+            surv[i] = prev
+
+        # timeline handling: lifelines by default includes 0 at start.
+        if timeline is None:
+            timeline = unique_times
+            if len(timeline) == 0 or timeline[0] != 0.0:
+                timeline = np.insert(timeline, 0, 0.0)
+        else:
+            timeline = np.asarray(timeline, dtype=float)
+            timeline = np.unique(timeline)
+            timeline.sort()
+            if len(timeline) == 0 or timeline[0] != 0.0:
+                timeline = np.insert(timeline, 0, 0.0)
+
+        # Build survival function over timeline as right-continuous step function:
+        # S(t)=1 for t<first event/censor time; at times >=, use last computed at unique_times<=t
+        # We computed surv at each unique_time; extend to timeline via searchsorted.
+        sf_vals = np.ones_like(timeline, dtype=float)
+        if len(unique_times) > 0:
+            idx = np.searchsorted(unique_times, timeline, side="right") - 1
+            mask = idx >= 0
+            sf_vals[mask] = surv[idx[mask]]
+        sf_vals = np.clip(sf_vals, 0.0, 1.0)
+
+        self.timeline = timeline
+        self.survival_function_ = pd.DataFrame(sf_vals, index=timeline, columns=[label])
+
+        # event_table_ with standard lifelines column names
+        # include row at 0 for convenience
+        et_index = np.insert(unique_times, 0, 0.0)
+        et = pd.DataFrame(index=et_index)
+        et["removed"] = 0.0
+        et["observed"] = 0.0
+        et["censored"] = 0.0
+        et["entrance"] = 0.0
+        et["at_risk"] = 0.0
+
+        if len(unique_times) > 0:
+            et.loc[unique_times, "observed"] = deaths
+            et.loc[unique_times, "censored"] = censored
+            et.loc[unique_times, "removed"] = deaths + censored
+            # at_risk at unique times:
+            et.loc[unique_times, "at_risk"] = at_risk
+        # At time 0, at_risk is full cohort, entrance is full cohort
+        et.loc[0.0, "entrance"] = float(len(durations))
+        et.loc[0.0, "at_risk"] = float(len(durations))
+
+        self.event_table_ = et
+        return self
+
+    def predict(self, time):
+        if self.survival_function_ is None:
+            raise ValueError("Must call fit before predict.")
+        t = float(time)
+        # right-continuous step function: use last index <= t
+        idx = self.survival_function_.index.values.astype(float)
+        j = np.searchsorted(idx, t, side="right") - 1
+        if j < 0:
+            return 1.0
+        val = float(self.survival_function_.iloc[j, 0])
+        if val < 0.0:
+            val = 0.0
+        if val > 1.0:
+            val = 1.0
+        return val
+</file>
+
+<file:name=lifelines/fitters/coxph_fitter.py>
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize
+
+
+class CoxPHFitter:
+    """
+    Minimal Cox proportional hazards fitter compatible with core lifelines API.
+
+    Implements partial likelihood estimation with Efron tie handling (approx).
+    Provides coef_ and summary (coef, se(coef)).
+    Also provides predict_survival_function for a single-row DataFrame.
+    """
+
+    def __init__(self, penalizer: float = 0.0):
+        self.penalizer = float(penalizer)
+        self.params_: pd.Series | None = None
+        self.variance_matrix_: pd.DataFrame | None = None
+        self.summary: pd.DataFrame | None = None
+        self.baseline_cumulative_hazard_: pd.DataFrame | None = None
+        self.baseline_survival_: pd.DataFrame | None = None
+        self._duration_col: str | None = None
+        self._event_col: str | None = None
+        self._covariate_cols: list[str] | None = None
+
+    def fit(self, df: pd.DataFrame, duration_col: str, event_col: str):
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame.")
+        if duration_col not in df.columns or event_col not in df.columns:
+            raise ValueError("duration_col and event_col must be columns in df.")
+        self._duration_col = duration_col
+        self._event_col = event_col
+
+        work = df.copy()
+        # select covariates: numeric columns excluding duration/event
+        covariate_cols = [c for c in work.columns if c not in (duration_col, event_col)]
+        if len(covariate_cols) == 0:
+            raise ValueError("No covariates found to fit CoxPH model.")
+        X = work[covariate_cols]
+        # coerce to numeric
+        X = X.apply(pd.to_numeric, errors="raise")
+        T = pd.to_numeric(work[duration_col], errors="raise").astype(float).values
+        E = pd.to_numeric(work[event_col], errors="raise").astype(int).values
+
+        if np.any(T < 0) or np.any(~np.isfinite(T)):
+            raise ValueError("durations must be non-negative and finite.")
+        if np.any((E != 0) & (E != 1)):
+            # allow other ints but treat nonzero as 1? lifelines expects 0/1.
+            E = (E != 0).astype(int)
+
+        # Standardize covariates to improve numerical stability; keep means/stds for later.
+        Xv = X.values.astype(float)
+        means = Xv.mean(axis=0)
+        stds = Xv.std(axis=0, ddof=0)
+        stds[stds == 0] = 1.0
+        Z = (Xv - means) / stds
+
+        # Sort by time ascending (required for risk sets)
+        order = np.argsort(T, kind="mergesort")
+        T = T[order]
+        E = E[order]
+        Z = Z[order, :]
+
+        n, p = Z.shape
+
+        # unique event times
+        event_times = np.unique(T[E == 1])
+
+        def neg_loglik_and_grad(beta):
+            beta = beta.reshape(-1)
+            eta = Z @ beta
+            exp_eta = np.exp(np.clip(eta, -50, 50))
+
+            ll = 0.0
+            grad = np.zeros(p, dtype=float)
+
+            # For each event time, compute risk set sums and event sums.
+            # Efron approximation for ties:
+            for t in event_times:
+                ix_event = (T == t) & (E == 1)
+                d = int(ix_event.sum())
+                if d == 0:
+                    continue
+                ix_risk = T >= t
+
+                sum_risk = exp_eta[ix_risk].sum()
+                sum_risk_x = (exp_eta[ix_risk, None] * Z[ix_risk]).sum(axis=0)
+
+                sum_event = exp_eta[ix_event].sum()
+                sum_event_x = (exp_eta[ix_event, None] * Z[ix_event]).sum(axis=0)
+
+                # contribution of tied deaths:
+                # ll += sum_i in D eta_i - sum_{l=0}^{d-1} log( sum_risk - l/d * sum_event )
+                ll += eta[ix_event].sum()
+                for l in range(d):
+                    frac = l / d
+                    denom = sum_risk - frac * sum_event
+                    denom = max(denom, 1e-50)
+                    ll -= np.log(denom)
+                    grad += (sum_risk_x - frac * sum_event_x) / denom
+                grad -= Z[ix_event].sum(axis=0)
+
+            # penalizer (L2)
+            if self.penalizer > 0:
+                ll -= 0.5 * self.penalizer * float(beta @ beta)
+                grad -= self.penalizer * beta
+
+            return -ll, -grad
+
+        def objective(beta):
+            val, _ = neg_loglik_and_grad(beta)
+            return float(val)
+
+        def gradient(beta):
+            _, g = neg_loglik_and_grad(beta)
+            return g
+
+        beta0 = np.zeros(p, dtype=float)
+        res = minimize(objective, beta0, jac=gradient, method="BFGS")
+        beta_hat = res.x
+
+        # Approximate variance from inverse Hessian (BFGS provides it)
+        if hasattr(res, "hess_inv"):
+            try:
+                hess_inv = np.array(res.hess_inv)
+                if hess_inv.shape != (p, p):
+                    hess_inv = np.eye(p)
+            except Exception:
+                hess_inv = np.eye(p)
+        else:
+            hess_inv = np.eye(p)
+
+        # Transform coefficients back to original scale: eta = (x-mean)/std @ beta
+        # => coef_original = beta / std ; baseline absorbed by intercept not present.
+        coef = beta_hat / stds
+        var = hess_inv / (stds[:, None] * stds[None, :])
+
+        self._covariate_cols = covariate_cols
+        self.params_ = pd.Series(coef, index=covariate_cols, name="coef")
+        self.variance_matrix_ = pd.DataFrame(var, index=covariate_cols, columns=covariate_cols)
+
+        se = np.sqrt(np.clip(np.diag(var), 0.0, np.inf))
+        self.summary = pd.DataFrame(
+            {
+                "coef": self.params_.values,
+                "se(coef)": se,
+            },
+            index=covariate_cols,
+        )
+
+        # Baseline cumulative hazard via Breslow estimator using original-scale X
+        X_orig = X.values.astype(float)[order, :]
+        linpred = X_orig @ coef
+        exp_lp = np.exp(np.clip(linpred, -50, 50))
+
+        base_times = np.unique(T)
+        H0 = np.zeros_like(base_times, dtype=float)
+        cum = 0.0
+        for i, t in enumerate(base_times):
+            d = float(((T == t) & (E == 1)).sum())
+            if d <= 0:
+                H0[i] = cum
+                continue
+            risk = exp_lp[T >= t].sum()
+            risk = max(float(risk), 1e-50)
+            cum += d / risk
+            H0[i] = cum
+
+        self.baseline_cumulative_hazard_ = pd.DataFrame({"baseline cumulative hazard": H0}, index=base_times)
+        S0 = np.exp(-H0)
+        S0 = np.clip(S0, 0.0, 1.0)
+        self.baseline_survival_ = pd.DataFrame({"baseline survival": S0}, index=base_times)
+        return self
+
+    def predict_survival_function(self, df: pd.DataFrame, times=None) -> pd.DataFrame:
+        if self.params_ is None or self.baseline_survival_ is None:
+            raise ValueError("Must call fit before predict_survival_function.")
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame.")
+        if len(df) != 1:
+            raise ValueError("df must be a single-row DataFrame.")
+        covariate_cols = list(self.params_.index)
+        x = df[covariate_cols].apply(pd.to_numeric, errors="raise").iloc[0].values.astype(float)
+        coef = self.params_.values.astype(float)
+        hr = float(np.exp(np.clip(x @ coef, -50, 50)))
+
+        base = self.baseline_survival_.iloc[:, 0]
+        base_times = self.baseline_survival_.index.values.astype(float)
+
+        if times is None:
+            times_arr = base_times
+        else:
+            times_arr = np.asarray(times, dtype=float)
+            times_arr = np.unique(times_arr)
+            times_arr.sort()
+
+        # interpolate baseline cumulative hazard then compute S(t|x)=exp(-H0(t)*hr)
+        H0 = -np.log(np.clip(base.values, 1e-50, 1.0))
+        H0_interp = np.interp(times_arr, base_times, H0, left=0.0, right=float(H0[-1]) if len(H0) else 0.0)
+        S = np.exp(-H0_interp * hr)
+        S = np.clip(S, 0.0, 1.0)
+        return pd.DataFrame(S, index=times_arr, columns=["survival_function"])
+</file>
+
+<file:name=lifelines/datasets/__init__.py>
+from .waltons import load_waltons
+
+__all__ = ["load_waltons"]
+</file>
+
+<file:name=lifelines/datasets/waltons.py>
+from __future__ import annotations
+
+import pandas as pd
+
+
+def load_waltons() -> pd.DataFrame:
+    """
+    Return a small Waltons-like example dataset with columns:
+      - T: duration
+      - E: event indicator
+      - group: categorical label
+
+    Note: This is a lightweight embedded dataset sufficient for tests and examples.
+    """
+    data = {
+        "T": [6, 7, 10, 15, 19, 25, 32, 34, 38, 46, 3, 5, 8, 12, 17, 23, 28, 30, 41, 50],
+        "E": [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1],
+        "group": [
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "control",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+            "miR-137",
+        ],
+    }
+    return pd.DataFrame(data)
+</file>

@@ -1,0 +1,117 @@
+<contract>
+1) Repository layout
+- Root of repository contains:
+  - xmltodict.py
+- No packages are required; the test suite must succeed with `import xmltodict` resolving to this module.
+
+2) Public API surface
+- Module: xmltodict
+- Public functions:
+  - parse(xml_input, encoding=None, expat=None, process_namespaces=False, namespace_separator=':', disable_entities=True, **kwargs) -> dict
+    - xml_input: str or bytes containing XML.
+    - Must accept extra keyword arguments for compatibility; ignore unsupported ones unless they affect core behavior in tests.
+  - unparse(input_dict, output=None, encoding='utf-8', full_document=True, short_empty_elements=True, **kwargs) -> str (or bytes if encoding=None; see behavior)
+    - input_dict: mapping representing XML as produced by parse().
+    - output: if provided, a file-like object with .write(); write serialized XML to it and return written XML (string) or None (choose stable behavior and document below).
+    - Must accept extra keyword arguments for compatibility; ignore unsupported ones unless they affect core behavior in tests.
+
+- Internal helpers permitted but not required by contract.
+- No required classes, but may define exceptions:
+  - ExpatError or ParseError aliasing the underlying parser exception (optional).
+
+3) Behavioral contract
+3.1 parse() core mapping rules
+- Returns a nested Python dictionary representation of the XML document.
+- Root behavior:
+  - Return value is a dict with exactly one top-level key: the root element name.
+  - The value is the root element’s content mapping (dict or scalar) per rules below.
+- Element naming:
+  - Element names must preserve namespace prefixes as they appear in the source, e.g. `<ns:tag>` becomes key `'ns:tag'`.
+  - Do not expand prefixes into namespace URIs (tests expect prefix-preserving behavior).
+- Attributes:
+  - Each attribute on an element is included in the element’s mapping using a key prefixed by '@', e.g. `id="x"` -> `'@id': 'x'`.
+  - Preserve attribute name prefixes similarly, e.g. `xlink:href` -> `'@xlink:href'`.
+- Text content:
+  - If an element has non-whitespace text content and also has either attributes or child elements, store the text under key '#text'.
+  - If an element has only text content (no attributes and no child elements), represent it as a string value directly (i.e., the element key maps to a string), unless doing so would conflict with repeated-element grouping (see below).
+  - Whitespace-only text between child elements should be ignored (no '#text') unless it is the only text in the element (tests likely treat formatting whitespace as ignorable).
+  - If both leading/trailing text and child elements occur, preserve only meaningful text segments needed by tests (for catalog-like XML, typically no mixed-content; mixed-content support can be minimal).
+- Children:
+  - Child elements become keys in the parent mapping.
+  - If multiple child elements share the same name under a parent, group them into a Python list under that key, preserving document order among siblings of the same name.
+  - If only one child with a given name exists, store it directly (not in a list).
+- Element with attributes but no children and no text:
+  - Represent as mapping containing only attribute keys; roundtrip should produce an empty element tag.
+- Entity handling:
+  - The parser must handle standard XML entities (&lt; &gt; &amp; &quot; &apos;).
+  - If disable_entities=True (default), do not resolve custom entities beyond the standard predefined ones; reject or leave them unexpanded in a safe manner consistent with the underlying XML parser. Tests should not rely on custom entity expansion.
+- Input types:
+  - If xml_input is bytes and encoding is None, decode using UTF-8 (or XML declaration if easily supported); minimally accept UTF-8 bytes.
+  - If xml_input is str, parse directly.
+- Error handling:
+  - For malformed XML, raise an exception originating from the chosen XML parser (e.g., xml.parsers.expat.ExpatError) or a thin wrapper; tests may assert exception type loosely, so avoid swallowing parse errors.
+
+3.2 unparse() serialization rules
+- Purpose: Convert a mapping produced by parse() back into an XML string such that parse(unparse(mapping)) reproduces the same mapping for structures exercised in tests.
+- Input structure expectations:
+  - input_dict must be a mapping with a single root key.
+  - Values may be:
+    - dict: element with attributes/children/text
+    - list: only valid as a child value indicating repeated elements
+    - str/int/float/bool/None: treated as text content (converted to string) for leaf elements
+- Attributes:
+  - Keys starting with '@' in an element dict become XML attributes, with the '@' stripped.
+  - Attribute values are stringified and XML-escaped.
+- Text:
+  - Key '#text' in an element dict becomes the element’s text node (escaped).
+  - If an element dict has '#text' plus other keys, serialize '#text' as element text before child elements (sufficient for tests; mixed content after children not required).
+  - If element value is a scalar (string/number/bool/None), serialize as text content.
+- Children:
+  - Other keys (not starting with '@' and not '#text') are treated as child element names.
+  - If a child value is a list, serialize each list item as a separate child element with the same tag name, in list order.
+  - If a child value is a dict or scalar, serialize as a single child element.
+- Empty elements:
+  - If an element has no text and no children, serialize as an empty element.
+  - If short_empty_elements=True, use self-closing form `<tag/>`; otherwise `<tag></tag>`.
+- Document wrapper:
+  - If full_document=True, include an XML declaration `<?xml version="1.0" encoding="ENC"?>` where ENC is the encoding parameter (default utf-8).
+  - If full_document=False, omit XML declaration.
+- Encoding/output:
+  - Primary return is a str containing Unicode XML.
+  - If encoding is None: may return a str without declaration; tests likely use default encoding string return. Prefer: if encoding is None, do not include declaration and return str.
+  - If output is provided (file-like):
+    - Write the resulting XML string to output via output.write(xml_string).
+    - Return the xml_string as well (stable and test-friendly) or None; choose one and keep consistent. Preferred: return xml_string to allow tests that capture output.
+- Escaping:
+  - Escape text and attribute values for &, <, >, and quotes in attributes.
+- Namespace prefixes:
+  - Do not alter element/attribute names; serialize keys exactly as provided (e.g., 'ns:tag').
+
+3.3 Roundtrip invariants required by tests
+- For inputs within the tested subset (nested catalogs, attributes, leaf text fields, repeated sibling elements, prefixed names), ensure:
+  - parse(unparse(mapping)) deep-equals mapping (allowing for normalization: scalar-vs-{'#text': ...} is allowed only if tests accept it; safest is to preserve scalar leaf representation where possible).
+  - unparse(parse(xml)) produces semantically equivalent XML such that parsing it yields the same mapping rules as parse(xml).
+
+3.4 Compatibility considerations (kwargs handling)
+- parse() and unparse() must accept and ignore unknown kwargs without failing, unless they conflict with core behavior.
+- Provide reasonable defaults matching typical xmltodict usage: attribute prefix '@', text key '#text'.
+- Do not require any third-party dependencies.
+
+4) Acceptance checklist
+- [ ] `import xmltodict` works and exposes parse and unparse callables.
+- [ ] parse() returns {root_tag: ...} for a simple XML document.
+- [ ] Attributes appear as '@name' keys on the element mapping.
+- [ ] Text-only leaf element parses as a string value (not dict), and unparse recreates it.
+- [ ] Elements with both attributes and text include '#text' alongside '@*' keys.
+- [ ] Repeated sibling elements parse into lists and unparse serializes lists into repeated tags.
+- [ ] Namespace prefixes in element and attribute names are preserved exactly in parse() keys and unparse() tag/attribute names.
+- [ ] Whitespace-only formatting text between elements does not create spurious '#text' entries for typical pretty-printed XML.
+- [ ] unparse() output, when parsed back with parse(), reproduces the original mapping for tested structures.
+- [ ] Malformed XML passed to parse() raises an exception (not a silent failure).
+
+5) Non-goals / constraints
+- No external dependencies; use only Python standard library.
+- Not required to implement full xmltodict feature set (e.g., advanced namespace processing, custom item/value processors, streaming parsing, force_list, postprocessor, cdata handling, comments, PI handling) unless demanded by tests; accept such kwargs but they may be ignored.
+- Not required to preserve original formatting, attribute ordering, or exact XML lexical form; only mapping equivalence under parse() rules is required.
+- Security-hardening beyond disable_entities default is not required, but avoid custom entity expansion by default.
+</contract>

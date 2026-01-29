@@ -1,0 +1,271 @@
+project_name: Schedule
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Schedule\schedule.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation_m3\Schedule
+timestamp: '2026-01-15 12:16:11'
+functional_score: 0.5
+non_functional_score: 0.6439
+non_functional_subscores:
+  maintainability: 0.6776
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFF....F.F.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_basic_every_and_run_all _________________________\n\
+      \n    def test_basic_every_and_run_all() -> None:\n        \"\"\"every(...).seconds/minutes\
+      \ + run_all execute jobs.\"\"\"\n        _clear()\n        calls: List[str]\
+      \ = []\n    \n        def job1() -> None:\n            calls.append(\"job1\"\
+      )\n    \n        def job2() -> None:\n            calls.append(\"job2\")\n \
+      \   \n        schedule.every(5).seconds.do(job1).tag(\"sec\", \"common\")\n\
+      \        schedule.every().minutes.do(job2).tag(\"min\", \"common\")\n    \n\
+      >       jobs = schedule.get_jobs()\nE       AttributeError: module 'schedule'\
+      \ has no attribute 'get_jobs'\n\ntests\\Schedule\\functional_test.py:100: AttributeError\n\
+      _________________________ test_tags_and_clear_by_tag __________________________\n\
+      \n    def test_tags_and_clear_by_tag() -> None:\n        \"\"\"Jobs can be tagged,\
+      \ selected by tag, and cleared by tag.\"\"\"\n        _clear()\n        calls:\
+      \ List[str] = []\n    \n        def job_keep() -> None:\n            calls.append(\"\
+      keep\")\n    \n        def job_drop() -> None:\n            calls.append(\"\
+      drop\")\n    \n        schedule.every().hour.do(job_keep).tag(\"keep\", \"group\"\
+      )\n        schedule.every().hour.do(job_drop).tag(\"drop\", \"group\")\n   \
+      \ \n>       drop_jobs = schedule.get_jobs(\"drop\")\nE       AttributeError:\
+      \ module 'schedule' has no attribute 'get_jobs'\n\ntests\\Schedule\\functional_test.py:124:\
+      \ AttributeError\n_____________________ test_cancel_job_removes_single_job ______________________\n\
+      \n    def test_cancel_job_removes_single_job() -> None:\n        \"\"\"cancel_job\
+      \ removes a single job from the scheduler.\"\"\"\n        _clear()\n       \
+      \ calls: List[str] = []\n    \n        def job1() -> None:\n            calls.append(\"\
+      job1\")\n    \n        def job2() -> None:\n            calls.append(\"job2\"\
+      )\n    \n        j1 = schedule.every().day.do(job1)\n        j2 = schedule.every().day.at(\"\
+      10:30\").do(job2)\n    \n        schedule.cancel_job(j2)\n    \n        schedule.run_all()\n\
+      \        assert calls == [\"job1\"]\n>       assert j1 in schedule.get_jobs()\n\
+      E       AttributeError: module 'schedule' has no attribute 'get_jobs'\n\ntests\\\
+      Schedule\\functional_test.py:155: AttributeError\n__________________ test_repeat_decorator_registers_and_runs\
+      \ ___________________\n\n    def test_repeat_decorator_registers_and_runs()\
+      \ -> None:\n        \"\"\"@repeat(every(...)) schedules a function correctly\
+      \ and run_all triggers it.\"\"\"\n        _clear()\n        call_count = 0\n\
+      \    \n>       @schedule.repeat(schedule.every().seconds)\nE       AttributeError:\
+      \ module 'schedule' has no attribute 'repeat'\n\ntests\\Schedule\\functional_test.py:164:\
+      \ AttributeError\n________________ test_every_to_creates_job_with_interval_range\
+      \ ________________\n\n    def test_every_to_creates_job_with_interval_range()\
+      \ -> None:\n        \"\"\"every(A).to(B).seconds should create a job and be\
+      \ runnable via run_all.\"\"\"\n        _clear()\n        calls: List[str] =\
+      \ []\n    \n        def job() -> None:\n            calls.append(\"x\")\n  \
+      \  \n        j = schedule.every(2).to(5).seconds.do(job)\n>       assert j in\
+      \ schedule.get_jobs()\nE       AttributeError: module 'schedule' has no attribute\
+      \ 'get_jobs'\n\ntests\\Schedule\\functional_test.py:240: AttributeError\n_____________________\
+      \ test_get_jobs_by_tag_filters_subset _____________________\n\n    def test_get_jobs_by_tag_filters_subset()\
+      \ -> None:\n        \"\"\"get_jobs(tag) should return only jobs with that tag.\"\
+      \"\"\n        _clear()\n    \n        def a() -> None:\n            return None\n\
+      \    \n        def b() -> None:\n            return None\n    \n        schedule.every().minute.do(a).tag(\"\
+      alpha\")\n        schedule.every().minute.do(b).tag(\"beta\")\n    \n>     \
+      \  alpha_jobs = schedule.get_jobs(\"alpha\")\nE       AttributeError: module\
+      \ 'schedule' has no attribute 'get_jobs'\n\ntests\\Schedule\\functional_test.py:272:\
+      \ AttributeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all - Attr...\n\
+      FAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag - Attrib...\n\
+      FAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job\n\
+      FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs\n\
+      FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range\n\
+      FAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset\n\
+      6 failed, 6 passed in 0.54s\n"
+    elapsed_time_s: 1.874885
+    avg_memory_mb: 33.06
+    avg_cpu_percent: 98.2
+    passed: 6
+    failed: 6
+    skipped: 0
+    total: 12
+    score_inputs_passed: 6
+    score_inputs_failed: 6
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Schedule/performance_test.py _____________\n\
+      tests\\Schedule\\performance_test.py:16: in <module>\n    raise RuntimeError(f\"\
+      Repository root does not exist: {REPO_ROOT}\")\nE   RuntimeError: Repository\
+      \ root does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Schedule\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/Schedule/performance_test.py - RuntimeError: Repository root does...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.56s\n"
+    elapsed_time_s: 1.840666
+    avg_memory_mb: 36.27
+    avg_cpu_percent: 101.8
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.258654
+    score_inputs_actual_time_s: 1.840666
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ______________ ERROR collecting tests/Schedule/resource_test.py _______________\n\
+      tests\\Schedule\\resource_test.py:16: in <module>\n    raise RuntimeError(f\"\
+      Repository root does not exist: {REPO_ROOT}\")\nE   RuntimeError: Repository\
+      \ root does not exist: D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Schedule\n\
+      =========================== short test summary info ===========================\n\
+      ERROR tests/Schedule/resource_test.py - RuntimeError: Repository root does no...\n\
+      !!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!\n\
+      1 error in 0.64s\n"
+    elapsed_time_s: 2.107402
+    avg_memory_mb: 37.88
+    avg_cpu_percent: 97.7
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.42
+    score_inputs_baseline_cpu_pct: 76.1
+    score_inputs_actual_mem_mb: 37.88
+    score_inputs_actual_cpu_pct: 97.7
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.31s
+
+      '
+    elapsed_time_s: 1.851388
+    avg_memory_mb: 31.3
+    avg_cpu_percent: 90.1
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=1.0 total_loc=378.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.449278
+    avg_memory_mb: 31.79
+    avg_cpu_percent: 100.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 378.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=13.5496 files_scanned=1.0 total_loc=378.0 max_cc=15.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.49081
+    avg_memory_mb: 32.1
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 13.5496
+      files_scanned: 1.0
+      total_loc: 378.0
+      max_cc: 15.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 6.4469
+    score_inputs_generated_mi_min: 13.5496
+    score_inputs_ratio_g_over_b: 2.1017233088771348
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.258654
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.544915
+    resource_tests_total: 1
+    avg_memory_mb: 33.42
+    avg_cpu_percent: 76.1
+  functional:
+    functional_suite_time_s: 1.306884
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.417332
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.182637
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 732.0
+  maintainability:
+    maintainability_suite_time_s: 1.319653
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 6.4469
+      files_scanned: 1.0
+      total_loc: 732.0
+      max_cc: 25.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Schedule\pytest_logs

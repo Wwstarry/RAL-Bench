@@ -1,0 +1,228 @@
+from __future__ import annotations
+
+import os
+import threading
+import time
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Optional, Tuple
+
+from watchdog.events import (
+    FileCreatedEvent,
+    FileDeletedEvent,
+    FileModifiedEvent,
+    FileSystemEventHandler,
+)
+
+StatSig = Tuple[int, int, bool]  # (mtime_ns, size, is_dir)
+
+
+def _normpath(p: str) -> str:
+    # Keep it simple and consistent across platforms and with Path.resolve() in tests.
+    return os.path.abspath(os.path.normpath(os.path.expanduser(p)))
+
+
+def _mtime_ns(st: os.stat_result) -> int:
+    v = getattr(st, "st_mtime_ns", None)
+    if v is not None:
+        return int(v)
+    return int(st.st_mtime * 1_000_000_000)
+
+
+def _safe_stat(path: str) -> Optional[os.stat_result]:
+    try:
+        return os.stat(path, follow_symlinks=False)
+    except OSError:
+        return None
+
+
+def _is_under(path: str, root: str) -> bool:
+    # robust containment check with boundary, using normcased absolute paths
+    path_c = os.path.normcase(_normpath(path))
+    root_c = os.path.normcase(_normpath(root))
+    if path_c == root_c:
+        return True
+    if not root_c.endswith(os.sep):
+        root_c = root_c + os.sep
+    return path_c.startswith(root_c)
+
+
+def _direct_child_of(path: str, root: str) -> bool:
+    path_n = _normpath(path)
+    root_n = _normpath(root)
+    if path_n == root_n:
+        return True
+    return os.path.dirname(path_n) == root_n
+
+
+def _iter_dir_entries(root: str) -> Iterable[str]:
+    try:
+        with os.scandir(root) as it:
+            for entry in it:
+                yield entry.path
+    except OSError:
+        return
+
+
+def _scan(root: str, recursive: bool) -> Dict[str, StatSig]:
+    snap: Dict[str, StatSig] = {}
+    root = _normpath(root)
+
+    def add(path: str) -> None:
+        st = _safe_stat(path)
+        if st is None:
+            return
+        is_dir = os.path.isdir(path)
+        snap[path] = (_mtime_ns(st), int(st.st_size), bool(is_dir))
+
+    # include root itself so deletions of root can be detected; events will be filtered anyway
+    add(root)
+
+    if not os.path.isdir(root):
+        return snap
+
+    if not recursive:
+        for p in _iter_dir_entries(root):
+            add(p)
+        return snap
+
+    # recursive walk
+    # Use os.walk for correctness; handle errors via onerror.
+    def _onerror(_err: OSError) -> None:
+        return
+
+    for dirpath, dirnames, filenames in os.walk(root, topdown=True, onerror=_onerror, followlinks=False):
+        # record directories and files; include dir entries too
+        add(dirpath)
+        for d in dirnames:
+            add(os.path.join(dirpath, d))
+        for f in filenames:
+            add(os.path.join(dirpath, f))
+    return snap
+
+
+@dataclass(frozen=True)
+class _Watch:
+    handler: FileSystemEventHandler
+    path: str
+    recursive: bool
+
+
+class _PollingEmitter(threading.Thread):
+    def __init__(self, observer: "Observer") -> None:
+        super().__init__(name="watchdog-polling-emitter", daemon=True)
+        self._observer = observer
+        self._stop_event = observer._stop_event
+        self._timeout = observer.timeout
+        self._snapshots: Dict[_Watch, Dict[str, StatSig]] = {}
+
+    def run(self) -> None:
+        # Initialize baselines
+        with self._observer._lock:
+            watches = list(self._observer._watches)
+        for w in watches:
+            self._snapshots[w] = _scan(w.path, w.recursive)
+
+        while not self._stop_event.is_set():
+            tick_start = time.time()
+            with self._observer._lock:
+                watches = list(self._observer._watches)
+
+            # Create baselines for newly scheduled watches
+            for w in watches:
+                if w not in self._snapshots:
+                    self._snapshots[w] = _scan(w.path, w.recursive)
+
+            # Remove snapshots for unscheduled watches (not used by tests but keeps bounded)
+            for w in list(self._snapshots.keys()):
+                if w not in watches:
+                    del self._snapshots[w]
+
+            for w in watches:
+                old = self._snapshots.get(w, {})
+                new = _scan(w.path, w.recursive)
+                self._snapshots[w] = new
+                self._diff_and_dispatch(w, old, new)
+
+            # Sleep remaining time
+            elapsed = time.time() - tick_start
+            delay = self._timeout - elapsed
+            if delay > 0:
+                self._stop_event.wait(delay)
+
+    def _diff_and_dispatch(self, watch: _Watch, old: Dict[str, StatSig], new: Dict[str, StatSig]) -> None:
+        old_keys = set(old.keys())
+        new_keys = set(new.keys())
+
+        created = new_keys - old_keys
+        deleted = old_keys - new_keys
+        common = old_keys & new_keys
+
+        # Sort for deterministic dispatch
+        for p in sorted(created):
+            self._dispatch_path_event(watch, "created", p, new.get(p))
+        for p in sorted(deleted):
+            self._dispatch_path_event(watch, "deleted", p, old.get(p))
+        for p in sorted(common):
+            o = old[p]
+            n = new[p]
+            if o[0] != n[0] or o[1] != n[1]:
+                self._dispatch_path_event(watch, "modified", p, n)
+
+    def _dispatch_path_event(self, watch: _Watch, kind: str, path: str, sig: Optional[StatSig]) -> None:
+        # Only dispatch events that match this watch scope
+        if watch.recursive:
+            if not _is_under(path, watch.path):
+                return
+        else:
+            if not _direct_child_of(path, watch.path):
+                return
+
+        is_dir = bool(sig[2]) if sig is not None else os.path.isdir(path)
+
+        # Tests focus on file events; but it's safe to dispatch for both.
+        if kind == "created":
+            ev = FileCreatedEvent(path)
+        elif kind == "deleted":
+            ev = FileDeletedEvent(path)
+        else:
+            ev = FileModifiedEvent(path)
+        ev.is_directory = is_dir  # ensure accurate for callers
+
+        try:
+            watch.handler.dispatch(ev)
+        except Exception:
+            # Never let handler exceptions kill the thread in tests
+            return
+
+
+class Observer:
+    def __init__(self, timeout: float = 0.1) -> None:
+        self.timeout = float(timeout)
+        self._lock = threading.RLock()
+        self._watches: List[_Watch] = []
+        self._stop_event = threading.Event()
+        self._thread: Optional[_PollingEmitter] = None
+
+    def schedule(self, event_handler: FileSystemEventHandler, path: str, recursive: bool = False):
+        w = _Watch(handler=event_handler, path=_normpath(path), recursive=bool(recursive))
+        with self._lock:
+            self._watches.append(w)
+        return w
+
+    def start(self) -> None:
+        with self._lock:
+            if self._thread is not None and self._thread.is_alive():
+                return
+            self._stop_event.clear()
+            self._thread = _PollingEmitter(self)
+            self._thread.start()
+
+    def stop(self) -> None:
+        self._stop_event.set()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        t = None
+        with self._lock:
+            t = self._thread
+        if t is not None:
+            t.join(timeout=timeout)

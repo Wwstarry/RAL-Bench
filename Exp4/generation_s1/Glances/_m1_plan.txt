@@ -1,0 +1,160 @@
+1) Repository layout and import graph
+- Goal: Provide a minimal, cross-platform “glances” package with a CLI compatible with the required subset of Glances’ behaviors.
+- Proposed layout (top-level):
+  - glances/
+    - __init__.py
+    - __main__.py
+    - cli.py
+    - version.py
+    - csvout.py
+    - metrics.py
+    - errors.py
+  - pyproject.toml (or setup.cfg/setup.py if needed by harness; keep minimal metadata)
+  - README (optional; not required by tests)
+- Import graph:
+  - python -m glances → glances/__main__.py → glances.cli:main()
+  - glances.cli imports:
+    - glances.version for __version__
+    - glances.csvout for CSV generation and field validation
+    - glances.errors for user-facing error types
+  - glances.csvout imports:
+    - glances.metrics for collecting raw system metrics (cpu/mem/load/now)
+    - glances.errors for UnknownFieldError, UsageError
+  - glances.metrics uses only stdlib where possible; optional fast-path with psutil if present, but must work without it.
+
+2) Public APIs to implement (modules/classes/functions)
+- glances/__init__.py
+  - Expose __version__ (import from glances.version)
+- glances/version.py
+  - __version__ = "X.Y.Z" (static string; ensure printed by -V/--version)
+- glances/__main__.py
+  - def main(argv=None) -> int: delegates to glances.cli.main
+  - if __name__ == "__main__": raise SystemExit(main())
+- glances/cli.py
+  - def build_parser() -> argparse.ArgumentParser
+    - Supports: --help, -V/--version, --stdout-csv FIELDS
+    - No other options required
+  - def main(argv=None) -> int
+    - Parse args; execute version/help automatically via argparse actions
+    - Implement one-shot CSV output path
+    - Enforce error behaviors:
+      - Missing argument to --stdout-csv => exit non-zero
+      - Unknown fields => exit non-zero + non-empty error message
+    - Print outputs to stdout; errors to stderr
+- glances/errors.py
+  - class GlancesError(Exception)
+  - class UsageError(GlancesError)
+  - class UnknownFieldError(GlancesError)
+- glances/csvout.py
+  - ALLOWED_FIELDS = {"now", "cpu.user", "cpu.total", "mem.used", "load"}
+  - def parse_fields(spec: str) -> list[str]
+    - Split by comma, strip whitespace, reject empty tokens
+  - def validate_fields(fields: list[str]) -> None
+    - Raise UnknownFieldError with message listing unknown fields
+  - def collect_row(fields: list[str]) -> list[str]
+    - Use glances.metrics.get_snapshot() and map requested fields to values
+    - Return list of stringified values suitable for CSV (no header required)
+  - def format_csv_row(values: list[str]) -> str
+    - Minimal CSV formatting: join with commas; since values are numeric/ISO-ish, no quoting needed; keep it simple and deterministic
+- glances/metrics.py
+  - def now_timestamp() -> float
+    - Return time.time() as float (epoch seconds) to ensure numeric parseable “now” (tests likely accept numeric; if they expect iso, float still parseable as numeric; choose numeric for simplicity)
+  - def cpu_times() -> dict with keys: user, total
+    - Cross-platform approach:
+      - Preferred: psutil if installed: psutil.cpu_times() and psutil.cpu_percent(interval=None) is tricky for one-shot; avoid percent. Instead compute ratios from cumulative times.
+      - Fallback stdlib:
+        - On Unix: use os.times() for user/system/children; total = sum of returned times
+        - On Windows: os.times also works (returns process times) not system-wide; but acceptable as “numeric values” for tests which only parse numeric. However must be stable/fast.
+      - Provide deterministic numeric output quickly (no sleeping).
+  - def mem_used_bytes() -> int
+    - Preferred: psutil.virtual_memory().used if psutil present
+    - Fallback:
+      - Linux: parse /proc/meminfo (MemTotal - MemAvailable) * 1024
+      - macOS: use subprocess “vm_stat” is expensive; avoid if possible; instead return 0 if cannot determine (still numeric). But tests require numeric parseable; 0 is numeric.
+      - Windows: use ctypes GlobalMemoryStatusEx to get ullTotalPhys-ullAvailPhys
+      - Generic fallback: 0
+  - def load_1() -> float
+    - Preferred: os.getloadavg()[0] when available
+    - Fallback: 0.0 on platforms without getloadavg (notably Windows)
+  - def get_snapshot() -> dict
+    - Return:
+      - "now": now_timestamp()
+      - "cpu.user": cpu_times()["user"]
+      - "cpu.total": cpu_times()["total"]
+      - "mem.used": mem_used_bytes()
+      - "load": load_1()
+    - Keep all numeric types (float/int) and later stringify.
+
+3) Key behaviors & edge cases
+- CLI behaviors
+  - `python -m glances --help`
+    - argparse default help; exit code 0
+    - Ensure module runs with no side effects other than parser setup
+  - `python -m glances -V` or `--version`
+    - Print version string only (e.g., “glances 0.1.0” or just “0.1.0”); pick format likely acceptable:
+      - Prefer “Glances X.Y.Z” or “glances X.Y.Z”. To be safe, mimic common: “Glances X.Y.Z”.
+    - Exit code 0.
+  - `python -m glances --stdout-csv now,cpu.user,mem.used,load`
+    - Must print exactly one line with exactly 4 comma-separated columns in same order as fields
+    - Values:
+      - now: numeric epoch seconds (float) or int; no commas inside
+      - cpu.user: numeric
+      - mem.used: numeric
+      - load: numeric
+    - Exit code 0.
+  - `python -m glances --stdout-csv` (missing arg)
+    - argparse should treat as missing required argument; exit code non-zero (typically 2)
+    - Should output usage/error text to stderr (non-empty)
+  - `python -m glances --stdout-csv now,badfield`
+    - Must exit non-zero and print non-empty error message to stderr
+    - Do not print CSV output
+- Field parsing/validation
+  - Allow whitespace: “now, cpu.user” should work (strip tokens)
+  - Reject empty fields: “now,,cpu.user” should be treated as error (UsageError) with non-empty message; exit non-zero
+- Performance constraints
+  - No sampling intervals, no sleeps; one-shot should be immediate
+  - Avoid heavy subprocess calls; only use lightweight /proc parsing or ctypes on Windows; prefer psutil if available but do not require it
+  - Cache nothing globally that grows; ensure repeated invocations stay fast
+- Output formatting
+  - Single line terminated by newline
+  - No header row
+  - No extra spaces around commas
+  - Convert floats with repr-like compactness (use str(value)) to remain parseable
+
+4) Minimal internal test plan (what to test and why)
+- Unit tests for csv field handling
+  - parse_fields:
+    - "now,cpu.user" -> ["now","cpu.user"]
+    - " now , cpu.user " -> strips properly
+    - "now,,cpu.user" -> raises UsageError
+    - "" -> raises UsageError
+  - validate_fields:
+    - known fields passes
+    - unknown field raises UnknownFieldError with message containing the unknown token
+- Unit tests for metrics snapshot shape
+  - get_snapshot returns dict with required keys
+  - All values are int/float and stringify to something parseable by float() for cpu.user, cpu.total, mem.used, load; now also parseable as float
+- CLI subprocess tests (most important, black-box)
+  - `python -m glances --help` returns rc=0 and contains “usage” (argparse default)
+  - `python -m glances -V` returns rc=0 and prints version string non-empty
+  - `python -m glances --stdout-csv now,cpu.user,mem.used,load`
+    - rc=0
+    - stdout has exactly one line
+    - splitting by comma gives len==4
+    - float(cols[1]), float(cols[2]), float(cols[3]) all succeed; optionally float(cols[0]) too
+  - Missing arg:
+    - `python -m glances --stdout-csv` rc!=0, stderr non-empty
+  - Unknown field:
+    - `python -m glances --stdout-csv now,wat` rc!=0, stderr non-empty
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Tests expect a specific version output format
+  - Mitigation: Use a conventional format “Glances <version>” (capital G) and keep version in __init__.__version__ as well. If uncertain, print just version number may fail; prefer “Glances ” prefix but keep it simple and stable.
+- Risk: Platform-specific metric collection failing (no /proc, no os.getloadavg)
+  - Mitigation: Provide safe fallbacks returning 0/0.0 for mem/load where unavailable; tests only require numeric parseable values, not accuracy.
+- Risk: Argparse exit codes and stderr content
+  - Mitigation: Rely on argparse for missing argument behavior (it exits with code 2 and prints usage to stderr). For unknown fields, explicitly print error to stderr and return non-zero (e.g., 1). Ensure message is non-empty.
+- Risk: psutil presence/absence changes behavior
+  - Mitigation: Make psutil optional; implement deterministic stdlib/ctypes fallbacks; keep outputs numeric either way. Avoid calling psutil.cpu_percent with interval which can be slow or require state.
+- Risk: CSV formatting edge cases with floats (scientific notation)
+  - Mitigation: Scientific notation is still parseable numeric; acceptable. Ensure no locale-dependent formatting by using Python’s str() on numbers (locale-independent).

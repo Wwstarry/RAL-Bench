@@ -1,0 +1,324 @@
+1) Repository layout
+- Top-level package: click/
+  - click/__init__.py
+  - click/core.py
+  - click/decorators.py
+  - click/utils.py
+  - click/termui.py
+  - click/testing.py
+- No compiled extensions; pure Python only.
+- click/__init__.py must re-export the public API used by tests (decorators, core classes, echo/secho, exceptions if required, testing.CliRunner).
+
+2) Public API surface
+2.1 click.__init__ exports
+- Decorators:
+  - command
+  - group
+  - option
+  - argument
+- Core types:
+  - Context
+  - Command
+  - Group
+  - Parameter (may be needed for compatibility; optional unless tests import)
+  - Option
+  - Argument
+- Exceptions:
+  - ClickException
+  - UsageError
+  - BadParameter
+  - MissingParameter
+  - NoSuchOption
+  - Abort
+  - Exit
+- I/O:
+  - echo
+  - secho
+  - style (optional unless tests import; recommended for secho)
+- Testing:
+  - from click.testing import CliRunner
+
+2.2 click.decorators
+- click.command(name=None, cls=None, **attrs) -> decorator
+  - Decorates a function to become a click.core.Command (or subclass via cls).
+  - Preserves function __name__/__doc__ for help text.
+- click.group(name=None, cls=None, **attrs) -> decorator
+  - Creates a click.core.Group.
+- click.option(*param_decls, **attrs) -> decorator
+  - Adds an Option parameter to the command.
+- click.argument(param_decls, **attrs) -> decorator
+  - Adds an Argument parameter.
+
+Decorator attribute contract (minimum attributes supported, as tests may rely on them):
+- For command/group:
+  - name (inferred from function name replacing '_' with '-')
+  - help (from function __doc__ first line by default)
+  - add_help_option (default True)
+  - invoke_without_command (Group only; default False)
+  - no_args_is_help (optional; recommended)
+- For option:
+  - param_decls: e.g. "-f", "--foo"
+  - default
+  - type: supports str, int, float, bool, click types-like (see 3)
+  - required (bool)
+  - is_flag (bool)
+  - flag_value (optional)
+  - multiple (bool)
+  - count (bool) (e.g. -v -vv)
+  - nargs (int; common values 1 or -1 for variadic; implement 1 and -1 if feasible)
+  - metavar
+  - help
+  - show_default (bool)
+  - prompt (bool or str)
+  - hide_input (bool for prompt)
+  - confirmation_prompt (bool or str)
+  - prompt_required (bool)
+  - envvar (str or list of str)
+  - show_envvar (bool)
+  - default_map (context-based; see Context)
+  - expose_value (bool; default True)
+  - callback (callable(ctx, param, value) -> value)
+- For argument:
+  - required (bool; inferred from nargs)
+  - default
+  - type
+  - nargs (int; support 1, -1)
+  - metavar
+  - envvar (optional; if tests require)
+  - expose_value, callback (optional)
+
+2.3 click.core
+Core classes and key methods (signatures approximate but must be callable by tests):
+- class Context:
+  - __init__(self, command, parent=None, info_name=None, obj=None, auto_envvar_prefix=None, default_map=None, terminal_width=None, max_content_width=None, resilient_parsing=False)
+  - properties/attrs: command, parent, info_name, obj, params (dict), args (list), resilient_parsing, default_map, auto_envvar_prefix
+  - methods:
+    - invoke(self, callback, *args, **kwargs)
+    - forward(self, cmd, *args, **kwargs) (optional)
+    - fail(self, message) -> raises UsageError
+    - abort(self) -> raises Abort
+    - exit(self, code=0) -> raises Exit
+    - get_help(self) -> str
+    - make_formatter(self) (optional; can be internal)
+    - ensure_object(self, object_type) (optional)
+- class Command:
+  - __init__(self, name=None, callback=None, params=None, help=None, epilog=None, short_help=None, options_metavar='[OPTIONS]', add_help_option=True, no_args_is_help=False, hidden=False)
+  - attributes: name, callback, params(list), help, epilog, short_help, add_help_option, no_args_is_help
+  - methods:
+    - main(self, args=None, prog_name=None, complete_var=None, standalone_mode=True, **extra) -> return callback result or exit code
+    - make_context(self, info_name, args, parent=None, prog_name=None, **extra) -> Context
+    - parse_args(self, ctx, args) -> (opts, args, param_order applied)
+    - invoke(self, ctx) -> callback result
+    - format_help(self, ctx) -> str
+    - get_help(self, ctx) -> str
+    - get_usage(self, ctx) -> str
+    - get_params(self, ctx) -> list
+- class Group(Command):
+  - __init__(..., commands=None, invoke_without_command=False, **kwargs)
+  - attributes: commands (dict name->Command), invoke_without_command
+  - methods:
+    - add_command(self, cmd, name=None)
+    - get_command(self, ctx, cmd_name) -> Command|None
+    - list_commands(self, ctx) -> list[str]
+    - resolve_command(self, ctx, args) -> (cmd_name, cmd, remaining_args)
+    - invoke(self, ctx) -> result (dispatch to subcommand)
+- class Parameter:
+  - __init__(self, name, param_type_name=None, type=None, required=False, default=None, callback=None, nargs=1, multiple=False, metavar=None, expose_value=True)
+  - methods:
+    - consume_value(self, ctx, opts, args) -> value
+    - value_from_envvar(self, ctx)
+    - value_from_default_map(self, ctx)
+    - process_value(self, ctx, value)
+    - get_default(self, ctx)
+- class Option(Parameter)
+  - __init__(self, param_decls, **attrs)
+  - attributes: opts(list), secondary_opts(list), is_flag, flag_value, count, prompt, hide_input, confirmation_prompt, prompt_required, envvar, help, show_default, show_envvar
+- class Argument(Parameter)
+  - __init__(self, param_decls, **attrs)
+
+- Help option:
+  - When add_help_option=True, automatically add a --help / -h (optional -h) option that triggers printing help and exiting with code 0.
+
+2.4 click.utils
+- echo(message=None, file=None, nl=True, err=False, color=None) -> None
+- secho(message=None, file=None, nl=True, err=False, color=None, fg=None, bg=None, bold=None, dim=None, underline=None, blink=None, reverse=None, reset=True) -> None
+- style(text, fg=None, bg=None, bold=None, dim=None, underline=None, blink=None, reverse=None, reset=True) -> str (recommended)
+- get_text_stream(name) (optional)
+- should_strip_ansi(stream, color=None) (optional internal)
+- termui-related helpers may be in termui.py; utils may import them.
+
+2.5 click.termui
+- prompt(text, default=None, hide_input=False, confirmation_prompt=False, type=str, value_proc=None, prompt_suffix=': ', show_default=True, err=False, show_choices=True) -> value
+  - Must support being called by Option.prompt handling.
+- echo/secho may live in utils but are also exposed top-level; termui may re-export or wrap.
+
+2.6 click.testing
+- class Result:
+  - attributes: exit_code (int), output (str), stdout (str, optional), stderr (str, optional), exception (Exception|None), exc_info (tuple|None), return_value (any)
+  - property: output (combined captured output; primary used by tests)
+- class CliRunner:
+  - __init__(self, charset='utf-8', env=None, echo_stdin=False, mix_stderr=False)
+  - methods:
+    - invoke(self, cli, args=None, input=None, env=None, catch_exceptions=True, color=False, standalone_mode=True, prog_name=None, **extra) -> Result
+    - isolated_filesystem(self, temp_dir=None) -> context manager (recommended)
+    - make_env(self, env=None) -> dict (internal)
+  - Behavior: invoke must run cli.main(...) with provided args; capture stdout/stderr; provide exit_code and exception info. If catch_exceptions=False re-raise.
+
+3) Behavioral contract
+3.1 Command invocation and parsing
+- cli is a Command or Group created by decorators or manually.
+- args accepted as:
+  - None: defaults to sys.argv[1:]
+  - str: split like shlex.split (POSIX) into list
+  - list/tuple: used directly
+- Parsing rules:
+  - Options are introduced by '-' / '--'. Long options can use '--name=value' and '--name value'. Short options can combine flags where appropriate (e.g. -vvv for count; -abc for multiple boolean flags if each exists and is_flag=True and takes no value).
+  - Stop parsing at '--' and treat remaining tokens as arguments.
+  - Unknown options raise NoSuchOption with message formatted like: "No such option: --bad" (or "-x").
+  - Missing required option value raises UsageError with message like: "Option '--foo' requires an argument."
+  - Missing required parameter raises MissingParameter with message like: "Missing option '--foo'." or "Missing argument 'NAME'."
+  - Type conversion errors raise BadParameter with message like: "Invalid value for '--count': 'x' is not a valid integer." (exact phrasing should match tests; keep close to Click: "Invalid value for ...: ..." and include the bad input)
+- Parameter evaluation order:
+  - Options and arguments are processed in the order they were added to the command via decorators (stacking decorators must match Click: the bottom-most decorator runs first; final param list order in Click is typically option/argument order based on decoration stacking; implement by collecting params on function in decorator application order and then reversing as Click does).
+  - Callbacks for parameters must run after type conversion and before invoking command callback; they can modify the final value.
+- Defaults:
+  - If option/argument not provided, resolve value in this order:
+    1) value from default_map on context (ctx.default_map or inherited from parent): key by parameter name; for subcommands default_map nested by command name.
+    2) value from environment variable if envvar provided OR auto_envvar_prefix is set on Context and option has a name -> prefix + '_' + name uppercased; dashes converted to underscores.
+    3) parameter default (call if callable)
+    4) if prompt is enabled and value missing, prompt user (see 3.3)
+    5) if still missing and required, raise MissingParameter
+- multiple=True:
+  - Collect repeated occurrences into a tuple (Click returns tuple).
+  - Default for multiple should be () when no default provided.
+- count=True:
+  - Each occurrence increments integer count. Default is 0.
+  - Usually used with a short flag like -v; accept -vvv equivalent to three occurrences.
+- is_flag=True:
+  - Option consumes no value and yields True when present (or flag_value if provided).
+  - If flag_value provided, default should be opposite or None per Click; minimally, if flag_value is True default False; if flag_value is False default True when used as --no-foo; also support paired boolean flags via two decls like "--foo/--no-foo" (recommended; if present in tests must implement).
+- nargs:
+  - For options nargs=1 supported.
+  - For arguments: nargs=1 and nargs=-1 (variadic remainder) supported; for -1 consume all remaining args (respecting '--' stop).
+- expose_value=False:
+  - Parameter parsed but not passed into callback kwargs; still runs callback if provided.
+- Context.params:
+  - Must contain parsed values for exposed params.
+
+3.2 Group and nested commands
+- Group dispatch:
+  - First non-option token is treated as subcommand name unless invoke_without_command and none provided.
+  - If unknown subcommand: UsageError "No such command 'name'."
+  - Group supports its own options that appear before subcommand.
+  - Remaining args after subcommand name are parsed by that subcommand.
+- Help:
+  - "prog --help" prints help and exits 0; similarly "prog sub --help".
+  - Group help lists commands in alphabetical order by name (Click behavior) unless insertion order is required by tests; prefer alphabetical.
+  - Nested usage lines include parent chain, e.g. "Usage: prog sub [OPTIONS] ARG".
+- no_args_is_help:
+  - If True and invoked with no args (or no subcommand for group) should show help and exit 0.
+
+3.3 Prompting
+- If an Option has prompt=True or prompt is a string, and the option value is missing, prompt on stdin.
+- prompt text:
+  - If prompt is True use option name capitalized with spaces (Click uses humanized name); acceptable minimal: use option.name replacing '_' with ' ' and capitalize first letter.
+  - If prompt is str use that literal.
+- show_default:
+  - If show_default True and default not None, prompt displays default in brackets like "Foo [default]: " (exact spacing may be tested; emulate Click: "Foo: " with suffix prompt_suffix default ": " and default shown as " [default]" before suffix).
+- If user enters empty input and default exists, use default.
+- confirmation_prompt:
+  - If True or str, ask twice; mismatch repeats or raises UsageError (Click repeats until match; minimal: one retry loop).
+- hide_input:
+  - When True, do not echo typed characters (cannot fully implement without getpass; use getpass.getpass).
+- Type conversion applies to prompted value.
+
+3.4 Output, styling, and ANSI handling
+- echo:
+  - Writes to stdout by default; if err=True writes to stderr.
+  - If message is None, writes just newline if nl=True, else nothing.
+  - Accepts non-str; convert via str().
+  - Ensures correct newline handling: if nl=True append '\n' unless message already endswith '\n'? Click always adds newline unless nl=False; implement: write message then '\n' if nl.
+  - Must work with bytes? If message is bytes, decode using utf-8 with errors='replace' or runner charset; minimal: if bytes decode utf-8 replace.
+- style/secho:
+  - style wraps text in ANSI codes when color is enabled.
+  - secho applies style then echo.
+  - Color enabling:
+    - echo/secho accept color parameter; if color is None follow global default (in CliRunner invoke color flag determines if ANSI should be preserved).
+    - In testing, CliRunner.invoke(color=False) should strip or avoid ANSI codes; color=True should keep them.
+  - Provide minimal ANSI: fg colors (black/red/green/yellow/blue/magenta/cyan/white), reset code.
+- Help text formatting:
+  - Must include sections: Usage:, Options:, Commands: (for group), and show options with metavar and help.
+  - Include automatic --help option description: "Show this message and exit."
+  - Option formatting should show short and long forms separated by comma.
+  - Default display if show_default True: append "[default: X]" in help line (Click uses this bracketed note).
+  - Required display (optional): append "[required]" (if needed by tests).
+  - Keep line wrapping simple but stable; tests likely compare substrings not exact wrapping; still produce deterministic output.
+
+3.5 Error handling and exit codes
+- Exceptions:
+  - ClickException: base with message; has show(file=None) that writes "Error: {message}\n" to stderr.
+  - UsageError(ClickException): for usage problems; when raised in standalone_mode should print message + "Try 'prog --help' for help.\n" and exit code 2.
+  - BadParameter, MissingParameter, NoSuchOption inherit UsageError (or ClickException) as appropriate; exit code 2.
+  - Abort: raised on user abort; prints "Aborted!\n" to stderr; exit code 1.
+  - Exit: carries exit_code; used for normal termination after help; does not print error.
+- Command.main(...):
+  - If standalone_mode=True:
+    - Catches ClickException, Abort, Exit.
+    - On ClickException: show error, exit with appropriate code (2).
+    - On Abort: print and exit 1.
+    - On Exit: exit with its code.
+  - If standalone_mode=False:
+    - Propagates exceptions except Exit may be returned/raised depending on compatibility; for tests, allow Exit to propagate or convert to return code; prefer propagate Exit only when raised explicitly, but CliRunner will set exit_code.
+- Return values:
+  - Click normally returns callback return value when standalone_mode=False; when standalone_mode=True it sys.exit(exit_code). In CliRunner, call with standalone_mode parameter and capture.
+
+3.6 CliRunner.invoke contract
+- Captures stdout and stderr produced by echo/print and by ClickException.show.
+- Accepts input:
+  - input can be str/bytes; provided to stdin for prompts and for reading.
+  - If echo_stdin=True, stdin content is echoed to output (like terminal).
+- env:
+  - Runner has base env; invoke env overrides; during invocation set os.environ accordingly (within context) and restore afterwards.
+- mix_stderr:
+  - If True, stderr is merged into stdout and Result.output includes both; stdout/stderr attributes may still be provided.
+  - If False, Result.output should be stdout only (Click’s Result.output is combined in older versions; tests may expect combined; safest: set Result.output = stdout + stderr when mix_stderr=True else stdout, and provide stderr separately).
+- exit_code:
+  - 0 on success
+  - 2 on usage errors
+  - 1 on Abort
+  - If an unhandled exception and catch_exceptions=True: exit_code=1 and exception stored.
+- exception capture:
+  - Result.exception is the raised exception object (if any).
+  - Result.exc_info is sys.exc_info() tuple.
+  - If catch_exceptions=False, re-raise.
+- prog_name:
+  - If provided, used in help/usage and error "Try 'prog --help'..." suggestions.
+
+4) Acceptance checklist
+- click package importable; click.core, click.decorators, click.utils, click.termui, click.testing exist.
+- Top-level imports work:
+  - from click import command, group, option, argument, echo, secho, Context, Command, Group
+  - from click.testing import CliRunner
+- Decorators build commands/groups and attach parameters; nested groups and subcommands dispatch correctly.
+- Option parsing:
+  - supports long/short options, --opt=value, repeated options, -- to end option parsing
+  - supports is_flag, count, multiple, required, default, type conversion (int at least)
+- Argument parsing:
+  - supports required arguments and nargs=-1 variadic capture
+- Prompting works for missing prompted options; respects default, hide_input, confirmation_prompt.
+- Help output:
+  - --help prints Usage/Options; group help includes Commands list; includes auto help option text.
+- Errors:
+  - Unknown option and missing parameter produce exit code 2 and formatted error + try-help line.
+  - Abort produces exit code 1 and "Aborted!"
+- CliRunner.invoke:
+  - captures output deterministically; provides exit_code and exception fields; supports env overrides; supports color flag affecting ANSI presence.
+- secho/style:
+  - when color=True, includes ANSI sequences for fg/bold at minimum; when color=False, output contains plain text without ANSI.
+
+5) Non-goals / constraints
+- Do not depend on external click package or any third-party libraries.
+- Do not implement full Click feature set (shell completion, parameter types beyond basic scalars, file/path types, advanced formatting/wrapping) unless required by tests.
+- No OS-level terminal control beyond ANSI styling; no curses.
+- No network access, no subprocess invocation for core behavior.
+- Keep behavior stable and deterministic for tests (help text ordering, error messages, exit codes).

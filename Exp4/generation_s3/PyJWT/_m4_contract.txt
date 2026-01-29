@@ -1,0 +1,143 @@
+1) Repository layout
+- Must provide a Python package named "jwt" with these modules:
+  - jwt/__init__.py
+  - jwt/api_jwt.py
+  - jwt/exceptions.py
+- No other files are required by this contract, but the package must be importable as:
+  - import jwt
+  - from jwt import api_jwt
+  - from jwt import exceptions
+  - from jwt.api_jwt import PyJWT
+
+2) Public API surface
+2.1 Top-level exports (jwt/__init__.py)
+- Functions:
+  - jwt.encode(payload, key, algorithm="HS256", **kwargs) -> str
+  - jwt.decode(token, key, algorithms=["HS256"], options=None, leeway=0, **kwargs) -> dict
+- Exceptions re-exported from jwt.exceptions:
+  - jwt.DecodeError
+  - jwt.InvalidSignatureError
+  - jwt.ExpiredSignatureError
+  (and any additional internal exceptions as needed, but at least these must exist and be re-exported)
+- Must also expose a PyJWT object/class compatible entrypoint:
+  - jwt.PyJWT refers to jwt.api_jwt.PyJWT
+  - jwt.api_jwt must exist and define class PyJWT
+
+2.2 Core implementation (jwt/api_jwt.py)
+- class PyJWT:
+  - def encode(self, payload, key, algorithm="HS256", headers=None, json_encoder=None, **kwargs) -> str
+  - def decode(self, jwt, key="", algorithms=None, options=None, leeway=0, **kwargs) -> dict
+- Module-level convenience functions (optional) may exist, but top-level jwt.encode/jwt.decode must work.
+- "headers" in encode is accepted; only "typ" and "alg" are required to be handled for tests; may pass-through additional header fields.
+
+2.3 Exceptions (jwt/exceptions.py)
+- Define exception types:
+  - class PyJWTError(Exception)
+  - class DecodeError(PyJWTError)
+  - class InvalidSignatureError(DecodeError)
+  - class ExpiredSignatureError(DecodeError)
+- These must be importable from jwt.exceptions and re-exported at package top-level.
+
+3) Behavioral contract
+3.1 JWT format and encoding
+- encode() must produce a compact JWS string: "<b64url(header)>.<b64url(payload)>.<b64url(signature)>".
+- Header:
+  - Must be JSON object.
+  - Must include {"typ": "JWT", "alg": algorithm} by default; "typ" may be omitted if tests allow, but prefer including.
+  - algorithm default "HS256".
+- Payload:
+  - Must be JSON object created from the provided payload mapping (dict-like).
+  - Must be serialized using json.dumps with separators that avoid whitespace (e.g., separators=(",", ":")) to ensure deterministic output for tests.
+- Base64url:
+  - Must use URL-safe base64 without padding ("=" stripped).
+  - Decoding must accept missing padding and restore as needed.
+- Signature for HS256:
+  - Signing input is ASCII bytes of "<b64url(header)>.<b64url(payload)>".
+  - Signature is HMAC-SHA256(key_bytes, signing_input).
+  - key must support str or bytes:
+    - if str: encode as UTF-8
+    - if bytes: use as-is
+- encode() return type:
+  - Must return str (text), not bytes.
+
+3.2 Decoding and verification
+- decode(token, key, algorithms=["HS256"], options=None, leeway=0, **kwargs) returns decoded payload dict on success.
+- Token parsing:
+  - Must split by "." into exactly 3 segments; otherwise raise DecodeError.
+  - Must base64url-decode header and payload and parse JSON; parsing errors raise DecodeError.
+- Algorithm handling:
+  - For tests, only HS256 is required.
+  - If verification is expected (default), decode must require the caller to provide algorithms explicitly (list/iterable containing "HS256").
+  - If algorithms is None (or not provided at PyJWT.decode level) and signature verification is enabled, raise DecodeError.
+  - If algorithms provided but does not include "HS256", raise DecodeError (or InvalidSignatureError is acceptable only if tests don’t distinguish; prefer DecodeError).
+- Signature verification:
+  - When verify_signature is enabled (default), compute expected signature with provided key and HS256.
+  - If signature does not match, raise InvalidSignatureError.
+  - Use constant-time compare (hmac.compare_digest) where possible.
+- Key handling:
+  - Same conversion rules as encode (str->utf8 bytes, bytes->as-is).
+- Options:
+  - options is a dict that may include:
+    - "verify_signature" (bool, default True)
+    - "verify_exp" (bool, default True)
+  - Missing options dict treated as {}.
+  - If verify_signature is False:
+    - Do not require algorithms.
+    - Do not verify signature; still parse and return payload.
+- kwargs passthrough:
+  - Accept extra kwargs to maintain API compatibility; ignore unknown ones unless tests require behavior.
+
+3.3 Expiration ("exp") claim support
+- If verify_exp is True (default):
+  - If payload contains "exp":
+    - exp may be int/float or a numeric string; attempt to coerce to int/float; if coercion fails, raise DecodeError.
+    - Treat exp as a UNIX timestamp in seconds.
+    - Determine "now" using time.time().
+    - If now > exp + leeway: token is expired -> raise ExpiredSignatureError.
+    - If now <= exp + leeway: accept.
+  - If payload lacks "exp": accept (no error).
+- leeway:
+  - leeway can be int/float seconds.
+  - Must be applied only to exp comparison as described above.
+
+3.4 Error handling invariants
+- Malformed token structure, invalid base64, invalid JSON => DecodeError.
+- Missing algorithms when verify_signature=True => DecodeError.
+- Wrong key/signature mismatch => InvalidSignatureError.
+- Expired token with verify_exp=True and beyond leeway => ExpiredSignatureError.
+- All exceptions must be instances of the exported exception classes (not builtins).
+
+3.5 Compatibility expectations (core subset)
+- jwt.encode and jwt.decode must delegate to a default PyJWT instance to mimic PyJWT’s high-level API style.
+- The test suite may import jwt.api_jwt.PyJWT and instantiate it; both usage patterns must work:
+  - jwt.encode(...) / jwt.decode(...)
+  - jwt.api_jwt.PyJWT().encode(...) / .decode(...)
+
+4) Acceptance checklist
+- Imports:
+  - "import jwt" succeeds; "import jwt.api_jwt" succeeds; "import jwt.exceptions" succeeds.
+  - "from jwt import encode, decode" succeeds.
+  - "from jwt.exceptions import DecodeError, InvalidSignatureError, ExpiredSignatureError" succeeds.
+- Encoding:
+  - jwt.encode({"a":1}, "secret", algorithm="HS256") returns a string with exactly two '.' characters.
+  - Token header decodes to JSON with alg="HS256" (and typ="JWT" unless tests don’t assert it).
+- Decoding success:
+  - jwt.decode(token, "secret", algorithms=["HS256"]) returns original payload dict content.
+- Wrong key:
+  - jwt.decode(token, "wrong", algorithms=["HS256"]) raises jwt.InvalidSignatureError.
+- Missing algorithms:
+  - jwt.decode(token, "secret") (or algorithms omitted/None) raises jwt.DecodeError when verify_signature is True.
+- Expiration:
+  - Token with exp in the past fails with jwt.ExpiredSignatureError when verify_exp is True (default).
+  - Same token passes if leeway is large enough to cover the difference (now <= exp+leeway).
+  - If options={"verify_exp": False}, expired token decodes without raising ExpiredSignatureError.
+- Signature verification can be disabled:
+  - If options={"verify_signature": False}, decoding succeeds without providing algorithms and without checking signature.
+- All raised errors are of the expected exported types.
+
+5) Non-goals / constraints
+- Only HS256 support is required; no RSA/ECDSA/EdDSA, no JWK, no "none" algorithm support.
+- No external cryptography libraries; only Python standard library (json, base64, hmac, hashlib, time, typing).
+- Do not implement full PyJWT feature set (aud/iss/sub/jti/nbf/iat validation, key loading, X.509, detached payloads) unless tests require; ignore extra kwargs safely.
+- Do not perform network I/O or depend on external services.
+- Ensure deterministic JSON serialization for stable test expectations; do not include non-deterministic header fields.

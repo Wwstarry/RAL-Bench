@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+import argparse
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Safe stub of fail2ban-client (offline). No server communication is performed.",
+    )
+    p.add_argument("--version", action="store_true", help="Show version and exit.")
+    p.add_argument("args", nargs="*", help="Ignored (stub).")
+    ns = p.parse_args(argv)
+    if ns.version:
+        try:
+            from fail2ban import __version__
+        except Exception:
+            __version__ = "unknown"
+        print(__version__)
+    else:
+        p.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

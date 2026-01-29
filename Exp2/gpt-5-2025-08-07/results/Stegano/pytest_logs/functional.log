@@ -1,0 +1,262 @@
+FFFFFF.....F                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'hello world', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: Union[str, bytes],
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False,
+    ) -> Image.Image:
+        """
+        Hide a text/byte message inside the least significant bits of image channels.
+        - If generator is provided, it selects the slot indices to modify (offset by 'shift').
+        - Otherwise, slots are used sequentially starting from 'shift'.
+        The message is stored with a 32-bit big-endian length prefix to allow extraction.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\lsb\lsb.py:80: TypeError
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x0000025593E28BA0>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: Union[str, bytes],
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False,
+    ) -> Image.Image:
+        """
+        Hide a text/byte message inside the least significant bits of image channels.
+        - If generator is provided, it selects the slot indices to modify (offset by 'shift').
+        - Otherwise, slots are used sequentially starting from 'shift'.
+        The message is stored with a 32-bit big-endian length prefix to allow extraction.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\lsb\lsb.py:80: TypeError
+__________________ test_lsb_hide_and_reveal_long_ascii_text ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_lsb_hide_and_reveal_long_0')
+
+    def test_lsb_hide_and_reveal_long_ascii_text(tmp_path: Path) -> None:
+        """LSB should roundtrip a longer ASCII text message (still < typical capacity)."""
+        _ensure_image_samples_exist()
+    
+        secret = "This is a longer secret message with punctuation: 12345, hello-world!"
+        output = tmp_path / "lsb_long.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'This is a longer secret message with punctuation: 12345, hello-world!'
+generator = None, shift = 0, encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: Union[str, bytes],
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False,
+    ) -> Image.Image:
+        """
+        Hide a text/byte message inside the least significant bits of image channels.
+        - If generator is provided, it selects the slot indices to modify (offset by 'shift').
+        - Otherwise, slots are used sequentially starting from 'shift'.
+        The message is stored with a 32-bit big-endian length prefix to allow extraction.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\lsb\lsb.py:80: TypeError
+______________________ test_lsb_reveal_from_image_object ______________________
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+>       img_obj = lsb.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'object input', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: Union[str, bytes],
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False,
+    ) -> Image.Image:
+        """
+        Hide a text/byte message inside the least significant bits of image channels.
+        - If generator is provided, it selects the slot indices to modify (offset by 'shift').
+        - Otherwise, slots are used sequentially starting from 'shift'.
+        The message is stored with a 32-bit big-endian length prefix to allow extraction.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\lsb\lsb.py:80: TypeError
+________________________ test_red_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_red_hide_and_reveal_text0')
+
+    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:
+        """red.hide(..., str) then red.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "red secret"
+        output = tmp_path / "red_lenna.png"
+    
+>       encoded_img = red.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'red secret'
+
+    def hide(image: Image.Image, message: Union[str, bytes]) -> Image.Image:
+        """
+        Hide text in the red channel (LSB) of an RGB/RGBA image.
+        Stores a 32-bit big-endian length prefix followed by message bytes.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\red\red.py:20: TypeError
+________________ test_red_hide_and_reveal_extended_latin_text _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_red_hide_and_reveal_exten0')
+
+    def test_red_hide_and_reveal_extended_latin_text(tmp_path: Path) -> None:
+        """Red backend stores per-char ord() into a byte channel; Latin-1 chars like 'é' are valid."""
+        _ensure_image_samples_exist()
+    
+        secret = "Café au lait"
+        output = tmp_path / "red_latin.png"
+    
+>       encoded_img = red.hide(str(LENNA_PNG), secret)
+
+tests\Stegano\functional_test.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'Café au lait'
+
+    def hide(image: Image.Image, message: Union[str, bytes]) -> Image.Image:
+        """
+        Hide text in the red channel (LSB) of an RGB/RGBA image.
+        Stores a 32-bit big-endian length prefix followed by message bytes.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\red\red.py:20: TypeError
+_____________________ test_lsb_and_red_outputs_are_files ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-365/test_lsb_and_red_outputs_are_f0')
+
+    def test_lsb_and_red_outputs_are_files(tmp_path: Path) -> None:
+        """Ensure image-encoding backends produce files that can be written to disk."""
+        _ensure_image_samples_exist()
+    
+        out_lsb = tmp_path / "lsb_file.png"
+        out_red = tmp_path / "red_file.png"
+    
+>       lsb.hide(str(LENNA_PNG), "x").save(str(out_lsb))
+
+tests\Stegano\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'x', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: Union[str, bytes],
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False,
+    ) -> Image.Image:
+        """
+        Hide a text/byte message inside the least significant bits of image channels.
+        - If generator is provided, it selects the slot indices to modify (offset by 'shift').
+        - Otherwise, slots are used sequentially starting from 'shift'.
+        The message is stored with a 32-bit big-endian length prefix to allow extraction.
+        """
+        if not isinstance(image, Image.Image):
+>           raise TypeError("image must be a PIL.Image.Image instance")
+E           TypeError: image must be a PIL.Image.Image instance
+
+generation\Stegano\stegano\lsb\lsb.py:80: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_text - Type...
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_long_ascii_text
+FAILED tests/Stegano/functional_test.py::test_lsb_reveal_from_image_object - ...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_text - Type...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_extended_latin_text
+FAILED tests/Stegano/functional_test.py::test_lsb_and_red_outputs_are_files
+7 failed, 5 passed in 6.46s

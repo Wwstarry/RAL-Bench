@@ -1,0 +1,120 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_meeting_schedule_integration ______________________
+
+    def test_meeting_schedule_integration() -> None:
+        """Integration test for building a recurring meeting schedule."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 2, 29)
+    
+        # Approximate "Europe/Berlin" as UTC+1 for this test.
+>       meetings = _generate_meeting_schedule(start, end, offset_hours=1)
+
+tests\Dateutil\resource_test.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\resource_test.py:66: in _generate_meeting_schedule
+    return list(rule)
+generation\Dateutil\dateutil\rrule\_rrule.py:102: in _iter
+    dt = self._advance(dt, freq, interval)
+generation\Dateutil\dateutil\rrule\_rrule.py:166: in _advance
+    return dt + relativedelta(weeks=interval)
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:69: in __radd__
+    return self.__add__(other)
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:65: in __add__
+    return self._apply(other, 1)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = relativedelta(days=7)
+dt = datetime.datetime(9999, 12, 29, 10, 0, tzinfo=tzoffset('LOCAL', 3600))
+sign = 1
+
+    def _apply(self, dt, sign):
+        # Apply years and months
+        year = dt.year + sign * self.years
+        month = dt.month + sign * self.months
+        while month > 12:
+            year += 1
+            month -= 12
+        while month < 1:
+            year -= 1
+            month += 12
+        # Clamp day to last day of month
+        day = dt.day
+        from calendar import monthrange
+        last_day = monthrange(year, month)[1]
+        if day > last_day:
+            day = last_day
+        # Apply days, hours, minutes, seconds, microseconds
+        result = dt.replace(year=year, month=month, day=day)
+        delta = timedelta(
+            days=sign * self.days + sign * self.leapdays,
+            hours=sign * self.hours,
+            minutes=sign * self.minutes,
+            seconds=sign * self.seconds,
+            microseconds=sign * self.microseconds,
+        )
+>       result = result + delta
+E       OverflowError: date value out of range
+
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:104: OverflowError
+_____________ test_duration_between_two_events_with_relativedelta _____________
+
+    def test_duration_between_two_events_with_relativedelta() -> None:
+        """Use relativedelta to compute calendar duration between first and last meeting."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 3, 31)
+    
+        # Approximate "America/New_York" as UTC-5 for this test.
+>       meetings = _generate_meeting_schedule(start, end, offset_hours=-5)
+
+tests\Dateutil\resource_test.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\resource_test.py:66: in _generate_meeting_schedule
+    return list(rule)
+generation\Dateutil\dateutil\rrule\_rrule.py:102: in _iter
+    dt = self._advance(dt, freq, interval)
+generation\Dateutil\dateutil\rrule\_rrule.py:166: in _advance
+    return dt + relativedelta(weeks=interval)
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:69: in __radd__
+    return self.__add__(other)
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:65: in __add__
+    return self._apply(other, 1)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = relativedelta(days=7)
+dt = datetime.datetime(9999, 12, 29, 10, 0, tzinfo=tzoffset('LOCAL', -18000))
+sign = 1
+
+    def _apply(self, dt, sign):
+        # Apply years and months
+        year = dt.year + sign * self.years
+        month = dt.month + sign * self.months
+        while month > 12:
+            year += 1
+            month -= 12
+        while month < 1:
+            year -= 1
+            month += 12
+        # Clamp day to last day of month
+        day = dt.day
+        from calendar import monthrange
+        last_day = monthrange(year, month)[1]
+        if day > last_day:
+            day = last_day
+        # Apply days, hours, minutes, seconds, microseconds
+        result = dt.replace(year=year, month=month, day=day)
+        delta = timedelta(
+            days=sign * self.days + sign * self.leapdays,
+            hours=sign * self.hours,
+            minutes=sign * self.minutes,
+            seconds=sign * self.seconds,
+            microseconds=sign * self.microseconds,
+        )
+>       result = result + delta
+E       OverflowError: date value out of range
+
+generation\Dateutil\dateutil\relativedelta\_relativedelta.py:104: OverflowError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/resource_test.py::test_meeting_schedule_integration - O...
+FAILED tests/Dateutil/resource_test.py::test_duration_between_two_events_with_relativedelta
+2 failed in 7.50s

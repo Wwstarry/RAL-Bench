@@ -1,0 +1,174 @@
+..FFFFFFFFF.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]], headers = 'firstrow'
+tablefmt = 'simple', numalign = 'right', stralign = 'left'
+
+    def tabulate(data, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        """
+        Generate a formatted table string from the given data.
+    
+        :param data: List of lists, dictionaries, or list of dictionaries.
+        :param headers: Optional list of column headers.
+        :param tablefmt: Table format (e.g., "plain", "grid", "pipe").
+        :param numalign: Alignment for numeric columns ("left", "center", "right").
+        :param stralign: Alignment for string columns ("left", "center", "right").
+        :return: Formatted table string.
+        """
+        if tablefmt not in PRESET_FORMATS:
+>           raise ValueError(f"Unknown table format: {tablefmt}")
+E           ValueError: Unknown table format: simple
+
+generation\Tabulate\tabulate\core.py:18: ValueError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+        output = tabulate(table, headers="keys")
+        lines = _lines(output)
+    
+>       assert "Name" in lines[0]
+E       AssertionError: assert 'Name' in 'k e y s'
+
+tests\Tabulate\functional_test.py:137: AssertionError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+>       out_true = tabulate(table, showindex=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'showindex'
+
+tests\Tabulate\functional_test.py:151: TypeError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = [['spam', 42], ['eggs', 451], ['bacon', 0]], headers = ['item', 'qty']
+tablefmt = 'github', numalign = 'right', stralign = 'left'
+
+    def tabulate(data, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        """
+        Generate a formatted table string from the given data.
+    
+        :param data: List of lists, dictionaries, or list of dictionaries.
+        :param headers: Optional list of column headers.
+        :param tablefmt: Table format (e.g., "plain", "grid", "pipe").
+        :param numalign: Alignment for numeric columns ("left", "center", "right").
+        :param stralign: Alignment for string columns ("left", "center", "right").
+        :return: Formatted table string.
+        """
+        if tablefmt not in PRESET_FORMATS:
+>           raise ValueError(f"Unknown table format: {tablefmt}")
+E           ValueError: Unknown table format: github
+
+generation\Tabulate\tabulate\core.py:18: ValueError
+____________________ test_list_of_dicts_headers_keys_plain ____________________
+
+    def test_list_of_dicts_headers_keys_plain() -> None:
+        rows = [
+            {"name": "Alice", "score": 10},
+            {"name": "Bob", "score": 12},
+        ]
+        output = tabulate(rows, headers="keys", tablefmt="plain")
+        lines = _lines(output)
+    
+        header = lines[0]
+>       assert "name" in header
+E       AssertionError: assert 'name' in 'k e y s'
+
+tests\Tabulate\functional_test.py:194: AssertionError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+>       output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+E       TypeError: tabulate() got an unexpected keyword argument 'missingval'
+
+tests\Tabulate\functional_test.py:207: TypeError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+>       output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+E       TypeError: tabulate() got an unexpected keyword argument 'floatfmt'
+
+tests\Tabulate\functional_test.py:222: TypeError
+_______________ test_disable_numparse_preserves_numeric_strings _______________
+
+    def test_disable_numparse_preserves_numeric_strings() -> None:
+        rows = [
+            ["code", "value"],
+            ["A", "001"],
+            ["B", "010"],
+        ]
+>       output = tabulate(rows[1:], headers=rows[0], tablefmt="plain", disable_numparse=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'disable_numparse'
+
+tests\Tabulate\functional_test.py:236: TypeError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - TypeError...
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...
+FAILED tests/Tabulate/functional_test.py::test_list_of_dicts_headers_keys_plain
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_disable_numparse_preserves_numeric_strings
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+9 failed, 3 passed in 0.50s

@@ -1,0 +1,495 @@
+..F..FFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+____________________________ test_coxph_basic_fit _____________________________
+
+    def test_coxph_basic_fit() -> None:
+        """Fit a simple Cox proportional hazards model on a toy dataset."""
+        df = _toy_cox_df()
+    
+        cph = CoxPHFitter()
+>       cph.fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20D98AF0>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       et = kmf.event_table
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'event_table'
+
+tests\Lifelines\functional_test.py:183: AttributeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+_________________ test_coxph_params_index_matches_covariates __________________
+
+    def test_coxph_params_index_matches_covariates() -> None:
+        """Cox model params_ should be indexed by covariate names."""
+        df = _toy_cox_df()
+>       cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20DCC8B0>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+>       cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20E53820>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+__________ test_coxph_predict_partial_hazard_is_positive_and_varies ___________
+
+    def test_coxph_predict_partial_hazard_is_positive_and_varies() -> None:
+        """Partial hazards should be positive and reflect covariate differences."""
+        df = _toy_cox_df()
+>       cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20E58880>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+____________ test_coxph_predict_survival_function_shape_and_bounds ____________
+
+    def test_coxph_predict_survival_function_shape_and_bounds() -> None:
+        """Predict survival functions for two individuals; verify shape and bounds."""
+        df = _toy_cox_df()
+>       cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:251: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20E511C0>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+>       cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:267: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20E72BE0>
+df =    duration  event  age  treatment
+0         5      1   30          0
+1         6      0   40          0
+2         6  ... 60          1
+5         3      0   35          0
+6         8      1   45          1
+7         7      1   55          0
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (8,) and (8,2,2) not aligned: 8 (dim 0) != 2 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+_____________ test_coxph_fit_on_waltons_with_binary_group_feature _____________
+
+    def test_coxph_fit_on_waltons_with_binary_group_feature() -> None:
+        """Fit CoxPH on Waltons dataset using a binary treated indicator derived from group."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        df2 = df.copy()
+        df2["treated"] = (df2["group"] != "control").astype(int)
+    
+        model_df = df2[["T", "E", "treated"]].rename(columns={"T": "duration", "E": "event"})
+    
+        cph = CoxPHFitter()
+>       cph.fit(model_df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:284: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.CoxPHFitter object at 0x0000018B20E886A0>
+df =     duration  event  treated
+0          6      1        0
+1          6      1        0
+2          6      1        0
+3 ...  1
+15        17      1        1
+16        19      1        1
+17        25      1        1
+18        32      0        1
+duration_col = 'duration', event_col = 'event', show_progress = False
+
+    def fit(self, df, duration_col, event_col, show_progress=False):
+        # Only numeric covariates supported
+        X = df.drop([duration_col, event_col], axis=1)
+        X = X.astype(float)
+        T = df[duration_col].values
+        E = df[event_col].values.astype(int)
+        n, p = X.shape
+        self._X_cols = list(X.columns)
+        # Sort by time ascending
+        order = np.argsort(T)
+        T = T[order]
+        E = E[order]
+        X = X.values[order, :]
+    
+        # Newton-Raphson for partial likelihood
+        beta = np.zeros(p)
+        max_iter = 50
+        tol = 1e-7
+        for it in range(max_iter):
+            risk_scores = np.exp(np.dot(X, beta))
+            # For each subject, compute risk set sum
+            # Breslow: for each event time, sum over those at risk
+            # Compute log-likelihood, gradient, Hessian
+            loglik = 0.0
+            grad = np.zeros(p)
+            hess = np.zeros((p, p))
+            for i in range(n):
+                if E[i] == 1:
+                    xi = X[i]
+                    ti = T[i]
+                    at_risk = (T >= ti)
+                    rs_sum = np.sum(risk_scores[at_risk])
+                    loglik += np.dot(beta, xi) - np.log(rs_sum)
+                    grad += xi - np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    xbar = np.dot(risk_scores[at_risk], X[at_risk]) / rs_sum
+                    x2bar = np.dot(risk_scores[at_risk], X[at_risk]**2) / rs_sum
+                    hess -= np.outer(xbar, xbar)
+>                   hess += np.dot(risk_scores[at_risk], X[at_risk][:, :, None] * X[at_risk][:, None, :]) / rs_sum
+E                   ValueError: shapes (19,) and (19,1,1) not aligned: 19 (dim 0) != 1 (dim 1)
+
+generation\Lifelines\lifelines\fitters.py:142: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_coxph_basic_fit - ValueError:...
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_params_index_matches_covariates
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_partial_hazard_is_positive_and_varies
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+FAILED tests/Lifelines/functional_test.py::test_coxph_fit_on_waltons_with_binary_group_feature
+11 failed, 4 passed in 22.47s

@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
+from .formats import _csv as csvfmt
+from .formats import _json as jsonfmt
+
+
+Row = Tuple[Any, ...]
+
+
+class Dataset:
+    def __init__(self, *rows: Iterable[Any], headers: Optional[Iterable[str]] = None, title: Optional[str] = None):
+        self.title = title
+        self._headers: List[str] = list(headers) if headers is not None else []
+        self._data: List[Row] = [tuple(r) for r in rows]
+        self._width_cache: int = 0
+        self._width_dirty: bool = True
+
+    @property
+    def headers(self) -> List[str]:
+        return list(self._headers)
+
+    @headers.setter
+    def headers(self, value: Optional[Iterable[str]]) -> None:
+        self._headers = list(value) if value is not None else []
+        self._width_dirty = True
+
+    @property
+    def height(self) -> int:
+        return len(self._data)
+
+    @property
+    def width(self) -> int:
+        if self._headers:
+            return len(self._headers)
+        if self._width_dirty:
+            self._width_cache = max((len(r) for r in self._data), default=0)
+            self._width_dirty = False
+        return self._width_cache
+
+    def _invalidate_width(self) -> None:
+        self._width_dirty = True
+
+    def append(self, row: Iterable[Any]) -> None:
+        self._data.append(tuple(row))
+        self._invalidate_width()
+
+    def append_col(self, values: Iterable[Any], header: Optional[str] = None) -> None:
+        vals = list(values)
+
+        if self.height == 0:
+            # When headers already exist, appending a column must extend existing
+            # schema and create rows where the pre-existing columns are None.
+            if self._headers:
+                old_w = len(self._headers)
+                self._headers.append("" if header is None else header)
+                new_col_index = old_w  # appended at end
+                for v in vals:
+                    row = [None] * (old_w + 1)
+                    row[new_col_index] = v
+                    self._data.append(tuple(row))
+            else:
+                # No existing schema: create single-column rows.
+                if header is not None:
+                    self._headers = [header]
+                self._data = [(v,) for v in vals]
+            self._invalidate_width()
+            return
+
+        if len(vals) != self.height:
+            raise ValueError("Length of values must match dataset height")
+
+        # Determine current width we should operate against.
+        old_w = self.width
+
+        # Update headers if present or if a new header is provided.
+        if self._headers:
+            self._headers.append("" if header is None else header)
+        else:
+            if header is not None:
+                # Create placeholder headers for existing width, then append.
+                self._headers = ["" for _ in range(old_w)] + [header]
+
+        # Append value to each row.
+        new_data: List[Row] = []
+        for i, row in enumerate(self._data):
+            row_list = list(row)
+            if len(row_list) < old_w:
+                row_list.extend([None] * (old_w - len(row_list)))
+            row_list.append(vals[i])
+            new_data.append(tuple(row_list))
+        self._data = new_data
+        self._invalidate_width()
+
+    def __getitem__(self, key: Union[slice, str, int]) -> Any:
+        if isinstance(key, slice):
+            return self._data[key]
+        if isinstance(key, int):
+            return self._data[key]
+        if isinstance(key, str):
+            if not self._headers:
+                raise KeyError(key)
+            try:
+                idx = self._headers.index(key)
+            except ValueError as e:
+                raise KeyError(key) from e
+            out = []
+            for row in self._data:
+                out.append(row[idx] if idx < len(row) else None)
+            return out
+        raise TypeError("Invalid key type")
+
+    @property
+    def dict(self) -> List[Dict[str, Any]]:
+        w = self.width
+        if self._headers:
+            keys = list(self._headers)
+        else:
+            keys = [str(i) for i in range(w)]
+        out: List[Dict[str, Any]] = []
+        for row in self._data:
+            d: Dict[str, Any] = {}
+            for i in range(w):
+                k = keys[i] if i < len(keys) else str(i)
+                d[k] = row[i] if i < len(row) else None
+            out.append(d)
+        return out
+
+    def export(self, fmt: str) -> str:
+        fmt = fmt.lower()
+        if fmt == "csv":
+            return csvfmt.export_dataset(self)
+        if fmt == "json":
+            return jsonfmt.export_dataset(self)
+        raise ValueError(f"Unsupported format: {fmt}")
+
+    @property
+    def csv(self) -> str:
+        return self.export("csv")
+
+    @csv.setter
+    def csv(self, text: str) -> None:
+        csvfmt.import_dataset(self, text)
+
+    @property
+    def json(self) -> str:
+        return self.export("json")
+
+    @json.setter
+    def json(self, text: str) -> None:
+        jsonfmt.import_dataset(self, text)
+
+
+class Databook:
+    def __init__(self, datasets: Iterable[Dataset]):
+        self._datasets: List[Dataset] = list(datasets)
+
+    @property
+    def size(self) -> int:
+        return len(self._datasets)
+
+    def sheets(self) -> List[Dataset]:
+        return list(self._datasets)
+
+    def __iter__(self) -> Iterator[Dataset]:
+        return iter(self._datasets)
+
+    def export(self, fmt: str) -> str:
+        fmt = fmt.lower()
+        if fmt == "json":
+            return jsonfmt.export_databook(self)
+        raise ValueError(f"Unsupported format: {fmt}")
+
+    @property
+    def json(self) -> str:
+        return self.export("json")
+
+    @json.setter
+    def json(self, text: str) -> None:
+        jsonfmt.import_databook(self, text)

@@ -1,0 +1,96 @@
+...F....F..F                                                             [100%]
+================================== FAILURES ===================================
+________________ test_004_filter_core_symbols_exist_statically ________________
+
+    def test_004_filter_core_symbols_exist_statically():
+        """
+        Do not assume helper names like isValidIP/searchIP (they vary across versions).
+        Instead, require stable core anchors in fail2ban.server.filter:
+          - A Filter class (or similarly named core filter object), OR
+          - presence of key tokens that indicate regex-driven filtering (failregex/<HOST>).
+        """
+        filter_py = _pkg_dir() / "server" / "filter.py"
+        src = _read_text(filter_py)
+    
+        has_filter_class = _ast_has_class(filter_py, "Filter") or ("class Filter" in src)
+        has_regex_tokens = ("failregex" in src.lower()) or ("<host>" in src.lower())
+    
+>       assert has_filter_class or has_regex_tokens, "Expected core filter anchors (Filter class or failregex/<HOST> tokens)."
+E       AssertionError: Expected core filter anchors (Filter class or failregex/<HOST> tokens).
+E       assert (False or False)
+
+tests\Fail2ban\functional_test.py:129: AssertionError
+____________ test_009_import_filter_and_basic_behavior_if_possible ____________
+
+    def test_009_import_filter_and_basic_behavior_if_possible():
+        _prepend_import_path()
+        try:
+            from fail2ban.server import filter as f
+        except ModuleNotFoundError as e:
+            msg = str(e).lower()
+            assert any(k in msg for k in ["pwd", "grp", "resource", "fcntl"]), f"Unexpected import failure: {e}"
+            return
+    
+        # If import works, ensure the module exposes a core Filter-like object or regex constants.
+        if hasattr(f, "Filter"):
+            assert callable(getattr(f, "Filter"))
+        else:
+            src = _read_text(_pkg_dir() / "server" / "filter.py").lower()
+>           assert ("failregex" in src) or ("<host>" in src)
+E           assert ('failregex' in 'import re\n\ndef isvalidip(ip):\n    """\n    validate if the given string is a valid ipv4 address.\n    """\n    pat...ile(r"(?:[0-9]{1,3}\\.){3}[0-9]{1,3}")\n    match = pattern.search(line)\n    return match.group(0) if match else none' or '<host>' in 'import re\n\ndef isvalidip(ip):\n    """\n    validate if the given string is a valid ipv4 address.\n    """\n    pat...ile(r"(?:[0-9]{1,3}\\.){3}[0-9]{1,3}")\n    match = pattern.search(line)\n    return match.group(0) if match else none')
+
+tests\Fail2ban\functional_test.py:187: AssertionError
+___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________
+
+    def test_012_fail2ban_regex_matches_simple_pattern_offline():
+        """
+        Offline-only functional check:
+        - Create a temp log with repeated failure lines.
+        - Run fail2ban-regex <LOG> <REGEX>
+        - Assert output indicates it processed lines and found matches.
+        """
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONPATH"] = str(_resolve_repo_root()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "auth.log"
+            logp.write_text(
+                "\n".join(
+                    [
+                        "Failed password for invalid user root from 203.0.113.5 port 2222 ssh2",
+                        "Failed password for invalid user admin from 203.0.113.5 port 2223 ssh2",
+                        "Accepted password for user ok from 198.51.100.2 port 3333 ssh2",
+                        "Failed password for invalid user test from 203.0.113.9 port 4444 ssh2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+    
+            # Use a very simple regex (do not rely on <HOST> substitutions).
+            regex = r"Failed password"
+            p = subprocess.run(
+                [sys.executable, str(script), str(logp), regex],
+                text=True,
+                input="",
+                capture_output=True,
+                timeout=30,
+                env=env,
+            )
+            out = _out(p)
+    
+            # Must not hang; and should show it processed lines.
+            assert ("line" in out) or ("lines" in out)
+            # Try to detect match reporting; be tolerant across versions.
+>           assert ("match" in out) or ("found" in out) or ("failregex" in out)
+E           assert ('match' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n' or 'found' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n' or 'failregex' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n')
+
+tests\Fail2ban\functional_test.py:248: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/functional_test.py::test_004_filter_core_symbols_exist_statically
+FAILED tests/Fail2ban/functional_test.py::test_009_import_filter_and_basic_behavior_if_possible
+FAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline
+3 failed, 9 passed in 0.97s

@@ -1,0 +1,54 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+        data = Data(normalized, labels)
+        args = _make_args()
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\resource_test.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021B42A8E700>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.32s

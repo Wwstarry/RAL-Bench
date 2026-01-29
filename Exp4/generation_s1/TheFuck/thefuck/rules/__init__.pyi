@@ -1,0 +1,6 @@
+from __future__ import annotations
+from ..settings import Settings
+from ..types import Rule
+
+def load_rules(settings: Settings | None = ...) -> list[Rule]: ...
+def get_rule_names() -> list[str]: ...

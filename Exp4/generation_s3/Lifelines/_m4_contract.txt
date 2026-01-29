@@ -1,0 +1,161 @@
+1) Repository layout
+- Top-level package:
+  - lifelines/__init__.py
+    - Must expose KaplanMeierFitter, CoxPHFitter at package root.
+    - Must expose datasets submodule (lifelines.datasets).
+  - lifelines/fitters/__init__.py
+    - Optional, but if present must not break imports.
+  - lifelines/fitters/kaplan_meier_fitter.py
+    - Defines KaplanMeierFitter.
+  - lifelines/fitters/coxph_fitter.py
+    - Defines CoxPHFitter.
+  - lifelines/datasets/__init__.py
+    - Defines load_waltons and exports it.
+  - lifelines/datasets/waltons.csv (or waltons.py embedding the data)
+    - Must provide the Waltons dataset for load_waltons.
+- Packaging/metadata:
+  - pyproject.toml or setup.cfg/setup.py not required by tests, but repository must be importable via Python path.
+- Only pure Python implementation; no compiled extensions.
+
+2) Public API surface
+- lifelines (package root)
+  - lifelines.KaplanMeierFitter: class
+  - lifelines.CoxPHFitter: class
+  - lifelines.datasets: submodule
+- lifelines.datasets (module)
+  - load_waltons() -> pandas.DataFrame
+- KaplanMeierFitter (core required API)
+  - Constructor: KaplanMeierFitter(*args, **kwargs) (accept and ignore unknown kwargs if feasible)
+  - fit(self, durations, event_observed=None, timeline=None, label=None) -> self
+    - durations: array-like 1D, numeric, length n
+    - event_observed: array-like 1D bool/int (1=event, 0=censored), optional (default all events)
+    - timeline: optional sorted array-like of times at which to evaluate survival function
+    - label: optional string column name for output dataframe
+  - survival_function_: pandas.DataFrame
+    - Index name: "timeline" (preferred) or None; must be time-like numeric index
+    - One column named:
+      - label if provided else "KM_estimate"
+  - predict(self, time) -> float or pandas.Series
+    - time: scalar numeric (may also accept array-like; if array-like return pandas.Series)
+- CoxPHFitter (core required API)
+  - Constructor: CoxPHFitter(*args, **kwargs) (accept and ignore unknown kwargs if feasible)
+  - fit(self, df: pandas.DataFrame, duration_col: str, event_col: str, show_progress=False, strata=None, weights_col=None, robust=False, step_size=None, timeline=None, **kwargs) -> self
+    - Must accept at least df, duration_col, event_col; other parameters may be accepted but can be ignored if not used.
+    - Covariate columns: all remaining columns excluding duration_col/event_col; must be numeric after encoding.
+  - summary: pandas.DataFrame
+    - Index: covariate names
+    - Required columns:
+      - "coef" (float)
+      - "se(coef)" (float)
+    - Additional columns allowed.
+  - predict_survival_function(self, row: pandas.DataFrame, times=None) -> pandas.DataFrame
+    - row must be a single-row DataFrame with the same covariate columns used in fit
+    - Return DataFrame indexed by times (ascending), with one column (any reasonable name), values in [0,1]
+
+3) Behavioral contract
+- General
+  - Must depend only on standard scientific Python stack available in tests: numpy, pandas (and optionally scipy if available, but implementation should not require it).
+  - Deterministic results for the same inputs (no randomness).
+  - Reasonable numerical stability; clamp survival probabilities into [0, 1] to satisfy tests.
+  - Error types: use ValueError for invalid inputs (mismatched lengths, missing columns, non-numeric durations, empty data).
+- KaplanMeierFitter.fit
+  - Input validation:
+    - durations must be length n > 0, finite, non-negative (allow 0).
+    - event_observed if provided must be length n; values interpreted as boolean (nonzero=True).
+  - Estimation:
+    - Compute Kaplan-Meier survival estimate S(t) = Π_{ti <= t} (1 - di/ni)
+      - ti: unique event times (where at least one event occurred)
+      - di: number of events at ti
+      - ni: number at risk just prior to ti (including censored after ti)
+    - If timeline provided:
+      - Evaluate survival at each time in timeline by carrying last known S(t) forward (right-continuous step function).
+    - If timeline not provided:
+      - Use sorted unique times from durations (including censored times) or at minimum include event times; must produce a usable index for predict and tests.
+  - survival_function_:
+    - DataFrame index sorted ascending, includes time 0 with survival 1.0 if feasible; if no time 0 present, ensure predict for t less than min time returns 1.0.
+  - predict(time):
+    - For scalar:
+      - Return survival at the latest timeline/index time <= time (right-continuous), else 1.0 if time < first time.
+      - If time beyond last index time, return last survival value.
+      - Must return float in [0,1].
+    - For array-like:
+      - Return pandas.Series aligned to input order with survival values.
+- CoxPHFitter.fit
+  - Scope: core Cox proportional hazards regression sufficient for tests; implement a baseline Breslow estimator and coefficients via Newton-Raphson partial likelihood.
+  - Input handling:
+    - df must include duration_col and event_col.
+    - duration values must be numeric, finite, non-negative.
+    - event values interpreted as boolean.
+    - Covariates:
+      - Use all columns except duration_col/event_col.
+      - Must be numeric; if object/category present:
+        - Minimal support: one-hot encode with pandas.get_dummies(drop_first=True).
+        - Ensure consistent column ordering stored on the model for prediction.
+  - Fitting algorithm (minimum acceptable):
+    - Center/standardize covariates optional; not required unless needed for stability.
+    - Optimize Cox partial log-likelihood:
+      - l(β) = Σ_{i:Ei=1} (x_i·β - log(Σ_{j: Tj>=Ti} exp(x_j·β)))
+      - Handle ties using Breslow approximation.
+    - Use iterative Newton-Raphson:
+      - Stop when max(abs(delta_beta)) < 1e-6 or max iterations (e.g., 50).
+      - If Hessian singular, add small ridge (e.g., 1e-7 on diagonal) to invert.
+  - summary:
+    - "coef": estimated β for each covariate.
+    - "se(coef)": sqrt(diag(var)), where var = inverse(-Hessian) at optimum.
+    - Must be a DataFrame; numeric dtypes.
+  - Baseline survival:
+    - Compute baseline cumulative hazard H0(t) via Breslow:
+      - For each unique event time t:
+        - d(t): number of events at t
+        - risk_sum(t) = Σ_{j: Tj>=t} exp(x_j·β)
+        - ΔH0(t) = d(t) / risk_sum(t)
+      - H0(t) cumulative sum over event times
+    - Baseline survival S0(t) = exp(-H0(t))
+    - Store baseline timeline (sorted unique event times, optionally include 0 with H0=0).
+- CoxPHFitter.predict_survival_function(row, times=None)
+  - row must be a DataFrame with exactly 1 row; raise ValueError otherwise.
+  - Apply same preprocessing/encoding as training to align covariate columns:
+    - Missing covariate columns in row treated as 0.
+    - Extra columns ignored.
+  - Compute linear predictor η = x·β, hazard ratio = exp(η).
+  - If times is None:
+    - Use baseline timeline from fit (including 0 if available).
+  - Return survival curve:
+    - S(t|x) = S0(t) ^ exp(η)  (equivalently exp(-H0(t)*exp(η)))
+  - Output:
+    - pandas.DataFrame indexed by times, one column (e.g., "survival_function" or "0"), values clamped to [0,1], non-increasing in time.
+- datasets.load_waltons
+  - Returns a pandas.DataFrame with at least columns:
+    - "T": numeric duration
+    - "E": int/bool event indicator
+    - "group": categorical/string label
+  - Must contain at least 1 row; preferable to match lifelines’ canonical waltons dataset size/values, but tests only require columns existence and plausibly usable data for fitting.
+  - group should have at least two distinct values.
+  - Implementation may read from an included CSV bundled with the package or embed the data directly.
+
+4) Acceptance checklist
+- Import behavior
+  - `import lifelines` succeeds.
+  - `from lifelines import KaplanMeierFitter, CoxPHFitter` works.
+  - `from lifelines.datasets import load_waltons` works.
+- KaplanMeierFitter behavior
+  - After `.fit(durations, event_observed)`:
+    - `.survival_function_` exists, is a pandas.DataFrame, indexed by time, contains survival probabilities within [0,1].
+  - `.predict(t)` returns a numeric survival probability within [0,1] for representative scalar times (below min time, within range, beyond max).
+- CoxPHFitter behavior
+  - After `.fit(df, duration_col="T", event_col="E")`:
+    - `.summary` exists and is a pandas.DataFrame.
+    - `.summary` contains columns "coef" and "se(coef)" with numeric values for each covariate.
+  - `.predict_survival_function(single_row_df)`:
+    - returns a pandas.DataFrame indexed by time with values in [0,1].
+    - curve is non-increasing over time and starts near 1 at earliest time (exact equality at 1 if time 0 included).
+- Dataset behavior
+  - `load_waltons()` returns DataFrame with columns ["T","E","group"] present.
+  - Returned data supports fitting KaplanMeierFitter on T/E and CoxPHFitter after encoding group (either user-encoded in tests or handled by get_dummies if group included as covariate).
+
+5) Non-goals / constraints
+- Do not aim for full lifelines feature parity beyond the specified APIs.
+- No external services, network access, or runtime data downloads.
+- No compiled dependencies; pure Python + numpy/pandas only (scipy optional but must not be required).
+- No requirement to match lifelines numerical results exactly; only need to satisfy API shape and behavioral invariants used by tests (existence of attributes, DataFrame structures, values within [0,1], basic plausibility).
+- Ignore advanced options (strata, robust SE, weights, penalizers) unless trivially supported; accepting unused kwargs is preferred to avoid test failures from unexpected parameters.

@@ -1,0 +1,44 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: exercise a representative workload.
+    
+        Important:
+          - Benchmark runner (measure_generated.py) measures resource usage of pytest subprocess.
+          - This test remains a correctness-oriented smoke test.
+        """
+        assert LENNA_PNG.exists(), f"Missing sample file: {LENNA_PNG}"
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        secret = "resource secret"
+        out = REPO_ROOT / "tmp_resource.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)  # returns PIL.Image
+
+tests\Stegano\resource_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:94: in hide
+    img = _prepare_image(image, auto_convert_rgb=auto_convert_rgb)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+
+    def _prepare_image(
+        image: Image.Image, *, auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Makes sure the supplied image is in RGB mode (3×8-bit) because the current
+        implementation depends on that layout.
+        """
+>       if image.mode != "RGB":
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:27: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/resource_test.py::test_resource_usage_smoke - AttributeE...
+1 failed in 0.56s

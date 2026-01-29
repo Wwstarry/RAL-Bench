@@ -1,0 +1,438 @@
+<file:name=termgraph/__init__.py>
+"""
+A small, pure-Python terminal charting library with an API compatible with the
+core pieces of the reference `termgraph` project used by the test suite.
+
+Public API:
+    - Data
+    - Args
+    - BarChart
+    - StackedChart
+"""
+
+from .data import Data
+from .args import Args
+from .charts import BarChart, StackedChart
+
+__all__ = ["Data", "Args", "BarChart", "StackedChart"]
+</file>
+
+<file:name=termgraph/data.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable, List, Optional, Sequence, Union, Any
+
+
+Number = Union[int, float]
+
+
+def _is_number(x: Any) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+@dataclass
+class Data:
+    """
+    Holds chart labels and numeric values.
+
+    Normalization:
+      - If values is 1D: [1,2,3] => [[1],[2],[3]]
+      - If values is 2D: [[1,2],[3,4]] => same shape
+    """
+
+    labels: List[str]
+    values: List[List[Number]]
+
+    def __init__(self, labels: Optional[Sequence[str]] = None, values: Optional[Any] = None):
+        self.labels = list(labels) if labels else []
+        self.values = self._normalize_values(values)
+        self._ensure_labels()
+        self.validate()
+
+    @classmethod
+    def from_data(cls, labels: Sequence[str], values: Any) -> "Data":
+        return cls(labels=labels, values=values)
+
+    @property
+    def n_rows(self) -> int:
+        return len(self.values)
+
+    @property
+    def n_series(self) -> int:
+        if not self.values:
+            return 0
+        return len(self.values[0])
+
+    def _normalize_values(self, values: Any) -> List[List[Number]]:
+        if values is None:
+            return []
+
+        # Accept sequences like list/tuple; reject strings/bytes.
+        if isinstance(values, (str, bytes)):
+            raise TypeError("values must be a sequence of numbers, not a string")
+
+        # Determine 1D vs 2D: if the first element is a number => 1D.
+        try:
+            it = list(values)
+        except TypeError:
+            raise TypeError("values must be an iterable of numbers or iterables") from None
+
+        if len(it) == 0:
+            return []
+
+        first = it[0]
+        if _is_number(first):
+            # 1D -> 2D per row
+            out: List[List[Number]] = []
+            for v in it:
+                if not _is_number(v):
+                    raise ValueError("non-numeric value found")
+                out.append([v])
+            return out
+
+        # 2D
+        out2: List[List[Number]] = []
+        for row in it:
+            try:
+                row_list = list(row)
+            except TypeError:
+                raise TypeError("2D values must contain row iterables") from None
+            if len(row_list) == 0:
+                out2.append([])
+                continue
+            for v in row_list:
+                if not _is_number(v):
+                    raise ValueError("non-numeric value found")
+            out2.append(row_list)
+        return out2
+
+    def _ensure_labels(self) -> None:
+        # If no labels are provided, generate default 1..n.
+        if not self.labels and self.values:
+            self.labels = [str(i) for i in range(1, len(self.values) + 1)]
+
+    def validate(self) -> None:
+        # Labels length must match number of rows when labels are present.
+        if self.labels and len(self.labels) != len(self.values):
+            raise ValueError("labels length must match number of rows")
+
+        # Rows must all have equal series length.
+        if not self.values:
+            return
+
+        expected = len(self.values[0])
+        for row in self.values:
+            if len(row) != expected:
+                raise ValueError("inconsistent number of series per row")
+
+        # Must be numeric (already checked) but ensure castable to float for scaling.
+        for row in self.values:
+            for v in row:
+                try:
+                    float(v)
+                except Exception as e:
+                    raise ValueError("value is not numeric") from e
+</file>
+
+<file:name=termgraph/args.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, List, Optional
+
+
+@dataclass
+class Args:
+    width: int = 50
+    stacked: bool = False
+    different_scale: bool = False
+    no_labels: bool = False
+    format: str = "{:<5.2f}"
+    suffix: str = ""
+    vertical: bool = False
+    histogram: bool = False
+    no_values: bool = False
+    color: Any = None
+    labels: Optional[List[str]] = None
+    title: Optional[str] = None
+
+    def __init__(
+        self,
+        width: int = 50,
+        stacked: bool = False,
+        different_scale: bool = False,
+        no_labels: bool = False,
+        format: str = "{:<5.2f}",
+        suffix: str = "",
+        vertical: bool = False,
+        histogram: bool = False,
+        no_values: bool = False,
+        color: Any = None,
+        labels: Optional[List[str]] = None,
+        title: Optional[str] = None,
+    ):
+        self.width = width
+        self.stacked = stacked
+        self.different_scale = different_scale
+        self.no_labels = no_labels
+        self.format = format
+        self.suffix = suffix
+        self.vertical = vertical
+        self.histogram = histogram
+        self.no_values = no_values
+        self.color = color
+        self.labels = labels
+        self.title = title
+</file>
+
+<file:name=termgraph/charts.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Optional, Sequence
+
+from .data import Data
+from .args import Args
+
+
+def _safe_width(width: int) -> int:
+    try:
+        w = int(width)
+    except Exception as e:
+        raise TypeError("width must be an integer") from e
+    return 1 if w <= 0 else w
+
+
+def _fmt_value(fmt: str, value) -> str:
+    # If string contains braces, treat as .format template (common in reference).
+    if isinstance(fmt, str) and "{" in fmt:
+        try:
+            return fmt.format(value)
+        except Exception:
+            # fallback
+            return str(value)
+    try:
+        return format(value, fmt)
+    except Exception:
+        return str(value)
+
+
+def _clamp(n: int, lo: int, hi: int) -> int:
+    return lo if n < lo else hi if n > hi else n
+
+
+def _scale_len(value: float, max_value: float, width: int) -> int:
+    if max_value <= 0 or width <= 0:
+        return 0
+    if value <= 0:
+        return 0
+    # Use rounding to be stable and intuitive.
+    return _clamp(int(round((value / max_value) * width)), 0, width)
+
+
+_SEG_CHARS = ["#", "=", "-", "+", "*", "@"]
+_BAR_CHAR = "#"
+
+
+@dataclass
+class BarChart:
+    data: Data
+    args: Args
+
+    def __init__(self, data: Data, args: Args):
+        self.data = data
+        self.args = args
+        self.data.validate()
+        self.args.width = _safe_width(self.args.width)
+
+    def draw(self) -> None:
+        if self.args.title is not None:
+            print(str(self.args.title))
+
+        width = _safe_width(self.args.width)
+
+        labels = self.data.labels if not self.args.no_labels else []
+        label_width = max((len(l) for l in labels), default=0)
+
+        n_series = self.data.n_series
+        if n_series == 0:
+            return
+
+        # Determine maxima for scaling.
+        if self.args.different_scale and n_series > 1:
+            series_max = [0.0] * n_series
+            for row in self.data.values:
+                for j, v in enumerate(row):
+                    fv = float(v)
+                    if fv > series_max[j]:
+                        series_max[j] = fv
+        else:
+            gmax = 0.0
+            for row in self.data.values:
+                for v in row:
+                    fv = float(v)
+                    if fv > gmax:
+                        gmax = fv
+            series_max = [gmax] * n_series
+
+        for i, row in enumerate(self.data.values):
+            parts: List[str] = []
+
+            if not self.args.no_labels:
+                lab = self.data.labels[i] if i < len(self.data.labels) else str(i + 1)
+                parts.append(lab.ljust(label_width))
+                parts.append(" ")
+
+            # Render bars
+            if n_series == 1:
+                v = row[0]
+                blen = _scale_len(float(v), series_max[0], width)
+                bar = _BAR_CHAR * blen
+                parts.append(bar.ljust(width))
+                if not self.args.no_values:
+                    parts.append(" ")
+                    parts.append(_fmt_value(self.args.format, v))
+                    parts.append(str(self.args.suffix))
+            else:
+                # Multiple series: render each series bar with separators.
+                bar_parts: List[str] = []
+                for j, v in enumerate(row):
+                    blen = _scale_len(float(v), series_max[j], width)
+                    bar_parts.append((_SEG_CHARS[j % len(_SEG_CHARS)] * blen).ljust(width))
+                parts.append(" ".join(bar_parts))
+
+                if not self.args.no_values:
+                    parts.append(" ")
+                    formatted = [_fmt_value(self.args.format, v) + str(self.args.suffix) for v in row]
+                    parts.append(", ".join(formatted))
+
+            print("".join(parts))
+
+
+@dataclass
+class StackedChart:
+    data: Data
+    args: Args
+
+    def __init__(self, data: Data, args: Args):
+        self.data = data
+        self.args = args
+        self.data.validate()
+        self.args.width = _safe_width(self.args.width)
+
+    def draw(self) -> None:
+        if self.args.title is not None:
+            print(str(self.args.title))
+
+        width = _safe_width(self.args.width)
+
+        labels = self.data.labels if not self.args.no_labels else []
+        label_width = max((len(l) for l in labels), default=0)
+
+        if self.data.n_series == 0:
+            return
+
+        totals: List[float] = []
+        for row in self.data.values:
+            totals.append(sum(float(v) for v in row))
+
+        max_total = max(totals) if totals else 0.0
+
+        for i, row in enumerate(self.data.values):
+            parts: List[str] = []
+
+            if not self.args.no_labels:
+                lab = self.data.labels[i] if i < len(self.data.labels) else str(i + 1)
+                parts.append(lab.ljust(label_width))
+                parts.append(" ")
+
+            total = sum(float(v) for v in row)
+            if max_total <= 0 or total <= 0:
+                stack = ""
+            else:
+                # Compute provisional segment lengths then fit exactly into width.
+                seg_lens: List[int] = []
+                for v in row:
+                    seg_lens.append(_scale_len(float(v), max_total, width))
+
+                # Ensure the stack doesn't exceed width (rounding can overflow).
+                overflow = sum(seg_lens) - width
+                if overflow > 0 and seg_lens:
+                    # Reduce from the largest segments first deterministically.
+                    order = sorted(range(len(seg_lens)), key=lambda k: (-seg_lens[k], k))
+                    idx = 0
+                    while overflow > 0 and idx < len(order):
+                        k = order[idx]
+                        if seg_lens[k] > 0:
+                            seg_lens[k] -= 1
+                            overflow -= 1
+                        else:
+                            idx += 1
+                        if idx >= len(order) and overflow > 0:
+                            idx = 0
+
+                # Build the stacked bar
+                segs: List[str] = []
+                for j, sl in enumerate(seg_lens):
+                    segs.append(_SEG_CHARS[j % len(_SEG_CHARS)] * sl)
+                stack = "".join(segs)
+
+            parts.append(stack.ljust(width))
+
+            if not self.args.no_values:
+                parts.append(" ")
+                # Print total only for stacked charts.
+                parts.append(_fmt_value(self.args.format, total))
+                parts.append(str(self.args.suffix))
+
+            print("".join(parts))
+</file>
+
+<file:name=termgraph/cli.py>
+from __future__ import annotations
+
+import argparse
+from typing import List, Optional
+
+from .data import Data
+from .args import Args
+from .charts import BarChart, StackedChart
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """
+    Minimal CLI entry point for compatibility with imports/tests.
+
+    This is intentionally small and not a full reimplementation of the original
+    termgraph CLI.
+    """
+    parser = argparse.ArgumentParser(prog="termgraph", add_help=True)
+    parser.add_argument("--width", type=int, default=50)
+    parser.add_argument("--stacked", action="store_true")
+    parser.add_argument("--different-scale", action="store_true")
+    parser.add_argument("--no-labels", action="store_true")
+    parser.add_argument("--no-values", action="store_true")
+    parser.add_argument("--title", type=str, default=None)
+    parser.add_argument("--suffix", type=str, default="")
+    parser.add_argument("--format", dest="format_", type=str, default="{:<5.2f}")
+    parser.add_argument("values", nargs="*", type=float, help="A simple list of numbers")
+
+    ns = parser.parse_args(argv)
+
+    args = Args(
+        width=ns.width,
+        stacked=ns.stacked,
+        different_scale=ns.different_scale,
+        no_labels=ns.no_labels,
+        no_values=ns.no_values,
+        title=ns.title,
+        suffix=ns.suffix,
+        format=ns.format_,
+    )
+
+    data = Data(labels=None, values=ns.values)
+    chart = StackedChart(data, args) if args.stacked else BarChart(data, args)
+    chart.draw()
+    return 0
+</file>

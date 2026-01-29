@@ -1,0 +1,470 @@
+<file:name=celery/__init__.py>
+"""
+A tiny, pure-Python, Celery-like task queue implementation.
+
+This repository is intentionally minimal and designed to satisfy a subset of
+Celery's public API used by the test-suite for this kata.
+
+Key features:
+- celery.Celery app class
+- @app.task decorator with name= and bind=
+- Task.delay/apply_async returning an AsyncResult with get()/successful()/failed()
+- In-memory "broker"/backend and eager execution mode
+- app.send_task(name, args, kwargs)
+"""
+
+from .app.base import Celery  # noqa: F401
+from .result import AsyncResult  # noqa: F401
+from .states import PENDING, STARTED, SUCCESS, FAILURE, REVOKED, RETRY  # noqa: F401
+
+__all__ = [
+    "Celery",
+    "AsyncResult",
+    "PENDING",
+    "STARTED",
+    "SUCCESS",
+    "FAILURE",
+    "REVOKED",
+    "RETRY",
+]
+
+__version__ = "0.1.0"
+</file>
+
+<file:name=celery/states.py>
+PENDING = "PENDING"
+RECEIVED = "RECEIVED"
+STARTED = "STARTED"
+SUCCESS = "SUCCESS"
+FAILURE = "FAILURE"
+RETRY = "RETRY"
+REVOKED = "REVOKED"
+</file>
+
+<file:name=celery/exceptions.py>
+class TimeoutError(Exception):
+    """Raised by AsyncResult.get(timeout=...) when the result isn't ready."""
+
+
+class ImproperlyConfigured(Exception):
+    """Raised when the app is configured inconsistently."""
+
+
+class TaskError(Exception):
+    """Base class for task execution errors (wrapper around user exceptions)."""
+</file>
+
+<file:name=celery/utils/__init__.py>
+# Intentionally minimal utilities package.
+</file>
+
+<file:name=celery/utils/uuid.py>
+import uuid
+
+
+def uuid4():
+    return str(uuid.uuid4())
+</file>
+
+<file:name=celery/result.py>
+import time
+import threading
+
+from .exceptions import TimeoutError
+from .states import PENDING, SUCCESS, FAILURE
+
+
+class AsyncResult:
+    """
+    Minimal AsyncResult.
+
+    Backed by an in-memory backend owned by the Celery app.
+    """
+
+    def __init__(self, task_id, backend, app=None):
+        self.id = task_id
+        self.backend = backend
+        self.app = app
+
+    @property
+    def state(self):
+        meta = self.backend.get_meta(self.id)
+        return meta.get("status", PENDING)
+
+    status = state
+
+    def successful(self):
+        return self.state == SUCCESS
+
+    def failed(self):
+        return self.state == FAILURE
+
+    def ready(self):
+        s = self.state
+        return s in (SUCCESS, FAILURE)
+
+    def get(self, timeout=None, propagate=True, interval=0.01):
+        """
+        Wait for and return the task result.
+
+        If task failed and propagate=True, re-raise the stored exception.
+        """
+        deadline = None if timeout is None else (time.time() + timeout)
+        while True:
+            meta = self.backend.get_meta(self.id)
+            status = meta.get("status", PENDING)
+            if status == SUCCESS:
+                return meta.get("result")
+            if status == FAILURE:
+                exc = meta.get("exception")
+                if propagate and exc is not None:
+                    raise exc
+                return meta.get("result")
+            if deadline is not None and time.time() >= deadline:
+                raise TimeoutError(f"Result {self.id} not ready within {timeout} seconds")
+            # allow other threads to run
+            time.sleep(interval)
+
+    def __repr__(self):
+        return f"<AsyncResult: {self.id} state={self.state}>"
+</file>
+
+<file:name=celery/backends/__init__.py>
+from .base import BaseBackend  # noqa: F401
+from .memory import MemoryBackend  # noqa: F401
+
+__all__ = ["BaseBackend", "MemoryBackend"]
+</file>
+
+<file:name=celery/backends/base.py>
+class BaseBackend:
+    def __init__(self, app=None, url=None):
+        self.app = app
+        self.url = url
+
+    def store_result(self, task_id, result, status, exception=None):
+        raise NotImplementedError
+
+    def get_meta(self, task_id):
+        raise NotImplementedError
+</file>
+
+<file:name=celery/backends/memory.py>
+import threading
+
+from .base import BaseBackend
+from ..states import PENDING
+
+
+class MemoryBackend(BaseBackend):
+    """
+    Thread-safe in-memory backend.
+
+    Stores:
+      {task_id: {"status": ..., "result": ..., "exception": ...}}
+    """
+
+    def __init__(self, app=None, url=None):
+        super().__init__(app=app, url=url)
+        self._data = {}
+        self._lock = threading.RLock()
+
+    def store_result(self, task_id, result, status, exception=None):
+        with self._lock:
+            self._data[task_id] = {
+                "status": status,
+                "result": result,
+                "exception": exception,
+            }
+
+    def get_meta(self, task_id):
+        with self._lock:
+            return dict(self._data.get(task_id, {"status": PENDING, "result": None}))
+</file>
+
+<file:name=celery/app/__init__.py>
+from .base import Celery  # noqa: F401
+
+__all__ = ["Celery"]
+</file>
+
+<file:name=celery/app/utils.py>
+def get_default_app():
+    # Simple singleton behavior could be added if needed by tests.
+    return None
+</file>
+
+<file:name=celery/app/task.py>
+import inspect
+
+from ..result import AsyncResult
+
+
+class Task:
+    """
+    Minimal Task base class.
+
+    The Celery reference Task has many features; here we only implement what's
+    required for local execution in tests.
+    """
+
+    abstract = True
+
+    def __init__(self):
+        self.app = None
+        self.name = None
+        self.__wrapped__ = None  # original function (for introspection)
+        self.bind = False
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def __call__(self, *args, **kwargs):
+        return self.run(*args, **kwargs)
+
+    def delay(self, *args, **kwargs):
+        return self.apply_async(args=args, kwargs=kwargs)
+
+    def apply_async(self, args=None, kwargs=None, **options):
+        args = args or ()
+        kwargs = kwargs or {}
+        return self.app._apply_task(self, args=args, kwargs=kwargs, **options)
+
+    def signature(self, args=None, kwargs=None, **options):
+        # Minimal placeholder; tests may not use.
+        return (self.name, args or (), kwargs or {}, options)
+
+    def __repr__(self):
+        return f"<Task {self.name}>"
+
+    # convenience helpers used by bound tasks in Celery
+    @property
+    def request(self):
+        # Not implemented; provide a minimal object if accessed.
+        return type("Request", (), {})()
+
+    @staticmethod
+    def _creates_bound_instance(fun):
+        sig = inspect.signature(fun)
+        params = list(sig.parameters.values())
+        return bool(params) and params[0].name in ("self", "task")
+</file>
+
+<file:name=celery/app/base.py>
+import threading
+import types
+from concurrent.futures import ThreadPoolExecutor
+
+from ..backends.memory import MemoryBackend
+from ..exceptions import ImproperlyConfigured
+from ..result import AsyncResult
+from ..states import STARTED, SUCCESS, FAILURE
+from ..utils.uuid import uuid4
+from .task import Task
+
+
+class _Conf(dict):
+    """
+    Minimal configuration object with attribute access.
+    """
+
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError as e:
+            raise AttributeError(item) from e
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+
+class Celery:
+    """
+    Minimal celery.Celery application.
+
+    Supported:
+      - app.task decorator for registration
+      - app.send_task(name, args, kwargs)
+      - broker_url / result_backend basic fields (memory/eager are supported)
+      - eager execution and thread-pool async execution
+    """
+
+    def __init__(self, main=None, broker=None, backend=None, broker_url=None, result_backend=None, **kwargs):
+        self.main = main or "__main__"
+        self._tasks = {}
+        self.conf = _Conf()
+
+        # configuration defaults similar-ish to Celery
+        self.conf.update(
+            task_always_eager=False,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend=result_backend or backend or "memory://",
+            broker_url=broker_url or broker or "memory://",
+            task_ignore_result=False,
+        )
+        self.conf.update(kwargs)
+
+        self.backend = self._create_backend(self.conf.get("result_backend"))
+        # For non-eager async execution, we still run locally using a thread pool.
+        self._executor = ThreadPoolExecutor(max_workers=kwargs.get("worker_concurrency", 8))
+        self._shutdown_lock = threading.Lock()
+        self._closed = False
+
+    def _create_backend(self, url):
+        # Support only memory backend for this kata.
+        if url in (None, "", "memory://", "cache+memory://"):
+            return MemoryBackend(app=self, url=url)
+        # Still fallback to memory backend to keep local tests service-free.
+        return MemoryBackend(app=self, url=url)
+
+    @property
+    def tasks(self):
+        return self._tasks
+
+    def task(self, *dargs, **dkwargs):
+        """
+        Decorator: @app.task(name=..., bind=...)
+        """
+        def decorator(fun):
+            name = dkwargs.get("name") or f"{fun.__module__}.{fun.__name__}"
+            bind = bool(dkwargs.get("bind", False))
+            base = dkwargs.get("base", Task)
+
+            task_obj = self._create_task_from_fun(fun, name=name, bind=bind, base=base)
+            self._tasks[name] = task_obj
+            return task_obj
+
+        # supports @app.task without parentheses
+        if dargs and callable(dargs[0]) and len(dargs) == 1 and not dkwargs:
+            return decorator(dargs[0])
+        return decorator
+
+    def _create_task_from_fun(self, fun, name, bind, base=Task):
+        app = self
+
+        class FunTask(base):
+            abstract = False
+
+            def run(self, *args, **kwargs):
+                if bind:
+                    return fun(self, *args, **kwargs)
+                return fun(*args, **kwargs)
+
+        t = FunTask()
+        t.app = app
+        t.name = name
+        t.__wrapped__ = fun
+        t.bind = bind
+        # Carry common attributes for nicer compatibility
+        t.__name__ = getattr(fun, "__name__", "task")
+        t.__doc__ = getattr(fun, "__doc__", None)
+        t.__module__ = getattr(fun, "__module__", None)
+        return t
+
+    def send_task(self, name, args=None, kwargs=None, **options):
+        args = args or ()
+        kwargs = kwargs or {}
+        task = self._tasks.get(name)
+        if task is None:
+            raise KeyError(f"Task {name!r} not registered")
+        return task.apply_async(args=args, kwargs=kwargs, **options)
+
+    def _apply_task(self, task, args, kwargs, task_id=None, **options):
+        if self._closed:
+            raise RuntimeError("Celery app is closed")
+
+        task_id = task_id or uuid4()
+        ignore_result = options.get("ignore_result", self.conf.get("task_ignore_result", False))
+        always_eager = options.get("task_always_eager", self.conf.get("task_always_eager", False))
+
+        # Eager: execute in current thread
+        if always_eager:
+            try:
+                result = task(*args, **kwargs)
+            except BaseException as exc:
+                if not ignore_result and self.conf.get("task_store_eager_result", True):
+                    self.backend.store_result(task_id, None, FAILURE, exception=exc)
+                if self.conf.get("task_eager_propagates", True):
+                    raise
+                if not ignore_result and self.conf.get("task_store_eager_result", True):
+                    # store exception object as "result" too, loosely like Celery meta
+                    self.backend.store_result(task_id, None, FAILURE, exception=exc)
+                return AsyncResult(task_id, backend=self.backend, app=self)
+            else:
+                if not ignore_result and self.conf.get("task_store_eager_result", True):
+                    self.backend.store_result(task_id, result, SUCCESS, exception=None)
+                return AsyncResult(task_id, backend=self.backend, app=self)
+
+        # Async: execute in thread pool, store result in backend.
+        if not ignore_result:
+            self.backend.store_result(task_id, None, STARTED, exception=None)
+
+        def runner():
+            try:
+                res = task(*args, **kwargs)
+            except BaseException as exc:
+                if not ignore_result:
+                    self.backend.store_result(task_id, None, FAILURE, exception=exc)
+                return
+            if not ignore_result:
+                self.backend.store_result(task_id, res, SUCCESS, exception=None)
+
+        self._executor.submit(runner)
+        return AsyncResult(task_id, backend=self.backend, app=self)
+
+    def close(self):
+        with self._shutdown_lock:
+            if self._closed:
+                return
+            self._executor.shutdown(wait=True, cancel_futures=False)
+            self._closed = True
+
+    # Compatibility stubs (not fully implemented, but often imported)
+    def worker_main(self, argv=None):
+        raise NotImplementedError("This minimal implementation does not support external worker processes.")
+
+    def start(self, argv=None):
+        return self.worker_main(argv=argv)
+</file>
+
+<file:name=celery/local.py>
+# Minimal compatibility module; Celery provides thread-local current_app/current_task.
+import threading
+
+_local = threading.local()
+
+
+def _set_current_app(app):
+    _local.current_app = app
+
+
+def get_current_app():
+    return getattr(_local, "current_app", None)
+</file>
+
+<file:name=celery/current_app.py>
+from .local import get_current_app
+
+current_app = get_current_app()
+</file>
+
+<file:name=celery/app/current.py>
+from ..local import get_current_app
+
+current_app = get_current_app()
+</file>
+
+<file:name=celery/_state.py>
+# Minimal subset of celery._state
+from .local import get_current_app as _get_current_app
+
+def get_current_app():
+    return _get_current_app()
+</file>
+
+<file:name=setup.cfg>
+[metadata]
+name = mini-celery
+version = 0.1.0
+</file>

@@ -1,0 +1,155 @@
+<contract>
+1) Repository layout
+- Root package: sqlmodel/
+  - __init__.py (required; must expose the public API)
+  - _compat.py (optional; helpers for typing/py versions)
+  - main.py (or _sqlmodel.py): defines SQLModel base, metaclass/config
+  - fields.py: Field implementation and field metadata container
+  - orm.py: Relationship, table/metadata registry, table creation
+  - sql.py: select() construct, where/filter expressions, result handling
+  - engine.py: create_engine(), Engine, connection handling
+  - session.py: Session implementation and unit-of-work behavior
+  - exceptions.py (optional): custom exceptions compatible with expected behavior
+  - util.py (optional): small helpers (inspect, get_field_info, etc.)
+- The tests must be able to do: from sqlmodel import SQLModel, Field, select, Session, create_engine, Relationship (if referenced).
+
+2) Public API surface (modules/classes/functions and key signatures)
+Top-level sqlmodel/__init__.py must export:
+- class SQLModel(...)
+  - Usage:
+    - class Hero(SQLModel, table=True): ...
+    - class HeroCreate(SQLModel): ...
+  - Required methods/attributes:
+    - model_validate(cls, obj) -> instance (or parse_obj equivalent)
+    - dict(self, *, exclude_none: bool = False, **kwargs) -> dict
+    - json(self, **kwargs) -> str
+    - model_dump(self, **kwargs) -> dict (alias to dict if needed)
+    - model_dump_json(self, **kwargs) -> str (alias to json if needed)
+    - __fields__ / model_fields equivalent mapping (enough for tests that introspect)
+    - __tablename__ (when table=True) default: lowercased class name, overridable by attribute
+    - metadata: global MetaData object (or accessible via SQLModel.metadata)
+    - __table__: Table object for table models
+- function Field(default=Undefined, *, default_factory=None, primary_key: bool=False, foreign_key: str|None=None, nullable: bool|None=None, index: bool=False, unique: bool=False, max_length: int|None=None, sa_column=None, sa_column_kwargs: dict|None=None, description: str|None=None, **extra) -> Any
+  - Must be usable as a default value in annotations.
+- function Relationship(*, back_populates: str|None=None, link_model=None, sa_relationship_kwargs: dict|None=None, **extra) -> Any
+  - Only required if tests import/use relationships. If not needed, can exist as a stub that preserves attributes.
+- function select(*entities) -> Select
+  - Must allow: select(Model) and possibly select(Model.field1, Model.field2)
+  - Returned object must support: .where(condition), .limit(n), .offset(n), .order_by(*cols) as needed by tests.
+- class Session
+  - __init__(self, engine, **kwargs)
+  - add(self, instance) -> None
+  - add_all(self, instances: list) -> None
+  - commit(self) -> None
+  - rollback(self) -> None
+  - refresh(self, instance) -> None (load PK/autofields from storage)
+  - exec(self, statement) -> Result (preferred SQLModel API)
+  - execute(self, statement) -> Result (alias, if tests use it)
+  - get(self, model_cls, pk) -> instance|None
+  - close(self) -> None
+  - context manager support: __enter__/__exit__
+- Engine utilities
+  - function create_engine(url: str, *, echo: bool=False, connect_args: dict|None=None, **kwargs) -> Engine
+  - class Engine
+    - url attribute
+    - connect() -> Connection (optional if needed)
+- Table/metadata utilities
+  - SQLModel.metadata.create_all(engine) -> None
+  - SQLModel.metadata.drop_all(engine) -> None (if tests call it)
+- Result API (internal but must behave)
+  - Result.first() -> row|None / model|None depending on query
+  - Result.one() / one_or_none() if referenced
+  - Result.all() -> list
+  - Result.scalars() -> ScalarResult
+  - ScalarResult.first()/all()/one()/one_or_none()
+- Expression API (internal but used via operators)
+  - Model.field must be a Column-like object supporting comparisons:
+    - ==, !=, <, <=, >, >=
+    - .in_([..]) if required
+  - Conditions must be combinable with & and | (optional if tests use).
+  - Relationship attributes if used should not break attribute access.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+Modeling / validation:
+- SQLModel must support Pydantic-style behavior sufficient for:
+  - Instantiation with keyword args, type coercion for common primitives (int, str, float, bool, Optional)
+  - Default values and default_factory for Field
+  - Optional fields: if annotation is Optional[T] or default is None, missing values allowed
+  - dict()/json() output consistent with Pydantic-like behavior:
+    - includes set fields and defaults
+    - exclude_none removes keys with None
+  - Models without table=True behave as pure data models (no table mapping required).
+- Table models:
+  - Declared by inheriting SQLModel and passing table=True in class definition.
+  - Must derive columns from type annotations and Field() metadata.
+  - Primary key:
+    - Field(primary_key=True) marks PK column.
+    - If PK is Optional[int] with default None, session commit should assign an auto-incrementing int if not provided.
+  - Nullable:
+    - If type is Optional[...] or default is None -> nullable True unless explicitly nullable=False.
+    - Non-optional without default implies required on model init for non-table models; for table models, allow missing only if DB supplies default/auto (tests likely focus on PK).
+- Metadata/table creation:
+  - SQLModel.metadata.create_all(engine) must create in-engine storage structures for all registered tables.
+  - Tables registered at class creation time for table=True models.
+- Persistence:
+  - Engine is an in-memory backend (pure Python). URL parsing may accept "sqlite:///:memory:" and treat as a unique in-memory database per engine; other URLs can map to separate namespaces.
+  - Session.add stores pending instances; commit persists them to engine storage.
+  - On commit:
+    - Insert rows for new objects; update objects already persisted if changed (minimal support; if not tested, can ignore updates).
+    - Assign PK autoincrement if missing/None.
+  - refresh(instance):
+    - After commit, ensure instance PK and persisted values are present; refresh reloads from storage by PK.
+- Querying:
+  - select(Model) returns rows of Model instances (not raw dicts) in Result.scalars().all() style used by SQLModel.
+  - session.exec(select(Model)) returns a Result; calling .all() returns list of rows or list of models depending on statement shape:
+    - If selecting a single entity (Model): .all() may return list[Model] OR list[Row] depending on tests; must support .scalars().all() returning list[Model]. Prefer returning Row objects but ensure .scalars() works.
+  - Filtering:
+    - statement.where(Model.field == value) filters persisted rows.
+    - Multiple where calls accumulate with AND semantics.
+- get:
+  - session.get(Model, pk) returns instance or None.
+- Error handling:
+  - Creating a table twice should be idempotent.
+  - Selecting from non-created table should raise a clear exception or return empty; tests likely create tables first.
+  - Adding objects of non-table SQLModel should raise TypeError (or ValueError) if used in ORM operations.
+  - Field misuse (e.g., multiple primary keys) can raise ValueError at class creation if encountered by tests.
+- Snapshot compatibility:
+  - __repr__ or printed forms should be stable if tests snapshot them; keep simple:
+    - Model instances repr like "Hero(id=1, name='x', ...)" with field order as defined.
+  - Column attribute access for expressions must not leak internal objects in snapshots unexpectedly.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Imports:
+  - Can run: from sqlmodel import SQLModel, Field, Session, select, create_engine
+  - Relationship import works if referenced (even if minimal).
+- Modeling:
+  - Defining SQLModel subclasses with type hints works.
+  - Field(primary_key=True) is honored; Optional PK starts as None and becomes int after commit.
+  - dict(exclude_none=True) drops None keys; json() returns valid JSON string.
+- Table/metadata:
+  - SQLModel.metadata exists and supports create_all(engine).
+  - Declaring class X(SQLModel, table=True) registers a table and creates storage on create_all.
+- Engine/session:
+  - create_engine("sqlite:///:memory:") returns an engine usable by Session.
+  - Session(engine) supports context manager and close().
+  - add(), commit(), refresh() work and mutate instance PK as expected.
+- Query:
+  - select(Model) builds a statement.
+  - session.exec(select(Model)).scalars().all() returns inserted instances.
+  - where clauses filter correctly: select(Model).where(Model.field == value).
+  - session.get(Model, pk) returns correct instance or None.
+- Basic invariants:
+  - Data persists across sessions sharing the same engine instance.
+  - New engine has isolated storage.
+  - create_all is safe to call multiple times.
+
+5) Non-goals / constraints
+- Pure Python only: do not depend on SQLAlchemy, Pydantic, or any compiled/DB extensions.
+- Not required to implement full SQLModel/SQLAlchemy feature set:
+  - No real SQL parsing/execution.
+  - Limited relationship loading; only minimal stubs unless tests require more.
+  - No migrations, joins, eager/lazy loading, complex expressions beyond basic comparisons and AND chaining.
+  - Concurrency/thread-safety not required unless tests explicitly cover it.
+- No external services, no filesystem persistence unless tests require; default is in-memory per engine.
+- Keep API compatible with “core parts” needed by tests; prioritize signature/behavior over internal architecture.
+</contract>

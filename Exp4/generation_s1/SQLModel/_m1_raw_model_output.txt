@@ -1,0 +1,815 @@
+<file:name=sqlmodel/__init__.py>
+from __future__ import annotations
+
+import json
+import sqlite3
+import threading
+from dataclasses import dataclass
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+)
+
+__all__ = [
+    "SQLModel",
+    "Field",
+    "Relationship",
+    "select",
+    "Session",
+    "create_engine",
+    "Engine",
+]
+
+
+# -----------------------------
+# Field / Relationship markers
+# -----------------------------
+class FieldInfo:
+    __slots__ = (
+        "default",
+        "default_factory",
+        "primary_key",
+        "nullable",
+        "index",
+        "unique",
+        "foreign_key",
+    )
+
+    def __init__(
+        self,
+        default: Any = ...,
+        *,
+        default_factory: Optional[Callable[[], Any]] = None,
+        primary_key: bool = False,
+        nullable: Optional[bool] = None,
+        index: bool = False,
+        unique: bool = False,
+        foreign_key: Optional[str] = None,
+    ):
+        self.default = default
+        self.default_factory = default_factory
+        self.primary_key = primary_key
+        self.nullable = nullable
+        self.index = index
+        self.unique = unique
+        self.foreign_key = foreign_key
+
+
+def Field(
+    default: Any = ...,
+    *,
+    default_factory: Optional[Callable[[], Any]] = None,
+    primary_key: bool = False,
+    nullable: Optional[bool] = None,
+    index: bool = False,
+    unique: bool = False,
+    foreign_key: Optional[str] = None,
+) -> Any:
+    return FieldInfo(
+        default,
+        default_factory=default_factory,
+        primary_key=primary_key,
+        nullable=nullable,
+        index=index,
+        unique=unique,
+        foreign_key=foreign_key,
+    )
+
+
+class RelationshipInfo:
+    __slots__ = ("back_populates", "sa_relationship_kwargs")
+
+    def __init__(self, *, back_populates: Optional[str] = None, sa_relationship_kwargs: Optional[dict] = None):
+        self.back_populates = back_populates
+        self.sa_relationship_kwargs = sa_relationship_kwargs or {}
+
+
+def Relationship(*, back_populates: Optional[str] = None, sa_relationship_kwargs: Optional[dict] = None) -> Any:
+    return RelationshipInfo(back_populates=back_populates, sa_relationship_kwargs=sa_relationship_kwargs)
+
+
+# -----------------------------
+# Utilities: typing
+# -----------------------------
+NoneType = type(None)
+
+
+def _is_optional(tp: Any) -> Tuple[bool, Any]:
+    origin = get_origin(tp)
+    if origin is Union:
+        args = get_args(tp)
+        if len(args) == 2 and NoneType in args:
+            other = args[0] if args[1] is NoneType else args[1]
+            return True, other
+    return False, tp
+
+
+def _type_name(tp: Any) -> str:
+    if tp is int:
+        return "int"
+    if tp is str:
+        return "str"
+    if tp is float:
+        return "float"
+    if tp is bool:
+        return "bool"
+    return getattr(tp, "__name__", repr(tp))
+
+
+def _coerce_value(tp: Any, value: Any) -> Any:
+    if value is None:
+        return None
+    opt, inner = _is_optional(tp)
+    if opt:
+        return _coerce_value(inner, value)
+
+    # Common coercions
+    try:
+        if tp is bool:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)):
+                return bool(value)
+            if isinstance(value, str):
+                v = value.strip().lower()
+                if v in ("1", "true", "t", "yes", "y", "on"):
+                    return True
+                if v in ("0", "false", "f", "no", "n", "off"):
+                    return False
+            # fallback
+            return bool(value)
+        if tp is int:
+            if isinstance(value, bool):
+                return int(value)
+            return int(value)
+        if tp is float:
+            return float(value)
+        if tp is str:
+            return str(value)
+    except Exception:
+        # If coercion fails, keep original (minimal pydantic-like behavior would error,
+        # but we keep it lenient for unknown cases)
+        return value
+    return value
+
+
+# -----------------------------
+# Column/condition/select DSL
+# -----------------------------
+@dataclass(frozen=True)
+class Condition:
+    sql: str
+    params: Tuple[Any, ...]
+
+    def __and__(self, other: "Condition") -> "Condition":
+        return Condition(f"({self.sql}) AND ({other.sql})", self.params + other.params)
+
+
+class FieldDescriptor:
+    def __init__(self, name: str, annotation: Any):
+        self.name = name
+        self.annotation = annotation
+
+    def __get__(self, obj: Any, owner: Any) -> Any:
+        if obj is None:
+            return ColumnRef(owner, self.name)
+        return obj.__dict__.get(self.name)
+
+    def __set__(self, obj: Any, value: Any) -> None:
+        obj.__dict__[self.name] = value
+
+
+class ColumnRef:
+    def __init__(self, model_cls: Type["SQLModel"], name: str):
+        self.model_cls = model_cls
+        self.name = name
+
+    def _col_sql(self) -> str:
+        table = getattr(self.model_cls, "__tablename__", self.model_cls.__name__.lower())
+        return f"{table}.{self.name}"
+
+    def __eq__(self, other: Any) -> Condition:  # type: ignore[override]
+        if other is None:
+            return Condition(f"{self._col_sql()} IS NULL", ())
+        return Condition(f"{self._col_sql()} = ?", (other,))
+
+    def __ne__(self, other: Any) -> Condition:  # type: ignore[override]
+        if other is None:
+            return Condition(f"{self._col_sql()} IS NOT NULL", ())
+        return Condition(f"{self._col_sql()} != ?", (other,))
+
+    def __lt__(self, other: Any) -> Condition:
+        return Condition(f"{self._col_sql()} < ?", (other,))
+
+    def __le__(self, other: Any) -> Condition:
+        return Condition(f"{self._col_sql()} <= ?", (other,))
+
+    def __gt__(self, other: Any) -> Condition:
+        return Condition(f"{self._col_sql()} > ?", (other,))
+
+    def __ge__(self, other: Any) -> Condition:
+        return Condition(f"{self._col_sql()} >= ?", (other,))
+
+
+@dataclass(frozen=True)
+class Select:
+    model: Type["SQLModel"]
+    conditions: Tuple[Condition, ...] = ()
+
+    def where(self, condition: Condition) -> "Select":
+        return Select(self.model, self.conditions + (condition,))
+
+
+def select(*entities: Any) -> Select:
+    if len(entities) != 1:
+        raise TypeError("This minimal sqlmodel.select() supports exactly one entity (a SQLModel subclass).")
+    ent = entities[0]
+    if not isinstance(ent, type) or not issubclass(ent, SQLModel):
+        raise TypeError("select() expects a SQLModel subclass")
+    return Select(ent)
+
+
+# -----------------------------
+# Metadata / Table mapping
+# -----------------------------
+@dataclass
+class Column:
+    name: str
+    annotation: Any
+    primary_key: bool
+    nullable: bool
+    default: Any
+    default_factory: Optional[Callable[[], Any]] = None
+
+    def sql_type(self) -> str:
+        opt, inner = _is_optional(self.annotation)
+        t = inner if opt else self.annotation
+        if t is int:
+            return "INTEGER"
+        if t is float:
+            return "REAL"
+        if t is bool:
+            return "INTEGER"
+        # default for str and anything else
+        return "TEXT"
+
+
+@dataclass
+class Table:
+    name: str
+    model: Type["SQLModel"]
+    columns: List[Column]
+
+    @property
+    def pk(self) -> Optional[Column]:
+        for c in self.columns:
+            if c.primary_key:
+                return c
+        return None
+
+    def create_sql(self) -> str:
+        parts: List[str] = []
+        for c in self.columns:
+            col_sql = f"{c.name} {c.sql_type()}"
+            if c.primary_key:
+                # SQLite special behavior for INTEGER PRIMARY KEY
+                if _is_optional(c.annotation)[1] is int or c.annotation is int:
+                    col_sql = f"{c.name} INTEGER PRIMARY KEY"
+                else:
+                    col_sql += " PRIMARY KEY"
+            if not c.primary_key:
+                if not c.nullable:
+                    col_sql += " NOT NULL"
+            parts.append(col_sql)
+        cols = ", ".join(parts)
+        return f"CREATE TABLE IF NOT EXISTS {self.name} ({cols})"
+
+
+class MetaData:
+    def __init__(self) -> None:
+        self.tables: Dict[str, Table] = {}
+
+    def create_all(self, engine: "Engine") -> None:
+        conn = engine._conn
+        with engine._lock:
+            cur = conn.cursor()
+            for t in self.tables.values():
+                sql = t.create_sql()
+                if engine.echo:
+                    print(sql)
+                cur.execute(sql)
+            conn.commit()
+
+
+# -----------------------------
+# SQLModel base (pydantic-ish + orm-ish)
+# -----------------------------
+class SQLModel:
+    metadata = MetaData()
+
+    __sqlmodel_table__: bool = False
+    __tablename__: str
+    __table__: Optional[Table] = None
+    __fields__: Dict[str, Column] = {}
+    __relationship_fields__: set = set()
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        table_flag = bool(kwargs.pop("table", False))
+        super().__init_subclass__(**kwargs)
+        cls.__sqlmodel_table__ = table_flag
+
+        # Collect annotations from MRO, base-to-subclass; subclass overrides
+        ann: Dict[str, Any] = {}
+        for base in reversed(cls.__mro__):
+            ann.update(getattr(base, "__annotations__", {}) or {})
+
+        fields: Dict[str, Column] = {}
+        relationship_fields: set = set()
+
+        # Detect defaults/FieldInfo/RelationshipInfo
+        for name, tp in ann.items():
+            if name.startswith("_"):
+                continue
+
+            default = getattr(cls, name, ...)
+            if isinstance(default, RelationshipInfo):
+                relationship_fields.add(name)
+                # Keep attribute on class; do not create descriptor
+                continue
+
+            fi: Optional[FieldInfo] = None
+            if isinstance(default, FieldInfo):
+                fi = default
+                default_val = fi.default
+                default_factory = fi.default_factory
+            else:
+                default_val = default
+                default_factory = None
+
+            opt, _inner = _is_optional(tp)
+
+            # Nullable logic
+            nullable: bool
+            if fi is not None and fi.nullable is not None:
+                nullable = bool(fi.nullable)
+            else:
+                nullable = bool(opt)
+
+            # If Optional without explicit default, default becomes None
+            if default_val is ... and opt:
+                default_val = None
+
+            col = Column(
+                name=name,
+                annotation=tp,
+                primary_key=bool(fi.primary_key) if fi is not None else False,
+                nullable=nullable,
+                default=default_val,
+                default_factory=default_factory,
+            )
+            fields[name] = col
+
+        cls.__fields__ = fields
+        cls.__relationship_fields__ = relationship_fields
+
+        # Install descriptors for non-relationship fields so class access yields ColumnRef
+        for name, col in fields.items():
+            # Don't stomp if explicitly defined as property/descriptor by user
+            existing = cls.__dict__.get(name, None)
+            if isinstance(existing, RelationshipInfo):
+                continue
+            # Only set if not already a descriptor; but if user set FieldInfo as class attr,
+            # we replace with descriptor.
+            setattr(cls, name, FieldDescriptor(name, col.annotation))
+
+        if table_flag:
+            if not hasattr(cls, "__tablename__"):
+                cls.__tablename__ = cls.__name__.lower()
+            # register table
+            tbl = Table(name=cls.__tablename__, model=cls, columns=list(fields.values()))
+            cls.__table__ = tbl
+            SQLModel.metadata.tables[tbl.name] = tbl
+        else:
+            cls.__table__ = None
+
+    def __init__(self, **data: Any):
+        for name, col in self.__fields__.items():
+            if name in data:
+                value = data[name]
+            else:
+                if col.default_factory is not None:
+                    value = col.default_factory()
+                elif col.default is not ...:
+                    value = col.default
+                else:
+                    # required
+                    raise TypeError(f"Missing required field: {name}")
+            # Validate/coerce
+            if value is None:
+                # allow None if nullable / optional; for non-nullable we still allow at init,
+                # but will fail on insert (sqlite NOT NULL); matches minimal behavior.
+                coerced = None
+            else:
+                coerced = _coerce_value(col.annotation, value)
+            setattr(self, name, coerced)
+
+        # relationships: accept passed data, otherwise default to None or []
+        for rname in getattr(self, "__relationship_fields__", set()):
+            if rname in data:
+                setattr(self, rname, data[rname])
+            else:
+                setattr(self, rname, None)
+
+    @classmethod
+    def _from_row(cls: Type["TSQLModel"], row: Mapping[str, Any]) -> "TSQLModel":
+        obj = cls.__new__(cls)
+        for name, col in cls.__fields__.items():
+            v = row.get(name)
+            if v is not None:
+                # bool stored as int
+                opt, inner = _is_optional(col.annotation)
+                t = inner if opt else col.annotation
+                if t is bool and isinstance(v, (int, float)):
+                    v = bool(v)
+                else:
+                    v = _coerce_value(col.annotation, v)
+            obj.__dict__[name] = v
+        for rname in getattr(cls, "__relationship_fields__", set()):
+            obj.__dict__[rname] = None
+        return obj
+
+    def dict(self, *, exclude_none: bool = False) -> Dict[str, Any]:
+        out: Dict[str, Any] = {}
+        for name in self.__fields__.keys():
+            v = getattr(self, name)
+            if exclude_none and v is None:
+                continue
+            out[name] = v
+        # By default, exclude relationship fields to mimic typical ORM serialization expectations
+        return out
+
+    def json(self, *, exclude_none: bool = False) -> str:
+        return json.dumps(self.dict(exclude_none=exclude_none), default=str)
+
+    def __repr__(self) -> str:
+        fields = ", ".join(f"{k}={getattr(self, k)!r}" for k in self.__fields__.keys())
+        return f"{self.__class__.__name__}({fields})"
+
+
+TSQLModel = TypeVar("TSQLModel", bound=SQLModel)
+
+
+# -----------------------------
+# Engine / Session
+# -----------------------------
+class Engine:
+    def __init__(self, url: str, *, echo: bool = False, connect_args: Optional[dict] = None):
+        self.url = url
+        self.echo = echo
+        self.connect_args = connect_args or {}
+        self._lock = threading.RLock()
+        self._conn = self._connect()
+
+    def _connect(self) -> sqlite3.Connection:
+        if not self.url.startswith("sqlite"):
+            raise ValueError("Only sqlite URLs are supported")
+        # Accept: sqlite://, sqlite:///:memory:, sqlite:///path.db
+        path = None
+        if self.url in ("sqlite://", "sqlite:///:memory:"):
+            path = ":memory:"
+        elif self.url.startswith("sqlite:///"):
+            path = self.url[len("sqlite:///") :]
+            if path == "" or path == "/":
+                path = ":memory:"
+        else:
+            # try sqlite://<path> (not standard but tolerate)
+            if self.url.startswith("sqlite://"):
+                path = self.url[len("sqlite://") :]
+                if path.startswith("/"):
+                    path = path[1:]
+                if path == "":
+                    path = ":memory:"
+            else:
+                raise ValueError(f"Unsupported sqlite url: {self.url}")
+
+        conn = sqlite3.connect(path, check_same_thread=False, **self.connect_args)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def dispose(self) -> None:
+        with self._lock:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+
+
+def create_engine(url: str, echo: bool = False, connect_args: Optional[dict] = None) -> Engine:
+    return Engine(url, echo=echo, connect_args=connect_args)
+
+
+class Result(Generic[TSQLModel]):
+    def __init__(self, items: List[Any]):
+        self._items = items
+
+    def all(self) -> List[Any]:
+        return list(self._items)
+
+    def first(self) -> Any:
+        return self._items[0] if self._items else None
+
+    def one(self) -> Any:
+        if len(self._items) != 1:
+            raise ValueError(f"Expected exactly one row, got {len(self._items)}")
+        return self._items[0]
+
+    def one_or_none(self) -> Any:
+        if not self._items:
+            return None
+        if len(self._items) != 1:
+            raise ValueError(f"Expected zero or one row, got {len(self._items)}")
+        return self._items[0]
+
+    def __iter__(self) -> Iterator[Any]:
+        return iter(self._items)
+
+
+class Query(Generic[TSQLModel]):
+    def __init__(self, session: "Session", model: Type[TSQLModel]):
+        self._session = session
+        self._select = select(model)
+
+    def where(self, condition: Condition) -> "Query[TSQLModel]":
+        self._select = self._select.where(condition)
+        return self
+
+    def filter(self, condition: Condition) -> "Query[TSQLModel]":
+        return self.where(condition)
+
+    def all(self) -> List[TSQLModel]:
+        return self._session.exec(self._select).all()
+
+    def first(self) -> Optional[TSQLModel]:
+        return self._session.exec(self._select).first()
+
+
+class Session:
+    def __init__(self, engine: Engine):
+        self.engine = engine
+        self._pending: List[SQLModel] = []
+        self._dirty: List[SQLModel] = []
+        self._closed = False
+
+    def __enter__(self) -> "Session":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        # mimic SQLAlchemy-ish behavior: commit only if no exception? SQLModel examples usually do explicit commit.
+        # We'll not auto-commit.
+        self.close()
+
+    def close(self) -> None:
+        self._closed = True
+
+    def add(self, obj: SQLModel) -> None:
+        if obj not in self._pending and obj not in self._dirty:
+            # If has pk set, consider it dirty (update) otherwise pending insert
+            tbl = getattr(obj.__class__, "__table__", None)
+            if tbl is None:
+                raise TypeError("add() requires a table model (SQLModel with table=True)")
+            pk = tbl.pk
+            if pk is None:
+                self._pending.append(obj)
+                return
+            pk_val = getattr(obj, pk.name)
+            if pk_val is None:
+                self._pending.append(obj)
+            else:
+                self._dirty.append(obj)
+
+    def add_all(self, objs: Iterable[SQLModel]) -> None:
+        for o in objs:
+            self.add(o)
+
+    def commit(self) -> None:
+        if self._closed:
+            raise RuntimeError("Session is closed")
+        with self.engine._lock:
+            cur = self.engine._conn.cursor()
+            # inserts
+            for obj in list(self._pending):
+                self._insert(cur, obj)
+            self._pending.clear()
+            # updates (minimal)
+            for obj in list(self._dirty):
+                self._update(cur, obj)
+            self._dirty.clear()
+            self.engine._conn.commit()
+
+    def refresh(self, obj: TSQLModel) -> None:
+        tbl = getattr(obj.__class__, "__table__", None)
+        if tbl is None or tbl.pk is None:
+            raise TypeError("refresh() requires a table model with a primary key")
+        pk_name = tbl.pk.name
+        pk_val = getattr(obj, pk_name)
+        if pk_val is None:
+            raise ValueError("Cannot refresh without primary key value")
+        stmt = select(obj.__class__).where(getattr(obj.__class__, pk_name) == pk_val)
+        fresh = self.exec(stmt).one_or_none()
+        if fresh is None:
+            raise ValueError("Row not found for refresh")
+        for name in obj.__fields__.keys():
+            setattr(obj, name, getattr(fresh, name))
+
+    def exec(self, statement: Select) -> Result[Any]:
+        model = statement.model
+        tbl = getattr(model, "__table__", None)
+        if tbl is None:
+            raise TypeError("exec(select(...)) requires a table model")
+        colnames = [c.name for c in tbl.columns]
+        sql = f"SELECT {', '.join(colnames)} FROM {tbl.name}"
+        params: List[Any] = []
+        if statement.conditions:
+            cond = statement.conditions[0]
+            for c in statement.conditions[1:]:
+                cond = cond & c
+            sql += f" WHERE {cond.sql}"
+            params.extend(list(cond.params))
+        # deterministic ordering to match common expectations
+        if tbl.pk is not None:
+            sql += f" ORDER BY {tbl.pk.name}"
+        if self.engine.echo:
+            print(sql, params)
+        with self.engine._lock:
+            cur = self.engine._conn.cursor()
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+        items = [model._from_row(dict(r)) for r in rows]
+        return Result(items)
+
+    def query(self, model: Type[TSQLModel]) -> Query[TSQLModel]:
+        return Query(self, model)
+
+    # ----- internal SQL -----
+    def _insert(self, cur: sqlite3.Cursor, obj: SQLModel) -> None:
+        tbl = obj.__class__.__table__
+        assert tbl is not None
+        cols: List[Column] = tbl.columns
+        names: List[str] = []
+        values: List[Any] = []
+
+        pk = tbl.pk
+        for c in cols:
+            v = getattr(obj, c.name)
+            if c.primary_key and pk is not None and c.name == pk.name:
+                # omit autoincrement if None
+                if v is None and (_is_optional(c.annotation)[1] is int or c.annotation is int):
+                    continue
+            if isinstance(v, bool):
+                v = int(v)
+            names.append(c.name)
+            values.append(v)
+
+        placeholders = ", ".join(["?"] * len(names))
+        sql = f"INSERT INTO {tbl.name} ({', '.join(names)}) VALUES ({placeholders})"
+        if self.engine.echo:
+            print(sql, values)
+        cur.execute(sql, values)
+
+        if pk is not None:
+            pk_val = getattr(obj, pk.name)
+            if pk_val is None and (_is_optional(pk.annotation)[1] is int or pk.annotation is int):
+                setattr(obj, pk.name, cur.lastrowid)
+
+    def _update(self, cur: sqlite3.Cursor, obj: SQLModel) -> None:
+        tbl = obj.__class__.__table__
+        assert tbl is not None
+        pk = tbl.pk
+        if pk is None:
+            return
+        pk_val = getattr(obj, pk.name)
+        if pk_val is None:
+            return
+        sets: List[str] = []
+        values: List[Any] = []
+        for c in tbl.columns:
+            if c.primary_key:
+                continue
+            v = getattr(obj, c.name)
+            if isinstance(v, bool):
+                v = int(v)
+            sets.append(f"{c.name} = ?")
+            values.append(v)
+        values.append(pk_val)
+        sql = f"UPDATE {tbl.name} SET {', '.join(sets)} WHERE {pk.name} = ?"
+        if self.engine.echo:
+            print(sql, values)
+        cur.execute(sql, values)
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import json
+import pytest
+
+from sqlmodel import SQLModel, Field, Relationship, Session, create_engine, select
+
+
+def test_model_required_optional_defaults_and_serialization():
+    class M(SQLModel):
+        a: int
+        b: int = 1
+        c: str | None
+        d: int | None
+        e: int = Field(default_factory=lambda: 7)
+
+    m = M(a="3", c=None, d="4")
+    assert m.a == 3
+    assert m.b == 1
+    assert m.c is None
+    assert m.d == 4
+    assert m.e == 7
+
+    d = m.dict()
+    assert d == {"a": 3, "b": 1, "c": None, "d": 4, "e": 7}
+    js = m.json()
+    assert json.loads(js) == d
+
+    with pytest.raises(TypeError):
+        M(c="x", d=None)
+
+
+def test_table_create_insert_select_where_refresh_update():
+    class Hero(SQLModel, table=True):
+        id: int | None = Field(default=None, primary_key=True)
+        name: str
+        age: int | None = None
+        active: bool = True
+
+    engine = create_engine("sqlite:///:memory:")
+    SQLModel.metadata.create_all(engine)
+
+    with Session(engine) as session:
+        h1 = Hero(name="Spider-Boy", age=None, active=True)
+        h2 = Hero(name="Daredevil", age=33, active=False)
+        session.add(h1)
+        session.add(h2)
+        session.commit()
+
+        assert h1.id is not None and h2.id is not None
+        assert h1.id < h2.id
+
+        # where
+        res = session.exec(select(Hero).where(Hero.name == "Daredevil")).one()
+        assert isinstance(res, Hero)
+        assert res.name == "Daredevil"
+        assert res.age == 33
+        assert res.active is False
+
+        # IS NULL
+        res2 = session.exec(select(Hero).where(Hero.age == None)).one()  # noqa: E711
+        assert res2.name == "Spider-Boy"
+
+        # refresh (and update)
+        h2.name = "DD"
+        session.add(h2)
+        session.commit()
+        session.refresh(h2)
+        assert h2.name == "DD"
+
+        # query compatibility
+        names = [h.name for h in session.query(Hero).filter(Hero.active == True).all()]  # noqa: E712
+        assert names == ["Spider-Boy"]
+
+
+def test_relationship_ignored_by_columns_and_dict():
+    class Team(SQLModel, table=True):
+        id: int | None = Field(default=None, primary_key=True)
+        name: str
+
+    class Player(SQLModel, table=True):
+        id: int | None = Field(default=None, primary_key=True)
+        name: str
+        team_id: int | None = None
+        team: Team | None = Relationship(back_populates="players")
+
+    # relationship shouldn't become a DB column
+    assert "team" in Player.__relationship_fields__
+    assert "team" not in [c.name for c in Player.__table__.columns]
+
+    p = Player(name="A", team_id=None)
+    assert p.dict() == {"id": None, "name": "A", "team_id": None}
+</file>

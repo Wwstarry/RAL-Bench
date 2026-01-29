@@ -1,0 +1,48 @@
+FFFF.                                                                    [100%]
+================================== FAILURES ===================================
+__________________________ test_imports_core_modules __________________________
+
+    def test_imports_core_modules() -> None:
+        import mailpile.safe_popen  # type: ignore
+        import mailpile.util  # type: ignore
+        import mailpile.vcard  # type: ignore
+        import mailpile.i18n  # type: ignore
+    
+>       assert hasattr(mailpile.safe_popen, "Popen")
+E       AssertionError: assert False
+E        +  where False = hasattr(<module 'mailpile.safe_popen' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\.converted\\Mailpile\\generated\\mailpile\\safe_popen.py'>, 'Popen')
+E        +    where <module 'mailpile.safe_popen' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\.converted\\Mailpile\\generated\\mailpile\\safe_popen.py'> = <module 'mailpile' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\.converted\\Mailpile\\generated\\mailpile\\__init__.py'>.safe_popen
+
+tests\Mailpile\robustness_test.py:140: AssertionError
+______________ test_safe_popen_invalid_command_fails_predictably ______________
+
+    def test_safe_popen_invalid_command_fails_predictably() -> None:
+>       from mailpile.safe_popen import Popen, PIPE  # type: ignore
+E       ImportError: cannot import name 'Popen' from 'mailpile.safe_popen' (D:\桌面\RealAppCodeBench_generic_eval\.converted\Mailpile\generated\mailpile\safe_popen.py)
+
+tests\Mailpile\robustness_test.py:147: ImportError
+______________ test_vcardline_rejects_invalid_input_line_safely _______________
+
+    def test_vcardline_rejects_invalid_input_line_safely() -> None:
+        from mailpile.vcard import VCardLine  # type: ignore
+    
+>       vcl = VCardLine("THIS_IS_NOT_A_VCARD_LINE")
+E       TypeError: __init__() missing 2 required positional arguments: 'params' and 'value'
+
+tests\Mailpile\robustness_test.py:156: TypeError
+______________________ test_cleantext_handles_none_input ______________________
+
+    def test_cleantext_handles_none_input() -> None:
+        import mailpile.util as mp_util  # type: ignore
+    
+        CleanText = getattr(mp_util, "CleanText")
+>       assert CleanText(None).clean == ""
+E       AttributeError: 'CleanText' object has no attribute 'clean'
+
+tests\Mailpile\robustness_test.py:164: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Mailpile/robustness_test.py::test_imports_core_modules - Asserti...
+FAILED tests/Mailpile/robustness_test.py::test_safe_popen_invalid_command_fails_predictably
+FAILED tests/Mailpile/robustness_test.py::test_vcardline_rejects_invalid_input_line_safely
+FAILED tests/Mailpile/robustness_test.py::test_cleantext_handles_none_input
+4 failed, 1 passed in 0.45s

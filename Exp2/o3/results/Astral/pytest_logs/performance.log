@@ -1,0 +1,98 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_astral_performance_smoke ________________________
+
+    def test_astral_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_astral_performance_benchmark(iterations=5, days=10)
+
+tests\Astral\performance_test.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Astral\performance_test.py:60: in run_astral_performance_benchmark
+    _ = sun(loc.observer, date=d, tzinfo=loc.timezone)
+generation\Astral\astral\sun.py:229: in sun
+    results[k] = f(observer, date=date, tzinfo=tzinfo)
+generation\Astral\astral\sun.py:193: in dusk
+    dt = _calc_event(observer, date, CIVIL_ZENITH, is_rise=False)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = Observer(latitude=51.5074, longitude=-0.1278, elevation=0.0)
+date = datetime.date(2020, 1, 9), zenith = 96.0, is_rise = False
+
+    def _calc_event(observer: Observer, date, zenith: float, is_rise: bool) -> Optional[datetime]:
+        """
+        Calculate the UTC datetime of a sunrise/sunset/twilight event.
+    
+        Returns None if the event does not happen (e.g. polar night/day).
+        """
+        # Day of year
+        n = day_of_year(date)
+    
+        lng_hour = observer.longitude / 15.0
+    
+        if is_rise:
+            t = n + ((6 - lng_hour) / 24)
+        else:
+            t = n + ((18 - lng_hour) / 24)
+    
+        # Sun's mean anomaly
+        m = (0.9856 * t) - 3.289
+    
+        # Sun's true longitude
+        l = m + (1.916 * sin_deg(m)) + (0.020 * sin_deg(2 * m)) + 282.634
+        l = to_range(l, 0, 360)
+    
+        # Sun's right ascension
+        ra = atan2_deg(0.91764 * tan_deg(l), 1)
+        ra = to_range(ra, 0, 360)
+    
+        # convert RA to hours
+        ra /= 15.0
+    
+        # Sun's declination
+        sin_dec = 0.39782 * sin_deg(l)
+        cos_dec = cos_deg(asin_deg(sin_dec))
+    
+        # Sun local hour angle
+        cos_h = (cos_deg(zenith) - (sin_dec * sin_deg(observer.latitude))) / (
+            cos_dec * cos_deg(observer.latitude)
+        )
+    
+        # If cos_h out of range the sun never rises/sets on this date at this location
+        if cos_h > 1 or cos_h < -1:
+            return None
+    
+        if is_rise:
+            h = 360 - acos_deg(cos_h)
+        else:
+            h = acos_deg(cos_h)
+    
+        h /= 15.0  # to hours
+    
+        # local mean time
+        t_local = h + ra - (0.06571 * t) - 6.622
+    
+        # Convert to UTC
+        ut = t_local - lng_hour
+        ut = to_range(ut, 0, 24)  # wrap around
+    
+        # Build datetime in UTC
+        hour = int(ut)
+        minute = int((ut - hour) * 60)
+        second = int((((ut - hour) * 60) - minute) * 60 + 0.5)
+    
+>       dt = datetime(
+            date.year,
+            date.month,
+            date.day,
+            hour=hour,
+            minute=minute,
+            second=second,
+            tzinfo=timezone.utc,
+        )
+E       ValueError: second must be in 0..59
+
+generation\Astral\astral\sun.py:102: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Astral/performance_test.py::test_astral_performance_smoke - Valu...
+1 failed in 0.55s

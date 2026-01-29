@@ -1,0 +1,125 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_catalog_structure_and_types _______________________
+
+    def test_catalog_structure_and_types() -> None:
+        """The parsed catalog should have the expected nested structure and types."""
+>       data = _parse_catalog()
+
+tests\Xmltodict\resource_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\resource_test.py:52: in _parse_catalog
+    return xmltodict.parse(_COMPLEX_XML)
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'price' at 0x0000023F6756CEF0>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+_______________________ test_roundtrip_complex_catalog ________________________
+
+    def test_roundtrip_complex_catalog() -> None:
+        """
+        Parsing and then unparsing the complex catalog XML should preserve
+        the logical structure when parsed again.
+        """
+>       original_dict = _parse_catalog()
+
+tests\Xmltodict\resource_test.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\resource_test.py:52: in _parse_catalog
+    return xmltodict.parse(_COMPLEX_XML)
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'price' at 0x0000023F67509720>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/resource_test.py::test_catalog_structure_and_types - V...
+FAILED tests/Xmltodict/resource_test.py::test_roundtrip_complex_catalog - Val...
+2 failed in 0.36s

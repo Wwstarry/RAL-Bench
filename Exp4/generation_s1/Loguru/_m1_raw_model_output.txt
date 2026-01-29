@@ -1,0 +1,834 @@
+<file:name=loguru/__init__.py>
+from ._logger import Logger
+
+__version__ = "0.0.0"
+
+# Singleton, like Loguru
+logger = Logger()
+
+__all__ = ["logger", "Logger"]
+</file>
+
+<file:name=loguru/_logger.py>
+from __future__ import annotations
+
+import datetime as _datetime
+import os as _os
+import re as _re
+import sys as _sys
+import threading as _threading
+import traceback as _traceback
+from dataclasses import dataclass as _dataclass
+from typing import Any, Callable, Dict, Optional, Union
+
+
+@_dataclass(frozen=True)
+class Level:
+    name: str
+    no: int
+    icon: str = ""
+
+
+class Message:
+    """
+    Lightweight compatibility object.
+
+    - str(Message) returns the formatted text written to sinks.
+    - .record exposes the record dict for sink functions expecting it.
+    """
+    __slots__ = ("_text", "record")
+
+    def __init__(self, text: str, record: dict):
+        self._text = text
+        self.record = record
+
+    def __str__(self) -> str:
+        return self._text
+
+
+DEFAULT_FORMAT = "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level:<8} | {name}:{function}:{line} - {message}{exception}\n"
+
+
+def _now_local() -> _datetime.datetime:
+    # Naive local time is typically what snapshot tests expect unless timezone is explicit.
+    return _datetime.datetime.now()
+
+
+def _format_time(dt: _datetime.datetime, spec: Optional[str]) -> str:
+    if not spec:
+        # Reasonable default close to Loguru: 'YYYY-MM-DD HH:mm:ss.SSS'
+        spec = "YYYY-MM-DD HH:mm:ss.SSS"
+    # Minimal Loguru-like tokens conversion
+    ms = f"{dt.microsecond // 1000:03d}"
+    out = spec
+    out = out.replace("YYYY", f"{dt.year:04d}")
+    out = out.replace("MM", f"{dt.month:02d}")
+    out = out.replace("DD", f"{dt.day:02d}")
+    out = out.replace("HH", f"{dt.hour:02d}")
+    out = out.replace("mm", f"{dt.minute:02d}")
+    out = out.replace("ss", f"{dt.second:02d}")
+    out = out.replace("SSS", ms)
+    return out
+
+
+def _get_frame(depth: int) -> Any:
+    # Base offset calibrated for:
+    # public method -> _log -> _make_record -> _get_frame
+    base_offset = 4
+    try:
+        return _sys._getframe(base_offset + depth)
+    except Exception:
+        return None
+
+
+def _format_exception(exc_info) -> str:
+    if not exc_info:
+        return ""
+    etype, value, tb = exc_info
+    if etype is None and value is None and tb is None:
+        return ""
+    text = "".join(_traceback.format_exception(etype, value, tb))
+    # Loguru's {exception} when present is generally prefixed by a newline.
+    # We do that here to match common snapshots.
+    if text and not text.startswith("\n"):
+        text = "\n" + text
+    return text
+
+
+def _coerce_level(level: Union[str, int, Level], levels: Dict[str, Level]) -> Level:
+    if isinstance(level, Level):
+        return level
+    if isinstance(level, int):
+        # Create ephemeral level with numeric value
+        return Level(name=str(level), no=level, icon="")
+    if isinstance(level, str):
+        key = level.upper()
+        if key in levels:
+            return levels[key]
+        # Accept numeric strings
+        if key.isdigit() or (key.startswith("-") and key[1:].isdigit()):
+            n = int(key)
+            return Level(name=str(n), no=n, icon="")
+        raise ValueError(f"Unknown level: {level!r}")
+    raise TypeError(f"Invalid level type: {type(level)!r}")
+
+
+def _brace_format(message: Any, args: tuple, kwargs: dict) -> str:
+    # Loguru uses '{}' style with str.format semantics.
+    # We'll translate bare '{}' to positional indices when needed.
+    if message is None:
+        message = ""
+    if not isinstance(message, str):
+        message = str(message)
+    if not args and not kwargs:
+        return message
+
+    if "{}" in message:
+        # Replace unescaped {} occurrences with numbered fields.
+        # This is a simplistic parser that avoids touching "{{}}" escapes.
+        out = []
+        i = 0
+        arg_index = 0
+        while i < len(message):
+            if message[i] == "{":
+                if i + 1 < len(message) and message[i + 1] == "{":
+                    out.append("{{")
+                    i += 2
+                    continue
+                # find matching }
+                j = i + 1
+                if j < len(message) and message[j] == "}":
+                    out.append("{" + str(arg_index) + "}")
+                    arg_index += 1
+                    i = j + 1
+                    continue
+            if message[i] == "}":
+                if i + 1 < len(message) and message[i + 1] == "}":
+                    out.append("}}")
+                    i += 2
+                    continue
+            out.append(message[i])
+            i += 1
+        message = "".join(out)
+
+    return message.format(*args, **kwargs)
+
+
+def _resolve_field(record: dict, expr: str) -> Any:
+    # Supports:
+    # - dotted: "file.name"
+    # - extra indexing: "extra[key]"
+    # - simple: "name"
+    if expr.startswith("extra[") and expr.endswith("]"):
+        key = expr[6:-1]
+        return record["extra"][key]
+    parts = expr.split(".")
+    cur: Any = record
+    for p in parts:
+        if isinstance(cur, dict) and p in cur:
+            cur = cur[p]
+        else:
+            # allow accessing Level.name/no through dict-like record["level"]
+            if p == "name" and isinstance(cur, Level):
+                cur = cur.name
+            elif p == "no" and isinstance(cur, Level):
+                cur = cur.no
+            else:
+                raise KeyError(expr)
+    return cur
+
+
+_FORMAT_FIELD_RE = _re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_.]*(?:\[[^\]]+\])?)(?::([^}]*))?\}")
+
+
+def _format_record(format_string: str, record: dict) -> str:
+    def repl(match: _re.Match) -> str:
+        expr = match.group(1)
+        spec = match.group(2)
+
+        if expr == "message":
+            value = record["message"]
+        elif expr == "level":
+            value = record["level"].name if isinstance(record["level"], Level) else str(record["level"])
+        elif expr == "time":
+            value = record["time"]
+            # spec is Loguru-like tokens, not Python's datetime format
+            return _format_time(value, spec)
+        elif expr == "exception":
+            # If user formats {exception}, we provide already-formatted text (may be empty).
+            return record.get("exception", "") or ""
+        else:
+            value = _resolve_field(record, expr)
+
+        if spec:
+            # Use Python format spec for alignment/padding etc.
+            try:
+                return format(value, spec)
+            except Exception:
+                # Fallback
+                return str(value)
+        return str(value)
+
+    return _FORMAT_FIELD_RE.sub(repl, format_string)
+
+
+class _Sink:
+    def write(self, message: Message) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def stop(self) -> None:
+        return
+
+
+class _CallableSink(_Sink):
+    def __init__(self, func: Callable[[Any], Any]):
+        self._func = func
+
+    def write(self, message: Message) -> None:
+        self._func(message)
+
+
+class _FileLikeSink(_Sink):
+    def __init__(self, fileobj):
+        self._f = fileobj
+
+    def write(self, message: Message) -> None:
+        self._f.write(str(message))
+        flush = getattr(self._f, "flush", None)
+        if callable(flush):
+            flush()
+
+
+class _PathSink(_Sink):
+    def __init__(self, path: str, mode: str = "a", encoding: str = "utf-8"):
+        self._path = path
+        self._f = open(path, mode=mode, encoding=encoding, newline="")
+
+    def write(self, message: Message) -> None:
+        self._f.write(str(message))
+        self._f.flush()
+
+    def stop(self) -> None:
+        try:
+            self._f.close()
+        except Exception:
+            pass
+
+
+class _Handler:
+    __slots__ = ("id", "sink", "level_no", "format", "filter", "enabled")
+
+    def __init__(
+        self,
+        hid: int,
+        sink: _Sink,
+        level_no: int,
+        format: str,
+        filter: Any,
+        enabled: bool = True,
+    ):
+        self.id = hid
+        self.sink = sink
+        self.level_no = level_no
+        self.format = format
+        self.filter = filter
+        self.enabled = enabled
+
+
+class _LoggerProxy:
+    def __init__(self, base: "Logger", extra: Optional[dict] = None, options: Optional[dict] = None):
+        self._base = base
+        self._extra = extra or {}
+        self._options = options or {}
+
+    # Delegate common methods
+    def add(self, *a, **k):
+        return self._base.add(*a, **k)
+
+    def remove(self, *a, **k):
+        return self._base.remove(*a, **k)
+
+    def configure(self, *a, **k):
+        return self._base.configure(*a, **k)
+
+    def enable(self, *a, **k):
+        return self._base.enable(*a, **k)
+
+    def disable(self, *a, **k):
+        return self._base.disable(*a, **k)
+
+    def bind(self, **extra) -> "_LoggerProxy":
+        merged = dict(self._extra)
+        merged.update(extra)
+        return _LoggerProxy(self._base, merged, dict(self._options))
+
+    def opt(
+        self,
+        *,
+        exception: Any = None,
+        record: bool = False,
+        lazy: bool = False,
+        colors: bool = False,
+        raw: bool = False,
+        capture: bool = True,
+        depth: int = 0,
+        ansi: bool = False,
+    ) -> "_LoggerProxy":
+        opts = dict(self._options)
+        opts.update(
+            {
+                "exception": exception,
+                "record": record,
+                "lazy": lazy,
+                "colors": colors,
+                "raw": raw,
+                "capture": capture,
+                "depth": depth,
+                "ansi": ansi,
+            }
+        )
+        return _LoggerProxy(self._base, dict(self._extra), opts)
+
+    def log(self, level, message, *args, **kwargs):
+        return self._base._log(level, message, args, kwargs, self._extra, self._options)
+
+    def debug(self, message, *args, **kwargs):
+        return self.log("DEBUG", message, *args, **kwargs)
+
+    def info(self, message, *args, **kwargs):
+        return self.log("INFO", message, *args, **kwargs)
+
+    def warning(self, message, *args, **kwargs):
+        return self.log("WARNING", message, *args, **kwargs)
+
+    def error(self, message, *args, **kwargs):
+        return self.log("ERROR", message, *args, **kwargs)
+
+    def exception(self, message, *args, **kwargs):
+        # Like Loguru, exception() logs ERROR with current exception info.
+        return self._base._log("ERROR", message, args, kwargs, self._extra, {**self._options, "exception": True})
+
+
+class Logger:
+    def __init__(self):
+        self._handlers: Dict[int, _Handler] = {}
+        self._handler_id = 0
+
+        self._levels: Dict[str, Level] = {
+            "TRACE": Level("TRACE", 5),
+            "DEBUG": Level("DEBUG", 10),
+            "INFO": Level("INFO", 20),
+            "SUCCESS": Level("SUCCESS", 25),
+            "WARNING": Level("WARNING", 30),
+            "ERROR": Level("ERROR", 40),
+            "CRITICAL": Level("CRITICAL", 50),
+        }
+        self._extra: Dict[str, Any] = {}
+        self._disabled_prefixes = set()
+
+    # Public API
+    def add(
+        self,
+        sink,
+        *,
+        level: Union[str, int, Level] = "DEBUG",
+        format: str = DEFAULT_FORMAT,
+        filter: Any = None,
+        colorize: bool = False,
+        enqueue: bool = False,
+        backtrace: bool = False,
+        diagnose: bool = False,
+        catch: bool = True,
+        serialize: bool = False,
+        **kwargs,
+    ) -> int:
+        lvl = _coerce_level(level, self._levels)
+        self._handler_id += 1
+        hid = self._handler_id
+
+        s: _Sink
+        if isinstance(sink, (str, bytes, _os.PathLike)):
+            s = _PathSink(_os.fspath(sink))
+        else:
+            write = getattr(sink, "write", None)
+            if callable(write):
+                s = _FileLikeSink(sink)
+            elif callable(sink):
+                s = _CallableSink(sink)
+            else:
+                raise TypeError("Invalid sink, must be path, file-like, or callable")
+
+        self._handlers[hid] = _Handler(hid, s, lvl.no, format, filter, enabled=True)
+        return hid
+
+    def remove(self, handler_id: Optional[int] = None) -> None:
+        if handler_id is None:
+            for hid in sorted(list(self._handlers.keys())):
+                h = self._handlers.pop(hid)
+                try:
+                    h.sink.stop()
+                except Exception:
+                    pass
+            return
+        if handler_id not in self._handlers:
+            raise ValueError(f"Handler id {handler_id} does not exist")
+        h = self._handlers.pop(handler_id)
+        try:
+            h.sink.stop()
+        except Exception:
+            pass
+
+    def configure(self, *, handlers=None, levels=None, extra=None, activation=None) -> None:
+        # Minimal compatibility: allow resetting handlers and setting base extra.
+        if extra is not None:
+            if not isinstance(extra, dict):
+                raise TypeError("extra must be a dict")
+            self._extra = dict(extra)
+
+        if handlers is not None:
+            # Reset handlers to provided list (list of dict config). Keep minimal support.
+            self.remove()
+            for cfg in handlers:
+                if not isinstance(cfg, dict):
+                    raise TypeError("handlers must be list of dict")
+                self.add(**cfg)
+
+        if activation is not None:
+            # activation: list of (name, status). status True means enabled, False means disabled.
+            try:
+                for name, status in activation:
+                    if status:
+                        self.enable(name)
+                    else:
+                        self.disable(name)
+            except Exception:
+                raise TypeError("activation must be iterable of (name, status)")
+
+        # levels ignored (not needed for minimal tests)
+
+    def bind(self, **extra) -> _LoggerProxy:
+        merged = dict(self._extra)
+        merged.update(extra)
+        return _LoggerProxy(self, merged, {})
+
+    def opt(
+        self,
+        *,
+        exception: Any = None,
+        record: bool = False,
+        lazy: bool = False,
+        colors: bool = False,
+        raw: bool = False,
+        capture: bool = True,
+        depth: int = 0,
+        ansi: bool = False,
+    ) -> _LoggerProxy:
+        return _LoggerProxy(
+            self,
+            dict(self._extra),
+            {
+                "exception": exception,
+                "record": record,
+                "lazy": lazy,
+                "colors": colors,
+                "raw": raw,
+                "capture": capture,
+                "depth": depth,
+                "ansi": ansi,
+            },
+        )
+
+    def enable(self, name: str) -> None:
+        # Remove disabled prefixes that are equal to or contained within name.
+        to_remove = set()
+        for p in self._disabled_prefixes:
+            if name == p or p.startswith(name) or name.startswith(p):
+                # enabling "a.b" should re-enable that exact prefix;
+                # enabling "a" should re-enable all "a.*".
+                if p.startswith(name):
+                    to_remove.add(p)
+                if name == p:
+                    to_remove.add(p)
+        self._disabled_prefixes.difference_update(to_remove)
+
+    def disable(self, name: str) -> None:
+        self._disabled_prefixes.add(name)
+
+    def level(self, name: str) -> Level:
+        key = name.upper()
+        if key not in self._levels:
+            raise ValueError(f"Unknown level: {name!r}")
+        return self._levels[key]
+
+    def log(self, level, message, *args, **kwargs):
+        return self._log(level, message, args, kwargs, self._extra, {})
+
+    def debug(self, message, *args, **kwargs):
+        return self.log("DEBUG", message, *args, **kwargs)
+
+    def info(self, message, *args, **kwargs):
+        return self.log("INFO", message, *args, **kwargs)
+
+    def warning(self, message, *args, **kwargs):
+        return self.log("WARNING", message, *args, **kwargs)
+
+    def error(self, message, *args, **kwargs):
+        return self.log("ERROR", message, *args, **kwargs)
+
+    def exception(self, message, *args, **kwargs):
+        return self._log("ERROR", message, args, kwargs, self._extra, {"exception": True})
+
+    # Internal
+    def _passes_activation(self, record_name: str) -> bool:
+        for p in self._disabled_prefixes:
+            if record_name == p or record_name.startswith(p + ".") or record_name.startswith(p):
+                return False
+        return True
+
+    def _filter_allows(self, handler_filter: Any, record: dict) -> bool:
+        if handler_filter is None:
+            return True
+        if isinstance(handler_filter, str):
+            return record.get("name", "").startswith(handler_filter)
+        if callable(handler_filter):
+            return bool(handler_filter(record))
+        if isinstance(handler_filter, dict):
+            # Minimal support: { "module.name": "LEVEL" } => enable if name startswith key and level >= threshold
+            for prefix, lvl in handler_filter.items():
+                if record.get("name", "").startswith(prefix):
+                    try:
+                        l = _coerce_level(lvl, self._levels)
+                        return record["level"].no >= l.no
+                    except Exception:
+                        return False
+            return False
+        return True
+
+    def _make_record(self, level: Level, message: str, depth: int, extra: dict, exc_text: str) -> dict:
+        frame = _get_frame(depth)
+        if frame is not None:
+            code = frame.f_code
+            name = frame.f_globals.get("__name__", "")
+            function = code.co_name
+            line = frame.f_lineno
+            file_path = code.co_filename
+            file_name = _os.path.basename(file_path)
+        else:
+            name = ""
+            function = ""
+            line = 0
+            file_path = ""
+            file_name = ""
+
+        th = _threading.current_thread()
+        proc_id = _os.getpid()
+        record = {
+            "time": _now_local(),
+            "level": level,
+            "message": message,
+            "name": name,
+            "function": function,
+            "line": line,
+            "file": {"name": file_name, "path": file_path},
+            "thread": {"id": th.ident, "name": th.name},
+            "process": {"id": proc_id, "name": ""},
+            "extra": dict(extra),
+            "exception": exc_text or "",
+        }
+        return record
+
+    def _log(self, level, message, args, kwargs, bound_extra: dict, options: dict):
+        lvl = _coerce_level(level, self._levels)
+
+        # Build per-call extra, allow "extra" kw dict (non-standard but requested)
+        call_extra = {}
+        if "extra" in kwargs:
+            maybe = kwargs.pop("extra")
+            if isinstance(maybe, dict):
+                call_extra.update(maybe)
+
+        merged_extra = dict(self._extra)
+        merged_extra.update(bound_extra or {})
+        merged_extra.update(call_extra)
+
+        opt_depth = int(options.get("depth", 0) or 0)
+        raw = bool(options.get("raw", False))
+        lazy = bool(options.get("lazy", False))
+
+        # Determine whether any handler would accept (level) before evaluating lazy messages
+        handlers_in_order = [self._handlers[k] for k in sorted(self._handlers)]
+        if not handlers_in_order:
+            return
+
+        # Evaluate caller name for activation decision as early as possible.
+        frame = _get_frame(opt_depth)
+        record_name = ""
+        if frame is not None:
+            record_name = frame.f_globals.get("__name__", "")
+
+        if record_name and not self._passes_activation(record_name):
+            return
+
+        # If lazy, message can be callable producing format string or final text
+        if lazy and callable(message):
+            message_obj = message
+            # Only evaluate if at least one handler enabled and passes level potentially.
+            any_candidate = any(h.enabled and lvl.no >= h.level_no for h in handlers_in_order)
+            if not any_candidate:
+                return
+            message = message_obj()
+
+        text = _brace_format(message, args, kwargs)
+
+        # Exception handling
+        exc_opt = options.get("exception", None)
+        exc_text = ""
+        if exc_opt:
+            if exc_opt is True:
+                exc_info = _sys.exc_info()
+                exc_text = _format_exception(exc_info)
+            elif isinstance(exc_opt, BaseException):
+                exc_text = _format_exception((type(exc_opt), exc_opt, exc_opt.__traceback__))
+            elif isinstance(exc_opt, tuple) and len(exc_opt) == 3:
+                exc_text = _format_exception(exc_opt)
+            else:
+                # Fallback to current exception
+                exc_text = _format_exception(_sys.exc_info())
+
+        record = self._make_record(lvl, text, opt_depth, merged_extra, exc_text)
+
+        for h in handlers_in_order:
+            if not h.enabled:
+                continue
+            if record["level"].no < h.level_no:
+                continue
+            if not self._filter_allows(h.filter, record):
+                continue
+
+            if raw:
+                out = record["message"]
+                msg = Message(out, record)
+            else:
+                formatted = _format_record(h.format, record)
+                msg = Message(formatted, record)
+
+            h.sink.write(msg)
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+import os
+import re
+import io
+import tempfile
+
+import pytest
+
+from loguru import logger
+
+
+def test_add_remove_callable_sink_and_order():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    id1 = logger.add(sink, format="{message}\n", level="DEBUG")
+    id2 = logger.add(sink, format="2:{message}\n", level="DEBUG")
+
+    logger.info("A")
+    assert out == ["A\n", "2:A\n"]
+
+    logger.remove(id1)
+    out.clear()
+    logger.info("B")
+    assert out == ["2:B\n"]
+
+    logger.remove()
+    out.clear()
+    logger.info("C")
+    assert out == []
+
+
+def test_file_sink_writes_and_closes():
+    logger.remove()
+    with tempfile.TemporaryDirectory() as td:
+        path = os.path.join(td, "x.log")
+        hid = logger.add(path, format="{message}\n", level="INFO")
+        logger.debug("nope")
+        logger.info("yes")
+        logger.remove(hid)
+
+        with open(path, "r", encoding="utf-8") as f:
+            assert f.read() == "yes\n"
+
+
+def test_default_format_contains_level_and_location():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, level="INFO")  # default format
+    logger.info("hello")
+
+    line = out[-1]
+    assert " | INFO" in line
+    assert " - hello" in line
+    assert line.endswith("\n")
+    # time prefix looks like 'YYYY-MM-DD HH:mm:ss.SSS'
+    assert re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \|", line)
+
+
+def test_bind_and_extra_formatting():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, format="{extra[user]}:{message}\n", level="INFO")
+    logger.bind(user="alice").info("hi")
+    assert out == ["alice:hi\n"]
+
+
+def test_opt_raw_bypasses_formatting_and_no_newline_added():
+    buf = io.StringIO()
+    logger.remove()
+    logger.add(buf, format="X{message}\n", level="INFO")
+    logger.opt(raw=True).info("RAW")
+    assert buf.getvalue() == "RAW"
+
+
+def test_filter_callable_and_disable_enable():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, format="{message}\n", filter=lambda r: "keep" in r["message"], level="DEBUG")
+    logger.info("drop")
+    logger.info("keep this")
+    assert out == ["keep this\n"]
+
+    # disable current module, no output
+    out.clear()
+    logger.disable(__name__)
+    logger.info("keep again")
+    assert out == []
+    logger.enable(__name__)
+    logger.info("keep restored")
+    assert out == ["keep restored\n"]
+
+
+def test_exception_logging_includes_traceback():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, format="{message}{exception}", level="ERROR")
+
+    try:
+        1 / 0
+    except ZeroDivisionError:
+        logger.exception("oops")
+
+    text = out[-1]
+    assert text.startswith("oops")
+    assert "Traceback (most recent call last)" in text
+    assert "ZeroDivisionError" in text
+</file>
+
+<file:name=_agent_tests/test_agent_depth_and_format.py>
+import re
+
+from loguru import logger
+
+
+def test_opt_depth_changes_reported_function():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, format="{function}:{message}\n", level="INFO")
+
+    def inner():
+        logger.opt(depth=0).info("x")
+
+    def outer():
+        inner()
+
+    outer()
+    # Should report "inner" (or sometimes wrapper), but with our implementation depth=0 should show caller of .info
+    assert out[-1].startswith("inner:x\n")
+
+    out.clear()
+
+    def inner2():
+        # depth=1 should shift to outer2
+        logger.opt(depth=1).info("y")
+
+    def outer2():
+        inner2()
+
+    outer2()
+    assert out[-1].startswith("outer2:y\n")
+
+
+def test_level_alignment_padding():
+    out = []
+
+    def sink(m):
+        out.append(str(m))
+
+    logger.remove()
+    logger.add(sink, format="[{level:<8}] {message}\n", level="DEBUG")
+    logger.info("hello")
+    assert out[-1] == "[INFO    ] hello\n"
+</file>

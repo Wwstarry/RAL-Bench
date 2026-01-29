@@ -1,0 +1,187 @@
+<file:name=stegano/lsb/lsb.py>
+from __future__ import annotations
+
+from typing import Iterator, Optional, Union
+
+from PIL import Image
+
+from stegano.tools.utils import (
+    bytes_to_bits,
+    ensure_image,
+    frame_message,
+    iter_bits_to_int,
+    iter_read_exact,
+    unframe_message,
+)
+
+
+def _embeddable_slots(img: Image.Image) -> int:
+    w, h = img.size
+    if img.mode == "RGB":
+        return w * h * 3
+    if img.mode == "RGBA":
+        # only RGB channels, alpha untouched
+        return w * h * 3
+    raise ValueError(f"Unsupported image mode for LSB steganography: {img.mode}")
+
+
+def _slot_to_xyc(img: Image.Image, slot: int) -> tuple[int, int, int]:
+    """Map a logical slot index to (x,y,channel) where channel 0..2 corresponds to RGB."""
+    w, _h = img.size
+    pixel_index, channel = divmod(slot, 3)
+    x = pixel_index % w
+    y = pixel_index // w
+    return x, y, channel
+
+
+def _positions_iterator(
+    img: Image.Image, generator: Optional[Iterator[int]], shift: int
+) -> Iterator[int]:
+    slots = _embeddable_slots(img)
+    if generator is None:
+        # sequential positions
+        start = int(shift) if shift else 0
+        for pos in range(start, slots):
+            yield pos
+        return
+
+    # generator provided: "shift" means advance generator by shift values
+    if shift:
+        for _ in range(int(shift)):
+            next(generator)
+
+    used = set()
+    while True:
+        pos = next(generator)
+        if pos < 0:
+            continue
+        if pos >= slots:
+            # Skip positions outside the image capacity; keep consuming generator.
+            # (Reference behavior varies; we keep it tolerant.)
+            continue
+        if pos in used:
+            continue
+        used.add(pos)
+        yield pos
+
+
+def hide(
+    image: Union[str, Image.Image],
+    message: str,
+    generator: Optional[Iterator[int]] = None,
+    shift: int = 0,
+    encoding: str = "UTF-8",
+    auto_convert_rgb: bool = False,
+) -> Image.Image:
+    img = ensure_image(image)
+
+    if img.mode not in ("RGB", "RGBA"):
+        if auto_convert_rgb:
+            img = img.convert("RGB")
+        else:
+            raise ValueError(
+                f"Unsupported image mode {img.mode}. Use auto_convert_rgb=True to convert."
+            )
+
+    payload = frame_message(message.encode(encoding))
+    bits = list(bytes_to_bits(payload))
+    needed = len(bits)
+
+    slots = _embeddable_slots(img)
+    if generator is None:
+        available = slots - (int(shift) if shift else 0)
+    else:
+        # Upper bound; duplicates/out-of-range will be skipped, but we only guarantee
+        # capacity against total slots.
+        available = slots
+    if needed > available:
+        raise ValueError("Message is too large for the given image.")
+
+    out = img.copy()
+    px = out.load()
+
+    pos_iter = _positions_iterator(out, generator, shift)
+    for bit in bits:
+        pos = next(pos_iter)
+        x, y, c = _slot_to_xyc(out, pos)
+        p = px[x, y]
+        if out.mode == "RGB":
+            r, g, b = p
+            if c == 0:
+                r = (r & 0xFE) | bit
+            elif c == 1:
+                g = (g & 0xFE) | bit
+            else:
+                b = (b & 0xFE) | bit
+            px[x, y] = (r, g, b)
+        else:  # RGBA
+            r, g, b, a = p
+            if c == 0:
+                r = (r & 0xFE) | bit
+            elif c == 1:
+                g = (g & 0xFE) | bit
+            else:
+                b = (b & 0xFE) | bit
+            px[x, y] = (r, g, b, a)
+
+    return out
+
+
+def reveal(
+    image: Union[str, Image.Image],
+    generator: Optional[Iterator[int]] = None,
+    shift: int = 0,
+    encoding: str = "UTF-8",
+) -> str:
+    img = ensure_image(image)
+    if img.mode not in ("RGB", "RGBA"):
+        raise ValueError(f"Unsupported image mode for LSB reveal: {img.mode}")
+
+    slots = _embeddable_slots(img)
+    if generator is None:
+        remaining_slots = slots - (int(shift) if shift else 0)
+    else:
+        remaining_slots = slots
+
+    px = img.load()
+    pos_iter = _positions_iterator(img, generator, shift)
+
+    def bit_stream() -> Iterator[int]:
+        while True:
+            pos = next(pos_iter)
+            x, y, c = _slot_to_xyc(img, pos)
+            p = px[x, y]
+            if img.mode == "RGB":
+                r, g, b = p
+                v = (r, g, b)[c]
+            else:
+                r, g, b, _a = p
+                v = (r, g, b)[c]
+            yield v & 1
+
+    bits = bit_stream()
+
+    # Read framed payload: 4-byte length + data
+    # First 32 bits -> length
+    length_bits = list(iter_read_exact(bits, 32))
+    msg_len = iter_bits_to_int(length_bits)
+
+    # Validate length against theoretical maximum to avoid "wrong shift" silently decoding.
+    # Remaining bits after consuming length header:
+    remaining_bits = remaining_slots - 32
+    if remaining_bits < 0:
+        raise ValueError("Not enough data to read message length.")
+    max_bytes = remaining_bits // 8
+
+    # If msg_len is absurd, treat as wrong generator/shift/corrupt.
+    if msg_len > max_bytes:
+        raise ValueError("Invalid or corrupted hidden message length.")
+
+    data_bits = list(iter_read_exact(bits, msg_len * 8))
+    payload = bytes(int("".join(str(b) for b in data_bits[i : i + 8]), 2) for i in range(0, len(data_bits), 8))
+
+    # Rebuild full framed buffer to reuse unframer
+    framed = msg_len.to_bytes(4, "big") + payload
+    raw = unframe_message(framed)
+    return raw.decode(encoding)
+</file>

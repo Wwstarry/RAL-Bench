@@ -1,0 +1,185 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- Top-level Python package: mailpile/
+  - mailpile/__init__.py
+  - mailpile/safe_popen.py
+  - mailpile/util.py
+  - mailpile/vcard.py
+  - mailpile/i18n.py
+
+2) Public API surface (modules/classes/functions and key signatures)
+
+2.1) mailpile.safe_popen
+- class Safe_Popen(subprocess.Popen):
+  - __init__(self, args, *popenargs, **kwargs)
+  - communicate(self, input=None, **kwargs) -> (stdout_bytes_or_str, stderr_bytes_or_str)
+- def safe_popen(*args, **kwargs) -> Safe_Popen
+- def make_pipes(n: int = 2) -> list
+  - Returns list of (read_fd, write_fd) integer tuples
+- def close_pipes(pipes) -> None
+- def pipe_reader(fd, decode: bool = True, encoding: str = 'utf-8', errors: str = 'replace') -> iterator
+  - Yields lines (str if decode else bytes)
+
+2.2) mailpile.util
+- def CleanText(text, banned=None, replacement: str = '', collapse_whitespace: bool = True) -> str
+- def b36(num: int) -> str
+- def intb36(s: str) -> int
+- def strhash(s, length: int = 8) -> str
+- def safe_remove(path: str) -> bool
+- def safe_mkdirs(path: str, mode: int = 0o700) -> None
+- def json_helper(obj)
+  - For json.dumps(default=...) support; returns JSON-serializable representation or raises TypeError
+- class TimedCache(object):
+  - __init__(self, ttl: float = 60.0)
+  - get(self, key, default=None)
+  - set(self, key, value) -> None
+  - __contains__(self, key) -> bool
+  - expire(self) -> None
+
+2.3) mailpile.vcard
+- class VCardLine(object):
+  - __init__(self, name: str = None, value: str = '', attrs: dict|None = None, params: dict|None = None, line: str|bytes|None = None)
+    - If line is provided, parses it.
+  - @classmethod
+    - def Parse(cls, line: str|bytes) -> "VCardLine"
+  - def as_vcardline(self) -> str
+  - def __str__(self) -> str
+  - Properties/attributes:
+    - .name (upper-case canonical field name)
+    - .value (string)
+    - .attrs (dict of simple boolean/flag attributes; may be empty)
+    - .params (dict of param-name -> list-of-values; may be empty)
+- def vcard_escape(text: str) -> str
+- def vcard_unescape(text: str) -> str
+
+2.4) mailpile.i18n
+- def gettext(msg: str) -> str
+- def ngettext(singular: str, plural: str, n: int) -> str
+- def ActivateTranslation(language: str|None = None, localedir: str|None = None, domain: str|None = None) -> None
+  - Must be safe no-op if no translation files exist.
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+
+3.1) mailpile.safe_popen
+- Safe_Popen/safe_popen:
+  - Must behave like subprocess.Popen but default to safe settings:
+    - shell must default to False.
+    - close_fds should default True on POSIX where available.
+  - Accept args as list/tuple (preferred) or string; if string is given, must not implicitly enable shell=True.
+  - Must support capture of stdout/stderr via subprocess.PIPE.
+  - communicate() must return (stdout, stderr) exactly as subprocess does; if text mode requested (universal_newlines=True or text=True), return str; else bytes.
+  - Must raise subprocess.CalledProcessError only if caller uses check=True (if supported through kwargs); otherwise do not raise on non-zero exit, matching subprocess.Popen behavior.
+- make_pipes(n):
+  - Must create n OS pipes using os.pipe().
+  - Returns list of (r, w) file descriptors; all are integers.
+- close_pipes(pipes):
+  - Must close all fds in provided structure; tolerate:
+    - pipes is None, empty, or contains None entries
+    - already-closed fds (ignore OSError)
+- pipe_reader(fd, decode, encoding, errors):
+  - Must read from fd until EOF.
+  - If decode=True: yield str lines split on b'\n' (include trailing '\n' behavior not required; tests likely accept stripped or raw lines, but implementation should yield lines without dropping content except newline handling consistent with .read().splitlines(True) preferred).
+  - If decode=False: yield bytes lines.
+  - Must close the fd when done (or at least not leak; acceptable to close internally).
+
+3.2) mailpile.util
+- CleanText:
+  - Input may be None; treat as ''.
+  - Must return a str.
+  - Remove/replace “banned” characters:
+    - If banned is None: default to removing ASCII control chars except tab/newline? (tests likely want safe printable text). Minimal contract: remove characters with ord < 32 except '\t', '\n', '\r' and remove DEL (127); also strip NUL.
+    - If banned is a string/iterable: any character in banned is replaced with replacement.
+    - If banned is a callable: called per character, if True then replace.
+  - If collapse_whitespace=True: collapse runs of whitespace to single space and strip ends.
+- b36 / intb36:
+  - b36(0) == '0'
+  - b36 accepts non-negative ints; if negative, may raise ValueError.
+  - intb36 parses case-insensitive base36 strings, allowing leading/trailing whitespace; raises ValueError on invalid characters.
+  - Round-trip invariant: intb36(b36(n)) == n for n >= 0.
+- strhash:
+  - Deterministic hash of input string/bytes; output is base36-ish lowercase alnum.
+  - length controls truncation; must always return exactly length characters (pad if needed using leading zeros).
+- safe_remove:
+  - Remove file if it exists; return True if removed, False if not present.
+  - Must not raise if file does not exist; must raise for other unexpected errors (permission, etc.) unless tests expect silent; prefer: only ignore ENOENT.
+- safe_mkdirs:
+  - Ensure directory exists (mkdir -p). No error if already exists.
+  - Apply mode when creating new directories; do not chmod existing unless necessary.
+- json_helper:
+  - If obj has __json__() use it.
+  - If obj is bytes: decode as utf-8 with replace.
+  - If obj is set/tuple: convert to list.
+  - Otherwise raise TypeError.
+- TimedCache:
+  - Stores key -> (expires_at, value).
+  - get returns default if missing or expired.
+  - __contains__ must be False for expired entries.
+  - expire() removes expired entries based on time.time().
+
+3.3) mailpile.vcard
+- VCardLine parsing:
+  - Accept str or bytes; bytes decoded as utf-8 with 'replace'.
+  - Format supported: NAME(;ATTR_OR_PARAM...)*:VALUE
+    - NAME case-insensitive; stored upper-case.
+    - Segments separated by ';' before ':' may be:
+      - bare attributes (e.g., 'PREF') -> stored in attrs as { 'PREF': True }
+      - key=value params (e.g., 'TYPE=HOME,WORK') -> stored in params as { 'TYPE': ['HOME','WORK'] }
+    - Param names stored upper-case; values preserved as given except unescaping.
+  - Must handle escaped sequences in value and param values:
+    - '\n' or '\N' -> newline
+    - '\,' -> ','
+    - '\;' -> ';'
+    - '\\\\' -> '\'
+  - Must split only on the first unescaped ':' to separate header from value.
+  - If no ':' exists, treat entire line as name with empty value OR raise ValueError; tests likely provide valid lines, but implementation should raise ValueError for malformed input.
+- VCardLine serialization (as_vcardline / __str__):
+  - Output must be a single vcard line: NAME;PARAM=...;ATTR:VALUE
+  - Serialize params first then attrs or preserve original order not required unless tests check exact string; to be safe:
+    - Emit params sorted by key, values joined by ','.
+    - Emit attrs sorted.
+  - Must escape value using vcard_escape.
+  - Must not emit trailing whitespace; end-of-line newline not required.
+- vcard_escape / vcard_unescape:
+  - Escape: backslash, newline, ';', ',' according to vCard rules.
+  - Unescape must invert escape behavior for those sequences.
+
+3.4) mailpile.i18n
+- gettext:
+  - Passthrough returning msg if no translation activated.
+  - Must accept and return str; if input is None, return ''.
+- ngettext:
+  - Return singular if n == 1 else plural (unless translation installed).
+- ActivateTranslation:
+  - Attempt to install gettext translation for given language; if missing, remain passthrough without raising.
+  - Must not require external files for tests; should be safe in minimal repo.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Importability:
+  - Can import mailpile.safe_popen, mailpile.util, mailpile.vcard, mailpile.i18n without side effects.
+- safe_popen:
+  - Can spawn a trivial subprocess (e.g., python -c ...) capturing stdout/stderr.
+  - make_pipes returns correct count and valid fds; close_pipes closes without raising even if called twice.
+  - pipe_reader iterates to EOF and returns decoded lines.
+- util:
+  - CleanText removes control/banned chars and normalizes whitespace deterministically.
+  - b36/intb36 round-trip for sample integers including 0 and large values.
+  - intb36 rejects invalid input with ValueError.
+  - safe_remove returns False when file missing, True when removed.
+  - safe_mkdirs creates nested directories idempotently.
+  - TimedCache expires entries after ttl; get/contains reflect expiration.
+- vcard:
+  - VCardLine.Parse parses name, params (including comma-separated), attrs, and value.
+  - Escaping/unescaping works for commas, semicolons, backslashes, and newlines.
+  - Serialization produces a line that when parsed yields equivalent name/params/attrs/value.
+- i18n:
+  - gettext returns the same input string when no translation is available.
+  - ngettext selects correct singular/plural in default mode.
+  - ActivateTranslation does not raise if no catalogs exist.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not implement Mailpile UI, networking, IMAP/SMTP, or any database/indexing.
+- Do not depend on external services or non-stdlib packages.
+- Do not require actual gettext .mo files; translation activation must be optional and failure-tolerant.
+- Do not implement full RFC vCard coverage; only the parsing/escaping/serialization described above is required.
+- Do not use shell=True implicitly in subprocess execution.
+</contract>

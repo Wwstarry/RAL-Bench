@@ -1,0 +1,210 @@
+<contract>
+1) Repository layout
+- Top-level package: petl (importable via `import petl`)
+- Required modules/files:
+  - petl/__init__.py
+  - petl/io/csv.py
+  - petl/transform/conversions.py
+  - petl/transform/selects.py
+  - petl/transform/sort.py
+  - petl/transform/joins.py
+- Package substructure must allow:
+  - import petl
+  - import petl.io.csv
+  - import petl.transform.conversions
+  - import petl.transform.selects
+  - import petl.transform.sort
+  - import petl.transform.joins
+
+2) Public API surface
+2.1 Top-level functions exposed from `petl/__init__.py`
+- CSV I/O
+  - fromcsv(path, **kwargs) -> table
+    - path: str/pathlike
+    - kwargs: forwarded to csv.reader (e.g., delimiter) as needed by tests (safe to accept and ignore unknown kwargs)
+  - tocsv(table, path, **kwargs) -> None
+    - writes all rows from `table` to CSV at `path`
+    - kwargs: forwarded to csv.writer (safe to accept and ignore unknown kwargs)
+- In-memory table construction
+  - fromdicts(records, header=None) -> table
+    - records: iterable of dict-like objects
+    - header: optional sequence of field names to force order and inclusion
+- Transformations (must be lazy)
+  - convert(table, field, func) -> table
+    - field: field name (str) or field index (int)
+    - func: callable applied to each cell value in the specified field; called as func(value)
+  - select(table, predicate) -> table
+    - predicate: callable applied to each data row
+      - minimum supported calling convention: predicate(row) where row is a tuple/list of values (no header)
+      - implementation may optionally support predicate(dict) but not required unless tests need it
+  - selectge(table, field, threshold) -> table
+    - keeps rows where row[field] >= threshold
+  - selectgt(table, field, threshold) -> table
+    - keeps rows where row[field] > threshold
+  - sort(table, field) -> table
+    - field: name or index
+    - sorts data rows by that field; header remains first row
+  - addfield(table, fieldname, func) -> table
+    - appends a new field to the right side of the table
+    - func(row) called per data row, returns new cell value
+  - join(left, right, key='id') -> table
+    - key: field name or index
+    - performs an inner equi-join on `key`
+
+2.2 Internal/shared minimal protocol (may be implemented anywhere, but must satisfy tests)
+- A “table” is any Python iterable yielding rows.
+- First yielded row is the header (sequence of field names).
+- Subsequent rows are data rows (sequences), each aligned to header length for that table.
+- Transform operations must return new lazy table wrappers (iterables) rather than immediately materializing.
+
+2.3 Module-level functions must exist in required modules (imported/re-exported by petl/__init__.py)
+- petl/io/csv.py:
+  - fromcsv
+  - tocsv
+- petl/transform/conversions.py:
+  - convert
+- petl/transform/selects.py:
+  - select
+  - selectge
+  - selectgt
+  - addfield
+- petl/transform/sort.py:
+  - sort
+- petl/transform/joins.py:
+  - join
+
+3) Behavioral contract
+3.1 Table semantics and laziness
+- All transformation functions (convert/select/selectge/selectgt/sort/addfield/join) must:
+  - return an iterable object that does not eagerly read/compute all rows upon creation
+  - only read/compute rows when iterated
+- `fromcsv` must be streaming-friendly:
+  - opening/reading file may occur at iteration time (preferred) to preserve laziness
+  - repeated iteration over the same returned table should be supported (i.e., __iter__ reopens file) OR tests may only iterate once; safest is to support multiple iteration by reopening.
+- `fromdicts` may iterate records lazily if records is an iterator; it must not copy all records into memory by default.
+- `tocsv` is an eager sink:
+  - iterates through entire input table once and writes each row
+  - must not cache all rows before writing
+
+3.2 Header handling
+- Header is always the first row yielded by any table.
+- convert:
+  - header is unchanged
+  - only data rows have values transformed
+- select/selectge/selectgt:
+  - header is passed through unchanged
+  - predicate/filter applied only to data rows
+- sort:
+  - header unchanged and first
+  - sorts only data rows
+- addfield:
+  - header becomes original header + [fieldname]
+  - each data row becomes original row + [func(row)]
+- join:
+  - output header contains fields from left header followed by fields from right header excluding the join key field from the right to avoid duplicate key column (reference-like behavior expected by tests)
+  - output rows contain left row values followed by right row values excluding right key value
+  - join key must appear exactly once in output (from left side)
+
+3.3 Field addressing (name or index)
+- For functions that accept `field` or `key`, support:
+  - int index: 0-based index into row tuple/list
+  - str field name: locate index in header row by exact match
+- If a field name is not found:
+  - raise KeyError (preferred) or ValueError; must be consistent across operators
+- If an index is out of range:
+  - raise IndexError
+
+3.4 Type and comparison behavior
+- selectge/selectgt:
+  - compare raw cell values using Python’s >= or > operators
+  - no implicit casting; tests will provide comparable types or will use convert first
+- convert:
+  - func may raise exceptions; propagate them
+  - None values are passed through to func unless func handles them; no special casing required unless tests require (not assumed)
+- sort:
+  - uses Python ordering on key column values
+  - stable ordering not required unless tests check; default sorted() is stable
+  - missing/None values: no special handling required unless tests check; simplest: rely on Python behavior (may error in Py3 when mixing types). Tests expected to use consistent types.
+
+3.5 Join behavior (performance and correctness)
+- Join is an inner join:
+  - only rows with matching key value in both tables appear in output
+- Duplicate keys:
+  - must support multiple matches:
+    - if left has N rows with key K and right has M rows with key K, output has N*M rows for key K
+- Implementation may build an index on the smaller/right table:
+  - allowed to materialize right side into a dictionary mapping key->list(rows)
+  - must not materialize the left side (stream left to output)
+  - memory usage should remain bounded to the size of the indexed side and its rows
+- Key extraction:
+  - based on resolved key index for each input table (by name/index)
+  - handle different header orders across left/right; match by field name when key is str
+
+3.6 CSV I/O details
+- fromcsv:
+  - reads CSV with Python csv module
+  - returns rows as tuples (or lists) of strings exactly as read (no casting)
+  - first row is header from the file
+  - should accept newline handling correctly (open with newline='')
+- tocsv:
+  - writes rows using csv.writer
+  - converts non-str cell values via str() implicitly by csv.writer (standard behavior)
+  - ensure newline='' when opening for writing to avoid extra blank lines on Windows
+- Paths:
+  - accept str or pathlike; use built-in open()
+
+3.7 Error handling and robustness
+- All operators must validate minimal inputs:
+  - if table yields no rows (empty iterator), behavior:
+    - treat as empty table; iterating should yield nothing
+    - transformations should yield nothing
+- If header is present but no data rows, transformations yield header only (except empty-table case above).
+- Do not swallow exceptions from user functions (convert func, select predicate, addfield func).
+
+3.8 No unbounded caching
+- Do not accumulate all rows for convert/select/selectge/selectgt/addfield; stream row-by-row.
+- sort necessarily materializes all data rows for sorting; acceptable.
+- join may materialize one side (typically right) but must not accumulate both sides.
+
+4) Acceptance checklist
+- Repository structure:
+  - Required modules exist at specified paths.
+  - `import petl` works and provides specified top-level functions.
+- Table protocol:
+  - All produced objects are iterables yielding header first.
+  - Pipelines compose: fromcsv -> convert -> select -> sort -> tocsv runs end-to-end.
+- Laziness:
+  - Creating transformed tables does not immediately read entire inputs.
+  - tocsv triggers full evaluation exactly once.
+  - fromcsv tables can be iterated without pre-reading entire file (streaming).
+- CSV I/O:
+  - fromcsv reads header + rows; tocsv writes same row structure.
+- fromdicts:
+  - Produces header + rows aligned to header order.
+  - If header arg is provided, columns follow it; missing keys produce None.
+  - If header arg is omitted, header is derived deterministically (e.g., from first record keys in insertion order); tests must pass with chosen behavior.
+- convert:
+  - Correctly transforms specified column by name or index.
+  - Leaves header unchanged.
+- select/selectge/selectgt:
+  - Filters only data rows; header passes through.
+  - Field addressing works by name or index.
+- sort:
+  - Keeps header first and sorts remaining rows by given column.
+- addfield:
+  - Appends new column with computed values.
+- join:
+  - Inner join on key, output header includes all left fields + right fields excluding duplicate key.
+  - Correct row multiplicity for duplicate keys.
+  - Does not materialize both tables; indexes one side only.
+- Performance/resource:
+  - Bulk pipelines finish within test time expectations.
+  - No unbounded caching across repeated pipelines; memory remains under coarse test limits.
+
+5) Non-goals / constraints
+- Do not implement full Petl feature set beyond what tests exercise.
+- Do not add external dependencies; use only Python standard library.
+- Do not rely on pandas, numpy, databases, or network services.
+- Do not implement complex datatype inference, missing value normalization, or advanced join types unless required by tests.
+- Do not globally cache entire CSV contents or pipeline results; only allow unavoidable materialization for sort and one-sided join indexing.
+</contract>

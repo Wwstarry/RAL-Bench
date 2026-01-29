@@ -1,0 +1,670 @@
+<file:name=mitmproxy/__init__.py>
+"""
+A minimal, safe-to-evaluate subset of the mitmproxy package.
+
+This repository is intentionally non-functional as a proxy: it only provides
+a small API surface for importability and CLI argument parsing tests.
+"""
+
+from __future__ import annotations
+
+__all__ = [
+    "__version__",
+]
+
+__version__ = "0.0.0"
+</file>
+
+<file:name=mitmproxy/exceptions.py>
+from __future__ import annotations
+
+
+class MitmproxyError(Exception):
+    """Base exception for this minimal mitmproxy subset."""
+
+
+class OptionsError(MitmproxyError):
+    """Raised for invalid option values in the minimal options subsystem."""
+</file>
+
+<file:name=mitmproxy/options.py>
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, Iterable, List, Tuple
+
+
+@dataclass
+class Options:
+    """
+    Minimal options container.
+
+    This is *not* the real mitmproxy options system. It only stores a few common
+    fields and supports applying --set key=value pairs.
+    """
+
+    listen_port: int = 8080
+    quiet: bool = False
+    verbose: bool = False
+    script: str | None = None
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def update(self, **kwargs: Any) -> None:
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def apply_set(self, items: Iterable[str]) -> List[Tuple[str, str]]:
+        """
+        Apply a sequence of "key=value" strings into self.extra.
+        Returns a list of (key, value) pairs that were set.
+        """
+        applied: List[Tuple[str, str]] = []
+        for item in items:
+            if not isinstance(item, str):
+                continue
+            if "=" in item:
+                k, v = item.split("=", 1)
+            else:
+                k, v = item, ""
+            k = k.strip()
+            # Keep value as-is (except strip only outer whitespace) for determinism.
+            v = v.strip()
+            if k:
+                self.extra[k] = v
+                applied.append((k, v))
+        return applied
+</file>
+
+<file:name=mitmproxy/ctx.py>
+from __future__ import annotations
+
+"""
+Minimal context module.
+
+The real mitmproxy provides a global context object (ctx) for addons.
+Here we provide a tiny compatible surface to avoid import errors.
+"""
+
+from dataclasses import dataclass
+from typing import Any, Optional
+
+
+@dataclass
+class _Log:
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def warn(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        pass
+
+
+@dataclass
+class _Ctx:
+    master: Optional[Any] = None
+    options: Optional[Any] = None
+    log: _Log = _Log()
+
+
+ctx = _Ctx()
+</file>
+
+<file:name=mitmproxy/flow.py>
+from __future__ import annotations
+
+import time
+import uuid
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
+
+
+@dataclass
+class Error:
+    msg: str = ""
+    timestamp: Optional[float] = None
+
+    def __post_init__(self) -> None:
+        if self.timestamp is None:
+            self.timestamp = time.time()
+
+    def get_state(self) -> Dict[str, Any]:
+        return {"msg": self.msg, "timestamp": self.timestamp}
+
+    @classmethod
+    def from_state(cls, state: Dict[str, Any]) -> "Error":
+        return cls(msg=state.get("msg", ""), timestamp=state.get("timestamp"))
+
+
+class Flow:
+    """
+    Minimal base Flow abstraction.
+
+    This does not implement mitmproxy's full lifecycle; it only provides fields,
+    representation, and (de)serialization used in tests.
+    """
+
+    id: str
+    type: str
+    error: Optional[Exception]
+    intercepted: bool
+    live: bool
+    metadata: Dict[str, Any]
+
+    def __init__(self, id: Optional[str] = None, type: str = "flow"):
+        self.id = id or str(uuid.uuid4())
+        self.type = type
+        self.error = None
+        self.intercepted = False
+        self.live = False
+        self.metadata = {}
+
+    def __repr__(self) -> str:
+        return f"<Flow id={self.id!r} type={self.type!r}>"
+
+    def get_state(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "type": self.type,
+            "intercepted": bool(self.intercepted),
+            "live": bool(self.live),
+            "metadata": dict(self.metadata) if isinstance(self.metadata, dict) else {},
+        }
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        if not isinstance(state, dict):
+            return
+        if "id" in state and isinstance(state["id"], str):
+            self.id = state["id"]
+        if "type" in state and isinstance(state["type"], str):
+            self.type = state["type"]
+        if "intercepted" in state:
+            self.intercepted = bool(state.get("intercepted"))
+        if "live" in state:
+            self.live = bool(state.get("live"))
+        if "metadata" in state and isinstance(state["metadata"], dict):
+            self.metadata = dict(state["metadata"])
+</file>
+
+<file:name=mitmproxy/http.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Mapping, Optional, Tuple
+
+from .flow import Flow
+
+
+class Headers:
+    """
+    Minimal case-insensitive headers container.
+
+    Stores original-case key for round-trippable iteration, but lookups are
+    case-insensitive.
+    """
+
+    def __init__(self, initial: Optional[Mapping[str, str]] = None):
+        self._store: Dict[str, Tuple[str, str]] = {}
+        if initial:
+            for k, v in initial.items():
+                self[k] = v
+
+    def _norm(self, key: str) -> str:
+        return key.lower()
+
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        nk = self._norm(key)
+        if nk in self._store:
+            return self._store[nk][1]
+        return default
+
+    def __getitem__(self, key: str) -> str:
+        nk = self._norm(key)
+        return self._store[nk][1]
+
+    def __setitem__(self, key: str, value: str) -> None:
+        nk = self._norm(key)
+        self._store[nk] = (key, str(value))
+
+    def __contains__(self, key: str) -> bool:
+        return self._norm(key) in self._store
+
+    def items(self) -> Iterable[Tuple[str, str]]:
+        for _, (orig, val) in self._store.items():
+            yield orig, val
+
+    def to_dict(self) -> Dict[str, str]:
+        return {orig: val for orig, val in self.items()}
+
+    def get_state(self) -> Dict[str, str]:
+        # JSON-serializable
+        return self.to_dict()
+
+    @classmethod
+    def from_state(cls, state: Any) -> "Headers":
+        if isinstance(state, dict):
+            return cls(state)
+        return cls()
+
+
+@dataclass
+class Message:
+    http_version: str = "HTTP/1.1"
+    headers: Headers = None  # type: ignore[assignment]
+    content: bytes = b""
+    timestamp_start: Optional[float] = None
+    timestamp_end: Optional[float] = None
+
+    def __init__(
+        self,
+        *,
+        http_version: str = "HTTP/1.1",
+        headers: Optional[Mapping[str, str]] = None,
+        content: bytes = b"",
+    ):
+        self.http_version = http_version
+        self.headers = Headers(headers)
+        self.content = content if isinstance(content, (bytes, bytearray)) else b""
+        self.timestamp_start = None
+        self.timestamp_end = None
+
+    @property
+    def text(self) -> str:
+        return bytes(self.content).decode("utf-8", errors="replace")
+
+    def set_text(self, text: str, encoding: str = "utf-8") -> None:
+        self.content = (text or "").encode(encoding, errors="replace")
+
+    @property
+    def size(self) -> int:
+        return len(self.content)
+
+    def get_state(self) -> Dict[str, Any]:
+        return {
+            "http_version": self.http_version,
+            "headers": self.headers.get_state(),
+            "content": self.content,
+            "timestamp_start": self.timestamp_start,
+            "timestamp_end": self.timestamp_end,
+        }
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        if not isinstance(state, dict):
+            return
+        if "http_version" in state and isinstance(state["http_version"], str):
+            self.http_version = state["http_version"]
+        if "headers" in state:
+            self.headers = Headers.from_state(state.get("headers"))
+        if "content" in state:
+            c = state.get("content", b"")
+            self.content = c if isinstance(c, (bytes, bytearray)) else b""
+        if "timestamp_start" in state:
+            self.timestamp_start = state.get("timestamp_start")
+        if "timestamp_end" in state:
+            self.timestamp_end = state.get("timestamp_end")
+
+
+class Request(Message):
+    method: str
+    scheme: str
+    host: str
+    port: int
+    path: str
+
+    def __init__(
+        self,
+        *,
+        method: str = "GET",
+        scheme: str = "http",
+        host: str = "",
+        port: int = 80,
+        path: str = "/",
+        http_version: str = "HTTP/1.1",
+        headers: Optional[Mapping[str, str]] = None,
+        content: bytes = b"",
+    ):
+        super().__init__(http_version=http_version, headers=headers, content=content)
+        self.method = method
+        self.scheme = scheme
+        self.host = host
+        self.port = int(port)
+        self.path = path
+
+    @property
+    def authority(self) -> str:
+        if not self.host:
+            return ""
+        return f"{self.host}:{self.port}"
+
+    @property
+    def pretty_url(self) -> str:
+        if not self.host:
+            return self.path
+        default_port = 80 if self.scheme == "http" else 443 if self.scheme == "https" else None
+        if default_port is not None and self.port == default_port:
+            return f"{self.scheme}://{self.host}{self.path}"
+        return f"{self.scheme}://{self.host}:{self.port}{self.path}"
+
+
+class Response(Message):
+    status_code: int
+    reason: str
+
+    def __init__(
+        self,
+        *,
+        status_code: int = 200,
+        reason: str = "OK",
+        http_version: str = "HTTP/1.1",
+        headers: Optional[Mapping[str, str]] = None,
+        content: bytes = b"",
+    ):
+        super().__init__(http_version=http_version, headers=headers, content=content)
+        self.status_code = int(status_code)
+        self.reason = reason
+
+    def get_state(self) -> Dict[str, Any]:
+        s = super().get_state()
+        s.update({"status_code": self.status_code, "reason": self.reason})
+        return s
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        super().set_state(state)
+        if not isinstance(state, dict):
+            return
+        if "status_code" in state:
+            try:
+                self.status_code = int(state.get("status_code", 200))
+            except Exception:
+                self.status_code = 200
+        if "reason" in state and isinstance(state["reason"], str):
+            self.reason = state["reason"]
+
+
+class HTTPFlow(Flow):
+    request: Optional[Request]
+    response: Optional[Response]
+    websocket: Optional[object]
+    client_conn: Optional[object]
+    server_conn: Optional[object]
+
+    def __init__(
+        self,
+        request: Optional[Request] = None,
+        response: Optional[Response] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(id=id, type="http")
+        self.request = request
+        self.response = response
+        self.websocket = None
+        self.client_conn = None
+        self.server_conn = None
+
+    def __repr__(self) -> str:
+        if self.request:
+            return f"<HTTPFlow id={self.id!r} {self.request.method} {self.request.pretty_url}>"
+        return f"<HTTPFlow id={self.id!r} (no request)>"
+
+    def get_state(self) -> Dict[str, Any]:
+        state = super().get_state()
+        state["request"] = self.request.get_state() if self.request else None
+        state["response"] = self.response.get_state() if self.response else None
+        return state
+
+    def set_state(self, state: Dict[str, Any]) -> None:
+        super().set_state(state)
+        if not isinstance(state, dict):
+            return
+        req_state = state.get("request")
+        if isinstance(req_state, dict):
+            req = Request()
+            req.set_state(req_state)
+            # set_state doesn't cover request-specific fields (method/scheme/host/port/path)
+            # because they are not in Message. Handle here if provided.
+            if "method" in req_state and isinstance(req_state["method"], str):
+                req.method = req_state["method"]
+            if "scheme" in req_state and isinstance(req_state["scheme"], str):
+                req.scheme = req_state["scheme"]
+            if "host" in req_state and isinstance(req_state["host"], str):
+                req.host = req_state["host"]
+            if "port" in req_state:
+                try:
+                    req.port = int(req_state.get("port", req.port))
+                except Exception:
+                    pass
+            if "path" in req_state and isinstance(req_state["path"], str):
+                req.path = req_state["path"]
+            self.request = req
+        else:
+            self.request = None
+
+        resp_state = state.get("response")
+        if isinstance(resp_state, dict):
+            resp = Response()
+            resp.set_state(resp_state)
+            self.response = resp
+        else:
+            self.response = None
+</file>
+
+<file:name=mitmproxy/addonmanager.py>
+from __future__ import annotations
+
+from typing import Iterable, List, Optional, Any
+
+
+class AddonManager:
+    """
+    Minimal addon manager.
+
+    Supports add/remove/get/trigger to satisfy tests.
+    """
+
+    def __init__(self, master: Optional[object] = None):
+        self.master = master
+        self.addons: List[object] = []
+
+    def add(self, addon: object) -> None:
+        if addon in self.addons:
+            return
+        self.addons.append(addon)
+
+    def remove(self, addon: object) -> None:
+        try:
+            self.addons.remove(addon)
+        except ValueError:
+            return
+
+    def get(self, name: str) -> Optional[object]:
+        for a in self.addons:
+            addon_name = getattr(a, "name", None)
+            if isinstance(addon_name, str) and addon_name == name:
+                return a
+            if a.__class__.__name__ == name:
+                return a
+        return None
+
+    def trigger(self, event: str, *args: Any, **kwargs: Any) -> None:
+        for a in list(self.addons):
+            func = getattr(a, event, None)
+            if callable(func):
+                func(*args, **kwargs)
+
+    def iter_addons(self) -> Iterable[object]:
+        return iter(self.addons)
+</file>
+
+<file:name=mitmproxy/tools/__init__.py>
+from __future__ import annotations
+</file>
+
+<file:name=mitmproxy/tools/main/__init__.py>
+from __future__ import annotations
+</file>
+
+<file:name=mitmproxy/tools/main/mitmdump.py>
+from __future__ import annotations
+
+from typing import Optional, Sequence
+
+from mitmproxy.options import Options
+from mitmproxy.tools.cmdline.mitmdump import parse_args
+from mitmproxy.tools.dump import DumpMaster
+
+
+def mitmdump(argv: Optional[Sequence[str]] = None) -> int:
+    """
+    Minimal mitmdump entry function.
+
+    - Parses args.
+    - Instantiates DumpMaster.
+    - Runs and shuts down without doing any network activity.
+    """
+    try:
+        args = parse_args(argv)
+    except SystemExit as e:
+        # argparse uses SystemExit for --help and invalid args.
+        code = e.code
+        return int(code) if isinstance(code, int) else 0
+
+    options = Options(
+        listen_port=int(getattr(args, "listen_port", 8080)),
+        quiet=bool(getattr(args, "quiet", False)),
+        verbose=bool(getattr(args, "verbose", False)),
+        script=getattr(args, "script", None),
+    )
+    options.apply_set(getattr(args, "set", []) or [])
+
+    master = DumpMaster(options)
+    started = False
+    try:
+        master.run()
+        started = True
+        return 0
+    finally:
+        if started:
+            master.shutdown()
+</file>
+
+<file:name=mitmproxy/tools/dump.py>
+from __future__ import annotations
+
+from typing import Optional
+
+from mitmproxy.addonmanager import AddonManager
+from mitmproxy.options import Options
+from mitmproxy import ctx
+
+
+class DumpMaster:
+    """
+    Minimal orchestration stub for mitmdump.
+
+    The real mitmproxy starts network servers, event loops, addons, etc.
+    This stub is safe: it does nothing besides toggling a running flag.
+    """
+
+    def __init__(self, options: Optional[object] = None, *, with_termlog: bool = True, with_dumper: bool = True):
+        self.options = options if options is not None else Options()
+        self.addons = AddonManager(master=self)
+        self.running = False
+        self.with_termlog = bool(with_termlog)
+        self.with_dumper = bool(with_dumper)
+
+        # Provide minimal ctx integration commonly relied on by addons.
+        ctx.ctx.master = self
+        ctx.ctx.options = self.options
+
+    def run(self) -> None:
+        # No blocking, no sockets.
+        self.running = True
+        # Trigger minimal lifecycle events if addons were attached.
+        self.addons.trigger("load", self)
+        self.addons.trigger("running")
+        self.running = False
+
+    def shutdown(self) -> None:
+        # Idempotent shutdown.
+        if getattr(self, "_shutdown", False):
+            return
+        self._shutdown = True
+        self.addons.trigger("done")
+        self.running = False
+</file>
+
+<file:name=mitmproxy/tools/cmdline/__init__.py>
+from __future__ import annotations
+</file>
+
+<file:name=mitmproxy/tools/cmdline/mitmdump.py>
+from __future__ import annotations
+
+import argparse
+from typing import Optional, Sequence
+
+from mitmproxy import __version__
+
+
+def get_version() -> str:
+    return f"mitmproxy {__version__}"
+
+
+def make_parser(prog: str = "mitmdump") -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog=prog,
+        add_help=True,
+        description="Minimal mitmdump-compatible CLI (safe stub).",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=get_version(),
+        help="show program's version number and exit",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        default=False,
+        help="suppress non-error output (stub)",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="increase verbosity (stub)",
+    )
+    parser.add_argument(
+        "-s",
+        "--script",
+        dest="script",
+        metavar="PATH",
+        default=None,
+        help="script to load (parsed only; not executed)",
+    )
+    parser.add_argument(
+        "-p",
+        "--listen-port",
+        dest="listen_port",
+        type=int,
+        default=8080,
+        help="listening port (no actual listening in this stub)",
+    )
+    parser.add_argument(
+        "--set",
+        dest="set",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="set an option (may be repeated)",
+    )
+    return parser
+
+
+def parse_args(argv: Optional[Sequence[str]] = None, *, prog: str = "mitmdump") -> argparse.Namespace:
+    parser = make_parser(prog=prog)
+    return parser.parse_args(args=argv)
+</file>

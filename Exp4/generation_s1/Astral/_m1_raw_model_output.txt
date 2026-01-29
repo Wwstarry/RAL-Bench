@@ -1,0 +1,525 @@
+<file:name=astral/__init__.py>
+"""
+A small, pure-Python subset of the Astral project's public API.
+
+This package provides:
+- astral.LocationInfo
+- astral.sun module: sun(), dawn(), sunrise(), noon(), sunset(), dusk()
+- astral.moon module: phase()
+"""
+
+from .location import LocationInfo, Observer
+from .errors import AstralError, SunNeverRisesError, SunNeverSetsError
+
+__all__ = [
+    "LocationInfo",
+    "Observer",
+    "AstralError",
+    "SunNeverRisesError",
+    "SunNeverSetsError",
+]
+
+__version__ = "0.0.0"
+</file>
+
+<file:name=astral/errors.py>
+class AstralError(ValueError):
+    """Base error for Astral-like calculations.
+
+    Subclasses ValueError to stay compatible with code that expects ValueError.
+    """
+
+
+class SunNeverRisesError(AstralError):
+    """Raised when the sun never rises (for the given observer/date/elevation)."""
+
+
+class SunNeverSetsError(AstralError):
+    """Raised when the sun never sets (for the given observer/date/elevation)."""
+</file>
+
+<file:name=astral/location.py>
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class Observer:
+    latitude: float
+    longitude: float
+    elevation: float = 0.0
+
+
+@dataclass(frozen=True)
+class LocationInfo:
+    """Represents a named location.
+
+    Compatible with core usage in Astral:
+      LocationInfo(name=..., region=..., timezone=..., latitude=..., longitude=...)
+    """
+
+    name: str = ""
+    region: str = ""
+    timezone: str = "UTC"
+    latitude: float = 0.0
+    longitude: float = 0.0
+    elevation: float = 0.0
+
+    @property
+    def observer(self) -> Observer:
+        return Observer(self.latitude, self.longitude, self.elevation)
+
+    # Some code expects .tzinfo or similar; keep minimal but helpful.
+    @property
+    def tzinfo(self):
+        try:
+            from zoneinfo import ZoneInfo
+        except Exception:  # pragma: no cover
+            return None
+        try:
+            return ZoneInfo(self.timezone)
+        except Exception:
+            return None
+
+    def __repr__(self) -> str:
+        return (
+            f"LocationInfo(name={self.name!r}, region={self.region!r}, "
+            f"timezone={self.timezone!r}, latitude={self.latitude!r}, "
+            f"longitude={self.longitude!r}, elevation={self.elevation!r})"
+        )
+</file>
+
+<file:name=astral/utils.py>
+from __future__ import annotations
+
+import math
+from datetime import date, datetime, time, timedelta, timezone
+from typing import Optional, Union
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None
+
+
+def _to_date(d: Optional[Union[date, datetime]]) -> date:
+    if d is None:
+        raise TypeError("date cannot be None here")
+    if isinstance(d, datetime):
+        return d.date()
+    return d
+
+
+def _resolve_tzinfo(tzinfo, observer=None):
+    if tzinfo is None:
+        # If the observer looks like a LocationInfo, use its timezone.
+        if observer is not None:
+            tz = getattr(observer, "timezone", None)
+            if isinstance(tz, str) and tz:
+                return _resolve_tzinfo(tz, None)
+            tz2 = getattr(observer, "tzinfo", None)
+            if tz2 is not None:
+                # tzinfo property might return ZoneInfo or None
+                if hasattr(tz2, "utcoffset"):
+                    return tz2
+        return timezone.utc
+
+    if isinstance(tzinfo, str):
+        if ZoneInfo is None:
+            return timezone.utc
+        return ZoneInfo(tzinfo)
+
+    return tzinfo
+
+
+def _today_in_tz(tzinfo) -> date:
+    return datetime.now(tzinfo).date()
+
+
+def _local_midnight(d: date, tzinfo) -> datetime:
+    return datetime.combine(d, time(0, 0, 0), tzinfo=tzinfo)
+
+
+def _round_to_second(dt: datetime) -> datetime:
+    # Round half-up to nearest second
+    us = dt.microsecond
+    if us >= 500_000:
+        dt = dt + timedelta(seconds=1)
+    return dt.replace(microsecond=0)
+
+
+def _clamp(x: float, lo: float, hi: float) -> float:
+    return lo if x < lo else hi if x > hi else x
+
+
+def _deg_to_rad(x: float) -> float:
+    return x * math.pi / 180.0
+
+
+def _rad_to_deg(x: float) -> float:
+    return x * 180.0 / math.pi
+
+
+def _normalize_deg(angle: float) -> float:
+    angle = angle % 360.0
+    if angle < 0:
+        angle += 360.0
+    return angle
+
+
+def _earth_dip_degrees(elevation_m: float) -> float:
+    # Approximate dip of horizon in degrees; common approximation:
+    # dip(deg) ≈ 0.0347 * sqrt(height_m)
+    if elevation_m <= 0:
+        return 0.0
+    return 0.0347 * math.sqrt(elevation_m)
+</file>
+
+<file:name=astral/sun.py>
+from __future__ import annotations
+
+import math
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, Optional, Union
+
+from .errors import SunNeverRisesError, SunNeverSetsError
+from .utils import (
+    _clamp,
+    _deg_to_rad,
+    _earth_dip_degrees,
+    _local_midnight,
+    _normalize_deg,
+    _rad_to_deg,
+    _resolve_tzinfo,
+    _round_to_second,
+    _today_in_tz,
+)
+
+DateLike = Union[date, datetime]
+
+
+def _get_observer_fields(observer: Any):
+    lat = float(getattr(observer, "latitude"))
+    lon = float(getattr(observer, "longitude"))
+    elev = float(getattr(observer, "elevation", 0.0))
+    return lat, lon, elev
+
+
+def _day_of_year(d: date) -> int:
+    return d.timetuple().tm_yday
+
+
+def _fractional_year_gamma(d: date) -> float:
+    # NOAA approximation uses gamma = 2*pi/365 * (N-1)
+    n = _day_of_year(d)
+    return 2.0 * math.pi / 365.0 * (n - 1)
+
+
+def _equation_of_time_minutes(gamma: float) -> float:
+    # NOAA approximation (minutes)
+    return 229.18 * (
+        0.000075
+        + 0.001868 * math.cos(gamma)
+        - 0.032077 * math.sin(gamma)
+        - 0.014615 * math.cos(2 * gamma)
+        - 0.040849 * math.sin(2 * gamma)
+    )
+
+
+def _solar_declination_rad(gamma: float) -> float:
+    # NOAA approximation (radians)
+    return (
+        0.006918
+        - 0.399912 * math.cos(gamma)
+        + 0.070257 * math.sin(gamma)
+        - 0.006758 * math.cos(2 * gamma)
+        + 0.000907 * math.sin(2 * gamma)
+        - 0.002697 * math.cos(3 * gamma)
+        + 0.00148 * math.sin(3 * gamma)
+    )
+
+
+def _hour_angle_deg(lat_deg: float, decl_rad: float, solar_altitude_deg: float):
+    # cos(H) = (sin(alt) - sin(lat)*sin(dec)) / (cos(lat)*cos(dec))
+    lat_rad = _deg_to_rad(lat_deg)
+    alt_rad = _deg_to_rad(solar_altitude_deg)
+
+    sin_lat = math.sin(lat_rad)
+    cos_lat = math.cos(lat_rad)
+    sin_dec = math.sin(decl_rad)
+    cos_dec = math.cos(decl_rad)
+
+    denom = cos_lat * cos_dec
+    # At poles denom can be ~0; handle via clamp and later checks.
+    if abs(denom) < 1e-12:
+        denom = 1e-12 if denom >= 0 else -1e-12
+
+    cos_h = (math.sin(alt_rad) - sin_lat * sin_dec) / denom
+    # Determine never rises/sets based on cos_h out of [-1,1]
+    if cos_h > 1.0:
+        return None, "never_rises"
+    if cos_h < -1.0:
+        return None, "never_sets"
+    cos_h = _clamp(cos_h, -1.0, 1.0)
+    h = math.acos(cos_h)
+    return _rad_to_deg(h), None
+
+
+def _events(observer: Any, d: date, tzinfo, dawn_dusk_depression: float = 6.0) -> Dict[str, datetime]:
+    lat, lon, elev = _get_observer_fields(observer)
+
+    tzinfo = _resolve_tzinfo(tzinfo, observer)
+    midnight = _local_midnight(d, tzinfo)
+
+    # Use noon local time to get an offset representative for that date (DST-safe).
+    midday = midnight + timedelta(hours=12)
+    offset = midday.utcoffset() or timedelta(0)
+    tz_offset_min = offset.total_seconds() / 60.0
+
+    gamma = _fractional_year_gamma(d)
+    eq_time = _equation_of_time_minutes(gamma)
+    decl = _solar_declination_rad(gamma)
+
+    # Solar noon in local minutes from midnight:
+    # minutes = 720 - 4*longitude - EoT + tz_offset_minutes
+    solar_noon_min = 720.0 - 4.0 * lon - eq_time + tz_offset_min
+
+    dip = _earth_dip_degrees(elev)
+
+    # Sunrise/sunset apparent altitude includes refraction and solar radius.
+    # Adjust by horizon dip: a higher observer sees the sun earlier.
+    sunrise_alt = -0.833 - dip
+    twilight_alt = -float(dawn_dusk_depression) - dip
+
+    ha_sun, err_sun = _hour_angle_deg(lat, decl, sunrise_alt)
+    if err_sun == "never_rises":
+        raise SunNeverRisesError("Sun never rises on this date at this location")
+    if err_sun == "never_sets":
+        raise SunNeverSetsError("Sun never sets on this date at this location")
+
+    ha_twi, err_twi = _hour_angle_deg(lat, decl, twilight_alt)
+    if err_twi == "never_rises":
+        # If sun never rises, twilight also never occurs for deeper altitude; keep consistent.
+        raise SunNeverRisesError("Sun never rises on this date at this location")
+    if err_twi == "never_sets":
+        raise SunNeverSetsError("Sun never sets on this date at this location")
+
+    sunrise_min = solar_noon_min - 4.0 * ha_sun
+    sunset_min = solar_noon_min + 4.0 * ha_sun
+    dawn_min = solar_noon_min - 4.0 * ha_twi
+    dusk_min = solar_noon_min + 4.0 * ha_twi
+
+    def at_minutes(m: float) -> datetime:
+        dt = midnight + timedelta(minutes=float(m))
+        return _round_to_second(dt)
+
+    return {
+        "dawn": at_minutes(dawn_min),
+        "sunrise": at_minutes(sunrise_min),
+        "noon": at_minutes(solar_noon_min),
+        "sunset": at_minutes(sunset_min),
+        "dusk": at_minutes(dusk_min),
+    }
+
+
+def sun(
+    observer: Any,
+    date: Optional[DateLike] = None,
+    tzinfo=None,
+    dawn_dusk_depression: float = 6.0,
+) -> Dict[str, datetime]:
+    tz = _resolve_tzinfo(tzinfo, observer)
+    if date is None:
+        d = _today_in_tz(tz)
+    else:
+        d = date.date() if isinstance(date, datetime) else date
+    return _events(observer, d, tz, dawn_dusk_depression=dawn_dusk_depression)
+
+
+def dawn(observer: Any, date: Optional[DateLike] = None, tzinfo=None, depression: float = 6.0) -> datetime:
+    return sun(observer, date=date, tzinfo=tzinfo, dawn_dusk_depression=depression)["dawn"]
+
+
+def sunrise(observer: Any, date: Optional[DateLike] = None, tzinfo=None) -> datetime:
+    return sun(observer, date=date, tzinfo=tzinfo)["sunrise"]
+
+
+def noon(observer: Any, date: Optional[DateLike] = None, tzinfo=None) -> datetime:
+    return sun(observer, date=date, tzinfo=tzinfo)["noon"]
+
+
+def sunset(observer: Any, date: Optional[DateLike] = None, tzinfo=None) -> datetime:
+    return sun(observer, date=date, tzinfo=tzinfo)["sunset"]
+
+
+def dusk(observer: Any, date: Optional[DateLike] = None, tzinfo=None, depression: float = 6.0) -> datetime:
+    return sun(observer, date=date, tzinfo=tzinfo, dawn_dusk_depression=depression)["dusk"]
+</file>
+
+<file:name=astral/moon.py>
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Union
+
+# Synodic month (mean) in days
+_SYNODIC_MONTH = 29.53058867
+
+# Reference new moon epoch near Astral/common implementations:
+# 2000-01-06 18:14 UTC is a commonly used reference; we use date-based noon to avoid jitter.
+# We'll compute age from a fixed day count with a fractional offset representing the time.
+_EPOCH_ORDINAL = date(2000, 1, 6).toordinal()
+# 18:14 UTC expressed as fraction of day:
+_EPOCH_FRACTION = (18 + 14 / 60.0) / 24.0
+
+
+def phase(d: Union[date, datetime]) -> float:
+    """Return lunar phase as age in days within [0, synodic_month).
+
+    Input may be a date or datetime. If datetime, its date component is used.
+
+    The result is stable and monotonic day-to-day (modulo wrap at new moon).
+    """
+    if isinstance(d, datetime):
+        d = d.date()
+
+    # Use noon to reduce discontinuities and align with common simple algorithms.
+    days_since_epoch = (d.toordinal() - _EPOCH_ORDINAL) + (0.5 - _EPOCH_FRACTION)
+    age = days_since_epoch % _SYNODIC_MONTH
+    # Ensure numeric within [0, synodic_month)
+    if age < 0:
+        age += _SYNODIC_MONTH
+    return float(age)
+</file>
+
+<file:name=_agent_tests/test_agent_basic.py>
+from datetime import date, timedelta, timezone
+
+import pytest
+
+import astral
+from astral.sun import sun, sunrise, sunset, dawn, dusk, noon
+from astral.moon import phase
+
+try:
+    from zoneinfo import ZoneInfo
+except Exception:  # pragma: no cover
+    ZoneInfo = None
+
+
+def test_import_surface():
+    assert hasattr(astral, "LocationInfo")
+    assert hasattr(astral, "AstralError")
+    assert callable(sun)
+    assert callable(sunrise)
+    assert callable(sunset)
+    assert callable(phase)
+
+
+def test_locationinfo_observer_fields():
+    loc = astral.LocationInfo(
+        name="London",
+        region="England",
+        timezone="Europe/London",
+        latitude=51.5074,
+        longitude=-0.1278,
+    )
+    obs = loc.observer
+    assert obs.latitude == pytest.approx(51.5074)
+    assert obs.longitude == pytest.approx(-0.1278)
+    assert obs.elevation == pytest.approx(0.0)
+
+
+def test_sun_dict_and_helpers_consistent():
+    tz = ZoneInfo("Europe/London") if ZoneInfo else timezone.utc
+    loc = astral.LocationInfo(
+        name="London",
+        region="England",
+        timezone="Europe/London",
+        latitude=51.5074,
+        longitude=-0.1278,
+    )
+    d = date(2024, 6, 21)
+    s = sun(loc.observer, date=d, tzinfo=tz)
+    assert set(["dawn", "sunrise", "noon", "sunset", "dusk"]).issubset(s.keys())
+
+    assert sunrise(loc.observer, date=d, tzinfo=tz) == s["sunrise"]
+    assert sunset(loc.observer, date=d, tzinfo=tz) == s["sunset"]
+    assert noon(loc.observer, date=d, tzinfo=tz) == s["noon"]
+    assert dawn(loc.observer, date=d, tzinfo=tz, depression=6) == s["dawn"]
+    assert dusk(loc.observer, date=d, tzinfo=tz, depression=6) == s["dusk"]
+
+    # Ordering for a normal mid-latitude summer day
+    assert s["dawn"] < s["sunrise"] < s["noon"] < s["sunset"] < s["dusk"]
+    assert s["sunrise"].tzinfo is not None
+
+
+def test_tzinfo_string_supported_and_awareness():
+    if not ZoneInfo:
+        pytest.skip("zoneinfo not available")
+    loc = astral.LocationInfo(
+        name="New York",
+        region="USA",
+        timezone="America/New_York",
+        latitude=40.7128,
+        longitude=-74.0060,
+    )
+    d = date(2024, 3, 10)  # DST transition day in US
+    s = sun(loc.observer, date=d, tzinfo="America/New_York")
+    assert s["noon"].tzinfo is not None
+    assert s["noon"].utcoffset() is not None
+
+
+def test_polar_night_raises():
+    if not ZoneInfo:
+        tz = timezone.utc
+    else:
+        tz = ZoneInfo("Europe/Oslo")
+    # Tromsø
+    loc = astral.LocationInfo(
+        name="Tromso",
+        region="Norway",
+        timezone="Europe/Oslo",
+        latitude=69.6492,
+        longitude=18.9553,
+    )
+    d = date(2024, 12, 21)
+    with pytest.raises((astral.SunNeverRisesError, astral.AstralError, ValueError)):
+        sunrise(loc.observer, date=d, tzinfo=tz)
+
+
+def test_moon_phase_range_and_monotonicish():
+    start = date(2025, 1, 1)
+    vals = [phase(start + timedelta(days=i)) for i in range(40)]
+    assert all(0.0 <= v < 29.53058867 for v in vals)
+
+    # Ensure no wild backwards jumps except wrap-around at new moon
+    wraps = 0
+    for a, b in zip(vals, vals[1:]):
+        if b < a:
+            wraps += 1
+            # wrap should go close to 0
+            assert b < 3.0
+            assert a > 26.0
+        else:
+            # typical increment roughly ~1 day
+            assert (b - a) < 2.0
+    assert wraps <= 2
+</file>
+
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astral"
+version = "0.0.0"
+description = "Pure Python subset of Astral API for sun and moon calculations"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["_agent_tests"]
+</file>

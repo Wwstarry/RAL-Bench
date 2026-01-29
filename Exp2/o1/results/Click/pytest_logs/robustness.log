@@ -1,0 +1,33 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_click_robustness_invalid_inputs_do_not_crash ______________
+
+    def test_click_robustness_invalid_inputs_do_not_crash():
+        """
+        Robustness tests should be version-tolerant:
+          - Invalid inputs may raise exceptions (acceptable).
+          - Some invalid inputs may be coerced/ignored (also acceptable).
+        Requirement: no hard crashes; library remains importable and callable.
+        """
+        click = _import_click()
+    
+        results: list[Tuple[bool, str]] = []
+    
+        # 1) Construct basic objects
+        cmd = click.Command(name="test")
+        group = click.Group(name="test_group")
+    
+        # 2) Callback non-callable: assignment may or may not raise; both OK
+        def _set_callback():
+            cmd.callback = "not a function"  # type: ignore[assignment]
+    
+        results.append(_run_case("Command callback set to non-callable", _set_callback))
+    
+        # 3) Option invalid type: signature/validation varies across versions
+>       results.append(_run_case("Option with invalid type", click.Option, ["--test"], type="not a type"))  # type: ignore[arg-type]
+E       AttributeError: module 'click' has no attribute 'Option'
+
+tests\Click\robustness_test.py:107: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash
+1 failed in 0.41s

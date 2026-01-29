@@ -1,0 +1,185 @@
+<plan>
+1) Repository layout and import graph
+- Files (required):
+  - tablib/__init__.py
+  - tablib/core.py
+  - tablib/formats/_csv.py
+  - tablib/formats/_json.py
+- Import graph (keep simple, avoid circular imports):
+  - tablib/__init__.py
+    - from .core import Dataset, Databook
+    - define __all__ = ["Dataset", "Databook"]
+    - (optional) __version__
+  - tablib/core.py
+    - imports: json (stdlib), collections.abc (optional)
+    - from .formats import _csv as csvfmt
+    - from .formats import _json as jsonfmt
+    - defines Dataset, Databook
+  - tablib/formats/_csv.py
+    - imports: csv, io
+    - defines export_dataset(dataset)->str, import_dataset(dataset, text)->None
+  - tablib/formats/_json.py
+    - imports: json
+    - defines export_dataset(dataset)->str, import_dataset(dataset, text)->None
+    - defines export_databook(book)->str, import_databook(book, text)->None
+- Note: We will not create additional modules beyond required; “tablib.formats” package will be implied by directory structure, and we’ll include __init__.py only if tests require it. If not allowed by “required files”, we can avoid it; Python namespace packages work without it, but safest to include if permitted by harness. If only required files can exist, keep to those four and rely on namespace package behavior.
+
+2) Public APIs to implement (modules/classes/functions)
+- tablib (package):
+  - tablib.Dataset (class from tablib.core)
+  - tablib.Databook (class from tablib.core)
+- tablib.core:
+  - class Dataset:
+    - __init__(self, *rows, headers=None, title=None)
+    - attributes/properties:
+      - headers (get/set): list[str] or None; stored as list (or empty list)
+      - title: optional sheet name (string or None)
+      - height (property): number of rows
+      - width (property): number of columns (len(headers) if headers else max row length)
+      - csv (property with getter/setter)
+      - json (property with getter/setter)
+      - dict (property): list[dict] mapping headers to row values
+    - methods:
+      - append(self, row): add one row (iterable); store as tuple
+      - append_col(self, values, header=None): add column; values length must equal current height (or if height=0, allow any length and create rows)
+      - export(self, fmt): supports 'csv' and 'json'
+      - __getitem__(self, key):
+        - if slice: return list/sequence of row tuples
+        - if str: return list/sequence of values for that column name
+        - if int: optionally return row tuple (not required, but safe)
+  - class Databook:
+    - __init__(self, datasets): store list of Dataset
+    - size (property): number of datasets
+    - export(self, fmt): supports 'json'
+    - json (property with setter and getter optional; setter required by task)
+    - sheets(self): iterable of Dataset in order
+    - __iter__(self): iterate over datasets (optional but recommended)
+- tablib.formats._csv:
+  - export_dataset(dataset)->str
+  - import_dataset(dataset, text)->None
+- tablib.formats._json:
+  - export_dataset(dataset)->str
+  - import_dataset(dataset, text)->None
+  - export_databook(book)->str
+  - import_databook(book, text)->None
+
+3) Key behaviors & edge cases
+- Dataset internal representation:
+  - Store rows as list[tuple], e.g. self._data: list[tuple]
+  - Store headers as list[str] (self._headers). If headers is None, keep [] initially.
+  - Invariants:
+    - Rows may have varying lengths; for exports and dict view, normalize to width with None or ""? Prefer None internally; when exporting CSV, convert None to "".
+    - width:
+      - If headers present (len > 0): width = len(headers)
+      - Else: width = max(len(row) for row in data) or 0
+    - height = len(self._data)
+- __init__(*rows, headers=...):
+  - Convert each row iterable to tuple and append.
+  - If headers provided, coerce to list; else empty list.
+  - Do not force row length to match headers at construction; tolerate shorter/longer. For dict property, only map up to min(width, row length) and fill missing with None if row shorter than width.
+- headers setter:
+  - Accept iterable; set self._headers = list(value) (or [] if None)
+  - If new headers length differs from current width, do not truncate rows; width becomes len(headers) (affecting exports/dict). Missing values become None, extra row values beyond headers ignored in dict and CSV/JSON (for stable behavior with headers-driven shape).
+- append(row):
+  - Add tuple(row) to _data.
+  - If headers are empty, width may grow based on row length.
+  - If headers exist and row shorter than width: keep as-is; normalization happens at export/dict time.
+- append_col(values, header=None):
+  - values can be any iterable; materialize to list for length checks.
+  - If dataset height > 0:
+    - require len(values) == height; else raise ValueError (keep strict; tests likely depend on consistent shape).
+    - For each row i: new_row = row + (values[i],)
+  - If dataset height == 0:
+    - If values non-empty: create rows as singletons ( (v,) for v in values )
+    - height becomes len(values)
+  - Update headers:
+    - If headers already exist: append header if provided else append None or ""? Use header if not None else "" to keep width aligned and dict keys stable.
+    - If headers empty and header provided: create headers list with width-1 empty placeholders then append header; simpler: if width before append_col is 0, headers becomes [header or ""]. If width > 0 but no headers, decide whether to keep headers empty; but dict requires keys. Tests likely set headers or use append_col(header=...). Implement: if header is not None and headers empty, create placeholder headers for existing width (derived) using "" then append header. Otherwise, if headers empty and header None, keep headers empty.
+- Slicing and access:
+  - dataset[start:stop] returns list of row tuples in that slice (not a new Dataset).
+  - dataset['column_name']:
+    - find index = headers.index(name); if not found raise KeyError
+    - return list of values for each row at that index, using None if row too short.
+  - dataset[int] optional: return tuple row at index (safe).
+- dict property:
+  - If headers empty: return list of dicts with numeric string keys? The task states mapping header names; assume tests use headers. If no headers, return list of dicts with keys like "0","1"... up to width-1 to keep usable; but prefer: if no headers, generate keys as strings of indices.
+  - For each row:
+    - Normalize to width: value = row[i] if i < len(row) else None
+    - keys = headers if headers else [str(i) ...]
+- export(fmt):
+  - fmt normalized to lowercase.
+  - 'csv' -> tablib.formats._csv.export_dataset(self)
+  - 'json' -> tablib.formats._json.export_dataset(self)
+  - else raise ValueError/KeyError (ValueError).
+- dataset.csv property:
+  - getter uses export('csv')
+  - setter calls csvfmt.import_dataset(self, text): must replace content (headers and rows).
+- dataset.json property:
+  - getter uses export('json')
+  - setter calls jsonfmt.import_dataset(self, text): must replace content.
+- CSV format expectations:
+  - Export includes header row if headers exist and non-empty.
+  - Use csv.writer with lineterminator='\n' for stable tests.
+  - Convert values to strings; None -> "".
+  - Import:
+    - Parse using csv.reader on io.StringIO(text).
+    - If first row exists: treat it as headers always (matches Tablib default when importing csv string into dataset via setter).
+    - Remaining rows become data rows (list of strings).
+    - Replace dataset content entirely.
+- JSON format expectations (Dataset):
+  - Use a stable, simple structure compatible with tests and also used for Databook.
+  - Dataset export JSON shape:
+    - {"title": <title or "">, "headers": [...], "data": [[...], ...]}
+  - Import expects the same; if JSON is a list of dicts, optionally support it (Tablib sometimes uses dataset.dict). But tests likely use our export->import roundtrip; still, implement fallback:
+    - If parsed object is dict with keys headers/data: use it.
+    - If parsed object is list[dict]: headers from keys of first dict in insertion order (Python preserves), data rows from dict values in that header order (missing -> None).
+- Databook JSON:
+  - Export JSON shape:
+    - {"datasets": [ <dataset-json-dict>, ... ]}
+  - Include each dataset dict with title/headers/data.
+  - Import restores list of Dataset with same titles/headers/data; replace internal datasets.
+  - book.json setter uses import_databook.
+  - book.export('json') uses export_databook.
+- Performance considerations:
+  - Avoid repeated normalization; compute width on demand (property) but keep O(n) max scan only when headers absent. Cache width when headers absent and invalidate on append/append_col/import/header set; but keep minimal: store self._width_cache and self._width_dirty flag.
+  - CSV/JSON export should stream build with list joins (StringIO) for CSV; json.dumps for JSON.
+  - Column access returns list (materialized) to satisfy “iterable”; can be generator but list is simplest and stable in tests.
+
+4) Minimal internal test plan (what to test and why)
+- Dataset construction:
+  - Dataset(headers=["a","b"], rows) => headers stored, height/width correct.
+  - Dataset(*rows) without headers => width reflects longest row.
+- Row operations:
+  - append adds row, height increments, slicing returns correct tuples and order.
+  - dataset[0:2] returns list of tuples equal to inserted.
+- Column access:
+  - dataset["a"] returns correct column values; KeyError if missing header.
+  - Works when some rows are shorter (returns None).
+- append_col:
+  - With existing rows: values length mismatch raises ValueError.
+  - With height=0: creates rows from values; width increments; header appended if provided.
+- dict property:
+  - With headers: list of dicts; keys match header order; missing cells -> None.
+  - Without headers: keys "0","1"... present (if needed).
+- CSV roundtrip:
+  - dataset.csv getter produces header line + rows.
+  - Setting dataset.csv replaces headers and data; roundtrip preserves shape and order.
+- JSON roundtrip (Dataset):
+  - dataset.json getter and setter preserve headers/data/title.
+  - Also test importing list-of-dicts JSON fallback.
+- Databook:
+  - Construct with datasets; size correct; sheets() order correct; iteration yields same.
+  - export('json') then set book.json restores same number of sheets, titles, headers, and .dict per sheet.
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Risk: Tests expect specific JSON structure matching Tablib more closely (e.g., list-of-dicts or dict with “data” only).
+  - Mitigation: Support multiple JSON input shapes on import (dict with headers/data/title; list-of-dicts). For export, use a consistent dict-with-headers/data/title and for Databook wrap in {"datasets":[...]}.
+- Risk: CSV import/export newline and quoting differences causing string mismatch.
+  - Mitigation: Use csv module with lineterminator='\n', default dialect excel, and ensure deterministic output. Convert None to "".
+- Risk: Headers behavior when absent differs from tests.
+  - Mitigation: Ensure when CSV imported, always sets headers from first row. For dict property, generate numeric headers if none exist to avoid exceptions.
+- Risk: Width/shape mismatches when headers length differs from row length.
+  - Mitigation: Define width to prefer headers length when headers exist; normalize missing values to None and ignore extras for dict/exports, ensuring stable “logical table shape”.
+- Risk: Performance under bulk workloads (many rows).
+  - Mitigation: Keep data as tuples in list; avoid per-cell objects; use caching for width when headers absent; avoid copying on access except where required (slicing returns list of tuples referencing existing tuples).
+</plan>

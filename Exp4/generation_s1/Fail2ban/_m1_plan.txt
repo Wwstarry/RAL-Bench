@@ -1,0 +1,160 @@
+1) Repository layout and import graph
+- Top-level layout
+  - fail2ban/
+    - __init__.py (expose __version__)
+    - version.py (define __version__)
+    - server/
+      - __init__.py
+      - jail.py (Jail class)
+      - filter.py (IP helpers + regex matching utilities)
+      - ticket.py (small value object representing a match; optional but helps structure)
+      - actions.py (no-op action manager / action stubs; does not touch system)
+      - configreader.py (minimal parser for config/jail.conf)
+  - bin/
+    - fail2ban-client (argparse --help only + “offline” subcommands that do not connect to daemon)
+    - fail2ban-server (argparse --help only; must not start daemon)
+    - fail2ban-regex (offline regex tester against a file or stdin; core of benchmark)
+  - config/
+    - jail.conf (canonical entrypoint; small but syntactically similar to real)
+  - README.txt (brief notes for offline-only subset)
+  - pyproject.toml or setup.cfg (ensure scripts installed / entry points if needed)
+  - tests/
+    - test_filter_ip.py
+    - test_fail2ban_regex_cli.py
+    - test_jail_basic.py
+    - test_config_reader.py
+- Import graph (keep simple, avoid circular)
+  - fail2ban.server.jail imports:
+    - fail2ban.server.filter (for regex + IP extraction)
+    - fail2ban.server.actions (for no-op ban/unban recording)
+    - fail2ban.server.ticket (optional)
+    - fail2ban.server.configreader (optional if Jail can be instantiated from config)
+  - fail2ban.server.filter imports:
+    - re, ipaddress, typing, dataclasses
+  - bin/fail2ban-regex imports:
+    - fail2ban.server.filter (for compiling regex, matching lines, extracting IPs)
+  - bin/fail2ban-client/server: only argparse + printing; do not import networking/daemon code
+
+2) Public APIs to implement (modules/classes/functions)
+- fail2ban.server.jail
+  - class Jail:
+    - __init__(self, name: str, filter_regex: str|None=None, failregex: list[str]|None=None, ignoreregex: list[str]|None=None, maxretry: int=3, findtime: int=600, bantime: int=600)
+      - store configuration; create Filter object (or store regex lists and compile lazily)
+      - create Actions (no-op) instance
+    - add_log_line(self, line: str, now: float|None=None) -> list[str]
+      - feed a log line; returns list of IPs newly “banned” (offline record only)
+    - process_lines(self, lines: list[str], now: float|None=None) -> dict
+      - convenience batch processing; returns stats (matches, ignored, bans, etc.)
+    - get_banned(self) -> set[str]
+      - return banned IPs (in-memory only)
+    - reset(self) -> None
+  - Minimal behavior: count failures per IP within findtime; if count >= maxretry => “ban” (recorded only); bantime expiry optional but safe to implement as time-based unban in memory.
+- fail2ban.server.filter
+  - isValidIP(ip: str) -> bool
+    - use ipaddress.ip_address; accept v4/v6; reject zone ids and brackets
+  - searchIP(text: str) -> str|None
+    - extract first IPv4 or IPv6 from arbitrary text
+    - support common log formats: “from 1.2.3.4”, “[1.2.3.4]”, “rhost=1.2.3.4”, “client 2001:db8::1”
+  - class FailRegex:
+    - __init__(self, patterns: list[str], ignoreregex: list[str]|None=None)
+    - match_line(self, line: str) -> dict|None
+      - return {“pattern”: pattern, “ip”: ip, “match”: matchobj} if line matches a failregex and not ignoreregex; else None
+    - find_ip(self, matchobj, line: str) -> str|None
+      - prefer named group “ip” (or “host”) if present; else fallback to searchIP(line)
+  - compile_failregex(patterns: list[str]) -> list[re.Pattern]
+  - compile_ignoreregex(patterns: list[str]) -> list[re.Pattern]
+  - Edge-safe regex handling:
+    - enforce that patterns are valid regex; raise ValueError with clear message
+    - avoid catastrophic backtracking defense? minimal: allow but tests use small inputs; optionally add a line length limit or timeout not feasible in stdlib, so keep patterns small in provided config.
+- fail2ban.server.actions
+  - class Actions:
+    - __init__(self, jail_name: str)
+    - ban(self, ip: str, reason: str|None=None) -> None (record only)
+    - unban(self, ip: str) -> None (record only)
+    - banned(self) -> set[str]
+    - events(self) -> list[dict] (for tests/debug)
+- fail2ban.server.ticket (optional but helpful)
+  - @dataclass class Ticket:
+    - ip: str
+    - time: float
+    - line: str
+    - pattern: str
+- fail2ban.server.configreader
+  - load_jail_conf(path: str) -> dict
+    - parse INI-like file (use configparser)
+    - return dict of jails and defaults; include enabled, maxretry, findtime, bantime, failregex/ignoreregex lists
+  - build_jail(name: str, conf: dict) -> Jail
+- CLI scripts
+  - bin/fail2ban-regex:
+    - supports: fail2ban-regex LOGFILE REGEX [--ignoreregex ...] or fail2ban-regex LOGFILE --failregex-from CONFSECTION (optional)
+    - minimal required: “--help” works, and offline run prints summary: lines tested, matches, ignored, extracted IPs
+    - exit code 0 even if no matches; exit code 2 on invalid regex or missing file
+  - bin/fail2ban-client:
+    - --help only plus maybe “version”; must not attempt socket connection
+  - bin/fail2ban-server:
+    - --help only; prints that daemon mode not implemented (and exits 0)
+
+3) Key behaviors & edge cases
+- IP validation/extraction
+  - Accept IPv4 and IPv6; reject empty, malformed, or out-of-range
+  - Handle bracketed IPs: “[1.2.3.4]”
+  - Handle IPv6 with port in brackets: “[2001:db8::1]:1234” (extract IPv6)
+  - Avoid false positives from timestamps (e.g., “2026-01-01”) by using targeted patterns for IPv4 (octets) and IPv6 (presence of “:” and hex)
+- Regex matching
+  - Support multiple failregex patterns; first matching pattern is fine
+  - Ignore rules: if any ignoreregex matches the line, treat as ignored even if failregex matches
+  - Prefer capture groups:
+    - named “ip” or “host” should supply IP; if captured value isn’t a valid IP, fallback to searchIP(line)
+- Jail logic
+  - Count failures per IP within findtime window:
+    - Keep per-IP list/deque of timestamps; prune older than now-findtime
+  - Ban threshold:
+    - When count reaches maxretry (>=), record ban once; do not repeatedly ban
+  - Ban time:
+    - If bantime > 0 and now provided, optionally unban after bantime elapsed since ban
+    - If bantime <= 0, treat as “no ban expiry” in this subset
+  - Deterministic tests:
+    - allow passing now= float for stable time-based behavior
+- Safety constraints
+  - No root, no firewall modifications, no subprocess calls to iptables/nft
+  - No listening sockets, no daemonization
+  - CLIs must not touch /var/log; tests use temp files only
+
+4) Minimal internal test plan (what to test and why)
+- tests/test_filter_ip.py
+  - isValidIP:
+    - valid: “1.2.3.4”, “255.255.255.255”, “2001:db8::1”
+    - invalid: “999.1.1.1”, “1.2.3”, “2001:::1”, “1.2.3.4/24”, “[1.2.3.4]”
+  - searchIP:
+    - extracts from “Failed password for root from 1.2.3.4 port 22”
+    - extracts from “client [2001:db8::1]:1234”
+    - returns None when no IP
+- tests/test_jail_basic.py
+  - Create Jail with a simple failregex matching sshd-like failures
+  - Feed lines with two different IPs; confirm counts tracked separately
+  - Verify ban occurs at maxretry threshold and only once
+  - Verify ignoreregex prevents counting
+  - Verify pruning with findtime:
+    - feed events at t=0, t=1, t=findtime+1; ensure older dropped
+  - Optional: bantime expiry:
+    - ban at t=10, check still banned at t=10+bantime-1, unbanned at t=10+bantime+1
+- tests/test_fail2ban_regex_cli.py
+  - Run “bin/fail2ban-regex --help” (no error)
+  - Create temp logfile with a few lines; run regex tool against it; assert output contains “Matches:” and lists IP
+  - Invalid regex returns non-zero and error message
+- tests/test_config_reader.py
+  - Ensure config/jail.conf exists in repo
+  - load_jail_conf parses defaults and a sample jail section
+  - build_jail constructs a Jail with correct numeric conversions and regex lists
+
+5) Risks (dependencies, tricky behaviors) and mitigations
+- Regex catastrophic backtracking on untrusted patterns
+  - Mitigation: keep provided patterns simple; document that this subset is offline-only and patterns are assumed trusted; in CLI, optionally limit max line length read (e.g., 8–32KB) to reduce worst cases.
+- IPv6 parsing complexity (ports, brackets, scope ids)
+  - Mitigation: implement conservative extraction; validate via ipaddress; strip surrounding brackets and trailing “:port” only when bracketed.
+- Ambiguity in fail2ban real semantics (date parsing, multi-line, journald, backend)
+  - Mitigation: explicitly scope to single-line matching with provided regex and simple time window logic; tests cover only this subset.
+- CLI scripts accidentally invoked as real daemon/client
+  - Mitigation: implement them as pure argparse stubs; ensure they exit quickly; avoid importing any “server startup” code paths.
+- Platform/path issues (executable bit, Windows)
+  - Mitigation: make scripts runnable via python -m or ensure shebang; tests invoke via sys.executable + script path for portability.

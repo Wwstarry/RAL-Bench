@@ -1,0 +1,27 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_many_datetime_operations ________________________
+
+    def test_many_datetime_operations() -> None:
+        """
+        Exercise many datetime operations to give the benchmark
+        something non-trivial to time.
+        """
+        base = pendulum.datetime(2020, 1, 1, 0, 0, 0, tz="UTC")
+        results: list[str] = []
+    
+        start_time = time.perf_counter()
+    
+        for i in range(2000):
+            dt = base.add(minutes=i)
+            tokyo = dt.in_timezone("Asia/Tokyo")
+            ny = dt.in_timezone("America/New_York")
+    
+            # Format to strings to force some extra work.
+>           results.append(tokyo.to_iso8601_string())
+E           AttributeError: 'DateTime' object has no attribute 'to_iso8601_string'
+
+tests\Pendulum\performance_test.py:49: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/performance_test.py::test_many_datetime_operations - At...
+1 failed in 0.38s

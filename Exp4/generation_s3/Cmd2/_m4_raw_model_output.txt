@@ -1,0 +1,516 @@
+<file:name=cmd2/__init__.py>
+"""Lightweight, pure-Python subset of the cmd2 project.
+
+This package provides a minimal API surface compatible with core parts of cmd2
+used by transcript-based testing and simple interactive applications.
+"""
+
+from .cmd2 import Cmd2
+
+__all__ = ["Cmd2"]
+</file>
+
+<file:name=cmd2/utils.py>
+from __future__ import annotations
+
+import io
+import re
+
+
+class StdSim(io.StringIO):
+    """A simple stdout/stderr simulator for capturing output during tests."""
+
+    def __init__(self, initial_value: str = "", newline: str | None = None) -> None:
+        super().__init__(initial_value, newline=newline)
+        self._encoding = "utf-8"
+
+    @property
+    def encoding(self) -> str:
+        return self._encoding
+
+    def isatty(self) -> bool:
+        return False
+
+
+_ANSI_RE = re.compile(
+    r"""
+    \x1B  # ESC
+    (?:
+        \[ [0-?]* [ -/]* [@-~]     # CSI ... Cmd
+        |
+        \] .*? (?:\x07|\x1B\\)     # OSC ... BEL or ST
+        |
+        [PX^_] .*? \x1B\\          # DCS/SOS/PM/APC ... ST
+        |
+        [()#][0-9A-Za-z]           # charset / other single escape
+        |
+        [A-Za-z]                   # single-character command
+    )
+    """,
+    re.VERBOSE | re.DOTALL,
+)
+
+
+def strip_ansi(text: str) -> str:
+    """Remove common ANSI escape sequences from text."""
+    return _ANSI_RE.sub("", text)
+
+
+def normalize_newlines(text: str) -> str:
+    """Normalize CRLF/CR to LF."""
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def remove_trailing_whitespace(text: str) -> str:
+    """Remove trailing whitespace from each line (preserving line structure)."""
+    text = normalize_newlines(text)
+    lines = text.split("\n")
+    lines = [ln.rstrip() for ln in lines]
+    return "\n".join(lines)
+</file>
+
+<file:name=cmd2/parsing.py>
+from __future__ import annotations
+
+import argparse
+import shlex
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+class Cmd2ArgparseError(Exception):
+    """Raised when an argparse parser encounters an error (instead of SystemExit)."""
+
+
+class Cmd2ShlexError(Exception):
+    """Raised when shlex parsing fails (e.g., unmatched quotes)."""
+
+
+def shlex_split(line: str) -> list[str]:
+    try:
+        return shlex.split(line, posix=True)
+    except ValueError as e:
+        raise Cmd2ShlexError(str(e)) from e
+
+
+@dataclass
+class Statement:
+    raw: str
+    command: str = ""
+    args: str = ""
+    arg_list: List[str] = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.arg_list is None:
+            self.arg_list = []
+
+    def __str__(self) -> str:
+        return self.raw
+
+
+class StatementParser:
+    def __init__(self, *, allow_comments: bool = True) -> None:
+        self.allow_comments = allow_comments
+
+    def parse(self, line: str) -> Statement:
+        raw = line if line is not None else ""
+        stripped = raw.strip()
+        if not stripped:
+            return Statement(raw=raw, command="", args="", arg_list=[])
+
+        # Do not strip inline comments; only allow whole-line comment semantics if desired.
+        if self.allow_comments and stripped.startswith("#"):
+            return Statement(raw=raw, command="", args="", arg_list=[])
+
+        tokens = shlex_split(raw)
+        if not tokens:
+            return Statement(raw=raw, command="", args="", arg_list=[])
+
+        command = tokens[0]
+        arg_list = tokens[1:]
+
+        # Preserve the remainder as a string as cmd.Cmd would provide (roughly).
+        # This is a best-effort; cmd2 supports much more. For our purposes, join is OK.
+        args = ""
+        if len(tokens) > 1:
+            # Reconstruct args from original line by locating the first token occurrence.
+            # Fallback to joining with spaces if we can't reliably slice.
+            try:
+                idx = raw.find(command)
+                after = raw[idx + len(command) :]
+                args = after.lstrip()
+            except Exception:
+                args = " ".join(arg_list)
+
+        return Statement(raw=raw, command=command, args=args, arg_list=arg_list)
+
+
+class Cmd2ArgumentParser(argparse.ArgumentParser):
+    """argparse parser that raises exceptions instead of exiting."""
+
+    def __init__(self, *args, add_help: bool = True, **kwargs) -> None:
+        super().__init__(*args, add_help=add_help, **kwargs)
+
+    def error(self, message: str) -> None:
+        raise Cmd2ArgparseError(message)
+
+    def parse_args(self, args: Optional[list[str]] = None, namespace=None):
+        return super().parse_args(args=args, namespace=namespace)
+
+    def parse_known_args(self, args: Optional[list[str]] = None, namespace=None):
+        return super().parse_known_args(args=args, namespace=namespace)
+</file>
+
+<file:name=cmd2/transcript.py>
+from __future__ import annotations
+
+import difflib
+from dataclasses import dataclass
+from typing import List, Tuple
+
+from .utils import normalize_newlines, strip_ansi
+
+
+@dataclass
+class _Interaction:
+    command: str
+    expected_output_lines: List[str]
+
+
+def _parse_transcript(text: str, prompt: str) -> List[_Interaction]:
+    text = normalize_newlines(text)
+    lines = text.split("\n")
+
+    interactions: List[_Interaction] = []
+    cur_cmd: str | None = None
+    cur_out: List[str] = []
+
+    def flush() -> None:
+        nonlocal cur_cmd, cur_out
+        if cur_cmd is not None:
+            interactions.append(_Interaction(command=cur_cmd, expected_output_lines=cur_out))
+        cur_cmd = None
+        cur_out = []
+
+    for line in lines:
+        # Ignore full-line comments
+        if line.startswith("#"):
+            continue
+
+        if prompt and line.startswith(prompt):
+            flush()
+            cur_cmd = line[len(prompt) :]
+            cur_out = []
+        else:
+            if cur_cmd is None:
+                # Allow leading text/comments before first prompt; ignore
+                if line.strip() == "":
+                    continue
+                # Otherwise treat as noise and ignore (keeps runner permissive)
+                continue
+            cur_out.append(line)
+
+    flush()
+    return interactions
+
+
+def _unified_diff(expected: str, actual: str, fromfile: str = "expected", tofile: str = "actual") -> str:
+    exp_lines = expected.splitlines(keepends=True)
+    act_lines = actual.splitlines(keepends=True)
+    diff = difflib.unified_diff(exp_lines, act_lines, fromfile=fromfile, tofile=tofile)
+    return "".join(diff)
+
+
+class Transcript:
+    def __init__(self, path: str, *, encoding: str = "utf-8") -> None:
+        self.path = path
+        self.encoding = encoding
+
+    def run(self, app) -> Tuple[bool, str]:
+        with open(self.path, "r", encoding=self.encoding) as f:
+            content = f.read()
+
+        interactions = _parse_transcript(content, getattr(app, "prompt", ""))
+
+        for idx, inter in enumerate(interactions, start=1):
+            actual = app.run_script(inter.command + "\n", echo=False, stop_on_error=False)
+            actual = strip_ansi(normalize_newlines(actual))
+            expected = normalize_newlines("\n".join(inter.expected_output_lines))
+
+            # cmd2's capture is typically exact including trailing newlines. Make comparison line-based.
+            act_lines = actual.split("\n")
+            exp_lines = expected.split("\n")
+
+            # Normalize final empty line behavior: if both end with a trailing newline,
+            # split produces last "" element. Keep as-is to preserve exactness.
+            if act_lines != exp_lines:
+                exp_text = "\n".join(exp_lines)
+                act_text = "\n".join(act_lines)
+                header = f"Transcript mismatch in {self.path} at interaction #{idx}\nCommand: {inter.command}\n"
+                diff = _unified_diff(exp_text + "\n", act_text + "\n", fromfile="expected", tofile="actual")
+                return False, header + diff
+
+        return True, ""
+
+
+def run_transcript(app, path: str, *, encoding: str = "utf-8") -> Tuple[bool, str]:
+    return Transcript(path, encoding=encoding).run(app)
+</file>
+
+<file:name=cmd2/cmd2.py>
+from __future__ import annotations
+
+import cmd
+import inspect
+import io
+import os
+import sys
+import traceback
+from contextlib import redirect_stdout
+from typing import Optional
+
+from .parsing import StatementParser
+from .transcript import run_transcript
+from .utils import StdSim, normalize_newlines, strip_ansi
+
+
+class Cmd2(cmd.Cmd):
+    prompt: str = "(cmd) "
+    intro: Optional[str] = None
+
+    def __init__(
+        self,
+        completekey: str = "tab",
+        stdin=None,
+        stdout=None,
+        *,
+        allow_cli_args: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout, **kwargs)
+        self.allow_cli_args = allow_cli_args
+        self.debug: bool = False
+        self.statement_parser = StatementParser(allow_comments=True)
+
+        if self.stdin is None:
+            self.stdin = sys.stdin
+        if self.stdout is None:
+            self.stdout = sys.stdout
+
+        # cmd.Cmd uses use_rawinput; in non-tty contexts it should be False to avoid hanging.
+        try:
+            self.use_rawinput = bool(getattr(self.stdin, "isatty", lambda: False)())
+        except Exception:
+            self.use_rawinput = False
+
+        # place to store diffs when fail_on_diff=False
+        self.transcript_diffs: list[tuple[str, str]] = []
+
+    # ---------- output helpers ----------
+    def poutput(self, msg: object = "", *, end: str = "\n") -> None:
+        s = "" if msg is None else str(msg)
+        self.stdout.write(s + end)
+
+    def perror(self, msg: object = "", *, end: str = "\n") -> None:
+        # For simplicity and test determinism, route to stdout
+        self.poutput(msg, end=end)
+
+    # ---------- command discovery/help ----------
+    def get_all_commands(self) -> list[str]:
+        cmds = []
+        for name in dir(self):
+            if name.startswith("do_") and name != "do_help":
+                cmds.append(name[3:])
+        # include help explicitly
+        cmds.append("help")
+        # de-dup & sort
+        return sorted(set(cmds))
+
+    def get_help(self, command: str) -> str:
+        if not command:
+            return ""
+        meth = getattr(self, f"do_{command}", None)
+        if meth is None:
+            return f"No help on {command}"
+        doc = inspect.getdoc(meth) or ""
+        if doc:
+            return doc
+        return f"No help on {command}"
+
+    def do_help(self, arg: str) -> None:
+        arg = (arg or "").strip()
+        if not arg:
+            for c in self.get_all_commands():
+                self.poutput(c)
+            return
+        self.poutput(self.get_help(arg))
+
+    # ---------- parsing / dispatch ----------
+    def parseline(self, line: str):
+        # Keep cmd.Cmd compatible behavior but avoid repeating previous command.
+        if line is None:
+            return None, None, None
+        line_stripped = line.strip()
+        if not line_stripped:
+            return None, None, line
+
+        # Accept standard cmd.Cmd parsing: command is first token separated by whitespace.
+        # Also strip leading spaces.
+        s = line.lstrip()
+        i = 0
+        while i < len(s) and not s[i].isspace():
+            i += 1
+        cmdname = s[:i]
+        arg = s[i:].strip() if i < len(s) else ""
+        return cmdname, arg, line
+
+    def emptyline(self):
+        # Do nothing; do not repeat last command
+        return False
+
+    def default(self, line: str) -> None:
+        cmdname, _, _ = self.parseline(line)
+        if cmdname:
+            self.poutput(f"Unknown command: {cmdname}")
+        else:
+            self.poutput("Unknown command")
+
+    def execute_command(self, line: str):
+        return self.onecmd(line)
+
+    def onecmd(self, line: str):
+        # Largely mirrors cmd.Cmd.onecmd, but with exception handling and deterministic errors.
+        line = "" if line is None else line
+
+        cmdname, arg, _ = self.parseline(line)
+        if cmdname is None:
+            return self.emptyline()
+
+        # Use cmd.Cmd's built-in precmd/postcmd if present
+        try:
+            line2 = self.precmd(line)
+        except Exception:
+            line2 = line
+        cmdname, arg, _ = self.parseline(line2)
+        if cmdname is None:
+            stop = self.emptyline()
+            try:
+                self.postcmd(stop, line2)
+            except Exception:
+                pass
+            return stop
+
+        func = getattr(self, "do_" + cmdname, None)
+        if func is None:
+            self.default(line2)
+            try:
+                return self.postcmd(False, line2)
+            except Exception:
+                return False
+
+        try:
+            stop = func(arg or "")
+        except Exception as e:
+            if self.debug:
+                raise
+            self.perror(f"{type(e).__name__}: {e}")
+            stop = False
+
+        try:
+            stop = self.postcmd(stop, line2)
+        except Exception:
+            # If postcmd fails, keep loop going unless in debug
+            if self.debug:
+                raise
+            self.perror("Error in postcmd")
+            stop = False
+        return stop
+
+    # ---------- completion ----------
+    def completenames(self, text: str, *ignored):
+        cmds = self.get_all_commands()
+        return [c for c in cmds if c.startswith(text)]
+
+    def complete(self, text: str, state: int):
+        # Use cmd.Cmd.complete, but ensure missing readline doesn't crash
+        try:
+            return super().complete(text, state)
+        except Exception:
+            # Fallback: just provide command name completion from completenames
+            matches = self.completenames(text)
+            try:
+                return matches[state]
+            except IndexError:
+                return None
+
+    # ---------- built-in exit commands ----------
+    def do_quit(self, arg: str) -> bool:
+        """Quit the application."""
+        return True
+
+    def do_exit(self, arg: str) -> bool:
+        """Exit the application."""
+        return True
+
+    def do_EOF(self, arg: str) -> bool:
+        """Exit on EOF (Ctrl-D)."""
+        # Many shells print a newline on EOF; keep it optional but harmless.
+        self.poutput("")
+        return True
+
+    # ---------- scripting / transcripts ----------
+    def run_script(self, script: str, *, echo: bool = False, stop_on_error: bool = False) -> str:
+        # Capture output produced during script execution, regardless of configured stdout.
+        buf = StdSim()
+        old_stdout = self.stdout
+        self.stdout = buf
+        try:
+            script = normalize_newlines(script)
+            for line in script.split("\n"):
+                if line == "":
+                    continue
+                if echo:
+                    self.poutput(self.prompt + line)
+                try:
+                    stop = self.onecmd(line)
+                except Exception:
+                    if self.debug:
+                        raise
+                    traceback.print_exc(file=buf)
+                    stop = False
+                if stop:
+                    break
+        finally:
+            self.stdout = old_stdout
+        return buf.getvalue()
+
+    def run_transcript_tests(
+        self,
+        transcript_files,
+        *,
+        fail_on_diff: bool = True,
+        encoding: str = "utf-8",
+    ) -> int:
+        self.transcript_diffs.clear()
+        failures = 0
+        for path in list(transcript_files):
+            passed, diff = run_transcript(self, path, encoding=encoding)
+            if not passed:
+                failures += 1
+                self.transcript_diffs.append((path, diff))
+                if fail_on_diff:
+                    raise AssertionError(diff)
+        return failures
+
+    # ---------- loop ----------
+    def cmdloop(self, intro: str | None = None) -> None:
+        # Rely on cmd.Cmd.cmdloop; ensure intro printed to our stdout.
+        if intro is None:
+            intro = self.intro
+        if intro:
+            self.poutput(intro, end="\n")
+
+        # cmd.Cmd.cmdloop prints prompt and reads; for non-interactive stdin, it will read lines.
+        # Ensure it uses our stdout by keeping self.stdout set.
+        return super().cmdloop(intro="")  # we've already printed intro
+</file>

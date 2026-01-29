@@ -1,0 +1,169 @@
+..FFFFFFF.FF                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+        output = tabulate(table, headers="firstrow", tablefmt="simple")
+        lines = _lines(output)
+    
+>       assert lines[0].strip().startswith("Name")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000002343918B710>('Name')
+E        +    where <built-in method startswith of str object at 0x000002343918B710> = 'f     i   r s t r o w'.startswith
+E        +      where 'f     i   r s t r o w' = <built-in method strip of str object at 0x000002343918B710>()
+E        +        where <built-in method strip of str object at 0x000002343918B710> = 'f     i   r s t r o w'.strip
+
+tests\Tabulate\functional_test.py:120: AssertionError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+        output = tabulate(table, headers="keys")
+        lines = _lines(output)
+    
+>       assert "Name" in lines[0]
+E       AssertionError: assert 'Name' in 'k e y s'
+
+tests\Tabulate\functional_test.py:137: AssertionError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+        out_true = tabulate(table, showindex=True)
+        lines_true = _lines(out_true)
+        assert any(line.lstrip().startswith("0") for line in lines_true)
+>       assert any(line.lstrip().startswith("1") for line in lines_true)
+E       assert False
+E        +  where False = any(<generator object test_showindex_variants.<locals>.<genexpr> at 0x0000023439152190>)
+
+tests\Tabulate\functional_test.py:154: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+        out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+        lines_gh = _lines(out_github)
+>       assert lines_gh[0].startswith("|")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000023439192730>('|')
+E        +    where <built-in method startswith of str object at 0x0000023439192730> = 'item  qty'.startswith
+
+tests\Tabulate\functional_test.py:172: AssertionError
+____________________ test_list_of_dicts_headers_keys_plain ____________________
+
+    def test_list_of_dicts_headers_keys_plain() -> None:
+        rows = [
+            {"name": "Alice", "score": 10},
+            {"name": "Bob", "score": 12},
+        ]
+        output = tabulate(rows, headers="keys", tablefmt="plain")
+        lines = _lines(output)
+    
+        header = lines[0]
+>       assert "name" in header
+E       AssertionError: assert 'name' in 'k e y s'
+
+tests\Tabulate\functional_test.py:194: AssertionError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+        output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "Alice" in joined
+        assert "Bob" in joined
+>       assert "N/A" in joined
+E       AssertionError: assert 'N/A' in 'name  status\nAlice None  \nBob   ok'
+
+tests\Tabulate\functional_test.py:213: AssertionError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+        output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "pi" in joined and "3.14" in joined
+>       assert "e" in joined and "2.72" in joined
+E       AssertionError: assert ('e' in 'name value  \npi   3.14159\ne    2.71828' and '2.72' in 'name value  \npi   3.14159\ne    2.71828')
+
+tests\Tabulate\functional_test.py:227: AssertionError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+        output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+        lines = _lines(output)
+    
+        # With wrapping, the output typically spans more than (header + separator + 2 rows).
+>       assert len(lines) >= 5
+E       AssertionError: assert 3 >= 5
+E        +  where 3 = len(['id note                               ', ' 1 alpha beta gamma delta epsilon zeta', ' 2 short'])
+
+tests\Tabulate\functional_test.py:260: AssertionError
+___________________ test_pipe_format_has_pipes_and_headers ____________________
+
+    def test_pipe_format_has_pipes_and_headers() -> None:
+        rows = [
+            ["name", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+        ]
+        output = tabulate(rows[1:], headers=rows[0], tablefmt="pipe")
+        lines = _lines(output)
+    
+        # Pipe tables use | delimiters; keep assertions permissive.
+>       assert "|" in lines[0]
+E       AssertionError: assert '|' in 'name qty'
+
+tests\Tabulate\functional_test.py:278: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - assert False
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Asse...
+FAILED tests/Tabulate/functional_test.py::test_list_of_dicts_headers_keys_plain
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+FAILED tests/Tabulate/functional_test.py::test_pipe_format_has_pipes_and_headers
+9 failed, 3 passed in 0.61s

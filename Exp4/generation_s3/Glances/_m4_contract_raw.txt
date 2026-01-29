@@ -1,0 +1,112 @@
+<contract>
+1) Repository layout (what packages/modules/files must exist)
+- pyproject.toml (or setup.cfg/setup.py acceptable, but must allow “python -m glances” to run from repo checkout in tests without installation assumptions)
+- glances/
+  - __init__.py (defines __version__ and minimal package metadata)
+  - __main__.py (implements CLI entrypoint for `python -m glances`)
+  - cli.py (argument parsing + command dispatch; imported by __main__)
+  - monitor.py (system metrics collection; cross-platform)
+  - csvout.py (CSV field parsing and rendering helpers)
+  - errors.py (custom exceptions used for predictable non-zero exits)
+- (Optional) glances/_compat.py (platform helpers), glances/_types.py (typing), but not required
+- README* and license files optional; must not be required by runtime/tests
+
+2) Public API surface (modules/classes/functions and key signatures)
+- glances.__init__
+  - __version__: str (must exist; used by -V/--version)
+- glances.__main__
+  - main(argv: list[str] | None = None) -> int
+  - Behavior: calls glances.cli.main and exits via SystemExit(main(...)) when invoked as module
+- glances.cli
+  - main(argv: list[str] | None = None) -> int
+  - parse_args(argv: list[str]) -> argparse.Namespace
+  - run_stdout_csv(fields_spec: str) -> str (returns one CSV line without trailing newline OR with single newline; tests accept printed output)
+- glances.monitor
+  - get_metrics() -> dict[str, object]
+    - Returns a snapshot dict with keys at least: "now" (float epoch seconds), "cpu" (dict), "mem" (dict), "load" (float)
+    - cpu dict includes: "user" (float percent or fraction; numeric), "total" (float percent or fraction; numeric)
+    - mem dict includes: "used" (float bytes; numeric)
+- glances.csvout
+  - parse_fields(spec: str) -> list[str]
+    - spec example: "now,cpu.user,mem.used,load"
+    - Must preserve order, strip whitespace, reject empties
+  - resolve_field(metrics: dict[str, object], field: str) -> str
+    - Supports: now, cpu.user, cpu.total, mem.used, load
+    - Returns a string suitable for CSV (numeric formatted; no units)
+  - render_csv_line(metrics: dict[str, object], fields: list[str]) -> str
+    - Returns comma-joined values in field order
+- glances.errors
+  - class GlancesError(Exception)
+  - class UsageError(GlancesError)
+  - class UnknownFieldError(GlancesError)
+
+3) Behavioral contract (I/O, invariants, edge cases, error handling)
+CLI invocation:
+- `python -m glances --help`
+  - Must print usage/help text to stdout (argparse default) and exit with code 0.
+- `python -m glances -V` and `python -m glances --version`
+  - Must print a single version string and exit with code 0.
+  - Version string format is flexible, but must be non-empty and include the version number from glances.__version__.
+- `python -m glances --stdout-csv <FIELDS>`
+  - Must perform a one-shot collection and print exactly one CSV record line (ending newline allowed) and exit with code 0 on success.
+  - <FIELDS> is a comma-separated list of field identifiers. Whitespace around identifiers must be ignored.
+  - Supported fields required by tests:
+    - "now" => numeric timestamp (epoch seconds as float or int string)
+    - "cpu.user" => numeric
+    - "cpu.total" => numeric
+    - "mem.used" => numeric (bytes)
+    - "load" => numeric (1-minute load average; on Windows where not available, must still return a numeric value, e.g., 0.0)
+  - For the specific request `--stdout-csv now,cpu.user,mem.used,load`:
+    - Output must contain exactly 4 comma-separated columns.
+    - Column 1 corresponds to "now" and should be parseable as a number or at least non-empty (tests mainly require numeric parsing for cpu.user, mem.used, load; safest to make now numeric too).
+    - Columns for cpu.user, mem.used, load must be parseable as numeric by float().
+- Invalid invocation behavior:
+  - Missing argument: `python -m glances --stdout-csv` with no <FIELDS>
+    - Must exit non-zero (exit code != 0).
+    - Must emit a non-empty error message (argparse error output acceptable; typically to stderr).
+  - Unknown field in FIELDS:
+    - Must exit non-zero.
+    - Must emit a non-empty error message indicating unknown field(s).
+  - Empty field tokens (e.g., "now,,load" or trailing comma) must be treated as invalid and exit non-zero with non-empty message.
+- Error output and exit codes:
+  - For argparse parsing errors, rely on argparse’s standard behavior (prints usage + error to stderr; exits 2). This is acceptable.
+  - For runtime validation errors (unknown fields), catch in cli.main and print a concise message to stderr; exit code 1.
+- Performance/efficiency:
+  - One-shot execution must be fast (no continuous sampling loops).
+  - CPU metrics must not require long sleeps; if computing CPU usage needs a delta, use a very small interval (e.g., 0.0 or a minimal cached prior value) to keep execution quick. Prefer psutil.cpu_times_percent(interval=0.0) when psutil available.
+  - Memory usage should be computed via standard libraries or psutil; must be O(1) work.
+- Cross-platform considerations:
+  - Prefer psutil if installed; otherwise provide fallbacks using standard library:
+    - now: time.time()
+    - load: os.getloadavg()[0] when available; else 0.0
+    - mem.used: attempt resource/module-specific methods; if unavailable, return 0.0 but must be numeric
+    - cpu.user/total: if psutil not available, return 0.0 numeric values; must still satisfy numeric parsing tests
+  - The tool must not crash if a platform feature is missing; must degrade to numeric defaults rather than raising, except for invalid fields/spec.
+
+4) Acceptance checklist (verifiable bullets, map to test intent)
+- Package/imports:
+  - `import glances` succeeds.
+  - `import glances.__main__` succeeds.
+  - `glances.__version__` exists and is a non-empty string.
+- CLI behaviors:
+  - `python -m glances --help` exits 0 and prints usage/help.
+  - `python -m glances -V` exits 0 and prints version string.
+  - `python -m glances --version` exits 0 and prints version string.
+  - `python -m glances --stdout-csv now,cpu.user,mem.used,load` exits 0 and prints exactly 4 comma-separated values.
+  - In that output, values for cpu.user, mem.used, and load are parseable via float().
+  - `python -m glances --stdout-csv now,cpu.user,cpu.total,mem.used,load` prints 5 columns in requested order.
+- Invalid usage:
+  - `python -m glances --stdout-csv` exits non-zero (preferably 2 via argparse) and prints a non-empty error message.
+  - `python -m glances --stdout-csv badfield` exits non-zero (preferably 1) and prints a non-empty error message.
+  - `python -m glances --stdout-csv now,,load` exits non-zero with non-empty error message.
+- Efficiency:
+  - Repeated invocations of the one-shot CSV command complete quickly (no intentional multi-second sleeps; minimal overhead).
+  - No background threads/daemons remain after exit.
+
+5) Non-goals / constraints (what NOT to do; no external services unless required)
+- Do not implement the full Glances feature set (UI, server mode, web mode, plugins, continuous refresh); only the core behaviors required above.
+- Do not require network access, external services, or privileged operations.
+- Do not write files by default; output is only to stdout/stderr.
+- Do not depend on heavy optional dependencies; psutil may be used if available but must have safe fallbacks if absent.
+- Do not introduce nondeterministic multi-line output for --stdout-csv; must be exactly one record line per invocation.
+</contract>

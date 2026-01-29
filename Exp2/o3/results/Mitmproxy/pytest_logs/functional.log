@@ -1,0 +1,154 @@
+..FF.FF.FFF                                                              [100%]
+================================== FAILURES ===================================
+_______ test_003_version_source_file_exists_and_has_version_like_token ________
+
+    def test_003_version_source_file_exists_and_has_version_like_token():
+        """
+        Do NOT assume mitmproxy exposes __version__ at top-level.
+        Instead, require a stable version source file under the package and a version-like token inside.
+    
+        This aligns better with how many projects store version information (e.g. version.py, __init__.py, or pyproject).
+        """
+        pkg = _mitmproxy_pkg_dir()
+    
+        candidates = [
+            pkg / "version.py",
+            pkg / "__init__.py",
+        ]
+    
+        existing = [p for p in candidates if p.is_file()]
+        assert existing, f"Expected one of these to exist: {[str(p) for p in candidates]}"
+    
+        text = "\n".join(_file(p).lower() for p in existing)
+    
+        # Accept multiple common patterns.
+        # Examples: __version__ = "10.0.0", VERSION = "10.0.0", version = "10.0.0"
+        import re
+    
+>       assert (
+            re.search(r"__version__\s*=\s*['\"][^'\"]+['\"]", text)
+            or re.search(r"\bversion\s*=\s*['\"][^'\"]+['\"]", text)
+            or re.search(r"\bversion\b", text)
+        ), "Expected a version-like assignment or token in version source files."
+E       AssertionError: Expected a version-like assignment or token in version source files.
+E       assert (None or None or None)
+E        +  where None = <function search at 0x0000020506DA99D0>('__version__\\s*=\\s*[\'\\"][^\'\\"]+[\'\\"]', '"""\na **very** small stub of the real *mitmproxy* package.\n\nthe intention of this repository is **not** to ship a ...("mitmproxy.flow")\naddonmanager = _import_module("mitmproxy.addonmanager")\ntools = _import_module("mitmproxy.tools")')
+E        +    where <function search at 0x0000020506DA99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+E        +  and   None = <function search at 0x0000020506DA99D0>('\\bversion\\s*=\\s*[\'\\"][^\'\\"]+[\'\\"]', '"""\na **very** small stub of the real *mitmproxy* package.\n\nthe intention of this repository is **not** to ship a ...("mitmproxy.flow")\naddonmanager = _import_module("mitmproxy.addonmanager")\ntools = _import_module("mitmproxy.tools")')
+E        +    where <function search at 0x0000020506DA99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+E        +  and   None = <function search at 0x0000020506DA99D0>('\\bversion\\b', '"""\na **very** small stub of the real *mitmproxy* package.\n\nthe intention of this repository is **not** to ship a ...("mitmproxy.flow")\naddonmanager = _import_module("mitmproxy.addonmanager")\ntools = _import_module("mitmproxy.tools")')
+E        +    where <function search at 0x0000020506DA99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+
+tests\Mitmproxy\functional_test.py:103: AssertionError
+_______________________ test_004_tools_main_file_exists _______________________
+
+    def test_004_tools_main_file_exists():
+        pkg = _mitmproxy_pkg_dir()
+>       assert (pkg / "tools" / "main.py").is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = ((WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy') / 'tools') / 'main.py').is_file
+
+tests\Mitmproxy\functional_test.py:112: AssertionError
+_____________________ test_006_tools_cmdline_file_exists ______________________
+
+    def test_006_tools_cmdline_file_exists():
+        pkg = _mitmproxy_pkg_dir()
+>       assert (pkg / "tools" / "cmdline.py").is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = ((WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy') / 'tools') / 'cmdline.py').is_file
+
+tests\Mitmproxy\functional_test.py:122: AssertionError
+__________ test_007_tools_main_defines_mitmdump_function_or_wrapper ___________
+
+    def test_007_tools_main_defines_mitmdump_function_or_wrapper():
+        """
+        Anchor: mitmproxy.tools.main.mitmdump should exist.
+        If runtime import is blocked by missing mitmproxy_rs, we still enforce the symbol statically.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        main_py = pkg / "tools" / "main.py"
+>       src = _file(main_py)
+
+tests\Mitmproxy\functional_test.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Mitmproxy\functional_test.py:44: in _file
+    return path.read_text(encoding="utf-8", errors="replace")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1255: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1241: in open
+    return io.open(self, mode, buffering, encoding, errors, newline,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/tools/main.py')
+name = 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Mitmproxy\\mitmproxy\\tools\\main.py'
+flags = 32896, mode = 438
+
+    def _opener(self, name, flags, mode=0o666):
+        # A stub for the opener argument to built-in open()
+>       return self._accessor.open(self, flags, mode)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Mitmproxy\\mitmproxy\\tools\\main.py'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1109: FileNotFoundError
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_003_version_source_file_exists_and_has_version_like_token
+FAILED tests/Mitmproxy/functional_test.py::test_004_tools_main_file_exists - ...
+FAILED tests/Mitmproxy/functional_test.py::test_006_tools_cmdline_file_exists
+FAILED tests/Mitmproxy/functional_test.py::test_007_tools_main_defines_mitmdump_function_or_wrapper
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+7 failed, 4 passed in 0.75s

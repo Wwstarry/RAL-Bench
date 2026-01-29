@@ -1,0 +1,235 @@
+1) Repository layout
+- Top-level package: cachetools (importable via `import cachetools`)
+- Modules that must exist:
+  - cachetools/__init__.py
+  - cachetools/cache.py
+  - cachetools/decorators.py
+  - cachetools/keys.py
+- Additional modules required by tests (must exist as import targets):
+  - cachetools/lru.py (may be thin wrapper/re-export over cachetools.cache)
+  - cachetools/ttl.py (may be thin wrapper/re-export over cachetools.cache)
+- Internal organization constraint:
+  - Core implementations may live in cachetools/cache.py and be re-exported from cachetools/lru.py and cachetools/ttl.py for API compatibility.
+
+2) Public API surface
+2.1 Top-level `cachetools` package exports (cachetools/__init__.py)
+- Must expose:
+  - Cache, LRUCache, TTLCache
+  - cached, cachedmethod
+  - keys submodule or key helpers accessible via `cachetools.keys`
+- Should define `__all__` including at least: ["Cache","LRUCache","TTLCache","cached","cachedmethod"]
+
+2.2 cachetools.cache module (cachetools/cache.py)
+- Class Cache(collections.abc.MutableMapping-like)
+  - __init__(self, maxsize, getsizeof=None)
+    - maxsize: int or None (None means unbounded)
+    - getsizeof: callable(value)->int or None (default size=1 per item)
+  - Core mapping protocol:
+    - __len__(self)
+    - __iter__(self)  (iterates keys)
+    - __contains__(self, key)
+    - __getitem__(self, key)
+    - __setitem__(self, key, value)
+    - __delitem__(self, key)
+    - get(self, key, default=None)
+    - pop(self, key, default=sentinel) (sentinel behavior like dict)
+    - popitem(self) (evict one item; policy-specific in subclasses)
+    - clear(self)
+    - setdefault(self, key, default=None)
+    - update(self, *args, **kwargs)
+    - keys(), items(), values() (views acceptable; list acceptable if simpler but must be consistent)
+  - Cache sizing:
+    - Attributes/properties:
+      - maxsize (readable)
+      - currsize (readable; total “size” currently stored)
+      - getsizeof (readable; callable or None)
+    - Eviction hook:
+      - popitem(self) is the mechanism used by base __setitem__ when over limit
+      - Base may define a default popitem (e.g., FIFO/undefined) but subclasses override
+  - Optional but commonly referenced:
+    - __repr__ for debugging (not required but safe)
+- Class LRUCache(Cache)
+  - __init__(self, maxsize, getsizeof=None)
+  - LRU semantics:
+    - Access (successful __getitem__/get) updates recency
+    - Insertion updates recency (new key becomes most-recent)
+    - Updating existing key updates recency as most-recent
+    - popitem evicts least-recently-used item
+- Class TTLCache(Cache)
+  - __init__(self, maxsize, ttl, timer=time.monotonic, getsizeof=None)
+    - ttl: float/int seconds
+    - timer: callable returning monotonically increasing time (default monotonic)
+  - Expiration semantics:
+    - Each key has an expiration timestamp = timer() + ttl set/renewed on __setitem__
+    - __getitem__ treats expired entries as missing (KeyError)
+    - __contains__ returns False for expired entries
+    - get returns default for expired entries
+    - Iteration/views should not expose expired entries (either purge before or skip during iteration)
+    - TTL is not automatically renewed on access unless explicitly implemented by tests; default contract: do NOT refresh TTL on get; only on set/update.
+    - popitem evicts least-recently-used OR earliest-expiring? For compatibility with cachetools core, TTLCache eviction is primarily LRU among non-expired while also purging expired first. Contract: before size-based eviction, purge all expired items; then if still over maxsize, evict LRU.
+  - Maintenance API (optional but likely helpful):
+    - expire(self, time=None): remove expired entries up to “now”; returns number removed or iterable of removed (implementation-defined; only used internally unless tests call it)
+
+2.3 cachetools.lru module (cachetools/lru.py)
+- Must provide LRUCache symbol importable as `from cachetools.lru import LRUCache`
+- May re-export from cachetools.cache.
+
+2.4 cachetools.ttl module (cachetools/ttl.py)
+- Must provide TTLCache symbol importable as `from cachetools.ttl import TTLCache`
+- May re-export from cachetools.cache.
+
+2.5 cachetools.decorators module (cachetools/decorators.py)
+- Function cached(cache, key=cachetools.keys.hashkey, lock=None, info=False)
+  - Returns a decorator for functions:
+    - decorated(*args, **kwargs) -> cached result
+  - key: callable(*args, **kwargs) -> hashable key
+  - lock: None or context manager / threading.Lock-like with __enter__/__exit__
+  - info: if True, attach `cache_info()`/`cache_clear()` like functools.lru_cache (only if tests require; otherwise may omit)
+  - Decorated function attributes:
+    - __wrapped__ pointing to original function
+    - cache attribute referencing the cache object
+    - cache_key attribute referencing the key function
+    - cache_clear() method clears the cache
+- Function cachedmethod(cache, key=cachetools.keys.hashkey, lock=None)
+  - For decorating instance/class methods
+  - cache: callable(self)->Cache OR attribute name string OR Cache-like object; must support common patterns:
+    - If callable: cache(self) returns cache instance
+    - If string: getattr(self, cache) is cache instance
+  - key: callable(*args, **kwargs)->hashable; must support being called as key(*args, **kwargs) where args includes self; default behavior should ignore `self` by using cachetools.keys.methodkey or similar. Contract: cachedmethod default key should behave like cachetools.keys.methodkey (i.e., exclude self/cls from key) if tests expect that; otherwise allow explicit key in tests.
+  - Decorated descriptor must work with method binding (self passed automatically)
+  - Provides cache_clear(self) to clear underlying cache for that instance if feasible
+
+2.6 cachetools.keys module (cachetools/keys.py)
+- Provide key helper functions that return hashable keys:
+  - hashkey(*args, **kwargs)
+    - Produces a tuple-like key based on args + sorted kwargs items
+    - Must be stable across calls with same logical inputs
+    - Must be hashable when arguments/values are hashable
+  - methodkey(self, *args, **kwargs)
+    - Like hashkey but excludes `self`/first positional argument
+  - typedkey(*args, **kwargs)
+    - Like functools.lru_cache typed=True: include types of args/kwargs values to disambiguate 1 and 1.0 etc.
+  - typedmethodkey(self, *args, **kwargs)
+    - typed variant excluding self
+- Implementation detail: keys may be tuples; can use a small internal wrapper class (_HashedTuple) to cache hash value for speed, but pure tuple acceptable if tests do not rely on representation.
+
+3) Behavioral contract
+3.1 General cache behavior (Cache)
+- Acts like a mutable mapping:
+  - KeyError on __getitem__ missing key
+  - __delitem__ raises KeyError if missing
+  - pop(key) raises KeyError if missing and no default
+  - pop(key, default) returns default if missing
+  - setdefault: if key present returns existing value, else sets to default and returns it
+  - update: accepts mapping/iterable of pairs and kwargs
+- Size/eviction behavior:
+  - maxsize is capacity in “size units”
+  - getsizeof:
+    - if None: each entry size=1
+    - if callable: size = getsizeof(value); must be positive int (if non-positive treat as 1 or raise; prefer treat <=0 as 1 to avoid negative sizing)
+  - currsize tracks sum of sizes of current values
+  - On __setitem__:
+    - If key exists: replace value, adjust currsize by delta
+    - If new key: increase currsize by size(value)
+    - If maxsize is not None and currsize > maxsize:
+      - Repeatedly evict using popitem until currsize <= maxsize
+      - If a single item is larger than maxsize:
+        - Behavior in cachetools: item may still be cached but eviction loops might remove it; tests typically expect that cache can end up empty or contain just that item depending on policy. Contract for simplicity: allow insertion, then evict until <= maxsize; if item alone exceeds maxsize, eviction may remove it too leaving cache empty. Must not infinite-loop.
+- Iteration and views:
+  - __iter__ yields keys in cache-defined order:
+    - Base Cache: insertion order is acceptable if underlying dict preserves it; tests likely not depend.
+    - LRUCache/TTLCache: iteration should be from least-recent to most-recent if order is meaningful; but at minimum must be consistent with popitem semantics.
+  - items()/keys()/values() should reflect only non-expired entries (TTLCache) and current entries (all caches).
+- Thread-safety:
+  - No internal thread safety required; decorators may accept external lock.
+
+3.2 LRUCache specifics
+- Maintains recency:
+  - Any successful lookup (__getitem__, get with hit, __contains__ with hit if implemented to touch) should mark key as most-recent.
+  - Contract: __contains__ should NOT update recency by default (common expectation); only __getitem__/get should. If tests expect touch-on-contains, adjust, but default: do not update on `in`.
+  - On __setitem__ for existing key: update recency to most-recent.
+- popitem:
+  - Removes and returns (key, value) for least-recently-used key.
+  - Raises KeyError if cache empty.
+
+3.3 TTLCache specifics
+- Expiration:
+  - Every entry has an expire time stored alongside value.
+  - Expired entries behave as absent:
+    - __getitem__ -> KeyError
+    - get -> default
+    - __contains__ -> False
+    - pop(key, default) returns default (and removes if present but expired should already be treated absent; may optionally purge)
+  - Purging strategy:
+    - On operations that observe/modify cache (getitem, setitem, delitem, contains, iter, len), it is acceptable to lazily purge expired items first or skip expired during that operation, but externally observed results must not include expired entries.
+  - Size eviction:
+    - Before enforcing maxsize eviction, purge expired entries.
+    - If still oversize, evict LRU among remaining live entries (not by earliest expiry), matching cachetools’ TTLCache which is LRU + TTL.
+- TTL update:
+  - __setitem__ sets/refreshes expiration for that key.
+  - __getitem__/get does not refresh expiration.
+- Timer:
+  - Use injected timer() for determinism in tests; never call time.time() if timer provided.
+- popitem:
+  - Purge expired, then evict LRU live entry; KeyError if none.
+
+3.4 Decorators behavior
+- cached(cache, key=hashkey, lock=None, info=False)
+  - Works with any mapping-like cache implementing __getitem__/__setitem__/__contains__ (or try/except KeyError pattern).
+  - Lookup algorithm:
+    - Compute k = key(*args, **kwargs)
+    - If lock is provided, wrap get/set in lock context to avoid double computation.
+    - Try to return cache[k]; on KeyError compute result = func(*args, **kwargs), store cache[k]=result, return result.
+  - Must not cache exceptions; exceptions propagate and do not write to cache.
+  - Works with unhashable args only if key function returns hashable; default hashkey will raise TypeError for unhashable inputs; allow that to propagate.
+  - Exposes:
+    - wrapper.cache = cache
+    - wrapper.cache_key = key
+    - wrapper.__wrapped__ = func
+    - wrapper.cache_clear() clears cache (cache.clear()) and returns None
+- cachedmethod(cache, key=methodkey or user-provided, lock=None)
+  - Key formation default excludes self: methodkey(self, *args, **kwargs) == hashkey(*args, **kwargs)
+  - Cache resolution:
+    - If cache is callable: c = cache(self)
+    - If cache is str: c = getattr(self, cache)
+    - Else: c = cache (shared cache)
+  - Storage semantics:
+    - Cache entry is per resolved cache object; shared cache shared across instances unless instance-specific caches are provided by callable/attribute.
+  - lock behavior:
+    - If lock is callable: lock(self) returns lock; if lock is str: getattr(self, lock); else lock is used directly. (If tests only pass Lock or None, support minimal; but implementing resolution improves compatibility.)
+  - wrapper must behave as descriptor correctly (use functools.wraps).
+  - Provide wrapper.cache(self) accessor or wrapper.cache_clear(self) depending on tests; minimum: wrapper.cache_clear(self) clears resolved cache.
+
+4) Acceptance checklist
+- Imports succeed:
+  - `import cachetools`
+  - `from cachetools.cache import Cache`
+  - `from cachetools.lru import LRUCache`
+  - `from cachetools.ttl import TTLCache`
+  - `from cachetools.keys import hashkey, methodkey, typedkey, typedmethodkey`
+  - `from cachetools import cached, cachedmethod`
+- Mapping behavior matches dict-like expectations:
+  - KeyError/TypeError behavior consistent with Python mappings
+  - len(), iter(), containment, get/pop/setdefault/update behave correctly
+- LRU behavior:
+  - Accessing an item via __getitem__/get makes it most-recent
+  - When over capacity, least-recent item is evicted
+  - Updating an existing key counts as recent and does not spuriously change size accounting
+- TTL behavior:
+  - Items expire after ttl seconds according to injected timer
+  - Expired items are not returned and are not reported by len()/iter()/contains/items()
+  - Expired items are purged lazily but consistently (no stale returns)
+  - Purge happens before size eviction; oversize eviction uses LRU among non-expired
+- Decorators:
+  - cached caches results by key and reuses cached results on subsequent calls
+  - cached does not cache exceptions
+  - cachedmethod excludes `self` from default key and respects per-instance caches when provided
+  - Wrapper exposes expected attributes: __wrapped__, cache, cache_key, cache_clear (and method form for cachedmethod)
+- No dependency on the external cachetools package; tests must run using only this repository.
+
+5) Non-goals / constraints
+- Pure Python only; no C extensions.
+- No external services, no network, no filesystem persistence.
+- No requirement to implement every cachetools feature (e.g., LFUCache, RRCache, TLRUCache, full cache_info stats) unless demanded by failing tests; implement only core parts specified.
+- Do not rely on CPython-specific dict ordering quirks beyond standard language guarantees (3.7+ insertion-ordered dict is acceptable).
+- Thread safety is best-effort via optional locks in decorators; caches themselves need not be intrinsically thread-safe.

@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.client.regex import run_regex
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex tester (safe subset). Does not start daemons or ban anything.",
+    )
+    p.add_argument("logfile", nargs="?", help="Log file path to scan (optional if --text).")
+    p.add_argument(
+        "--failregex",
+        action="append",
+        default=[],
+        help="Failregex pattern (Python regex). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--ignoreregex",
+        action="append",
+        default=[],
+        help="Ignore regex pattern (Python regex). Can be passed multiple times.",
+    )
+    p.add_argument(
+        "--text",
+        help="Log text provided directly instead of a file.",
+    )
+    p.add_argument("--max-lines", type=int, default=0, help="Limit lines read from logfile (0=all).")
+    args = p.parse_args(argv)
+
+    if not args.failregex:
+        print("error: at least one --failregex is required for offline matching", file=sys.stderr)
+        return 2
+
+    if args.text is not None:
+        data = args.text
+    else:
+        if not args.logfile:
+            p.print_help(sys.stderr)
+            return 2
+        path = Path(args.logfile)
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except FileNotFoundError:
+            print(f"error: logfile not found: {path}", file=sys.stderr)
+            return 2
+        if args.max_lines and args.max_lines > 0:
+            lines = lines[: args.max_lines]
+        data = "\n".join(lines)
+
+    report = run_regex(data, args.failregex, args.ignoreregex)
+    print(f"Lines: {report.total_lines}")
+    print(f"Matched: {len(report.matched)}")
+    print(f"Ignored: {report.ignored}")
+    print(f"Missed: {report.missed}")
+
+    # Provide concise match list
+    for m in report.matched[:50]:
+        host = m.host or "-"
+        print(f"{m.line_no}: host={host} regex={m.regex}")
+    if len(report.matched) > 50:
+        print(f"... ({len(report.matched) - 50} more matches)")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
