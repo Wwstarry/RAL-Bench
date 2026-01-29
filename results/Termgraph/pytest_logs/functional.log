@@ -2,246 +2,474 @@ FFFFFFFFFFF                                                              [100%]
 ================================== FAILURES ===================================
 ______________________ test_simple_horizontal_bar_chart _______________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF1162FA0>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000212149D7100>
 
-    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["A", "B", "C"]
-        values = [[3], [5], [2]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000212149D70A0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:90: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF1155490>
+# Test Chart
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'A'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 _____________________ test_stacked_chart_multiple_series ______________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF11B0F10>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A283D0>
 
-    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["X", "Y"]
-        values = [[1, 2], [3, 4]]
-    
->       data = Data(values, labels)
+>   ???
 
-tests\Termgraph\functional_test.py:107: 
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:111: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-.0 = <list_iterator object at 0x000001DAF11B0DC0>
+.0 = <list_iterator object at 0x0000021214A28CA0>
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'X'
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
 
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stacked Chart
+
 _______________________ test_bar_chart_object_interface _______________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF11267F0>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000212149D7E80>
 
-    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["D", "E"]
-        values = [[4], [1]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000212149D7AC0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:123: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF1115D60>
+# Bars
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'D'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 ___________________ test_bar_chart_respects_no_values_flag ____________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF11B2FA0>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A2D4F0>
 
-    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["A", "B"]
-        values = [[2], [7]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021214A2D580>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:139: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF11B2A30>
+# No Values
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'A'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 ___________________ test_bar_chart_respects_no_labels_flag ____________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF1115A60>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A4B6D0>
 
-    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["L1", "L2", "L3"]
-        values = [[1], [2], [3]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021214A4B790>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:155: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF1115A90>
+# No Labels
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'L'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 __________________ test_bar_chart_suffix_appended_to_values ___________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF1140DC0>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000212149982E0>
 
-    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["CPU", "RAM"]
-        values = [[12.5], [7.0]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000212149980D0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:172: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF11404C0>
+# Suffix
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'C'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 ___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF11B0070>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A19CD0>
 
-    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["P", "Q"]
-        values = [[3.14159], [2.71828]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021214A192B0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:188: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF11B0BE0>
+# Fmt
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'P'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 ____________________ test_stacked_chart_renders_all_labels ____________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF1148A90>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A5C970>
 
-    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["S1", "S2", "S3"]
-        values = [[1, 1], [2, 1], [1, 3]]
-    
->       data = Data(values, labels)
+>   ???
 
-tests\Termgraph\functional_test.py:204: 
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:207: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-.0 = <list_iterator object at 0x000001DAF1148190>
+.0 = <list_iterator object at 0x0000021214A5C700>
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'S'
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
 
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stack Labels
+
 ____________ test_stacked_chart_no_values_still_renders_structure _____________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF113D520>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A199D0>
 
-    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["A", "B"]
-        values = [[1, 2, 3], [3, 2, 1]]
-    
->       data = Data(values, labels)
+>   ???
 
-tests\Termgraph\functional_test.py:219: 
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:222: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-.0 = <list_iterator object at 0x000001DAF113D400>
+.0 = <list_iterator object at 0x0000021214A19910>
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'A'
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
 
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stack No Values
+
 __________________ test_title_none_does_not_break_rendering ___________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF1141B50>
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021214A176D0>
 
-    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["U", "V"]
-        values = [[4], [6]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021214A17A30>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:235: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-
-.0 = <list_iterator object at 0x000001DAF11412B0>
-
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'U'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
 ________________ test_width_parameter_affects_output_presence _________________
 
-capsys = <_pytest.capture.CaptureFixture object at 0x000001DAF11556D0>
+capsys = <_pytest.capture.CaptureFixture object at 0x00000212149806A0>
 
-    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
-        labels = ["W"]
-        values = [[9]]
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021214980700>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
     
->       data = Data(values, labels)
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
 
-tests\Termgraph\functional_test.py:250: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Termgraph\termgraph\data.py:34: in __init__
-    self.data = [list(map(float, s)) for s in (data or [])]
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
 
-.0 = <list_iterator object at 0x000001DAF1155160>
+# Narrow
 
->   self.data = [list(map(float, s)) for s in (data or [])]
-E   ValueError: could not convert string to float: 'W'
-
-generation_m3\Termgraph\termgraph\data.py:34: ValueError
 =========================== short test summary info ===========================
 FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
 FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
@@ -254,4 +482,4 @@ FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
 FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
 FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
 FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
-11 failed in 0.65s
+11 failed in 26.85s

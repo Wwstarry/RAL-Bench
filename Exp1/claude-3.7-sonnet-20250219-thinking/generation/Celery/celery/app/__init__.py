@@ -1,0 +1,1 @@
+from celery.app.base import Celery

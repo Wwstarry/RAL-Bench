@@ -1,8 +1,2 @@
-# Minimal Mailpile core-slice package used for benchmarks/tests.
-
-__all__ = [
-    "safe_popen",
-    "util",
-    "vcard",
-    "i18n",
-]
+# RACB: minimal initializer (avoid importing the full Mailpile app)
+__all__ = []

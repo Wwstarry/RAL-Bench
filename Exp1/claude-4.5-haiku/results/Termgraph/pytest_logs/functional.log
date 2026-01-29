@@ -1,0 +1,519 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D798490>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D798430>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Test Chart
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7FEA00>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D7FEBB0>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stacked Chart
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7F4A90>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D7F4BE0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Bars
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D833B20>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D833B80>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Values
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D76FEB0>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D76FC70>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Labels
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D826A00>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D826A30>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Suffix
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D830A30>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D830A90>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Fmt
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7FCAF0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D7FCD60>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack Labels
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7587F0>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D80B790>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack No Values
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D77E6D0>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D77E760>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D8218B0>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D821AC0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Narrow
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 29.02s

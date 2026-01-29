@@ -1,0 +1,964 @@
+<file:name=folium/__init__.py>
+"""
+Folium - Python library for generating interactive Leaflet maps as HTML.
+"""
+
+__version__ = "0.1.0"
+
+from folium.folium import Map
+from folium.features import Marker, CircleMarker, GeoJson, TileLayer, LayerControl
+from folium import plugins
+
+__all__ = [
+    "Map",
+    "Marker",
+    "CircleMarker",
+    "GeoJson",
+    "TileLayer",
+    "LayerControl",
+    "plugins",
+]
+</file:name>
+
+<file:name=folium/folium.py>
+"""
+Core Map class for Folium.
+"""
+
+import json
+from folium.element import Element, MacroElement
+
+
+class Map(MacroElement):
+    """
+    Create a Map with Leaflet.js.
+    
+    Parameters
+    ----------
+    location : tuple or list, default None
+        Latitude and Longitude of Map center (Lat, Lon).
+    zoom_start : int, default 10
+        Initial zoom level for the map.
+    tiles : str, default 'OpenStreetMap'
+        Map tileset to use. Can pass custom URL.
+    attr : str, default None
+        Custom attribution for tiles.
+    width : str or int, default '100%'
+        Width of the map.
+    height : str or int, default '100%'
+        Height of the map.
+    """
+    
+    _template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        #{{ this.get_name() }} {
+            position: relative;
+            width: {{ this.width[0] }}{{ this.width[1] }};
+            height: {{ this.height[0] }}{{ this.height[1] }};
+            left: 0;
+            top: 0;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {% for name, element in this.header._children.items() %}
+    {{ element.render() }}
+    {% endfor %}
+</head>
+<body>
+    <div id="{{ this.get_name() }}"></div>
+    <script>
+        var {{ this.get_name() }} = L.map('{{ this.get_name() }}', {
+            center: [{{ this.location[0] }}, {{ this.location[1] }}],
+            zoom: {{ this.zoom_start }},
+            zoomControl: true,
+            preferCanvas: false,
+        });
+        
+        {% for name, element in this.body._children.items() %}
+        {{ element.render() }}
+        {% endfor %}
+    </script>
+</body>
+</html>
+"""
+    
+    def __init__(self, location=None, zoom_start=10, tiles='OpenStreetMap',
+                 attr=None, width='100%', height='100%', **kwargs):
+        super(Map, self).__init__()
+        self._name = 'Map'
+        
+        if location is None:
+            location = [0, 0]
+        self.location = location
+        self.zoom_start = zoom_start
+        
+        # Parse width and height
+        self.width = self._parse_size(width)
+        self.height = self._parse_size(height)
+        
+        # Create header and body containers
+        self.header = Element()
+        self.body = Element()
+        
+        # Add default tile layer if tiles is specified
+        if tiles:
+            from folium.features import TileLayer
+            tile_layer = TileLayer(tiles=tiles, attr=attr)
+            self.add_child(tile_layer)
+    
+    def _parse_size(self, size):
+        """Parse size to (value, unit) tuple."""
+        if isinstance(size, (int, float)):
+            return (size, 'px')
+        elif isinstance(size, str):
+            if size.endswith('%'):
+                return (size[:-1], '%')
+            elif size.endswith('px'):
+                return (size[:-2], 'px')
+            else:
+                return (size, 'px')
+        return (size, 'px')
+    
+    def add_child(self, child, name=None, index=None):
+        """Add a child element to the map."""
+        if name is None:
+            name = child.get_name()
+        
+        # Determine where to add the child
+        if hasattr(child, '_in_header') and child._in_header:
+            self.header._children[name] = child
+        else:
+            self.body._children[name] = child
+        
+        child._parent = self
+        return self
+    
+    def add_to(self, parent):
+        """Add this map to a parent element."""
+        parent.add_child(self)
+        return self
+    
+    def get_root(self):
+        """Get the root element (self for Map)."""
+        return self
+    
+    def render(self, **kwargs):
+        """Render the map to HTML."""
+        from jinja2 import Template
+        template = Template(self._template)
+        return template.render(this=self, **kwargs)
+    
+    def _repr_html_(self):
+        """Return HTML representation for Jupyter notebooks."""
+        return self.render()
+</file:name>
+
+<file:name=folium/element.py>
+"""
+Base classes for Folium elements.
+"""
+
+import uuid
+
+
+class Element:
+    """Base class for all Folium elements."""
+    
+    def __init__(self):
+        self._name = None
+        self._id = uuid.uuid4().hex
+        self._children = {}
+        self._parent = None
+    
+    def get_name(self):
+        """Get the name of this element."""
+        if self._name is None:
+            self._name = f"{self.__class__.__name__}_{self._id[:8]}"
+        return self._name
+    
+    def add_child(self, child, name=None, index=None):
+        """Add a child element."""
+        if name is None:
+            name = child.get_name()
+        self._children[name] = child
+        child._parent = self
+        return self
+    
+    def render(self, **kwargs):
+        """Render this element to HTML/JS."""
+        return ""
+
+
+class MacroElement(Element):
+    """Base class for elements that can be added to a map."""
+    
+    _template = ""
+    
+    def __init__(self):
+        super(MacroElement, self).__init__()
+        self._in_header = False
+    
+    def add_to(self, parent):
+        """Add this element to a parent."""
+        parent.add_child(self)
+        return self
+    
+    def get_root(self):
+        """Get the root map element."""
+        if self._parent is None:
+            return self
+        return self._parent.get_root()
+    
+    def render(self, **kwargs):
+        """Render this element."""
+        if not self._template:
+            return ""
+        from jinja2 import Template
+        template = Template(self._template)
+        return template.render(this=self, **kwargs)
+</file:name>
+
+<file:name=folium/features.py>
+"""
+Features that can be added to Folium maps.
+"""
+
+import json
+from folium.element import MacroElement
+
+
+class Marker(MacroElement):
+    """
+    Create a simple marker on the map.
+    
+    Parameters
+    ----------
+    location : tuple or list
+        Latitude and Longitude of marker (Lat, Lon).
+    popup : str, default None
+        Popup text to display on click.
+    tooltip : str, default None
+        Tooltip text to display on hover.
+    icon : Icon, default None
+        Icon instance for the marker.
+    """
+    
+    _template = """
+        var {{ this.get_name() }} = L.marker(
+            [{{ this.location[0] }}, {{ this.location[1] }}],
+            {}
+        ).addTo({{ this._parent.get_name() }});
+        {% if this.popup %}
+        {{ this.get_name() }}.bindPopup({{ this.popup|tojson }});
+        {% endif %}
+        {% if this.tooltip %}
+        {{ this.get_name() }}.bindTooltip({{ this.tooltip|tojson }});
+        {% endif %}
+    """
+    
+    def __init__(self, location, popup=None, tooltip=None, icon=None, **kwargs):
+        super(Marker, self).__init__()
+        self.location = location
+        self.popup = popup
+        self.tooltip = tooltip
+        self.icon = icon
+
+
+class CircleMarker(MacroElement):
+    """
+    Create a circle marker on the map.
+    
+    Parameters
+    ----------
+    location : tuple or list
+        Latitude and Longitude of marker (Lat, Lon).
+    radius : int, default 10
+        Radius of the circle marker in pixels.
+    popup : str, default None
+        Popup text to display on click.
+    tooltip : str, default None
+        Tooltip text to display on hover.
+    color : str, default '#3388ff'
+        Stroke color.
+    fill_color : str, default None
+        Fill color.
+    fill_opacity : float, default 0.2
+        Fill opacity.
+    """
+    
+    _template = """
+        var {{ this.get_name() }} = L.circleMarker(
+            [{{ this.location[0] }}, {{ this.location[1] }}],
+            {
+                radius: {{ this.radius }},
+                color: {{ this.color|tojson }},
+                fillColor: {{ this.fill_color|tojson }},
+                fillOpacity: {{ this.fill_opacity }},
+                weight: {{ this.weight }}
+            }
+        ).addTo({{ this._parent.get_name() }});
+        {% if this.popup %}
+        {{ this.get_name() }}.bindPopup({{ this.popup|tojson }});
+        {% endif %}
+        {% if this.tooltip %}
+        {{ this.get_name() }}.bindTooltip({{ this.tooltip|tojson }});
+        {% endif %}
+    """
+    
+    def __init__(self, location, radius=10, popup=None, tooltip=None,
+                 color='#3388ff', fill_color=None, fill_opacity=0.2,
+                 weight=1, **kwargs):
+        super(CircleMarker, self).__init__()
+        self.location = location
+        self.radius = radius
+        self.popup = popup
+        self.tooltip = tooltip
+        self.color = color
+        self.fill_color = fill_color if fill_color else color
+        self.fill_opacity = fill_opacity
+        self.weight = weight
+
+
+class GeoJson(MacroElement):
+    """
+    Create a GeoJson layer.
+    
+    Parameters
+    ----------
+    data : dict or str
+        GeoJSON data as dict or JSON string.
+    name : str, default None
+        Name of the layer for layer control.
+    overlay : bool, default True
+        Whether this is an overlay layer.
+    control : bool, default True
+        Whether to include in layer control.
+    show : bool, default True
+        Whether to show layer by default.
+    """
+    
+    _template = """
+        var {{ this.get_name() }} = L.geoJson(
+            {{ this.data_json }},
+            {}
+        ){% if this.show %}.addTo({{ this._parent.get_name() }}){% endif %};
+    """
+    
+    def __init__(self, data, name=None, overlay=True, control=True, show=True, **kwargs):
+        super(GeoJson, self).__init__()
+        
+        if isinstance(data, dict):
+            self.data = data
+        elif isinstance(data, str):
+            self.data = json.loads(data)
+        else:
+            self.data = data
+        
+        self.data_json = json.dumps(self.data)
+        self.layer_name = name
+        self.overlay = overlay
+        self.control = control
+        self.show = show
+
+
+class TileLayer(MacroElement):
+    """
+    Create a tile layer.
+    
+    Parameters
+    ----------
+    tiles : str, default 'OpenStreetMap'
+        Tile provider name or custom URL template.
+    attr : str, default None
+        Attribution text.
+    name : str, default None
+        Name for layer control.
+    overlay : bool, default False
+        Whether this is an overlay.
+    control : bool, default True
+        Whether to include in layer control.
+    show : bool, default True
+        Whether to show by default.
+    """
+    
+    _template = """
+        var {{ this.get_name() }} = L.tileLayer(
+            {{ this.tiles_url|tojson }},
+            {
+                attribution: {{ this.attr|tojson }},
+                detectRetina: false,
+                maxNativeZoom: 18,
+                maxZoom: 18,
+                minZoom: 0,
+                noWrap: false,
+                opacity: 1,
+                subdomains: 'abc',
+                tms: false
+            }
+        ){% if this.show %}.addTo({{ this._parent.get_name() }}){% endif %};
+    """
+    
+    # Tile provider templates
+    _tiles = {
+        'OpenStreetMap': {
+            'url': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'attr': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        },
+        'Stamen Terrain': {
+            'url': 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg',
+            'attr': 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'
+        },
+        'Stamen Toner': {
+            'url': 'https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png',
+            'attr': 'Map tiles by <a href="http://stamen.com">Stamen Design</a>'
+        },
+        'CartoDB positron': {
+            'url': 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+            'attr': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        },
+        'CartoDB dark_matter': {
+            'url': 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+            'attr': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }
+    }
+    
+    def __init__(self, tiles='OpenStreetMap', attr=None, name=None,
+                 overlay=False, control=True, show=True, **kwargs):
+        super(TileLayer, self).__init__()
+        
+        # Determine tile URL and attribution
+        if tiles in self._tiles:
+            tile_config = self._tiles[tiles]
+            self.tiles_url = tile_config['url']
+            self.attr = attr if attr else tile_config['attr']
+        else:
+            # Assume it's a custom URL
+            self.tiles_url = tiles
+            self.attr = attr if attr else ''
+        
+        self.layer_name = name if name else tiles
+        self.overlay = overlay
+        self.control = control
+        self.show = show
+
+
+class LayerControl(MacroElement):
+    """
+    Add layer control to the map for toggling layers.
+    
+    Parameters
+    ----------
+    position : str, default 'topright'
+        Position of the control.
+    collapsed : bool, default True
+        Whether the control is collapsed by default.
+    autoZIndex : bool, default True
+        Whether to auto-assign z-index.
+    """
+    
+    _template = """
+        var {{ this.get_name() }} = L.control.layers(
+            {},
+            {},
+            {
+                position: {{ this.position|tojson }},
+                collapsed: {{ this.collapsed|tojson|lower }},
+                autoZIndex: {{ this.autoZIndex|tojson|lower }}
+            }
+        ).addTo({{ this._parent.get_name() }});
+        
+        {% for name, element in this._parent.body._children.items() %}
+        {% if hasattr(element, 'layer_name') and element.layer_name and hasattr(element, 'control') and element.control %}
+        {{ this.get_name() }}.{% if element.overlay %}addOverlay{% else %}addBaseLayer{% endif %}({{ element.get_name() }}, {{ element.layer_name|tojson }});
+        {% endif %}
+        {% endfor %}
+    """
+    
+    def __init__(self, position='topright', collapsed=True, autoZIndex=True, **kwargs):
+        super(LayerControl, self).__init__()
+        self.position = position
+        self.collapsed = collapsed
+        self.autoZIndex = autoZIndex
+</file:name>
+
+<file:name=folium/plugins/__init__.py>
+"""
+Folium plugins for extended functionality.
+"""
+
+from folium.plugins.marker_cluster import MarkerCluster
+
+__all__ = ['MarkerCluster']
+</file:name>
+
+<file:name=folium/plugins/marker_cluster.py>
+"""
+MarkerCluster plugin for clustering large numbers of markers.
+"""
+
+import json
+from folium.element import MacroElement
+
+
+class MarkerCluster(MacroElement):
+    """
+    Create a MarkerCluster layer for efficiently displaying many markers.
+    
+    Parameters
+    ----------
+    name : str, default 'marker_cluster'
+        Name of the layer.
+    overlay : bool, default True
+        Whether this is an overlay layer.
+    control : bool, default True
+        Whether to include in layer control.
+    show : bool, default True
+        Whether to show by default.
+    icon_create_function : str, default None
+        Custom JavaScript function for creating cluster icons.
+    """
+    
+    _template_header = """
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    """
+    
+    _template_body = """
+        var {{ this.get_name() }} = L.markerClusterGroup({
+            {% if this.icon_create_function %}
+            iconCreateFunction: {{ this.icon_create_function }}
+            {% endif %}
+        });
+        {% if this.show %}
+        {{ this._parent.get_name() }}.addLayer({{ this.get_name() }});
+        {% endif %}
+    """
+    
+    def __init__(self, name='marker_cluster', overlay=True, control=True,
+                 show=True, icon_create_function=None, **kwargs):
+        super(MarkerCluster, self).__init__()
+        self.layer_name = name
+        self.overlay = overlay
+        self.control = control
+        self.show = show
+        self.icon_create_function = icon_create_function
+        self._markers = []
+    
+    def add_child(self, child, name=None, index=None):
+        """Add a marker to the cluster."""
+        if name is None:
+            name = child.get_name()
+        self._children[name] = child
+        child._parent = self
+        self._markers.append(child)
+        return self
+    
+    def render(self, **kwargs):
+        """Render the marker cluster."""
+        # First render header content
+        if hasattr(self, '_parent') and self._parent:
+            root = self.get_root()
+            if hasattr(root, 'header'):
+                # Add header content if not already added
+                header_name = f"{self.get_name()}_header"
+                if header_name not in root.header._children:
+                    from folium.element import Element
+                    header_elem = Element()
+                    header_elem._name = header_name
+                    header_elem.render = lambda **kw: self._template_header
+                    root.header._children[header_name] = header_elem
+        
+        # Render body
+        from jinja2 import Template
+        template = Template(self._template_body)
+        result = template.render(this=self, **kwargs)
+        
+        # Add markers to cluster
+        for marker in self._markers:
+            # Modify marker template to add to cluster instead of map
+            marker_template = marker._template.replace(
+                f'.addTo({marker._parent.get_name()})',
+                f'.addTo({self.get_name()})'
+            )
+            from jinja2 import Template
+            marker_tmpl = Template(marker_template)
+            result += "\n" + marker_tmpl.render(this=marker, **kwargs)
+        
+        return result
+</file:name>
+
+<file:name=setup.py>
+"""
+Setup script for Folium.
+"""
+
+from setuptools import setup, find_packages
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+setup(
+    name="folium",
+    version="0.1.0",
+    author="Folium Contributors",
+    description="Python library for generating interactive Leaflet maps",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    packages=find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.6",
+    install_requires=[
+        "jinja2>=2.9",
+    ],
+)
+</file:name>
+
+<file:name=README.md>
+# Folium
+
+A pure-Python library for generating interactive maps as HTML using Leaflet.js.
+
+## Features
+
+- Create interactive maps with Leaflet.js
+- Add markers, circle markers, and GeoJSON layers
+- Support for multiple tile providers
+- Layer control for toggling layers
+- MarkerCluster plugin for efficiently displaying large numbers of markers
+
+## Installation
+
+```bash
+pip install -e .
+```
+
+## Quick Start
+
+```python
+import folium
+
+# Create a map
+m = folium.Map(location=[45.5236, -122.6750], zoom_start=13)
+
+# Add a marker
+folium.Marker([45.5236, -122.6750], popup="Portland, OR").add_to(m)
+
+# Save to HTML
+m.get_root().render()
+```
+
+## API
+
+### Map
+
+Create a map with `folium.Map`:
+
+```python
+m = folium.Map(
+    location=[lat, lon],
+    zoom_start=10,
+    tiles='OpenStreetMap'
+)
+```
+
+### Markers
+
+Add markers with `folium.Marker`:
+
+```python
+folium.Marker(
+    location=[lat, lon],
+    popup="Popup text",
+    tooltip="Tooltip text"
+).add_to(m)
+```
+
+### Circle Markers
+
+Add circle markers with `folium.CircleMarker`:
+
+```python
+folium.CircleMarker(
+    location=[lat, lon],
+    radius=10,
+    color='blue',
+    fill_color='blue'
+).add_to(m)
+```
+
+### GeoJSON
+
+Add GeoJSON data with `folium.GeoJson`:
+
+```python
+folium.GeoJson(
+    data=geojson_data,
+    name='geojson'
+).add_to(m)
+```
+
+### Tile Layers
+
+Add custom tile layers with `folium.TileLayer`:
+
+```python
+folium.TileLayer(
+    tiles='OpenStreetMap',
+    name='OpenStreetMap'
+).add_to(m)
+```
+
+### Layer Control
+
+Add layer control with `folium.LayerControl`:
+
+```python
+folium.LayerControl().add_to(m)
+```
+
+### Marker Clustering
+
+Use `folium.plugins.MarkerCluster` for large numbers of markers:
+
+```python
+from folium.plugins import MarkerCluster
+
+marker_cluster = MarkerCluster().add_to(m)
+
+for lat, lon in locations:
+    folium.Marker([lat, lon]).add_to(marker_cluster)
+```
+
+## License
+
+MIT License
+</file:name>
+
+<file:name=requirements.txt>
+jinja2>=2.9
+</file:name>
+
+<file:name=tests/__init__.py>
+"""
+Tests for Folium.
+"""
+</file:name>
+
+<file:name=tests/test_map.py>
+"""
+Tests for Map functionality.
+"""
+
+import folium
+
+
+def test_map_creation():
+    """Test basic map creation."""
+    m = folium.Map(location=[45.5236, -122.6750], zoom_start=13)
+    html = m.get_root().render()
+    
+    assert 'leaflet.js' in html
+    assert 'L.map' in html
+    assert '45.5236' in html
+    assert '-122.6750' in html
+    assert 'zoom: 13' in html
+
+
+def test_map_default_location():
+    """Test map with default location."""
+    m = folium.Map()
+    html = m.get_root().render()
+    
+    assert 'L.map' in html
+    assert '[0, 0]' in html
+
+
+def test_map_tiles():
+    """Test map with different tile providers."""
+    m = folium.Map(location=[0, 0], tiles='OpenStreetMap')
+    html = m.get_root().render()
+    
+    assert 'tile.openstreetmap.org' in html
+    assert 'OpenStreetMap' in html
+
+
+def test_marker():
+    """Test adding a marker to a map."""
+    m = folium.Map(location=[45.5236, -122.6750])
+    folium.Marker([45.5236, -122.6750], popup="Test").add_to(m)
+    html = m.get_root().render()
+    
+    assert 'L.marker' in html
+    assert '45.5236' in html
+    assert 'Test' in html
+
+
+def test_circle_marker():
+    """Test adding a circle marker to a map."""
+    m = folium.Map(location=[45.5236, -122.6750])
+    folium.CircleMarker([45.5236, -122.6750], radius=10).add_to(m)
+    html = m.get_root().render()
+    
+    assert 'L.circleMarker' in html
+    assert 'radius: 10' in html
+
+
+def test_geojson():
+    """Test adding GeoJSON to a map."""
+    m = folium.Map(location=[0, 0])
+    geojson_data = {
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [0, 0]
+        }
+    }
+    folium.GeoJson(geojson_data).add_to(m)
+    html = m.get_root().render()
+    
+    assert 'L.geoJson' in html
+    assert '"type": "Feature"' in html
+
+
+def test_tile_layer():
+    """Test adding a tile layer."""
+    m = folium.Map(location=[0, 0], tiles=None)
+    folium.TileLayer(tiles='OpenStreetMap').add_to(m)
+    html = m.get_root().render()
+    
+    assert 'L.tileLayer' in html
+    assert 'tile.openstreetmap.org' in html
+
+
+def test_layer_control():
+    """Test adding layer control."""
+    m = folium.Map(location=[0, 0])
+    folium.TileLayer(tiles='OpenStreetMap', name='OSM').add_to(m)
+    folium.LayerControl().add_to(m)
+    html = m.get_root().render()
+    
+    assert 'L.control.layers' in html
+
+
+def test_marker_cluster():
+    """Test marker clustering."""
+    from folium.plugins import MarkerCluster
+    
+    m = folium.Map(location=[0, 0])
+    marker_cluster = MarkerCluster().add_to(m)
+    
+    for i in range(10):
+        folium.Marker([i * 0.1, i * 0.1]).add_to(marker_cluster)
+    
+    html = m.get_root().render()
+    
+    assert 'markercluster' in html.lower()
+    assert 'L.markerClusterGroup' in html
+    assert 'L.marker' in html
+
+
+if __name__ == '__main__':
+    test_map_creation()
+    test_map_default_location()
+    test_map_tiles()
+    test_marker()
+    test_circle_marker()
+    test_geojson()
+    test_tile_layer()
+    test_layer_control()
+    test_marker_cluster()
+    print("All tests passed!")
+</file:name>
+
+<file:name=tests/test_performance.py>
+"""
+Performance tests for Folium.
+"""
+
+import time
+import folium
+from folium.plugins import MarkerCluster
+
+
+def test_many_markers_performance():
+    """Test performance with many markers."""
+    num_markers = 1000
+    
+    start_time = time.time()
+    m = folium.Map(location=[0, 0])
+    
+    for i in range(num_markers):
+        lat = (i % 100) * 0.01
+        lon = (i // 100) * 0.01
+        folium.Marker([lat, lon]).add_to(m)
+    
+    html = m.get_root().render()
+    end_time = time.time()
+    
+    elapsed = end_time - start_time
+    html_size = len(html)
+    
+    print(f"Created {num_markers} markers in {elapsed:.2f}s")
+    print(f"HTML size: {html_size / 1024:.1f} KB")
+    
+    # Verify markers are in HTML
+    assert html.count('L.marker') == num_markers
+    
+    # Performance should be reasonable (< 5 seconds for 1000 markers)
+    assert elapsed < 5.0
+
+
+def test_marker_cluster_performance():
+    """Test performance with marker clustering."""
+    num_markers = 1000
+    
+    start_time = time.time()
+    m = folium.Map(location=[0, 0])
+    marker_cluster = MarkerCluster().add_to(m)
+    
+    for i in range(num_markers):
+        lat = (i % 100) * 0.01
+        lon = (i // 100) * 0.01
+        folium.Marker([lat, lon]).add_to(marker_cluster)
+    
+    html = m.get_root().render()
+    end_time = time.time()
+    
+    elapsed = end_time - start_time
+    html_size = len(html)
+    
+    print(f"Created {num_markers} clustered markers in {elapsed:.2f}s")
+    print(f"HTML size with clustering: {html_size / 1024:.1f} KB")
+    
+    # Verify clustering is enabled
+    assert 'L.markerClusterGroup' in html
+    assert html.count('L.marker') == num_markers
+    
+    # Performance should be reasonable
+    assert elapsed < 5.0
+
+
+def test_html_size_comparison():
+    """Compare HTML size with and without clustering."""
+    num_markers = 500
+    
+    # Without clustering
+    m1 = folium.Map(location=[0, 0])
+    for i in range(num_markers):
+        folium.Marker([i * 0.01, i * 0.01]).add_to(m1)
+    html1 = m1.get_root().render()
+    size1 = len(html1)
+    
+    # With clustering
+    m

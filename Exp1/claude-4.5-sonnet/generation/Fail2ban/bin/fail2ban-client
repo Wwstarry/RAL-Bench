@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""
+Fail2Ban client - command-line interface for Fail2Ban server.
+
+This is a safe implementation that does NOT start the server daemon.
+"""
+
+import sys
+import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Fail2Ban client - command-line interface',
+        prog='fail2ban-client'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='Fail2Ban v1.0.0'
+    )
+    
+    parser.add_argument(
+        '-c',
+        '--config',
+        dest='config',
+        default='/etc/fail2ban',
+        help='Configuration directory (default: /etc/fail2ban)'
+    )
+    
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Verbose output'
+    )
+    
+    parser.add_argument(
+        'command',
+        nargs='?',
+        help='Command to execute (start, stop, reload, status, etc.)'
+    )
+    
+    parser.add_argument(
+        'args',
+        nargs='*',
+        help='Command arguments'
+    )
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        return 0
+    
+    # Safe implementation - only show help and version
+    if args.command == 'version':
+        print('Fail2Ban v1.0.0')
+        return 0
+    
+    if args.command == 'help':
+        parser.print_help()
+        return 0
+    
+    # For safety, we don't actually execute server commands
+    print(f"fail2ban-client: Safe mode - command '{args.command}' not executed")
+    print("This is a minimal implementation for testing purposes only.")
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,134 +1,83 @@
+# -*- coding: utf-8 -*-
+"""
+Safe subprocess wrapper and pipe helpers.
+
+This module provides a very small, test-friendly subset of Mailpile's
+safe_popen utilities:
+- Popen: wrapper around subprocess.Popen that defaults to safe settings
+- safe_popen: convenience function
+- MakePopenUnsafe: compatibility stub (no-op here)
+- PIPE helpers (inherit from subprocess)
+"""
+
+
+
 import os
 import subprocess
-import threading
-from typing import Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
+
+PIPE = subprocess.PIPE
+STDOUT = subprocess.STDOUT
+DEVNULL = subprocess.DEVNULL
 
 
-def _to_bytes(data):
-    if data is None:
-        return None
-    if isinstance(data, bytes):
-        return data
-    return str(data).encode("utf-8", "replace")
-
-
-def _to_text(data):
-    if data is None:
-        return None
-    if isinstance(data, str):
-        return data
-    return data.decode("utf-8", "replace")
+def _sanitize_env(env: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    base = dict(os.environ)
+    if env:
+        base.update({str(k): str(v) for k, v in list(env.items())})
+    return base
 
 
 class SafePopen(subprocess.Popen):
     """
-    Small wrapper around subprocess.Popen with convenience helpers and safe
-    defaults: no shell by default, close_fds, and optional text-mode I/O.
+    A safer default Popen:
+    - shell=False unless explicitly requested
+    - close_fds=True on POSIX
+    - env sanitized/merged with os.environ
     """
 
     def __init__(
         self,
         args: Union[str, Sequence[str]],
-        stdin=None,
-        stdout=None,
-        stderr=None,
+        stdin: Any = None,
+        stdout: Any = None,
+        stderr: Any = None,
         shell: bool = False,
-        close_fds: bool = True,
-        env: Optional[dict] = None,
         cwd: Optional[str] = None,
-        text: bool = False,
-        **kwargs,
+        env: Optional[Dict[str, str]] = None,
+        close_fds: Optional[bool] = None,
+        **kwargs: Any,
     ):
-        self._text_mode = bool(text)
+        if close_fds is None:
+            close_fds = (os.name != "nt")
+        kwargs.setdefault("text", False)
         super().__init__(
             args,
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
             shell=shell,
-            close_fds=close_fds,
-            env=env,
             cwd=cwd,
+            env=_sanitize_env(env),
+            close_fds=close_fds,
             **kwargs,
         )
 
-    def communicate(self, input=None, timeout=None):
-        if self._text_mode and isinstance(input, str):
-            input = _to_bytes(input)
-        out, err = super().communicate(input=input, timeout=timeout)
-        if self._text_mode:
-            out = _to_text(out)
-            err = _to_text(err)
-        return out, err
 
-
-def safe_popen(*args, **kwargs) -> SafePopen:
+def Popen(*args: Any, **kwargs: Any) -> SafePopen:
     return SafePopen(*args, **kwargs)
 
 
-def safe_popen_get_output(
-    args: Union[str, Sequence[str]],
-    input_data: Optional[Union[str, bytes]] = None,
-    env: Optional[dict] = None,
-    cwd: Optional[str] = None,
-    timeout: Optional[float] = None,
-    text: bool = True,
-) -> str:
+def safe_popen(*args: Any, **kwargs: Any) -> SafePopen:
+    return SafePopen(*args, **kwargs)
+
+
+def MakePopenUnsafe() -> None:
     """
-    Run a subprocess and return stdout (decoded if text=True). Raises CalledProcessError on failure.
+    Compatibility stub.
+
+    The upstream Mailpile historically had logic to relax restrictions in
+    controlled contexts. This benchmark slice doesn't enforce extra
+    restrictions beyond safe defaults, so this is a no-op.
     """
-    p = SafePopen(
-        args,
-        stdin=subprocess.PIPE if input_data is not None else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        cwd=cwd,
-        text=False,
-    )
-    out, err = p.communicate(input=_to_bytes(input_data), timeout=timeout)
-    rc = p.returncode
-    if rc != 0:
-        e = subprocess.CalledProcessError(rc, args, output=out, stderr=err)
-        raise e
-    if text:
-        return _to_text(out or b"")
-    return out or b""
-
-
-class PipeReader(threading.Thread):
-    """
-    Helper thread which reads from a file-like object until EOF.
-    """
-
-    def __init__(self, fd, collect: bool = True):
-        super().__init__(daemon=True)
-        self.fd = fd
-        self.collect = collect
-        self.data = b""
-        self._done = threading.Event()
-
-    def run(self):
-        try:
-            chunks = []
-            while True:
-                buf = self.fd.read(8192)
-                if not buf:
-                    break
-                if self.collect:
-                    chunks.append(buf)
-            if self.collect:
-                self.data = b"".join(chunks)
-        finally:
-            self._done.set()
-
-    def join_and_get(self, timeout: Optional[float] = None) -> bytes:
-        self.join(timeout=timeout)
-        return self.data
-
-
-def pipe(*cmd, input_data: Optional[Union[str, bytes]] = None, env=None, cwd=None) -> bytes:
-    """
-    Run a command and return raw stdout bytes. Convenience wrapper.
-    """
-    return safe_popen_get_output(list(cmd), input_data=input_data, env=env, cwd=cwd, text=False)
+    return None

@@ -1,0 +1,82 @@
+.......F.FF.                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+        assert result_default_sep.startswith("___")
+>       assert "this-is-a-test" in result_default_sep
+E       AssertionError: assert 'this-is-a-test' in '___thisisatest___'
+
+tests\Slugify\functional_test.py:174: AssertionError
+__________ test_lowercase_false_preserves_case_for_remaining_tokens ___________
+
+    def test_lowercase_false_preserves_case_for_remaining_tokens() -> None:
+        """lowercase=False should preserve original case for non-removed words."""
+        mixed = "thIs Has a stopword Stopword"
+        result = slugify(mixed, stopwords=["Stopword"], lowercase=False)
+    
+        assert "thIs" in result
+        assert "Has" in result
+>       assert "Stopword" not in result
+E       AssertionError: assert 'Stopword' not in 'thIs-Has-a-...ord-Stopword'
+E         
+E         'Stopword' is contained here:
+E           thIs-Has-a-stopword-Stopword
+E         ?                     ++++++++
+
+tests\Slugify\functional_test.py:202: AssertionError
+___________________ test_replacements_apply_before_slugging ___________________
+
+    def test_replacements_apply_before_slugging() -> None:
+        """replacements should transform substrings before final slug is produced."""
+        text = "C# is not C++"
+>       result = slugify(text, replacements=[["C#", "Csharp"], ["C++", "Cpp"]])
+
+tests\Slugify\functional_test.py:208: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'C# is not C++', allow_unicode = False, max_length = None
+word_boundary = False, separator = '-', regex_pattern = None, stopwords = None
+lowercase = True, replacements = [['C#', 'Csharp'], ['C++', 'Cpp']], kwargs = {}
+
+    def slugify(text, allow_unicode=False, max_length=None, word_boundary=False,
+                separator='-', regex_pattern=None, stopwords=None, lowercase=True,
+                replacements=None, **kwargs):
+        """
+        Convert text to a slug.
+    
+        Parameters:
+        - text: The string to convert
+        - allow_unicode: Whether to allow non-ASCII characters in the slug
+        - max_length: Maximum length of the slug
+        - word_boundary: Whether to truncate at word boundaries when using max_length
+        - separator: Character to replace whitespace and punctuation with
+        - regex_pattern: Custom regex pattern to filter characters
+        - stopwords: List of words to remove from the slug
+        - lowercase: Whether to convert the slug to lowercase
+        - replacements: Dictionary of {str: str} to replace before slugifying
+    
+        Returns:
+        A slugified string.
+        """
+        if text is None:
+            return ''
+    
+        text = str(text)
+    
+        # Apply custom replacements first if provided
+        if replacements:
+>           for old, new in replacements.items():
+E           AttributeError: 'list' object has no attribute 'items'
+
+generation\Slugify\slugify\slugify.py:32: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+FAILED tests/Slugify/functional_test.py::test_lowercase_false_preserves_case_for_remaining_tokens
+FAILED tests/Slugify/functional_test.py::test_replacements_apply_before_slugging
+3 failed, 9 passed in 0.36s

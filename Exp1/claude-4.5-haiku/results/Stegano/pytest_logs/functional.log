@@ -1,0 +1,182 @@
+.F......FFF.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x000001E6F0B8BCF0>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hide a message in an image using LSB steganography.
+    
+        Args:
+            image: PIL Image or path to image file
+            message: String message to hide
+            generator: Optional generator for pixel selection (default: sequential)
+            shift: Bit shift for LSB position (default: 0)
+            encoding: Text encoding (default: "UTF-8")
+            auto_convert_rgb: Convert image to RGB if needed (default: False)
+    
+        Returns:
+            PIL Image with hidden message
+        """
+        if isinstance(image, str):
+            img = Image.open(image)
+        else:
+            img = image.copy()
+    
+        if auto_convert_rgb and img.mode != 'RGB':
+            img = img.convert('RGB')
+    
+        if img.mode not in ('RGB', 'RGBA'):
+            raise ValueError(f"Unsupported image mode: {img.mode}")
+    
+        # Encode message
+        message_bytes = message.encode(encoding)
+        message_bits = _bytes_to_bits(message_bytes)
+    
+        # Add length header (32 bits for message length)
+        length = len(message_bytes)
+        length_bits = _int_to_bits(length, 32)
+        all_bits = length_bits + message_bits
+    
+        # Get pixel data
+        pixels = img.load()
+        width, height = img.size
+    
+        # Determine which pixels to use
+        if generator is None:
+            pixel_indices = range(width * height)
+        else:
+>           pixel_indices = generator()
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:53: TypeError
+________________________ test_wav_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_text0')
+
+    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:
+        """wav.hide writes output WAV; wav.reveal returns the same string."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "wav secret"
+        output = tmp_path / "out.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+_____________________ test_wav_hide_and_reveal_short_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_short0')
+
+    def test_wav_hide_and_reveal_short_text(tmp_path: Path) -> None:
+        """A short message should also roundtrip."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "ok"
+        output = tmp_path / "out_short.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+____________________ test_wav_hide_and_reveal_longer_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_longe0')
+
+    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:
+        """Roundtrip a longer ASCII message via WAV backend."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "WAV backend long message: 1234567890 abcdefghijklmnopqrstuvwxyz"
+        output = tmp_path / "out_long.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - stru...
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_short_text
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text
+4 failed, 8 passed in 7.76s

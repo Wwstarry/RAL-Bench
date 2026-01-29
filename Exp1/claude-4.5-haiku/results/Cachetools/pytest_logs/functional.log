@@ -1,0 +1,64 @@
+......F...F..                                                            [100%]
+================================== FAILURES ===================================
+______________________ test_lru_cache_clear_resets_state ______________________
+
+    def test_lru_cache_clear_resets_state():
+        cache = LRUCache(maxsize=2)
+        cache["a"] = 1
+        cache["b"] = 2
+        assert len(cache) == 2
+    
+>       cache.clear()
+
+tests\Cachetools\functional_test.py:178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_collections_abc.py:844: in clear
+    self.popitem()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache({}, maxsize=2)
+
+    def popitem(self):
+        """Remove and return the least recently used (key, value) pair."""
+        # Get the first (least recently used) key
+>       key = next(iter(self.__order))
+E       StopIteration
+
+generation\Cachetools\cachetools\lru.py:57: StopIteration
+_____________ test_cached_decorator_cache_clear_forces_recompute ______________
+
+    def test_cached_decorator_cache_clear_forces_recompute():
+        cache = LRUCache(maxsize=32)
+        calls = {"count": 0}
+    
+        @cached(cache=cache)
+        def f(x: int) -> int:
+            calls["count"] += 1
+            return x + 1
+    
+        assert f(1) == 2
+        assert calls["count"] == 1
+        assert f(1) == 2
+        assert calls["count"] == 1  # cached
+    
+>       cache.clear()
+
+tests\Cachetools\functional_test.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_collections_abc.py:844: in clear
+    self.popitem()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache({}, maxsize=32)
+
+    def popitem(self):
+        """Remove and return the least recently used (key, value) pair."""
+        # Get the first (least recently used) key
+>       key = next(iter(self.__order))
+E       StopIteration
+
+generation\Cachetools\cachetools\lru.py:57: StopIteration
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_clear_resets_state
+FAILED tests/Cachetools/functional_test.py::test_cached_decorator_cache_clear_forces_recompute
+2 failed, 11 passed in 2.10s

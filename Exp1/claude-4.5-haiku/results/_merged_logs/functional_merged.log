@@ -1,0 +1,4008 @@
+####################################################################################################
+# MODEL: claude-4.5-haiku
+# NUM_PROJECT_LOGS: 37
+####################################################################################################
+
+==========================================================================================
+PROJECT: Astral
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Astral\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/Astral/functional_test.py _______________
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\pathlib.py:587: in import_path
+    importlib.import_module(module_name)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:986: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:680: in _load_unlocked
+    ???
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\assertion\rewrite.py:186: in exec_module
+    exec(co, module.__dict__)
+tests\Astral\functional_test.py:49: in <module>
+    from astral import LocationInfo, moon  # type: ignore
+generation\Astral\astral\__init__.py:6: in <module>
+    from .sun import sun, sunrise, sunset
+E     File "D:\桌面\RealAppCodeBench_generic_eval\generation\Astral\astral\sun.py", line 77
+E       seconds = 21.448 - t * (4680.93 + t * (1.55 + t * (1999.25 - t * (51.38 + t * (249.67 + t * (-39.05 + t * (7.12 + t * (12.36 + t * (-1.06 + t * 0.01801))))))))))
+E                                                                                                                                                                       ^
+E   SyntaxError: unmatched ')'
+=========================== short test summary info ===========================
+ERROR tests/Astral/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.86s
+
+==========================================================================================
+PROJECT: Cachetools
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Cachetools\pytest_logs\functional.log
+==========================================================================================
+......F...F..                                                            [100%]
+================================== FAILURES ===================================
+______________________ test_lru_cache_clear_resets_state ______________________
+
+    def test_lru_cache_clear_resets_state():
+        cache = LRUCache(maxsize=2)
+        cache["a"] = 1
+        cache["b"] = 2
+        assert len(cache) == 2
+    
+>       cache.clear()
+
+tests\Cachetools\functional_test.py:178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_collections_abc.py:844: in clear
+    self.popitem()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache({}, maxsize=2)
+
+    def popitem(self):
+        """Remove and return the least recently used (key, value) pair."""
+        # Get the first (least recently used) key
+>       key = next(iter(self.__order))
+E       StopIteration
+
+generation\Cachetools\cachetools\lru.py:57: StopIteration
+_____________ test_cached_decorator_cache_clear_forces_recompute ______________
+
+    def test_cached_decorator_cache_clear_forces_recompute():
+        cache = LRUCache(maxsize=32)
+        calls = {"count": 0}
+    
+        @cached(cache=cache)
+        def f(x: int) -> int:
+            calls["count"] += 1
+            return x + 1
+    
+        assert f(1) == 2
+        assert calls["count"] == 1
+        assert f(1) == 2
+        assert calls["count"] == 1  # cached
+    
+>       cache.clear()
+
+tests\Cachetools\functional_test.py:245: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_collections_abc.py:844: in clear
+    self.popitem()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache({}, maxsize=32)
+
+    def popitem(self):
+        """Remove and return the least recently used (key, value) pair."""
+        # Get the first (least recently used) key
+>       key = next(iter(self.__order))
+E       StopIteration
+
+generation\Cachetools\cachetools\lru.py:57: StopIteration
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_clear_resets_state
+FAILED tests/Cachetools/functional_test.py::test_cached_decorator_cache_clear_forces_recompute
+2 failed, 11 passed in 2.10s
+
+==========================================================================================
+PROJECT: Celery
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Celery\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFF                                                               [100%]
+================================== FAILURES ===================================
+___________________ test_001_import_celery_and_core_symbols ___________________
+
+    def test_001_import_celery_and_core_symbols() -> None:
+        _ensure_celery_importable()
+        import celery  # noqa: F401
+    
+        from celery import Celery  # noqa: F401
+>       from celery import chain, chord, group, signature  # noqa: F401
+E       ImportError: cannot import name 'chain' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:61: ImportError
+______________ test_002_create_app_and_register_task_runs_delay _______________
+
+    def test_002_create_app_and_register_task_runs_delay() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____ test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager ____
+
+    def test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+__________________ test_004_group_collects_results_in_order ___________________
+
+    def test_004_group_collects_results_in_order() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____________________ test_005_chain_passes_previous_result ____________________
+
+    def test_005_chain_passes_previous_result() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_______________ test_006_chord_runs_callback_over_group_results _______________
+
+    def test_006_chord_runs_callback_over_group_results() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+______________ test_007_task_exception_propagates_in_eager_mode _______________
+
+    def test_007_task_exception_propagates_in_eager_mode() -> None:
+        """
+        In some Celery versions/configs with task_always_eager=True and
+        task_eager_propagates=True, the exception is raised immediately during
+        delay()/apply_async() rather than on AsyncResult.get().
+    
+        This test accepts both correct behaviors:
+        - delay raises ValueError directly, OR
+        - delay returns a result whose .get() raises ValueError.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_____________ test_008_disable_propagation_returns_failed_result ______________
+
+    def test_008_disable_propagation_returns_failed_result() -> None:
+        """
+        With task_eager_propagates=False:
+          - Some Celery builds still raise on get(..., propagate=True)
+          - get(..., propagate=False) may return None OR return the exception object
+        We accept both behaviors as long as the task is marked failed.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_______________ test_009_signature_freeze_has_id_and_task_name ________________
+
+    def test_009_signature_freeze_has_id_and_task_name() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____________ test_010_default_app_does_not_break_custom_app_usage _____________
+
+    def test_010_default_app_does_not_break_custom_app_usage() -> None:
+        """
+        Ensure that importing celery and using a custom app is not polluted by globals.
+        """
+>       app = _make_app("celery_test_app_2")
+
+tests\Celery\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app_2'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Celery/functional_test.py::test_001_import_celery_and_core_symbols
+FAILED tests/Celery/functional_test.py::test_002_create_app_and_register_task_runs_delay
+FAILED tests/Celery/functional_test.py::test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager
+FAILED tests/Celery/functional_test.py::test_004_group_collects_results_in_order
+FAILED tests/Celery/functional_test.py::test_005_chain_passes_previous_result
+FAILED tests/Celery/functional_test.py::test_006_chord_runs_callback_over_group_results
+FAILED tests/Celery/functional_test.py::test_007_task_exception_propagates_in_eager_mode
+FAILED tests/Celery/functional_test.py::test_008_disable_propagation_returns_failed_result
+FAILED tests/Celery/functional_test.py::test_009_signature_freeze_has_id_and_task_name
+FAILED tests/Celery/functional_test.py::test_010_default_app_does_not_break_custom_app_usage
+10 failed in 0.76s
+
+==========================================================================================
+PROJECT: Click
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Click\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_simple_command_with_argument_and_option _________________
+
+    def test_simple_command_with_argument_and_option():
+        @click.command()
+        @click.option("--count", "-c", type=int, default=1)
+        @click.argument("name")
+        def greet(count: int, name: str) -> None:
+            for _ in range(count):
+                click.echo(f"Hello {name}!")
+    
+        runner = CliRunner()
+        result = runner.invoke(greet, ["--count", "3", "World"])
+    
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:143: AssertionError
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+        def cli(flag: bool) -> None:
+            click.echo(f"FLAG={flag}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["--flag"])
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:157: AssertionError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+        @cli.command()
+        @click.argument("name")
+        def hello(name: str) -> None:
+            click.echo(f"Hello {name}")
+    
+        @cli.command()
+        @click.argument("name")
+        def goodbye(name: str) -> None:
+            click.echo(f"Goodbye {name}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["hello", "Alice"])
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:183: AssertionError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+        def cli() -> None:
+            pass
+    
+        @cli.command(help="Say hello")
+        @click.option("--shout/--no-shout", default=False)
+        @click.argument("name")
+        def hello(name: str, shout: bool) -> None:
+            msg = f"Hello {name}"
+            if shout:
+                msg = msg.upper()
+            click.echo(msg)
+    
+        runner = CliRunner()
+    
+        group_help = runner.invoke(cli, ["--help"])
+        assert group_help.exit_code == 0
+>       assert "Top level group" in group_help.output
+E       AssertionError: assert 'Top level group' in ''
+E        +  where '' = <Result exit_code=0>.output
+
+tests\Click\functional_test.py:209: AssertionError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+        def cli(config: str) -> None:
+            ctx = click.get_current_context()
+            ctx.obj = {"config": config}
+    
+        @cli.command()
+        def show() -> None:
+            ctx = click.get_current_context()
+            cfg = ctx.obj.get("config")
+            click.echo(f"CONFIG={cfg}")
+    
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--config", "custom.cfg", "show"])
+    
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:235: AssertionError
+_________________ test_command_exception_is_exposed_in_result _________________
+
+    def test_command_exception_is_exposed_in_result():
+        class CustomError(Exception):
+            pass
+    
+        @click.command()
+        def boom() -> None:
+            raise CustomError("explode")
+    
+        runner = CliRunner()
+        result = runner.invoke(boom, [])
+    
+        assert result.exit_code != 0
+>       assert isinstance(result.exception, CustomError)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'functional_test.test_command_exception_is_exposed_in_result.<locals>.CustomError'>)
+E        +    where None = <Result exit_code=1>.exception
+
+tests\Click\functional_test.py:251: AssertionError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+        def cli(name: str) -> None:
+            click.echo(f"NAME={name}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, [])
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:269: AssertionError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+        def cli(token: str) -> None:
+            click.echo(f"TOKEN={token}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, [], input="secret-token\n")
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:285: AssertionError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+        @cli.command()
+        @click.option("--count", type=int, default=1)
+        def run(count: int) -> None:
+            click.echo(f"COUNT={count}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, ["run"], default_map={"run": {"count": 7}})
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\functional_test.py:301: AssertionError
+_______________ test_parameter_type_validation_error_exit_code ________________
+
+    def test_parameter_type_validation_error_exit_code():
+        @click.command()
+        @click.option("--count", type=int, required=True)
+        def cli(count: int) -> None:
+            click.echo(f"COUNT={count}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, ["--count", "not-an-int"])
+        assert r.exit_code != 0
+>       assert ("Invalid value" in r.output) or ("Error" in r.output)
+E       AssertionError: assert ('Invalid value' in '' or 'Error' in '')
+E        +  where '' = <Result exit_code=1>.output
+E        +  and   '' = <Result exit_code=1>.output
+
+tests\Click\functional_test.py:314: AssertionError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - assert 1...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - a...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+11 failed in 4.27s
+
+==========================================================================================
+PROJECT: Cmd2
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Cmd2\pytest_logs\functional.log
+==========================================================================================
+...........                                                              [100%]
+11 passed in 3.33s
+
+==========================================================================================
+PROJECT: Dataset
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Dataset\pytest_logs\functional.log
+==========================================================================================
+FF...F..F.F                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+        alice = table.find_one(name="Alice")
+        assert alice is not None
+        assert alice["country"] == "DE"
+    
+>       older = list(table.find(age={">=": 40}))
+
+tests\Dataset\functional_test.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x0000022578BFCC10>
+filters = {'age': {'>=': 40}}, where_parts = ['age = ?']
+where_values = [{'>=': 40}], col = 'age', val = {'>=': 40}
+where_clause = 'age = ?', sql = 'SELECT * FROM users WHERE age = ?'
+
+    def find(self, **filters):
+        """
+        Find rows matching the given filters.
+    
+        Args:
+            **filters: Column name to value mappings for WHERE clause
+    
+        Yields:
+            Row dictionaries.
+        """
+        if not self._table_exists():
+            return
+    
+        if not filters:
+            # No filters, return all rows
+            for row in self.all():
+                yield row
+            return
+    
+        # Build WHERE clause
+        where_parts = []
+        where_values = []
+        for col, val in filters.items():
+            where_parts.append(f"{col} = ?")
+            where_values.append(val)
+    
+        where_clause = ' AND '.join(where_parts)
+        sql = f"SELECT * FROM {self.name} WHERE {where_clause}"
+    
+        cursor = self.database._connection.cursor()
+        cursor.row_factory = sqlite3.Row
+>       cursor.execute(sql, where_values)
+E       sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported type.
+
+generation\Dataset\dataset\table.py:281: InterfaceError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+        updated = table.find_one(account_id=1)
+        assert updated is not None
+>       assert pytest.approx(updated["balance"]) == 150.0
+E       assert 150.0 == 150.0
+E         
+E         comparison failed
+E         Obtained: 150.0
+E         Expected: 150.0
+
+tests\Dataset\functional_test.py:184: AssertionError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+>       rows = list(table.find(order_by="n", _limit=3, _offset=4))
+
+tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x0000022578C5F9D0>
+filters = {'_limit': 3, '_offset': 4, 'order_by': 'n'}
+where_parts = ['order_by = ?', '_limit = ?', '_offset = ?']
+where_values = ['n', 3, 4], col = '_offset', val = 4
+where_clause = 'order_by = ? AND _limit = ? AND _offset = ?'
+sql = 'SELECT * FROM nums WHERE order_by = ? AND _limit = ? AND _offset = ?'
+
+    def find(self, **filters):
+        """
+        Find rows matching the given filters.
+    
+        Args:
+            **filters: Column name to value mappings for WHERE clause
+    
+        Yields:
+            Row dictionaries.
+        """
+        if not self._table_exists():
+            return
+    
+        if not filters:
+            # No filters, return all rows
+            for row in self.all():
+                yield row
+            return
+    
+        # Build WHERE clause
+        where_parts = []
+        where_values = []
+        for col, val in filters.items():
+            where_parts.append(f"{col} = ?")
+            where_values.append(val)
+    
+        where_clause = ' AND '.join(where_parts)
+        sql = f"SELECT * FROM {self.name} WHERE {where_clause}"
+    
+        cursor = self.database._connection.cursor()
+        cursor.row_factory = sqlite3.Row
+>       cursor.execute(sql, where_values)
+E       sqlite3.OperationalError: no such column: order_by
+
+generation\Dataset\dataset\table.py:281: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<dataset.database.Database object at 0x0000022578C6F310>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+    
+        distinct = list(table.distinct("c"))
+>       values = {r["c"] for r in distinct}
+
+tests\Dataset\functional_test.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x00000225775C8EE0>
+
+>   values = {r["c"] for r in distinct}
+E   TypeError: string indices must be integers
+
+tests\Dataset\functional_test.py:333: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - ass...
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+5 failed, 6 passed in 3.87s
+
+==========================================================================================
+PROJECT: Fail2ban
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Fail2ban\pytest_logs\functional.log
+==========================================================================================
+...........F                                                             [100%]
+================================== FAILURES ===================================
+___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________
+
+    def test_012_fail2ban_regex_matches_simple_pattern_offline():
+        """
+        Offline-only functional check:
+        - Create a temp log with repeated failure lines.
+        - Run fail2ban-regex <LOG> <REGEX>
+        - Assert output indicates it processed lines and found matches.
+        """
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONPATH"] = str(_resolve_repo_root()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "auth.log"
+            logp.write_text(
+                "\n".join(
+                    [
+                        "Failed password for invalid user root from 203.0.113.5 port 2222 ssh2",
+                        "Failed password for invalid user admin from 203.0.113.5 port 2223 ssh2",
+                        "Accepted password for user ok from 198.51.100.2 port 3333 ssh2",
+                        "Failed password for invalid user test from 203.0.113.9 port 4444 ssh2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+    
+            # Use a very simple regex (do not rely on <HOST> substitutions).
+            regex = r"Failed password"
+            p = subprocess.run(
+                [sys.executable, str(script), str(logp), regex],
+                text=True,
+                input="",
+                capture_output=True,
+                timeout=30,
+                env=env,
+            )
+            out = _out(p)
+    
+            # Must not hang; and should show it processed lines.
+            assert ("line" in out) or ("lines" in out)
+            # Try to detect match reporting; be tolerant across versions.
+>           assert ("match" in out) or ("found" in out) or ("failregex" in out)
+E           assert ('match' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n' or 'found' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n' or 'failregex' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2...error(action, message % conflict_string)\nargparse.argumenterror: argument --help: conflicting option string: --help\n')
+
+tests\Fail2ban\functional_test.py:248: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline
+1 failed, 11 passed in 1.07s
+
+==========================================================================================
+PROJECT: Folium
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Folium\pytest_logs\functional.log
+==========================================================================================
+....FFFFFF.F                                                             [100%]
+================================== FAILURES ===================================
+__________________ test_004_add_marker_layer_changes_output ___________________
+
+    def test_004_add_marker_layer_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        base = m.get_root().render()
+    
+>       folium.Marker([0, 0], tooltip="t").add_to(m)
+E       AttributeError: 'Marker' object has no attribute 'add_to'
+
+tests\Folium\functional_test.py:69: AttributeError
+__________________ test_005_add_circle_marker_changes_output __________________
+
+    def test_005_add_circle_marker_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        base = m.get_root().render()
+    
+>       folium.CircleMarker([0, 0], radius=5).add_to(m)
+E       AttributeError: 'CircleMarker' object has no attribute 'add_to'
+
+tests\Folium\functional_test.py:82: AttributeError
+__________________ test_006_add_tile_layer_and_layer_control __________________
+
+    def test_006_add_tile_layer_and_layer_control():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+>       folium.TileLayer("OpenStreetMap", name="osm").add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'name'
+
+tests\Folium\functional_test.py:92: TypeError
+__________________ test_007_geojson_adds_feature_collection ___________________
+
+    def test_007_geojson_adds_feature_collection():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"name": "p"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       folium.GeoJson(gj, name="g").add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'name'
+
+tests\Folium\functional_test.py:115: TypeError
+_________________ test_008_geojson_style_function_serializes __________________
+
+    def test_008_geojson_style_function_serializes():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"style": "x"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        def style_fn(feature):
+            _ = feature
+            return {"color": "red", "weight": 2}
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       folium.GeoJson(gj, style_function=style_fn).add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'style_function'
+
+tests\Folium\functional_test.py:141: TypeError
+________________________ test_009_map_save_writes_html ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-393/test_009_map_save_writes_html0')
+
+    def test_009_map_save_writes_html(tmp_path: Path):
+        _prepend_import_path()
+        import folium
+    
+        out = tmp_path / "m.html"
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       m.save(str(out))
+E       AttributeError: 'Map' object has no attribute 'save'
+
+tests\Folium\functional_test.py:153: AttributeError
+_________________ test_011_markercluster_adds_cluster_snippet _________________
+
+    def test_011_markercluster_adds_cluster_snippet():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       mc = MarkerCluster(name="mc").add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'name'
+
+tests\Folium\functional_test.py:174: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/functional_test.py::test_004_add_marker_layer_changes_output
+FAILED tests/Folium/functional_test.py::test_005_add_circle_marker_changes_output
+FAILED tests/Folium/functional_test.py::test_006_add_tile_layer_and_layer_control
+FAILED tests/Folium/functional_test.py::test_007_geojson_adds_feature_collection
+FAILED tests/Folium/functional_test.py::test_008_geojson_style_function_serializes
+FAILED tests/Folium/functional_test.py::test_009_map_save_writes_html - Attri...
+FAILED tests/Folium/functional_test.py::test_011_markercluster_adds_cluster_snippet
+7 failed, 5 passed in 0.47s
+
+==========================================================================================
+PROJECT: Glances
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Glances\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.24s
+
+==========================================================================================
+PROJECT: Humanize
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Humanize\pytest_logs\functional.log
+==========================================================================================
+..FF.F...Fsssss                                                          [100%]
+================================== FAILURES ===================================
+______________________________ test_naturalsize _______________________________
+
+    def test_naturalsize() -> None:
+>       assert humanize.naturalsize(1024) == "1.0 kB"
+E       AssertionError: assert '1.0 KB' == '1.0 kB'
+E         
+E         - 1.0 kB
+E         ?     ^
+E         + 1.0 KB
+E         ?     ^
+
+tests\Humanize\functional_test.py:107: AssertionError
+__________________________ test_precisedelta_numeric __________________________
+
+    def test_precisedelta_numeric() -> None:
+>       d = humanize.precisedelta(3661)  # seconds
+
+tests\Humanize\functional_test.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+value = 3661, minimum_unit = 'seconds', suppress = []
+
+    def precisedelta(value: Union[datetime, timedelta], minimum_unit: str = "seconds", suppress: list = None) -> str:
+        """
+        Convert a time delta to a precise human-readable format.
+    
+        Args:
+            value: datetime object or timedelta
+            minimum_unit: Minimum unit to display
+            suppress: List of units to suppress from output
+    
+        Returns:
+            Precise human-readable time delta string
+        """
+        if suppress is None:
+            suppress = []
+    
+        if isinstance(value, datetime):
+            now = datetime.now()
+            if value.tzinfo is not None and now.tzinfo is None:
+                now = now.replace(tzinfo=value.tzinfo)
+            elif value.tzinfo is None and now.tzinfo is not None:
+                value = value.replace(tzinfo=now.tzinfo)
+    
+            delta = now - value
+            total_seconds = abs(delta.total_seconds())
+        else:
+>           total_seconds = abs(value.total_seconds())
+E           AttributeError: 'int' object has no attribute 'total_seconds'
+
+generation\Humanize\humanize\time.py:115: AttributeError
+______________________ test_naturaltime_reference_point _______________________
+
+    def test_naturaltime_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        earlier = ref - timedelta(minutes=10)
+>       s = humanize.naturaltime(earlier, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:129: TypeError
+___________________ test_naturaltime_future_reference_point ___________________
+
+    def test_naturaltime_future_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        later = ref + timedelta(minutes=10)
+>       s = humanize.naturaltime(later, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:165: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_naturalsize - AssertionError: ...
+FAILED tests/Humanize/functional_test.py::test_precisedelta_numeric - Attribu...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_reference_point - ...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_future_reference_point
+4 failed, 6 passed, 5 skipped in 0.41s
+
+==========================================================================================
+PROJECT: Imageio
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Imageio\pytest_logs\functional.log
+==========================================================================================
+...F..FFF.                                                               [100%]
+================================== FAILURES ===================================
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+E       TypeError: imwrite() got an unexpected keyword argument 'extension'
+
+tests\Imageio\functional_test.py:139: TypeError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-396/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape[0] == frames.shape[0]
+E       assert 20 == 5
+
+tests\Imageio\functional_test.py:194: AssertionError
+___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-396/test_gif_imread_index0_matches0')
+
+    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path: Path) -> None:
+        """Read first GIF frame using both index=0 and imiter; verify consistent spatial shape."""
+        frames = _make_grayscale_frames(num_frames=4, height=19, width=23)
+        path = tmp_path / "index0.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+>       first_by_index = iio.imread(path, index=0)
+E       TypeError: imread() got an unexpected keyword argument 'index'
+
+tests\Imageio\functional_test.py:206: TypeError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-396/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+4 failed, 6 passed in 1.16s
+
+==========================================================================================
+PROJECT: Lifelines
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Lifelines\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+______________________ test_kmf_on_small_manual_dataset _______________________
+
+    def test_kmf_on_small_manual_dataset() -> None:
+        """Basic sanity check for KaplanMeierFitter on a tiny dataset."""
+        durations, events = _toy_kmf_data()
+    
+        kmf = KaplanMeierFitter()
+>       kmf.fit(durations=durations, event_observed=events, label="test")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:84: TypeError
+_________________________ test_kmf_on_waltons_groups __________________________
+
+    def test_kmf_on_waltons_groups() -> None:
+        """Fit KMF on the Waltons dataset for two groups."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        control = df[df["group"] == "control"]
+        treated = df[df["group"] != "control"]
+    
+        kmf_control = KaplanMeierFitter()
+        kmf_treated = KaplanMeierFitter()
+    
+>       kmf_control.fit(control["T"], control["E"], label="control")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:105: TypeError
+____________________________ test_coxph_basic_fit _____________________________
+
+    def test_coxph_basic_fit() -> None:
+        """Fit a simple Cox proportional hazards model on a toy dataset."""
+        df = _toy_cox_df()
+    
+        cph = CoxPHFitter()
+        cph.fit(df, duration_col="duration", event_col="event")
+        summary = cph.summary
+    
+        assert "coef" in summary.columns
+        assert "se(coef)" in summary.columns
+>       assert "p" in summary.columns or "p" in "".join(summary.columns).lower()
+E       AssertionError: assert ('p' in Index(['coef', 'se(coef)'], dtype='object') or 'p' in 'coefse(coef)')
+E        +  where Index(['coef', 'se(coef)'], dtype='object') =                coef  se(coef)\nage       -0.533387  0.642376\ntreatment  0.296529  0.470911.columns
+E        +  and   'coefse(coef)' = <built-in method lower of str object at 0x00000231EDE3DC70>()
+E        +    where <built-in method lower of str object at 0x00000231EDE3DC70> = 'coefse(coef)'.lower
+E        +      where 'coefse(coef)' = <built-in method join of str object at 0x00000231ABB74670>(Index(['coef', 'se(coef)'], dtype='object'))
+E        +        where <built-in method join of str object at 0x00000231ABB74670> = ''.join
+E        +        and   Index(['coef', 'se(coef)'], dtype='object') =                coef  se(coef)\nage       -0.533387  0.642376\ntreatment  0.296529  0.470911.columns
+
+tests\Lifelines\functional_test.py:127: AssertionError
+____________________ test_kmf_predict_at_time_zero_is_one _____________________
+
+    def test_kmf_predict_at_time_zero_is_one() -> None:
+        """KMF predict at t=0 should be 1.0 for standard KM survival."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:140: TypeError
+________________ test_kmf_predict_is_non_increasing_over_time _________________
+
+    def test_kmf_predict_is_non_increasing_over_time() -> None:
+        """KMF predicted survival should not increase as time increases."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:148: TypeError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:169: TypeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:182: TypeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:191: TypeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:204: TypeError
+_________________ test_coxph_params_index_matches_covariates __________________
+
+    def test_coxph_params_index_matches_covariates() -> None:
+        """Cox model params_ should be indexed by covariate names."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        params = cph.params_
+>       assert list(params.index) == ["age", "treatment"]
+E       AttributeError: 'numpy.ndarray' object has no attribute 'index'
+
+tests\Lifelines\functional_test.py:216: AttributeError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       bch = cph.baseline_cumulative_hazard_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'
+
+tests\Lifelines\functional_test.py:225: AttributeError
+__________ test_coxph_predict_partial_hazard_is_positive_and_varies ___________
+
+    def test_coxph_predict_partial_hazard_is_positive_and_varies() -> None:
+        """Partial hazards should be positive and reflect covariate differences."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x_low = pd.DataFrame({"age": [25], "treatment": [0]})
+        x_high = pd.DataFrame({"age": [55], "treatment": [1]})
+    
+>       h_low = float(cph.predict_partial_hazard(x_low).iloc[0])
+E       AttributeError: 'CoxPHFitter' object has no attribute 'predict_partial_hazard'
+
+tests\Lifelines\functional_test.py:240: AttributeError
+____________ test_coxph_predict_survival_function_shape_and_bounds ____________
+
+    def test_coxph_predict_survival_function_shape_and_bounds() -> None:
+        """Predict survival functions for two individuals; verify shape and bounds."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x = pd.DataFrame({"age": [30, 60], "treatment": [0, 1]})
+        sf = cph.predict_survival_function(x)
+    
+        assert isinstance(sf, pd.DataFrame)
+>       assert sf.shape[1] == 2
+E       assert 1 == 2
+
+tests\Lifelines\functional_test.py:257: AssertionError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+_____________ test_coxph_fit_on_waltons_with_binary_group_feature _____________
+
+    def test_coxph_fit_on_waltons_with_binary_group_feature() -> None:
+        """Fit CoxPH on Waltons dataset using a binary treated indicator derived from group."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        df2 = df.copy()
+        df2["treated"] = (df2["group"] != "control").astype(int)
+    
+        model_df = df2[["T", "E", "treated"]].rename(columns={"T": "duration", "E": "event"})
+    
+        cph = CoxPHFitter()
+        cph.fit(model_df, duration_col="duration", event_col="event")
+    
+>       coef = float(cph.params_.loc["treated"])
+E       AttributeError: 'numpy.ndarray' object has no attribute 'loc'
+
+tests\Lifelines\functional_test.py:286: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_small_manual_dataset
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_waltons_groups - TypeE...
+FAILED tests/Lifelines/functional_test.py::test_coxph_basic_fit - AssertionEr...
+FAILED tests/Lifelines/functional_test.py::test_kmf_predict_at_time_zero_is_one
+FAILED tests/Lifelines/functional_test.py::test_kmf_predict_is_non_increasing_over_time
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_params_index_matches_covariates
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_partial_hazard_is_positive_and_varies
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+FAILED tests/Lifelines/functional_test.py::test_coxph_fit_on_waltons_with_binary_group_feature
+15 failed in 4.66s
+
+==========================================================================================
+PROJECT: Loguru
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Loguru\pytest_logs\functional.log
+==========================================================================================
+..FFF..FFF.                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_log_method_with_level_name _______________________
+
+    def test_log_method_with_level_name() -> None:
+        log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+    
+>       log.log("INFO", "hello-info")
+E       AttributeError: 'Logger' object has no attribute 'log'
+
+tests\Loguru\functional_test.py:125: AttributeError
+_______________________ test_bind_extra_renders_fields ________________________
+
+    def test_bind_extra_renders_fields() -> None:
+        log, buf = make_buffer_logger(fmt="{level}:{message} user={extra[user]} req={extra[request_id]}")
+    
+        bound = log.bind(user="alice", request_id="req-123")
+        bound.info("hello")
+    
+        out = buf.getvalue()
+        assert "INFO:" in out
+        assert "hello" in out
+>       assert "user=alice" in out
+E       AssertionError: assert 'user=alice' in 'INFO:hello user={extra[user]} req={extra[request_id]}\n'
+
+tests\Loguru\functional_test.py:142: AssertionError
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+        log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+    
+>       with log.contextualize(user="bob"):
+E       AttributeError: 'Logger' object has no attribute 'contextualize'
+
+tests\Loguru\functional_test.py:149: AttributeError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+        log, buf = make_buffer_logger(level="INFO", serialize=True)
+    
+        log.info("json-msg")
+    
+        raw_lines = _lines(buf)
+        assert len(raw_lines) >= 1
+    
+>       record = json.loads(raw_lines[-1])
+
+tests\Loguru\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x0000029466EABCD0>
+s = 'INFO:json-msg', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:355: JSONDecodeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+        log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+    
+>       patched = log.patch(lambda r: r["extra"].update({"patched": "yes"}))
+E       AttributeError: 'Logger' object has no attribute 'patch'
+
+tests\Loguru\functional_test.py:211: AttributeError
+________________ test_filter_callable_allows_subset_of_records ________________
+
+    def test_filter_callable_allows_subset_of_records() -> None:
+        def only_info(record) -> bool:
+            return record["level"].name == "INFO"
+    
+        log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG", filter_=only_info)
+    
+        log.debug("nope")
+        log.info("yep")
+    
+        out = buf.getvalue()
+>       assert "nope" not in out
+E       AssertionError: assert 'nope' not in 'DEBUG:nope\nINFO:yep\n'
+E         
+E         'nope' is contained here:
+E           DEBUG:nope
+E         ?       ++++
+E           INFO:yep
+
+tests\Loguru\functional_test.py:229: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_log_method_with_level_name - Att...
+FAILED tests/Loguru/functional_test.py::test_bind_extra_renders_fields - Asse...
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+FAILED tests/Loguru/functional_test.py::test_filter_callable_allows_subset_of_records
+6 failed, 5 passed in 0.58s
+
+==========================================================================================
+PROJECT: Mailpile
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Mailpile\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Mailpile/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Mailpile\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Mailpile\functional_test.py:176: in <module>
+    from mailpile.safe_popen import PIPE, Popen, Safe_Pipe  # type: ignore
+E   ImportError: cannot import name 'PIPE' from 'mailpile.safe_popen' (D:\桌面\RealAppCodeBench_generic_eval\.converted\Mailpile\generated\mailpile\safe_popen.py)
+=========================== short test summary info ===========================
+ERROR tests/Mailpile/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.66s
+
+==========================================================================================
+PROJECT: Markdown
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Markdown\pytest_logs\functional.log
+==========================================================================================
+.F...FFF.Fsssssssss                                                      [100%]
+================================== FAILURES ===================================
+__________________________ test_emphasis_and_strong ___________________________
+
+    def test_emphasis_and_strong() -> None:
+        src = "This is *italic* and **bold** and __also bold__."
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<em>" in norm and "</em>" in norm
+E       AssertionError: assert ('<em>' in '<p>This is &lt;em&gt;italic&lt;/em&gt; and &lt;strong&gt;bold&lt;/strong&gt; and &lt;strong&gt;also bold&lt;/strong&gt;.</p>')
+
+tests\Markdown\functional_test.py:122: AssertionError
+____________________________ test_links_and_images ____________________________
+
+    def test_links_and_images() -> None:
+        src = textwrap.dedent(
+            """
+            A [link](https://example.com) and
+            an image: ![alt text](https://example.com/image.png)
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<a " in norm and "</a>" in norm
+E       AssertionError: assert ('<a ' in '<p>A &lt;a href=&quot;https://example.com&quot;&gt;link&lt;/a&gt; and\nan image: &lt;img alt=&quot;alt text&quot; src=&quot;https://example.com/image.png&quot; /&gt;</p>')
+
+tests\Markdown\functional_test.py:189: AssertionError
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<pre><code>literal &lt;b&gt; tag in code block</code></pre>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+__________________ test_markdown_class_multiple_conversions ___________________
+
+    def test_markdown_class_multiple_conversions() -> None:
+        src1 = "# First\n\nParagraph."
+        src2 = "Second document with *emphasis*."
+    
+        md = markdown.Markdown()
+        html1 = md.convert(src1)
+        if hasattr(md, "reset"):
+            md.reset()
+        html2 = md.convert(src2)
+    
+        norm1 = normalize_html(html1)
+        norm2 = normalize_html(html2)
+    
+        assert "First" in norm1
+        assert "Paragraph." in norm1
+        assert "<h1>" in norm1
+    
+        assert "Second document" in norm2
+>       assert "<em>" in norm2 or "<i>" in norm2
+E       AssertionError: assert ('<em>' in '<p>Second document with &lt;em&gt;emphasis&lt;/em&gt;.</p>' or '<i>' in '<p>Second document with &lt;em&gt;emphasis&lt;/em&gt;.</p>')
+
+tests\Markdown\functional_test.py:231: AssertionError
+_______________________ test_horizontal_rule_renders_hr _______________________
+
+    def test_horizontal_rule_renders_hr() -> None:
+        src = textwrap.dedent(
+            """
+            Paragraph above
+    
+            ---
+    
+            Paragraph below
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<hr" in norm
+E       AssertionError: assert '<hr' in '<p>Paragraph above</p>\n<p>---</p>\n<p>Paragraph below</p>'
+
+tests\Markdown\functional_test.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_emphasis_and_strong - Assertio...
+FAILED tests/Markdown/functional_test.py::test_links_and_images - AssertionEr...
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+FAILED tests/Markdown/functional_test.py::test_markdown_class_multiple_conversions
+FAILED tests/Markdown/functional_test.py::test_horizontal_rule_renders_hr - A...
+5 failed, 5 passed, 9 skipped in 0.58s
+
+==========================================================================================
+PROJECT: Mitmproxy
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Mitmproxy\pytest_logs\functional.log
+==========================================================================================
+........FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+3 failed, 8 passed in 0.56s
+
+==========================================================================================
+PROJECT: Mutagen
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Mutagen\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.15s
+
+==========================================================================================
+PROJECT: Pendulum
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Pendulum\pytest_logs\functional.log
+==========================================================================================
+F.FFFFFF.sFFF                                                            [100%]
+================================== FAILURES ===================================
+_____________________ test_parse_and_timezone_conversion ______________________
+
+    def test_parse_and_timezone_conversion() -> None:
+        """Parse an ISO string and convert between timezones."""
+        dt_utc = pendulum.parse("2020-01-01T12:00:00+00:00")
+    
+        assert dt_utc.year == 2020
+        assert dt_utc.month == 1
+        assert dt_utc.day == 1
+    
+        offset_utc = dt_utc.utcoffset()
+        assert offset_utc is not None
+        assert offset_utc.total_seconds() == 0
+    
+>       dt_tokyo = dt_utc.in_timezone("Asia/Tokyo")
+
+tests\Pendulum\functional_test.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:28: in in_timezone
+    converted = self.astimezone(tz)
+generation\Pendulum\pendulum\timezone.py:24: in utcoffset
+    return self._tz.utcoffset(dt)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:425: in utcoffset
+    dt = self.localize(dt, is_dst)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <DstTzInfo 'Asia/Tokyo' LMT+9:19:00 STD>
+dt = DateTime(2020, 1, 1, 12, 0, 0, 0, tz='Asia/Tokyo'), is_dst = None
+
+    def localize(self, dt, is_dst=False):
+        '''Convert naive time to local time.
+    
+        This method should be used to construct localtimes, rather
+        than passing a tzinfo argument to a datetime constructor.
+    
+        is_dst is used to determine the correct timezone in the ambigous
+        period at the end of daylight saving time.
+    
+        >>> from pytz import timezone
+        >>> fmt = '%Y-%m-%d %H:%M:%S %Z (%z)'
+        >>> amdam = timezone('Europe/Amsterdam')
+        >>> dt  = datetime(2004, 10, 31, 2, 0, 0)
+        >>> loc_dt1 = amdam.localize(dt, is_dst=True)
+        >>> loc_dt2 = amdam.localize(dt, is_dst=False)
+        >>> loc_dt1.strftime(fmt)
+        '2004-10-31 02:00:00 CEST (+0200)'
+        >>> loc_dt2.strftime(fmt)
+        '2004-10-31 02:00:00 CET (+0100)'
+        >>> str(loc_dt2 - loc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise an AmbiguousTimeError for ambiguous
+        times at the end of daylight saving time
+    
+        >>> try:
+        ...     loc_dt1 = amdam.localize(dt, is_dst=None)
+        ... except AmbiguousTimeError:
+        ...     print('Ambiguous')
+        Ambiguous
+    
+        is_dst defaults to False
+    
+        >>> amdam.localize(dt) == amdam.localize(dt, False)
+        True
+    
+        is_dst is also used to determine the correct timezone in the
+        wallclock times jumped over at the start of daylight saving time.
+    
+        >>> pacific = timezone('US/Pacific')
+        >>> dt = datetime(2008, 3, 9, 2, 0, 0)
+        >>> ploc_dt1 = pacific.localize(dt, is_dst=True)
+        >>> ploc_dt2 = pacific.localize(dt, is_dst=False)
+        >>> ploc_dt1.strftime(fmt)
+        '2008-03-09 02:00:00 PDT (-0700)'
+        >>> ploc_dt2.strftime(fmt)
+        '2008-03-09 02:00:00 PST (-0800)'
+        >>> str(ploc_dt2 - ploc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise a NonExistentTimeError for these skipped
+        times.
+    
+        >>> try:
+        ...     loc_dt1 = pacific.localize(dt, is_dst=None)
+        ... except NonExistentTimeError:
+        ...     print('Non-existent')
+        Non-existent
+        '''
+        if dt.tzinfo is not None:
+>           raise ValueError('Not naive datetime (tzinfo is already set)')
+E           ValueError: Not naive datetime (tzinfo is already set)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:321: ValueError
+_________________________ test_diff_for_humans_months _________________________
+
+    def test_diff_for_humans_months() -> None:
+        """Human-readable differences between two datetimes."""
+        start = pendulum.datetime(2011, 8, 1, tz="UTC")
+>       end = start.add(months=1)
+
+tests\Pendulum\functional_test.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = DateTime(2011, 8, 1, 0, 0, 0, 0, tz='UTC'), kwargs = {'months': 1}
+
+    def add(self, **kwargs):
+        """Add a duration to this datetime."""
+>       duration = Duration(**kwargs)
+E       TypeError: __new__() got an unexpected keyword argument 'months'
+
+generation\Pendulum\pendulum\datetime.py:41: TypeError
+_____________________ test_parse_date_only_to_date_string _____________________
+
+    def test_parse_date_only_to_date_string() -> None:
+        """Parse a date-only string and verify normalized date output."""
+        d = pendulum.parse("2020-02-29")
+        assert d.year == 2020
+        assert d.month == 2
+        assert d.day == 29
+>       assert d.to_date_string() == "2020-02-29"
+E       AttributeError: 'DateTime' object has no attribute 'to_date_string'
+
+tests\Pendulum\functional_test.py:121: AttributeError
+__________________ test_datetime_to_iso8601_string_roundtrip __________________
+
+    def test_datetime_to_iso8601_string_roundtrip() -> None:
+        """Create a datetime and verify ISO8601 string contains expected offset."""
+        dt = pendulum.datetime(2020, 1, 1, 12, 0, 0, tz="UTC")
+>       iso = dt.to_iso8601_string()
+E       AttributeError: 'DateTime' object has no attribute 'to_iso8601_string'
+
+tests\Pendulum\functional_test.py:127: AttributeError
+_____________________ test_formatting_with_custom_pattern _____________________
+
+    def test_formatting_with_custom_pattern() -> None:
+        """Verify formatting with a custom pattern is stable for a fixed datetime."""
+        dt = pendulum.datetime(2021, 12, 31, 23, 59, 58, tz="UTC")
+        s = dt.format("YYYY/MM/DD HH:mm:ss")
+>       assert s == "2021/12/31 23:59:58"
+E       AssertionError: assert 'YYYY/MM/DD HH:mm:ss' == '2021/12/31 23:59:58'
+E         
+E         - 2021/12/31 23:59:58
+E         + YYYY/MM/DD HH:mm:ss
+
+tests\Pendulum\functional_test.py:137: AssertionError
+__________________________ test_start_of_end_of_day ___________________________
+
+    def test_start_of_end_of_day() -> None:
+        """Check start_of and end_of for a day boundary."""
+        dt = pendulum.datetime(2020, 5, 20, 13, 14, 15, tz="UTC")
+    
+>       sod = dt.start_of("day")
+E       AttributeError: 'DateTime' object has no attribute 'start_of'
+
+tests\Pendulum\functional_test.py:144: AttributeError
+_____________________ test_weekday_and_isoweekday_values ______________________
+
+    def test_weekday_and_isoweekday_values() -> None:
+        """Validate weekday values for a known date (2020-01-01 is Wednesday)."""
+>       dt = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:155: AttributeError
+_____________________ test_in_timezone_preserves_instant ______________________
+
+    def test_in_timezone_preserves_instant() -> None:
+        """Converting timezones should preserve the instant (timestamp)."""
+        dt_utc = pendulum.datetime(2020, 6, 1, 0, 0, 0, tz="UTC")
+>       dt_ny = dt_utc.in_timezone("America/New_York")
+
+tests\Pendulum\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:28: in in_timezone
+    converted = self.astimezone(tz)
+generation\Pendulum\pendulum\timezone.py:24: in utcoffset
+    return self._tz.utcoffset(dt)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:425: in utcoffset
+    dt = self.localize(dt, is_dst)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <DstTzInfo 'America/New_York' LMT-1 day, 19:04:00 STD>
+dt = DateTime(2020, 6, 1, 0, 0, 0, 0, tz='America/New_York'), is_dst = None
+
+    def localize(self, dt, is_dst=False):
+        '''Convert naive time to local time.
+    
+        This method should be used to construct localtimes, rather
+        than passing a tzinfo argument to a datetime constructor.
+    
+        is_dst is used to determine the correct timezone in the ambigous
+        period at the end of daylight saving time.
+    
+        >>> from pytz import timezone
+        >>> fmt = '%Y-%m-%d %H:%M:%S %Z (%z)'
+        >>> amdam = timezone('Europe/Amsterdam')
+        >>> dt  = datetime(2004, 10, 31, 2, 0, 0)
+        >>> loc_dt1 = amdam.localize(dt, is_dst=True)
+        >>> loc_dt2 = amdam.localize(dt, is_dst=False)
+        >>> loc_dt1.strftime(fmt)
+        '2004-10-31 02:00:00 CEST (+0200)'
+        >>> loc_dt2.strftime(fmt)
+        '2004-10-31 02:00:00 CET (+0100)'
+        >>> str(loc_dt2 - loc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise an AmbiguousTimeError for ambiguous
+        times at the end of daylight saving time
+    
+        >>> try:
+        ...     loc_dt1 = amdam.localize(dt, is_dst=None)
+        ... except AmbiguousTimeError:
+        ...     print('Ambiguous')
+        Ambiguous
+    
+        is_dst defaults to False
+    
+        >>> amdam.localize(dt) == amdam.localize(dt, False)
+        True
+    
+        is_dst is also used to determine the correct timezone in the
+        wallclock times jumped over at the start of daylight saving time.
+    
+        >>> pacific = timezone('US/Pacific')
+        >>> dt = datetime(2008, 3, 9, 2, 0, 0)
+        >>> ploc_dt1 = pacific.localize(dt, is_dst=True)
+        >>> ploc_dt2 = pacific.localize(dt, is_dst=False)
+        >>> ploc_dt1.strftime(fmt)
+        '2008-03-09 02:00:00 PDT (-0700)'
+        >>> ploc_dt2.strftime(fmt)
+        '2008-03-09 02:00:00 PST (-0800)'
+        >>> str(ploc_dt2 - ploc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise a NonExistentTimeError for these skipped
+        times.
+    
+        >>> try:
+        ...     loc_dt1 = pacific.localize(dt, is_dst=None)
+        ... except NonExistentTimeError:
+        ...     print('Non-existent')
+        Non-existent
+        '''
+        if dt.tzinfo is not None:
+>           raise ValueError('Not naive datetime (tzinfo is already set)')
+E           ValueError: Not naive datetime (tzinfo is already set)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:321: ValueError
+________________________ test_diff_in_days_is_integer _________________________
+
+    def test_diff_in_days_is_integer() -> None:
+        """Compute diff in days between two dates."""
+>       a = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:207: AttributeError
+____________________ test_add_months_across_year_boundary _____________________
+
+    def test_add_months_across_year_boundary() -> None:
+        """Add months and verify year boundary transitions."""
+>       dt = pendulum.date(2019, 12, 15)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:217: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/functional_test.py::test_parse_and_timezone_conversion
+FAILED tests/Pendulum/functional_test.py::test_diff_for_humans_months - TypeE...
+FAILED tests/Pendulum/functional_test.py::test_parse_date_only_to_date_string
+FAILED tests/Pendulum/functional_test.py::test_datetime_to_iso8601_string_roundtrip
+FAILED tests/Pendulum/functional_test.py::test_formatting_with_custom_pattern
+FAILED tests/Pendulum/functional_test.py::test_start_of_end_of_day - Attribut...
+FAILED tests/Pendulum/functional_test.py::test_weekday_and_isoweekday_values
+FAILED tests/Pendulum/functional_test.py::test_in_timezone_preserves_instant
+FAILED tests/Pendulum/functional_test.py::test_diff_in_days_is_integer - Attr...
+FAILED tests/Pendulum/functional_test.py::test_add_months_across_year_boundary
+10 failed, 2 passed, 1 skipped in 1.20s
+
+==========================================================================================
+PROJECT: Petl
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Petl\pytest_logs\functional.log
+==========================================================================================
+.F.ss..sFsss                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_fromdicts_addfield_and_select ______________________
+
+    def test_fromdicts_addfield_and_select() -> None:
+        """Validate fromdicts, addfield, and select with a small in-memory table."""
+        records = [
+            {"id": 1, "value": 10},
+            {"id": 2, "value": 20},
+            {"id": 3, "value": 30},
+            {"id": 4, "value": 40},
+        ]
+        table = petl.fromdicts(records, header=["id", "value"])
+    
+        table = petl.addfield(table, "double", lambda rec: int(rec["value"]) * 2)
+        table = petl.select(table, lambda rec: int(rec["double"]) >= 60)
+    
+>       result = _table_to_list_of_dicts(table)
+
+tests\Petl\functional_test.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Petl\functional_test.py:87: in _table_to_list_of_dicts
+    for row in iterator:
+generation\Petl\petl\transform\selects.py:22: in __iter__
+    if self.predicate(row):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+rec = [1, 10, None]
+
+>   table = petl.select(table, lambda rec: int(rec["double"]) >= 60)
+E   TypeError: list indices must be integers or slices, not str
+
+tests\Petl\functional_test.py:166: TypeError
+___________________ test_tocsv_then_fromcsv_preserves_data ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-399/test_tocsv_then_fromcsv_preser0')
+
+    def test_tocsv_then_fromcsv_preserves_data(tmp_path: Path) -> None:
+        """Write a table to CSV and read it back, verifying header and row content."""
+        src = tmp_path / "roundtrip.csv"
+    
+        table = petl.fromdicts(
+            [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}],
+            header=["a", "b"],
+        )
+        petl.tocsv(table, str(src))
+        assert src.exists()
+    
+        table2 = petl.fromcsv(str(src))
+        rows = list(table2)
+    
+>       assert rows[0] == ("a", "b")
+E       AssertionError: assert ['a', 'b'] == ('a', 'b')
+E         
+E         Use -v to get more diff
+
+tests\Petl\functional_test.py:330: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Petl/functional_test.py::test_fromdicts_addfield_and_select - Ty...
+FAILED tests/Petl/functional_test.py::test_tocsv_then_fromcsv_preserves_data
+2 failed, 4 passed, 6 skipped in 0.62s
+
+==========================================================================================
+PROJECT: Pygments
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Pygments\pytest_logs\functional.log
+==========================================================================================
+Traceback (most recent call last):
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 188, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 147, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 111, in _get_module_details
+    __import__(pkg_name)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytest\__init__.py", line 8, in <module>
+    from _pytest._code import ExceptionInfo
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\__init__.py", line 5, in <module>
+    from .code import Code
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\code.py", line 44, in <module>
+    from _pytest._io import TerminalWriter
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\__init__.py", line 3, in <module>
+    from .terminalwriter import get_terminal_width
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\terminalwriter.py", line 14, in <module>
+    from pygments.formatters.terminal import TerminalFormatter
+  File "D:\桌面\RealAppCodeBench_generic_eval\generation\Pygments\pygments\formatters\__init__.py", line 5, in <module>
+    from pygments.util import ClassNotFound
+ModuleNotFoundError: No module named 'pygments.util'
+
+==========================================================================================
+PROJECT: PyJWT
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\PyJWT\pytest_logs\functional.log
+==========================================================================================
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', headers = None, json_encoder = None, kwargs = {}
+
+    def encode(
+        payload: Dict[str, Any],
+        key: Union[str, bytes],
+        algorithm: str = "HS256",
+        headers: Optional[Dict[str, Any]] = None,
+        json_encoder: Optional[type] = None,
+        **kwargs
+    ) -> str:
+        """
+        Encode a JWT token.
+    
+        Args:
+            payload: Dictionary containing the claims to encode
+            key: Secret key for signing
+            algorithm: Algorithm to use for signing (default: HS256)
+            headers: Optional dictionary of additional header fields
+            json_encoder: Optional custom JSON encoder class
+            **kwargs: Additional arguments (ignored for compatibility)
+    
+        Returns:
+            Encoded JWT token as a string
+    
+        Raises:
+            InvalidAlgorithmError: If algorithm is not supported
+        """
+        if algorithm != "HS256":
+>           raise InvalidAlgorithmError(f"Algorithm {algorithm} is not supported")
+E           jwt.exceptions.InvalidAlgorithmError: Algorithm HS512 is not supported
+
+generation\PyJWT\jwt\api_jwt.py:75: InvalidAlgorithmError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:84: in encode
+    payload_bytes = json.dumps(payload, separators=(",", ":"), cls=json_encoder).encode("utf-8")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000023F26087D30>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:84: in encode
+    payload_bytes = json.dumps(payload, separators=(",", ":"), cls=json_encoder).encode("utf-8")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000023F260F2A90>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - j...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.59s
+
+==========================================================================================
+PROJECT: PyPDF
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\PyPDF\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.13s
+
+==========================================================================================
+PROJECT: Requests
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Requests\pytest_logs\functional.log
+==========================================================================================
+..........                                                               [100%]
+10 passed in 1.66s
+
+==========================================================================================
+PROJECT: Rich
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Rich\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.18s
+
+==========================================================================================
+PROJECT: Schedule
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Schedule\pytest_logs\functional.log
+==========================================================================================
+..FF.F..F.FF                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_cancel_job_removes_single_job ______________________
+
+    def test_cancel_job_removes_single_job() -> None:
+        """cancel_job removes a single job from the scheduler."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+        j1 = schedule.every().day.do(job1)
+        j2 = schedule.every().day.at("10:30").do(job2)
+    
+>       schedule.cancel_job(j2)
+E       AttributeError: module 'schedule' has no attribute 'cancel_job'
+
+tests\Schedule\functional_test.py:151: AttributeError
+__________________ test_repeat_decorator_registers_and_runs ___________________
+
+    def test_repeat_decorator_registers_and_runs() -> None:
+        """@repeat(every(...)) schedules a function correctly and run_all triggers it."""
+        _clear()
+        call_count = 0
+    
+>       @schedule.repeat(schedule.every().seconds)
+E       AttributeError: module 'schedule' has no attribute 'repeat'
+
+tests\Schedule\functional_test.py:164: AttributeError
+_______________ test_job_next_run_is_datetime_after_scheduling ________________
+
+    def test_job_next_run_is_datetime_after_scheduling() -> None:
+        """A newly scheduled job should have a next_run datetime set."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:198: AttributeError
+________________ test_every_to_creates_job_with_interval_range ________________
+
+    def test_every_to_creates_job_with_interval_range() -> None:
+        """every(A).to(B).seconds should create a job and be runnable via run_all."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("x")
+    
+>       j = schedule.every(2).to(5).seconds.do(job)
+E       AttributeError: 'Job' object has no attribute 'to'
+
+tests\Schedule\functional_test.py:239: AttributeError
+_____________________ test_get_jobs_by_tag_filters_subset _____________________
+
+    def test_get_jobs_by_tag_filters_subset() -> None:
+        """get_jobs(tag) should return only jobs with that tag."""
+        _clear()
+    
+        def a() -> None:
+            return None
+    
+        def b() -> None:
+            return None
+    
+>       schedule.every().minute.do(a).tag("alpha")
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:269: AttributeError
+______________________ test_run_all_sets_last_run_on_job ______________________
+
+    def test_run_all_sets_last_run_on_job() -> None:
+        """After running, last_run should be populated on the job in typical implementations."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:290: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job
+FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs
+FAILED tests/Schedule/functional_test.py::test_job_next_run_is_datetime_after_scheduling
+FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range
+FAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset
+FAILED tests/Schedule/functional_test.py::test_run_all_sets_last_run_on_job
+6 failed, 6 passed in 0.56s
+
+==========================================================================================
+PROJECT: Slugify
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Slugify\pytest_logs\functional.log
+==========================================================================================
+.......F.F..                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+        assert result_default_sep.startswith("___")
+>       assert "this-is-a-test" in result_default_sep
+E       AssertionError: assert 'this-is-a-test' in '___thisisatest___'
+
+tests\Slugify\functional_test.py:174: AssertionError
+__________ test_lowercase_false_preserves_case_for_remaining_tokens ___________
+
+    def test_lowercase_false_preserves_case_for_remaining_tokens() -> None:
+        """lowercase=False should preserve original case for non-removed words."""
+        mixed = "thIs Has a stopword Stopword"
+        result = slugify(mixed, stopwords=["Stopword"], lowercase=False)
+    
+>       assert "thIs" in result
+E       AssertionError: assert 'thIs' in 'ths-as-a-stopword-topword'
+
+tests\Slugify\functional_test.py:200: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+FAILED tests/Slugify/functional_test.py::test_lowercase_false_preserves_case_for_remaining_tokens
+2 failed, 10 passed in 0.45s
+
+==========================================================================================
+PROJECT: Sqlmap
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Sqlmap\pytest_logs\functional.log
+==========================================================================================
+..FFFFF.F                                                                [100%]
+================================== FAILURES ===================================
+______________ test_003_help_runs_and_mentions_usage_or_options _______________
+
+    def test_003_help_runs_and_mentions_usage_or_options():
+        p = _run_cli(["-h"], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod... <module>\n    from lib.controller.controller import start\nModuleNotFoundError: No module named \'lib.controller\'\n').returncode
+
+tests\Sqlmap\functional_test.py:58: AssertionError
+_________________________ test_004_advanced_help_runs _________________________
+
+    def test_004_advanced_help_runs():
+        p = _run_cli(["-hh"], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod... <module>\n    from lib.controller.controller import start\nModuleNotFoundError: No module named \'lib.controller\'\n').returncode
+
+tests\Sqlmap\functional_test.py:65: AssertionError
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       assert None is not None
+E        +  where None = <function search at 0x000002879D1F99D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...n <module>\n    from lib.controller.controller import start\nmodulenotfounderror: no module named \'lib.controller\'\n')
+E        +    where <function search at 0x000002879D1F99D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+________________ test_006_invalid_option_reports_error_cleanly ________________
+
+    def test_006_invalid_option_reports_error_cleanly():
+        """
+        In sqlmap reference, invalid options can still return code 0 in some paths,
+        but stderr includes 'no such option' (argparse style). We assert on the message.
+        """
+        p = _run_cli(["--this-option-should-not-exist"], timeout_s=30)
+        out = _out(p)
+    
+        # Must clearly indicate option parsing failure; do NOT assert return code.
+>       assert ("no such option" in out) or ("unrecognized" in out) or ("unknown" in out)
+E       assert ('no such option' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...n <module>\n    from lib.controller.controller import start\nmodulenotfounderror: no module named \'lib.controller\'\n' or 'unrecognized' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...n <module>\n    from lib.controller.controller import start\nmodulenotfounderror: no module named \'lib.controller\'\n' or 'unknown' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...n <module>\n    from lib.controller.controller import start\nmodulenotfounderror: no module named \'lib.controller\'\n')
+
+tests\Sqlmap\functional_test.py:92: AssertionError
+______________ test_007_alignment_api_surface_symbols_importable ______________
+
+    def test_007_alignment_api_surface_symbols_importable():
+        """
+        Alignment anchors (must exist in BOTH reference and generated repos):
+    
+          - lib.parse.cmdline.cmdLineParser
+          - lib.core.option.init, lib.core.option.initOptions
+          - lib.core.data: cmdLineOptions, conf, kb
+          - lib.core.settings: VERSION, DESCRIPTION
+          - lib.controller.controller.start
+    
+        Only checks importability + symbol presence; does not execute scanning logic.
+        """
+        repo = _repo_root()
+        sys.path.insert(0, str(repo))
+        try:
+>           from lib.parse.cmdline import cmdLineParser  # noqa: F401
+E           ModuleNotFoundError: No module named 'lib.parse.cmdline'
+
+tests\Sqlmap\functional_test.py:110: ModuleNotFoundError
+__________ test_009_unicode_output_dir_argument_stable_in_help_mode ___________
+
+    def test_009_unicode_output_dir_argument_stable_in_help_mode():
+        root = _project_root()
+        out_dir = root / "generation" / "Sqlmap" / "tmp_输出"
+        out_dir.mkdir(parents=True, exist_ok=True)
+    
+        p = _run_cli(["-h", "--output-dir", str(out_dir)], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod... <module>\n    from lib.controller.controller import start\nModuleNotFoundError: No module named \'lib.controller\'\n').returncode
+
+tests\Sqlmap\functional_test.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_003_help_runs_and_mentions_usage_or_options
+FAILED tests/Sqlmap/functional_test.py::test_004_advanced_help_runs - Asserti...
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+FAILED tests/Sqlmap/functional_test.py::test_006_invalid_option_reports_error_cleanly
+FAILED tests/Sqlmap/functional_test.py::test_007_alignment_api_surface_symbols_importable
+FAILED tests/Sqlmap/functional_test.py::test_009_unicode_output_dir_argument_stable_in_help_mode
+6 failed, 3 passed in 1.76s
+
+==========================================================================================
+PROJECT: SQLModel
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\SQLModel\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/SQLModel/functional_test.py ______________
+tests\SQLModel\functional_test.py:24: in <module>
+    from sqlmodel import (  # type: ignore  # noqa: E402
+generation\SQLModel\sqlmodel\__init__.py:104: in <module>
+    class SQLModel(BaseModel, metaclass=SQLModelMetaclass):
+E   TypeError: metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases
+=========================== short test summary info ===========================
+ERROR tests/SQLModel/functional_test.py - TypeError: metaclass conflict: the ...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.81s
+
+==========================================================================================
+PROJECT: Stegano
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Stegano\pytest_logs\functional.log
+==========================================================================================
+.F......FFF.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x000001E6F0B8BCF0>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hide a message in an image using LSB steganography.
+    
+        Args:
+            image: PIL Image or path to image file
+            message: String message to hide
+            generator: Optional generator for pixel selection (default: sequential)
+            shift: Bit shift for LSB position (default: 0)
+            encoding: Text encoding (default: "UTF-8")
+            auto_convert_rgb: Convert image to RGB if needed (default: False)
+    
+        Returns:
+            PIL Image with hidden message
+        """
+        if isinstance(image, str):
+            img = Image.open(image)
+        else:
+            img = image.copy()
+    
+        if auto_convert_rgb and img.mode != 'RGB':
+            img = img.convert('RGB')
+    
+        if img.mode not in ('RGB', 'RGBA'):
+            raise ValueError(f"Unsupported image mode: {img.mode}")
+    
+        # Encode message
+        message_bytes = message.encode(encoding)
+        message_bits = _bytes_to_bits(message_bytes)
+    
+        # Add length header (32 bits for message length)
+        length = len(message_bytes)
+        length_bits = _int_to_bits(length, 32)
+        all_bits = length_bits + message_bits
+    
+        # Get pixel data
+        pixels = img.load()
+        width, height = img.size
+    
+        # Determine which pixels to use
+        if generator is None:
+            pixel_indices = range(width * height)
+        else:
+>           pixel_indices = generator()
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:53: TypeError
+________________________ test_wav_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_text0')
+
+    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:
+        """wav.hide writes output WAV; wav.reveal returns the same string."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "wav secret"
+        output = tmp_path / "out.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+_____________________ test_wav_hide_and_reveal_short_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_short0')
+
+    def test_wav_hide_and_reveal_short_text(tmp_path: Path) -> None:
+        """A short message should also roundtrip."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "ok"
+        output = tmp_path / "out_short.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+____________________ test_wav_hide_and_reveal_longer_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_longe0')
+
+    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:
+        """Roundtrip a longer ASCII message via WAV backend."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "WAV backend long message: 1234567890 abcdefghijklmnopqrstuvwxyz"
+        output = tmp_path / "out_long.wav"
+    
+>       wav.hide(str(wav_in), secret, str(output))
+
+tests\Stegano\functional_test.py:249: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\wav\wav.py:61: in hide
+    audio_data = _samples_to_audio(samples, sample_width, n_channels)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+samples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2
+n_channels = 1
+
+    def _samples_to_audio(samples, sample_width, n_channels):
+        """Convert list of samples back to audio data"""
+        audio_data = b''
+    
+        if sample_width == 1:
+            for sample in samples:
+                audio_data += bytes([sample & 0xFF])
+        elif sample_width == 2:
+            for sample in samples:
+>               audio_data += struct.pack('<h', sample & 0xFFFF)
+E               struct.error: short format requires (-32768) <= number <= 32767
+
+generation\Stegano\stegano\wav\wav.py:152: error
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - stru...
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_short_text
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text
+4 failed, 8 passed in 7.76s
+
+==========================================================================================
+PROJECT: Tablib
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Tablib\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/Tablib/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Tablib\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Tablib\functional_test.py:59: in <module>
+    import tablib  # type: ignore  # noqa: E402
+generation\Tablib\tablib\__init__.py:5: in <module>
+    from tablib.core import Dataset, Databook
+generation\Tablib\tablib\core.py:7: in <module>
+    from tablib.formats import _csv, _json
+generation\Tablib\tablib\formats\_csv.py:7: in <module>
+    from tablib.core import Dataset
+E   ImportError: cannot import name 'Dataset' from partially initialized module 'tablib.core' (most likely due to a circular import) (D:\桌面\RealAppCodeBench_generic_eval\generation\Tablib\tablib\core.py)
+=========================== short test summary info ===========================
+ERROR tests/Tablib/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.67s
+
+==========================================================================================
+PROJECT: Tabulate
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Tabulate\pytest_logs\functional.log
+==========================================================================================
+..FF.F.FF.F.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]]
+headers = ['f', 'i', 'r', 's', 't', 'r', ...], tablefmt = 'simple'
+floatfmt = 'g', numalign = 'decimal', stralign = 'left', missingval = ''
+showindex = False, disable_numparse = False, colalign = None
+
+    def tabulate(tabular_data, headers=(), tablefmt="simple", floatfmt="g",
+                 numalign="decimal", stralign="left", missingval="",
+                 showindex=False, disable_numparse=False, colalign=None):
+        """
+        Format a table from tabular data.
+    
+        Args:
+            tabular_data: List of lists, list of dicts, or dict
+            headers: List of header names or "keys" for dict keys
+            tablefmt: Table format name (e.g., "grid", "pipe", "plain")
+            floatfmt: Format string for floats (default "g")
+            numalign: Alignment for numbers ("decimal", "right", "center", "left")
+            stralign: Alignment for strings ("left", "center", "right")
+            missingval: String to use for missing values
+            showindex: Show row indices
+            disable_numparse: Don't parse numeric strings
+            colalign: Per-column alignment override
+    
+        Returns:
+            Formatted table as a string
+        """
+    
+        # Get the table format
+        if isinstance(tablefmt, str):
+            fmt = get_named_table_format(tablefmt)
+        else:
+            fmt = tablefmt
+    
+        # Normalize data
+        rows, headers = _normalize_tabular_data(tabular_data, headers)
+    
+        # Convert headers to strings
+        if headers:
+            headers = [str(h) for h in headers]
+    
+        # Add index column if needed
+        if showindex:
+            if headers:
+                headers = [""] + headers
+            rows = [[i] + list(row) for i, row in enumerate(rows)]
+    
+        # Convert all cells to strings and handle multiline
+        max_lines = 1
+        processed_rows = []
+        for row in rows:
+            processed_row = []
+            for cell in row:
+                lines = _split_multiline(cell)
+                processed_row.append(lines)
+                max_lines = max(max_lines, len(lines))
+            processed_rows.append(processed_row)
+    
+        # Expand multiline cells
+        expanded_rows = []
+        for row in processed_rows:
+            expanded_row = []
+            for lines in row:
+                # Pad lines to max_lines
+                padded = lines + [""] * (max_lines - len(lines))
+                expanded_row.append(padded)
+            expanded_rows.append(expanded_row)
+    
+        # Transpose to get columns
+        if not expanded_rows:
+            columns = []
+        else:
+            num_cols = len(expanded_rows[0])
+            columns = []
+            for col_idx in range(num_cols):
+                col = []
+                for row in expanded_rows:
+                    col.extend(row[col_idx])
+                columns.append(col)
+    
+        # Calculate column widths
+        col_widths = []
+        for col_idx, col in enumerate(columns):
+            width = 0
+            if headers and col_idx < len(headers):
+                width = len(headers[col_idx])
+            for cell_lines in col:
+                for line in cell_lines:
+                    width = max(width, len(line))
+            col_widths.append(width)
+    
+        # Determine alignment for each column
+        alignments = []
+        for col_idx, col in enumerate(columns):
+            if colalign and col_idx < len(colalign):
+                alignments.append(colalign[col_idx])
+            else:
+                # Auto-detect alignment
+                has_number = False
+                has_text = False
+                for cell_lines in col:
+                    for line in cell_lines:
+                        if line:
+                            if _isnumber(line):
+                                has_number = True
+                            else:
+                                has_text = True
+    
+                if has_number and not has_text:
+                    alignments.append(numalign if numalign != "decimal" else "right")
+                else:
+                    alignments.append(stralign)
+    
+        # Align columns
+        aligned_columns = []
+        for col_idx, col in enumerate(columns):
+            aligned_col = []
+            for cell_lines in col:
+                aligned_lines = []
+                for line in cell_lines:
+                    aligned = _align_column([line], alignments[col_idx], col_widths[col_idx])[0]
+                    aligned_lines.append(aligned)
+                aligned_col.append(aligned_lines)
+            aligned_columns.append(aligned_col)
+    
+        # Build output
+        lines = []
+    
+        # Line above
+        if fmt.lineabove:
+            line = _build_line(fmt.lineabove, col_widths, fmt.padding)
+            lines.append(line)
+    
+        # Header row
+        if headers:
+            header_cells = []
+            for col_idx, h in enumerate(headers):
+>               aligned = _align_column([h], alignments[col_idx], col_widths[col_idx])[0]
+E               IndexError: list index out of range
+
+generation\Tabulate\tabulate\core.py:219: IndexError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+        output = tabulate(table, headers="keys")
+        lines = _lines(output)
+    
+>       assert "Name" in lines[0]
+E       AssertionError: assert 'Name' in '--------'
+
+tests\Tabulate\functional_test.py:137: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:112: in tabulate
+    fmt = get_named_table_format(tablefmt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'github'
+
+    def get_named_table_format(name):
+        """Get a table format by name."""
+        if name not in _FORMATS:
+>           raise ValueError(f"Unknown table format: {name}")
+E           ValueError: Unknown table format: github
+
+generation\Tabulate\tabulate\formats.py:301: ValueError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+        output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "Alice" in joined
+        assert "Bob" in joined
+>       assert "N/A" in joined
+E       AssertionError: assert 'N/A' in 'namestatus\nAlice\nBobok'
+
+tests\Tabulate\functional_test.py:213: AssertionError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+        output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "pi" in joined and "3.14" in joined
+>       assert "e" in joined and "2.72" in joined
+E       AssertionError: assert ('e' in 'namevalue\npi3.14159\ne2.71828' and '2.72' in 'namevalue\npi3.14159\ne2.71828')
+
+tests\Tabulate\functional_test.py:227: AssertionError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+6 failed, 6 passed in 0.56s
+
+==========================================================================================
+PROJECT: Termgraph
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Termgraph\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D798490>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D798430>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Test Chart
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7FEA00>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D7FEBB0>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stacked Chart
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7F4A90>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D7F4BE0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Bars
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D833B20>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D833B80>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Values
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D76FEB0>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D76FC70>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Labels
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D826A00>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D826A30>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Suffix
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D830A30>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D830A90>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Fmt
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7FCAF0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D7FCD60>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack Labels
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D7587F0>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001325D80B790>
+
+    def draw(self):
+        """
+        Render the stacked bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max total value for scaling
+        max_total = 0
+        for row in self.data.series:
+>           total = sum(row)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:131: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack No Values
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D77E6D0>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D77E760>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001325D8218B0>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001325D821AC0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+---------------------------- Captured stdout call -----------------------------
+Narrow
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 29.02s
+
+==========================================================================================
+PROJECT: TheFuck
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\TheFuck\pytest_logs\functional.log
+==========================================================================================
+.FFFFFFFFF..                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_002_import_no_command_rule_module ____________________
+
+    def test_002_import_no_command_rule_module() -> None:
+>       importlib.import_module("thefuck.rules.no_command")
+
+tests\TheFuck\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_____________ test_003_no_command_match_returns_bool_windows_like _____________
+
+    def test_003_no_command_match_returns_bool_windows_like() -> None:
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+______________ test_004_no_command_match_returns_bool_bash_like _______________
+
+    def test_004_no_command_match_returns_bool_bash_like() -> None:
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+______ test_005_no_command_like_rule_matches_at_least_one_typical_output ______
+
+    def test_005_no_command_like_rule_matches_at_least_one_typical_output() -> None:
+        """
+        Ensure the reference no_command rule actually matches a typical 'command not found' output.
+        We check both Windows and bash variants, and require at least one to match.
+        """
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+___________ test_006_no_command_get_new_command_returns_string_like ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-401/test_006_no_command_get_new_co0')
+
+    def test_006_no_command_get_new_command_returns_string_like(tmp_path: Path) -> None:
+        """
+        get_new_command should return something string-like (or iterable of strings).
+        Do not require a specific suggestion yet.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+________ test_007_no_command_suggests_python_when_only_python_in_path _________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-401/test_007_no_command_suggests_p0')
+
+    def test_007_no_command_suggests_python_when_only_python_in_path(tmp_path: Path) -> None:
+        """
+        With PATH constrained to a directory containing only python.cmd,
+        the best correction for 'pythno' should include 'python' in the suggestion.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:184: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_______________ test_008_no_command_suggestion_is_deterministic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-401/test_008_no_command_suggestion0')
+
+    def test_008_no_command_suggestion_is_deterministic(tmp_path: Path) -> None:
+        """
+        Same input should yield same first suggestion in a controlled PATH.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:202: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_____________ test_009_no_command_does_not_crash_on_empty_output ______________
+
+    def test_009_no_command_does_not_crash_on_empty_output() -> None:
+>       match_fn, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:218: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_________________ test_010_no_command_handles_unicode_output __________________
+
+    def test_010_no_command_handles_unicode_output() -> None:
+>       match_fn, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x000001CF700F1310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/TheFuck/functional_test.py::test_002_import_no_command_rule_module
+FAILED tests/TheFuck/functional_test.py::test_003_no_command_match_returns_bool_windows_like
+FAILED tests/TheFuck/functional_test.py::test_004_no_command_match_returns_bool_bash_like
+FAILED tests/TheFuck/functional_test.py::test_005_no_command_like_rule_matches_at_least_one_typical_output
+FAILED tests/TheFuck/functional_test.py::test_006_no_command_get_new_command_returns_string_like
+FAILED tests/TheFuck/functional_test.py::test_007_no_command_suggests_python_when_only_python_in_path
+FAILED tests/TheFuck/functional_test.py::test_008_no_command_suggestion_is_deterministic
+FAILED tests/TheFuck/functional_test.py::test_009_no_command_does_not_crash_on_empty_output
+FAILED tests/TheFuck/functional_test.py::test_010_no_command_handles_unicode_output
+9 failed, 3 passed in 0.79s
+
+==========================================================================================
+PROJECT: TinyDB
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\TinyDB\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/TinyDB/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\TinyDB\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\TinyDB\functional_test.py:49: in <module>
+    from tinydb import TinyDB, Query, where  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'where' from 'tinydb' (D:\桌面\RealAppCodeBench_generic_eval\generation\TinyDB\tinydb\__init__.py)
+=========================== short test summary info ===========================
+ERROR tests/TinyDB/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.60s
+
+==========================================================================================
+PROJECT: Typer
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Typer\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+_____________________ test_todo_list_empty_shows_no_tasks _____________________
+
+    def test_todo_list_empty_shows_no_tasks() -> None:
+        app = _create_todo_app()
+        r = runner.invoke(app, ["list"])
+        assert r.exit_code == 0
+>       assert "No tasks." in r.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:224: AttributeError
+___________________________ test_todo_add_and_list ____________________________
+
+    def test_todo_add_and_list() -> None:
+        app = _create_todo_app()
+    
+        r1 = runner.invoke(app, ["add", "Write tests"])
+        r2 = runner.invoke(app, ["add", "Review PRs"])
+    
+        assert r1.exit_code == 0
+>       assert "Added: Write tests" in r1.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:234: AttributeError
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = Result(exit_code=1, output='', stderr='').exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_____________________ test_help_output_includes_commands ______________________
+
+    def test_help_output_includes_commands() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+>       out = result.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:265: AttributeError
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["add", "--help"])
+        assert result.exit_code == 0
+>       out = result.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:275: AttributeError
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+>       app = _create_prompt_app()
+
+tests\Typer\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_prompt_app() -> typer.Typer:
+        """
+        Multi-command app to avoid Typer's single-command "collapse" behavior in
+        some versions. This guarantees that "greet" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+        def greet(
+>           name: str = typer.Option(
+                None,
+                "--name",
+                prompt=True,
+                help="Name to greet (prompted when missing).",
+            )
+        ) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'prompt'
+
+tests\Typer\functional_test.py:121: TypeError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000026F93691400>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+>       app = _create_env_app()
+
+tests\Typer\functional_test.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_env_app() -> typer.Typer:
+        """
+        Multi-command app to guarantee that "show" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+>       def show(token: str = typer.Option(..., "--token", envvar="APP_TOKEN")) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+tests\Typer\functional_test.py:144: TypeError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+>       app = _create_callback_app()
+
+tests\Typer\functional_test.py:297: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_callback_app() -> typer.Typer:
+        """App with a callback global option that influences command output."""
+        app = typer.Typer()
+        state: Dict[str, bool] = {"verbose": False}
+    
+>       @app.callback()
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:159: AttributeError
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+>       app = _create_types_app()
+
+tests\Typer\functional_test.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_types_app() -> typer.Typer:
+        """
+        Multi-command app to guarantee that "calc" exists as a subcommand.
+        Covers typed arguments and a float option.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+>       def calc(x: int, y: int, scale: float = typer.Option(1.0, "--scale")) -> None:
+E       TypeError: __init__() takes from 1 to 2 positional arguments but 3 were given
+
+tests\Typer\functional_test.py:181: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - AttributeE...
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - At...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_list_empty_shows_no_tasks - ...
+FAILED tests/Typer/functional_test.py::test_todo_add_and_list - AttributeErro...
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - A...
+FAILED tests/Typer/functional_test.py::test_help_output_includes_commands - A...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+12 failed in 0.76s
+
+==========================================================================================
+PROJECT: Watchdog
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Watchdog\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Watchdog/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Watchdog\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Watchdog\functional_test.py:55: in <module>
+    from watchdog.events import (  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'FileSystemEventHandler' from 'watchdog.events' (D:\桌面\RealAppCodeBench_generic_eval\generation\Watchdog\watchdog\events.py)
+=========================== short test summary info ===========================
+ERROR tests/Watchdog/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.60s
+
+==========================================================================================
+PROJECT: Xmltodict
+LOG: D:\桌面\Exp1\claude-4.5-haiku\results\Xmltodict\pytest_logs\functional.log
+==========================================================================================
+....F.......                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+        data = _parse(xml)
+    
+        root = data["root"]
+        keys = [k for k in root.keys() if isinstance(k, str)]
+>       assert any(k.startswith("x:") for k in keys)
+E       assert False
+E        +  where False = any(<generator object test_namespace_prefix_is_preserved.<locals>.<genexpr> at 0x0000020356158580>)
+
+tests\Xmltodict\functional_test.py:131: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved
+1 failed, 11 passed in 0.44s
+

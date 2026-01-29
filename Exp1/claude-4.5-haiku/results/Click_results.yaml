@@ -1,0 +1,352 @@
+project_name: Click
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Click\click.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Click
+timestamp: '2026-01-01 11:30:16'
+functional_score: 0.0
+non_functional_score: 0.24
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________ test_simple_command_with_argument_and_option _________________\n\
+      \n    def test_simple_command_with_argument_and_option():\n        @click.command()\n\
+      \        @click.option(\"--count\", \"-c\", type=int, default=1)\n        @click.argument(\"\
+      name\")\n        def greet(count: int, name: str) -> None:\n            for\
+      \ _ in range(count):\n                click.echo(f\"Hello {name}!\")\n    \n\
+      \        runner = CliRunner()\n        result = runner.invoke(greet, [\"--count\"\
+      , \"3\", \"World\"])\n    \n>       assert result.exit_code == 0\nE       assert\
+      \ 1 == 0\nE        +  where 1 = <Result exit_code=1>.exit_code\n\ntests\\Click\\\
+      functional_test.py:143: AssertionError\n________________________ test_boolean_flag_option_pair\
+      \ ________________________\n\n    def test_boolean_flag_option_pair():\n   \
+      \     @click.command()\n        @click.option(\"--flag/--no-flag\", default=False)\n\
+      \        def cli(flag: bool) -> None:\n            click.echo(f\"FLAG={flag}\"\
+      )\n    \n        runner = CliRunner()\n    \n        r1 = runner.invoke(cli,\
+      \ [\"--flag\"])\n>       assert r1.exit_code == 0\nE       assert 1 == 0\nE\
+      \        +  where 1 = <Result exit_code=1>.exit_code\n\ntests\\Click\\functional_test.py:157:\
+      \ AssertionError\n_________________________ test_group_with_subcommands _________________________\n\
+      \n    def test_group_with_subcommands():\n        @click.group()\n        def\
+      \ cli() -> None:\n            pass\n    \n        @cli.command()\n        @click.argument(\"\
+      name\")\n        def hello(name: str) -> None:\n            click.echo(f\"Hello\
+      \ {name}\")\n    \n        @cli.command()\n        @click.argument(\"name\"\
+      )\n        def goodbye(name: str) -> None:\n            click.echo(f\"Goodbye\
+      \ {name}\")\n    \n        runner = CliRunner()\n    \n        r1 = runner.invoke(cli,\
+      \ [\"hello\", \"Alice\"])\n>       assert r1.exit_code == 0\nE       assert\
+      \ 1 == 0\nE        +  where 1 = <Result exit_code=1>.exit_code\n\ntests\\Click\\\
+      functional_test.py:183: AssertionError\n___________________ test_help_output_for_command_and_group\
+      \ ____________________\n\n    def test_help_output_for_command_and_group():\n\
+      \        @click.group(help=\"Top level group\")\n        def cli() -> None:\n\
+      \            pass\n    \n        @cli.command(help=\"Say hello\")\n        @click.option(\"\
+      --shout/--no-shout\", default=False)\n        @click.argument(\"name\")\n  \
+      \      def hello(name: str, shout: bool) -> None:\n            msg = f\"Hello\
+      \ {name}\"\n            if shout:\n                msg = msg.upper()\n     \
+      \       click.echo(msg)\n    \n        runner = CliRunner()\n    \n        group_help\
+      \ = runner.invoke(cli, [\"--help\"])\n        assert group_help.exit_code ==\
+      \ 0\n>       assert \"Top level group\" in group_help.output\nE       AssertionError:\
+      \ assert 'Top level group' in ''\nE        +  where '' = <Result exit_code=0>.output\n\
+      \ntests\\Click\\functional_test.py:209: AssertionError\n____________________\
+      \ test_get_current_context_propagation _____________________\n\n    def test_get_current_context_propagation():\n\
+      \        @click.group()\n        @click.option(\"--config\", type=str, default=\"\
+      default.cfg\")\n        def cli(config: str) -> None:\n            ctx = click.get_current_context()\n\
+      \            ctx.obj = {\"config\": config}\n    \n        @cli.command()\n\
+      \        def show() -> None:\n            ctx = click.get_current_context()\n\
+      \            cfg = ctx.obj.get(\"config\")\n            click.echo(f\"CONFIG={cfg}\"\
+      )\n    \n        runner = CliRunner()\n        result = runner.invoke(cli, [\"\
+      --config\", \"custom.cfg\", \"show\"])\n    \n>       assert result.exit_code\
+      \ == 0\nE       assert 1 == 0\nE        +  where 1 = <Result exit_code=1>.exit_code\n\
+      \ntests\\Click\\functional_test.py:235: AssertionError\n_________________ test_command_exception_is_exposed_in_result\
+      \ _________________\n\n    def test_command_exception_is_exposed_in_result():\n\
+      \        class CustomError(Exception):\n            pass\n    \n        @click.command()\n\
+      \        def boom() -> None:\n            raise CustomError(\"explode\")\n \
+      \   \n        runner = CliRunner()\n        result = runner.invoke(boom, [])\n\
+      \    \n        assert result.exit_code != 0\n>       assert isinstance(result.exception,\
+      \ CustomError)\nE       AssertionError: assert False\nE        +  where False\
+      \ = isinstance(None, <class 'functional_test.test_command_exception_is_exposed_in_result.<locals>.CustomError'>)\n\
+      E        +    where None = <Result exit_code=1>.exception\n\ntests\\Click\\\
+      functional_test.py:251: AssertionError\n_____________________ test_option_envvar_default_is_used\
+      \ ______________________\n\n    def test_option_envvar_default_is_used():\n\
+      \        @click.command()\n        @click.option(\"--name\", envvar=\"CLICK_TEST_NAME\"\
+      , default=\"fallback\")\n        def cli(name: str) -> None:\n            click.echo(f\"\
+      NAME={name}\")\n    \n        runner = CliRunner()\n    \n        r1 = runner.invoke(cli,\
+      \ [])\n>       assert r1.exit_code == 0\nE       assert 1 == 0\nE        + \
+      \ where 1 = <Result exit_code=1>.exit_code\n\ntests\\Click\\functional_test.py:269:\
+      \ AssertionError\n________________ test_prompt_option_can_be_satisfied_via_input\
+      \ ________________\n\n    def test_prompt_option_can_be_satisfied_via_input():\n\
+      \        @click.command()\n        @click.option(\"--token\", prompt=True)\n\
+      \        def cli(token: str) -> None:\n            click.echo(f\"TOKEN={token}\"\
+      )\n    \n        runner = CliRunner()\n        r = runner.invoke(cli, [], input=\"\
+      secret-token\\n\")\n>       assert r.exit_code == 0\nE       assert 1 == 0\n\
+      E        +  where 1 = <Result exit_code=1>.exit_code\n\ntests\\Click\\functional_test.py:285:\
+      \ AssertionError\n_______________ test_default_map_provides_default_option_value\
+      \ ________________\n\n    def test_default_map_provides_default_option_value():\n\
+      \        @click.group()\n        def cli() -> None:\n            pass\n    \n\
+      \        @cli.command()\n        @click.option(\"--count\", type=int, default=1)\n\
+      \        def run(count: int) -> None:\n            click.echo(f\"COUNT={count}\"\
+      )\n    \n        runner = CliRunner()\n        r = runner.invoke(cli, [\"run\"\
+      ], default_map={\"run\": {\"count\": 7}})\n>       assert r.exit_code == 0\n\
+      E       assert 1 == 0\nE        +  where 1 = <Result exit_code=1>.exit_code\n\
+      \ntests\\Click\\functional_test.py:301: AssertionError\n_______________ test_parameter_type_validation_error_exit_code\
+      \ ________________\n\n    def test_parameter_type_validation_error_exit_code():\n\
+      \        @click.command()\n        @click.option(\"--count\", type=int, required=True)\n\
+      \        def cli(count: int) -> None:\n            click.echo(f\"COUNT={count}\"\
+      )\n    \n        runner = CliRunner()\n        r = runner.invoke(cli, [\"--count\"\
+      , \"not-an-int\"])\n        assert r.exit_code != 0\n>       assert (\"Invalid\
+      \ value\" in r.output) or (\"Error\" in r.output)\nE       AssertionError: assert\
+      \ ('Invalid value' in '' or 'Error' in '')\nE        +  where '' = <Result exit_code=1>.output\n\
+      E        +  and   '' = <Result exit_code=1>.output\n\ntests\\Click\\functional_test.py:314:\
+      \ AssertionError\n_____________ test_path_type_creates_writable_path_in_isolated_fs\
+      \ _____________\n\n    def test_path_type_creates_writable_path_in_isolated_fs():\n\
+      \        @click.command()\n>       @click.option(\"--out\", type=click.Path(dir_okay=False,\
+      \ writable=True))\nE       AttributeError: module 'click' has no attribute 'Path'\n\
+      \ntests\\Click\\functional_test.py:319: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option\n\
+      FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...\n\
+      FAILED tests/Click/functional_test.py::test_group_with_subcommands - assert\
+      \ 1...\nFAILED tests/Click/functional_test.py::test_help_output_for_command_and_group\n\
+      FAILED tests/Click/functional_test.py::test_get_current_context_propagation\n\
+      FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result\n\
+      FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used -\
+      \ a...\nFAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input\n\
+      FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value\n\
+      FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code\n\
+      FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs\n\
+      11 failed in 4.27s\n"
+    elapsed_time_s: 5.691336
+    avg_memory_mb: 32.26
+    avg_cpu_percent: 97.5
+    passed: 0
+    failed: 11
+    skipped: 0
+    total: 11
+    score_inputs_passed: 0
+    score_inputs_failed: 11
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_many_invocations_performance ______________________\n\
+      \n    def test_many_invocations_performance():\n        @click.command()\n \
+      \       @click.option(\"--count\", type=int, default=1)\n        @click.argument(\"\
+      name\")\n        def greet(count: int, name: str) -> None:\n            for\
+      \ _ in range(count):\n                click.echo(f\"Hello {name}!\")\n    \n\
+      \        runner = CliRunner()\n    \n        num_runs = 1000\n        start\
+      \ = time.perf_counter()\n        for i in range(num_runs):\n            result\
+      \ = runner.invoke(greet, [\"--count\", \"1\", f\"User-{i}\"])\n>           assert\
+      \ result.exit_code == 0\nE           assert 1 == 0\nE            +  where 1\
+      \ = <Result exit_code=1>.exit_code\n\ntests\\Click\\performance_test.py:39:\
+      \ AssertionError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Click/performance_test.py::test_many_invocations_performance -\
+      \ a...\n1 failed in 0.39s\n"
+    elapsed_time_s: 1.908022
+    avg_memory_mb: 31.24
+    avg_cpu_percent: 98.3
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.523511
+    score_inputs_actual_time_s: 1.908022
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_repeated_invocations_memory_usage ____________________\n\
+      \n    def test_repeated_invocations_memory_usage():\n        @click.command()\n\
+      \        @click.option(\"--times\", type=int, default=1)\n        @click.argument(\"\
+      name\")\n        def greet(times: int, name: str) -> None:\n            for\
+      \ _ in range(times):\n                click.echo(f\"Hello {name}!\")\n    \n\
+      \        runner = CliRunner()\n    \n        before = _memory_mb()\n    \n \
+      \       for i in range(300):\n            result = runner.invoke(greet, [\"\
+      --times\", \"3\", f\"User-{i}\"])\n>           assert result.exit_code == 0\n\
+      E           assert 1 == 0\nE            +  where 1 = <Result exit_code=1>.exit_code\n\
+      \ntests\\Click\\resource_test.py:45: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/resource_test.py::test_repeated_invocations_memory_usage\n\
+      1 failed in 0.45s\n"
+    elapsed_time_s: 1.898834
+    avg_memory_mb: 33.3
+    avg_cpu_percent: 98.3
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 34.28
+    score_inputs_baseline_cpu_pct: 97.6
+    score_inputs_actual_mem_mb: 33.3
+    score_inputs_actual_cpu_pct: 98.3
+  robustness:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________ test_click_robustness_invalid_inputs_do_not_crash ______________\n\
+      \n    def test_click_robustness_invalid_inputs_do_not_crash():\n        \"\"\
+      \"\n        Robustness tests should be version-tolerant:\n          - Invalid\
+      \ inputs may raise exceptions (acceptable).\n          - Some invalid inputs\
+      \ may be coerced/ignored (also acceptable).\n        Requirement: no hard crashes;\
+      \ library remains importable and callable.\n        \"\"\"\n        click =\
+      \ _import_click()\n    \n        results: list[Tuple[bool, str]] = []\n    \n\
+      \        # 1) Construct basic objects\n        cmd = click.Command(name=\"test\"\
+      )\n        group = click.Group(name=\"test_group\")\n    \n        # 2) Callback\
+      \ non-callable: assignment may or may not raise; both OK\n        def _set_callback():\n\
+      \            cmd.callback = \"not a function\"  # type: ignore[assignment]\n\
+      \    \n        results.append(_run_case(\"Command callback set to non-callable\"\
+      , _set_callback))\n    \n        # 3) Option invalid type: signature/validation\
+      \ varies across versions\n        results.append(_run_case(\"Option with invalid\
+      \ type\", click.Option, [\"--test\"], type=\"not a type\"))  # type: ignore[arg-type]\n\
+      \    \n        # 4) Group add duplicate command names: may override or raise\n\
+      \        results.append(_run_case(\"Group add_command duplicate name\", group.add_command,\
+      \ cmd, name=\"dup\"))\n        results.append(_run_case(\"Group add_command\
+      \ duplicate name again\", group.add_command, cmd, name=\"dup\"))\n    \n   \
+      \     # 5) Context creation with valid/None command\n        results.append(_run_case(\"\
+      Context with command\", click.Context, cmd))\n        results.append(_run_case(\"\
+      Context with None command\", click.Context, None))  # type: ignore[arg-type]\n\
+      \    \n        # 6) ClickException with None message\n>       results.append(_run_case(\"\
+      ClickException with None message\", click.ClickException, None))  # type: ignore[arg-type]\n\
+      E       AttributeError: module 'click' has no attribute 'ClickException'\n\n\
+      tests\\Click\\robustness_test.py:118: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash\n\
+      1 failed in 0.40s\n"
+    elapsed_time_s: 1.86764
+    avg_memory_mb: 31.81
+    avg_cpu_percent: 100.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=729.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.54535
+    avg_memory_mb: 32.0
+    avg_cpu_percent: 98.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 729.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 2.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=13.5984 files_scanned=6.0 total_loc=729.0 max_cc=28.0
+
+      .
+
+      1 passed in 0.20s
+
+      '
+    elapsed_time_s: 1.528123
+    avg_memory_mb: 31.8
+    avg_cpu_percent: 101.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 13.5984
+      files_scanned: 6.0
+      total_loc: 729.0
+      max_cc: 28.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 13.5984
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.523511
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.392334
+    resource_tests_total: 1
+    avg_memory_mb: 34.28
+    avg_cpu_percent: 97.6
+  functional:
+    functional_suite_time_s: 3.08833
+    functional_tests_total: 11
+  security:
+    security_suite_time_s: 1.36602
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 2.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+  maintainability:
+    maintainability_suite_time_s: 1.770477
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+      max_cc: 43.0
+  robustness:
+    robustness_suite_time_s: 1.208987
+    robustness_tests_total: 1
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Click\pytest_logs

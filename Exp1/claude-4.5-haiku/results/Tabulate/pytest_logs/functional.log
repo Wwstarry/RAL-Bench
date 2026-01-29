@@ -1,0 +1,257 @@
+..FF.F.FF.F.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]]
+headers = ['f', 'i', 'r', 's', 't', 'r', ...], tablefmt = 'simple'
+floatfmt = 'g', numalign = 'decimal', stralign = 'left', missingval = ''
+showindex = False, disable_numparse = False, colalign = None
+
+    def tabulate(tabular_data, headers=(), tablefmt="simple", floatfmt="g",
+                 numalign="decimal", stralign="left", missingval="",
+                 showindex=False, disable_numparse=False, colalign=None):
+        """
+        Format a table from tabular data.
+    
+        Args:
+            tabular_data: List of lists, list of dicts, or dict
+            headers: List of header names or "keys" for dict keys
+            tablefmt: Table format name (e.g., "grid", "pipe", "plain")
+            floatfmt: Format string for floats (default "g")
+            numalign: Alignment for numbers ("decimal", "right", "center", "left")
+            stralign: Alignment for strings ("left", "center", "right")
+            missingval: String to use for missing values
+            showindex: Show row indices
+            disable_numparse: Don't parse numeric strings
+            colalign: Per-column alignment override
+    
+        Returns:
+            Formatted table as a string
+        """
+    
+        # Get the table format
+        if isinstance(tablefmt, str):
+            fmt = get_named_table_format(tablefmt)
+        else:
+            fmt = tablefmt
+    
+        # Normalize data
+        rows, headers = _normalize_tabular_data(tabular_data, headers)
+    
+        # Convert headers to strings
+        if headers:
+            headers = [str(h) for h in headers]
+    
+        # Add index column if needed
+        if showindex:
+            if headers:
+                headers = [""] + headers
+            rows = [[i] + list(row) for i, row in enumerate(rows)]
+    
+        # Convert all cells to strings and handle multiline
+        max_lines = 1
+        processed_rows = []
+        for row in rows:
+            processed_row = []
+            for cell in row:
+                lines = _split_multiline(cell)
+                processed_row.append(lines)
+                max_lines = max(max_lines, len(lines))
+            processed_rows.append(processed_row)
+    
+        # Expand multiline cells
+        expanded_rows = []
+        for row in processed_rows:
+            expanded_row = []
+            for lines in row:
+                # Pad lines to max_lines
+                padded = lines + [""] * (max_lines - len(lines))
+                expanded_row.append(padded)
+            expanded_rows.append(expanded_row)
+    
+        # Transpose to get columns
+        if not expanded_rows:
+            columns = []
+        else:
+            num_cols = len(expanded_rows[0])
+            columns = []
+            for col_idx in range(num_cols):
+                col = []
+                for row in expanded_rows:
+                    col.extend(row[col_idx])
+                columns.append(col)
+    
+        # Calculate column widths
+        col_widths = []
+        for col_idx, col in enumerate(columns):
+            width = 0
+            if headers and col_idx < len(headers):
+                width = len(headers[col_idx])
+            for cell_lines in col:
+                for line in cell_lines:
+                    width = max(width, len(line))
+            col_widths.append(width)
+    
+        # Determine alignment for each column
+        alignments = []
+        for col_idx, col in enumerate(columns):
+            if colalign and col_idx < len(colalign):
+                alignments.append(colalign[col_idx])
+            else:
+                # Auto-detect alignment
+                has_number = False
+                has_text = False
+                for cell_lines in col:
+                    for line in cell_lines:
+                        if line:
+                            if _isnumber(line):
+                                has_number = True
+                            else:
+                                has_text = True
+    
+                if has_number and not has_text:
+                    alignments.append(numalign if numalign != "decimal" else "right")
+                else:
+                    alignments.append(stralign)
+    
+        # Align columns
+        aligned_columns = []
+        for col_idx, col in enumerate(columns):
+            aligned_col = []
+            for cell_lines in col:
+                aligned_lines = []
+                for line in cell_lines:
+                    aligned = _align_column([line], alignments[col_idx], col_widths[col_idx])[0]
+                    aligned_lines.append(aligned)
+                aligned_col.append(aligned_lines)
+            aligned_columns.append(aligned_col)
+    
+        # Build output
+        lines = []
+    
+        # Line above
+        if fmt.lineabove:
+            line = _build_line(fmt.lineabove, col_widths, fmt.padding)
+            lines.append(line)
+    
+        # Header row
+        if headers:
+            header_cells = []
+            for col_idx, h in enumerate(headers):
+>               aligned = _align_column([h], alignments[col_idx], col_widths[col_idx])[0]
+E               IndexError: list index out of range
+
+generation\Tabulate\tabulate\core.py:219: IndexError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+        output = tabulate(table, headers="keys")
+        lines = _lines(output)
+    
+>       assert "Name" in lines[0]
+E       AssertionError: assert 'Name' in '--------'
+
+tests\Tabulate\functional_test.py:137: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:112: in tabulate
+    fmt = get_named_table_format(tablefmt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'github'
+
+    def get_named_table_format(name):
+        """Get a table format by name."""
+        if name not in _FORMATS:
+>           raise ValueError(f"Unknown table format: {name}")
+E           ValueError: Unknown table format: github
+
+generation\Tabulate\tabulate\formats.py:301: ValueError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+        output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "Alice" in joined
+        assert "Bob" in joined
+>       assert "N/A" in joined
+E       AssertionError: assert 'N/A' in 'namestatus\nAlice\nBobok'
+
+tests\Tabulate\functional_test.py:213: AssertionError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+        output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+        lines = _lines(output)
+    
+        joined = "\n".join(lines)
+        assert "pi" in joined and "3.14" in joined
+>       assert "e" in joined and "2.72" in joined
+E       AssertionError: assert ('e' in 'namevalue\npi3.14159\ne2.71828' and '2.72' in 'namevalue\npi3.14159\ne2.71828')
+
+tests\Tabulate\functional_test.py:227: AssertionError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+6 failed, 6 passed in 0.56s

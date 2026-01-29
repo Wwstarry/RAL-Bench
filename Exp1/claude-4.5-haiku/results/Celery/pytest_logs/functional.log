@@ -1,0 +1,250 @@
+FFFFFFFFFF                                                               [100%]
+================================== FAILURES ===================================
+___________________ test_001_import_celery_and_core_symbols ___________________
+
+    def test_001_import_celery_and_core_symbols() -> None:
+        _ensure_celery_importable()
+        import celery  # noqa: F401
+    
+        from celery import Celery  # noqa: F401
+>       from celery import chain, chord, group, signature  # noqa: F401
+E       ImportError: cannot import name 'chain' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:61: ImportError
+______________ test_002_create_app_and_register_task_runs_delay _______________
+
+    def test_002_create_app_and_register_task_runs_delay() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____ test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager ____
+
+    def test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+__________________ test_004_group_collects_results_in_order ___________________
+
+    def test_004_group_collects_results_in_order() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____________________ test_005_chain_passes_previous_result ____________________
+
+    def test_005_chain_passes_previous_result() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_______________ test_006_chord_runs_callback_over_group_results _______________
+
+    def test_006_chord_runs_callback_over_group_results() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+______________ test_007_task_exception_propagates_in_eager_mode _______________
+
+    def test_007_task_exception_propagates_in_eager_mode() -> None:
+        """
+        In some Celery versions/configs with task_always_eager=True and
+        task_eager_propagates=True, the exception is raised immediately during
+        delay()/apply_async() rather than on AsyncResult.get().
+    
+        This test accepts both correct behaviors:
+        - delay raises ValueError directly, OR
+        - delay returns a result whose .get() raises ValueError.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_____________ test_008_disable_propagation_returns_failed_result ______________
+
+    def test_008_disable_propagation_returns_failed_result() -> None:
+        """
+        With task_eager_propagates=False:
+          - Some Celery builds still raise on get(..., propagate=True)
+          - get(..., propagate=False) may return None OR return the exception object
+        We accept both behaviors as long as the task is marked failed.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+_______________ test_009_signature_freeze_has_id_and_task_name ________________
+
+    def test_009_signature_freeze_has_id_and_task_name() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+____________ test_010_default_app_does_not_break_custom_app_usage _____________
+
+    def test_010_default_app_does_not_break_custom_app_usage() -> None:
+        """
+        Ensure that importing celery and using a custom app is not polluted by globals.
+        """
+>       app = _make_app("celery_test_app_2")
+
+tests\Celery\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app_2'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+>       app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+E       TypeError: __init__() got an unexpected keyword argument 'include'
+
+tests\Celery\functional_test.py:34: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Celery/functional_test.py::test_001_import_celery_and_core_symbols
+FAILED tests/Celery/functional_test.py::test_002_create_app_and_register_task_runs_delay
+FAILED tests/Celery/functional_test.py::test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager
+FAILED tests/Celery/functional_test.py::test_004_group_collects_results_in_order
+FAILED tests/Celery/functional_test.py::test_005_chain_passes_previous_result
+FAILED tests/Celery/functional_test.py::test_006_chord_runs_callback_over_group_results
+FAILED tests/Celery/functional_test.py::test_007_task_exception_propagates_in_eager_mode
+FAILED tests/Celery/functional_test.py::test_008_disable_propagation_returns_failed_result
+FAILED tests/Celery/functional_test.py::test_009_signature_freeze_has_id_and_task_name
+FAILED tests/Celery/functional_test.py::test_010_default_app_does_not_break_custom_app_usage
+10 failed in 0.76s

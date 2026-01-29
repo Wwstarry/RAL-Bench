@@ -1,2 +1,74 @@
-............                                                             [100%]
-12 passed in 3.03s
+.F..........                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-686/test_lsb_hide_and_reveal_with_0')
+
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input_image = 'D:\\桌面\\RAL-Bench\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x000001F860CE5510>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(input_image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hide a message in an image using LSB steganography.
+    
+        Args:
+            input_image: Path to image file or PIL Image object
+            message: String message to hide
+            generator: Optional generator for pixel selection (default: sequential)
+            shift: Offset for generator sequence
+            encoding: Text encoding (default: UTF-8)
+            auto_convert_rgb: Convert image to RGB if needed
+    
+        Returns:
+            PIL Image object with hidden message
+        """
+        if isinstance(input_image, str):
+            img = Image.open(input_image)
+        else:
+            img = input_image.copy()
+    
+        # Convert to RGB if needed
+        if img.mode not in ('RGB', 'RGBA'):
+            if auto_convert_rgb:
+                img = img.convert('RGB')
+            else:
+                raise ValueError(f"Image mode {img.mode} not supported. Use auto_convert_rgb=True or convert to RGB.")
+    
+        # Encode message to bytes and add null terminator
+        message_bytes = message.encode(encoding)
+        message_bytes += b'\x00\x00\x00\x00'  # 4-byte null terminator
+    
+        # Convert bytes to bits
+        bits = []
+        for byte in message_bytes:
+            for i in range(8):
+                bits.append((byte >> (7 - i)) & 1)
+    
+        # Get image dimensions
+        width, height = img.size
+        pixels = img.load()
+    
+        # Create generator for pixel positions
+        if generator is None:
+            # Sequential generator
+            def sequential_gen():
+                idx = 0
+                while True:
+                    yield idx
+                    idx += 1
+            gen = sequential_gen()
+        else:
+>           gen = generator()
+E           TypeError: 'generator' object is not callable
+
+generation\claude-4.5-sonnet\Stegano\stegano\lsb\lsb.py:60: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+1 failed, 11 passed in 2.09s

@@ -1,0 +1,98 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_many_datetime_operations ________________________
+
+    def test_many_datetime_operations() -> None:
+        """
+        Exercise many datetime operations to give the benchmark
+        something non-trivial to time.
+        """
+        base = pendulum.datetime(2020, 1, 1, 0, 0, 0, tz="UTC")
+        results: list[str] = []
+    
+        start_time = time.perf_counter()
+    
+        for i in range(2000):
+            dt = base.add(minutes=i)
+>           tokyo = dt.in_timezone("Asia/Tokyo")
+
+tests\Pendulum\performance_test.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:28: in in_timezone
+    converted = self.astimezone(tz)
+generation\Pendulum\pendulum\timezone.py:24: in utcoffset
+    return self._tz.utcoffset(dt)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:425: in utcoffset
+    dt = self.localize(dt, is_dst)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <DstTzInfo 'Asia/Tokyo' LMT+9:19:00 STD>
+dt = DateTime(2020, 1, 1, 0, 0, 0, 0, tz='Asia/Tokyo'), is_dst = None
+
+    def localize(self, dt, is_dst=False):
+        '''Convert naive time to local time.
+    
+        This method should be used to construct localtimes, rather
+        than passing a tzinfo argument to a datetime constructor.
+    
+        is_dst is used to determine the correct timezone in the ambigous
+        period at the end of daylight saving time.
+    
+        >>> from pytz import timezone
+        >>> fmt = '%Y-%m-%d %H:%M:%S %Z (%z)'
+        >>> amdam = timezone('Europe/Amsterdam')
+        >>> dt  = datetime(2004, 10, 31, 2, 0, 0)
+        >>> loc_dt1 = amdam.localize(dt, is_dst=True)
+        >>> loc_dt2 = amdam.localize(dt, is_dst=False)
+        >>> loc_dt1.strftime(fmt)
+        '2004-10-31 02:00:00 CEST (+0200)'
+        >>> loc_dt2.strftime(fmt)
+        '2004-10-31 02:00:00 CET (+0100)'
+        >>> str(loc_dt2 - loc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise an AmbiguousTimeError for ambiguous
+        times at the end of daylight saving time
+    
+        >>> try:
+        ...     loc_dt1 = amdam.localize(dt, is_dst=None)
+        ... except AmbiguousTimeError:
+        ...     print('Ambiguous')
+        Ambiguous
+    
+        is_dst defaults to False
+    
+        >>> amdam.localize(dt) == amdam.localize(dt, False)
+        True
+    
+        is_dst is also used to determine the correct timezone in the
+        wallclock times jumped over at the start of daylight saving time.
+    
+        >>> pacific = timezone('US/Pacific')
+        >>> dt = datetime(2008, 3, 9, 2, 0, 0)
+        >>> ploc_dt1 = pacific.localize(dt, is_dst=True)
+        >>> ploc_dt2 = pacific.localize(dt, is_dst=False)
+        >>> ploc_dt1.strftime(fmt)
+        '2008-03-09 02:00:00 PDT (-0700)'
+        >>> ploc_dt2.strftime(fmt)
+        '2008-03-09 02:00:00 PST (-0800)'
+        >>> str(ploc_dt2 - ploc_dt1)
+        '1:00:00'
+    
+        Use is_dst=None to raise a NonExistentTimeError for these skipped
+        times.
+    
+        >>> try:
+        ...     loc_dt1 = pacific.localize(dt, is_dst=None)
+        ... except NonExistentTimeError:
+        ...     print('Non-existent')
+        Non-existent
+        '''
+        if dt.tzinfo is not None:
+>           raise ValueError('Not naive datetime (tzinfo is already set)')
+E           ValueError: Not naive datetime (tzinfo is already set)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytz\tzinfo.py:321: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/performance_test.py::test_many_datetime_operations - Va...
+1 failed in 0.80s

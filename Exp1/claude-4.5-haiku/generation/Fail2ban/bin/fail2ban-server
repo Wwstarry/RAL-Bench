@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Fail2Ban server daemon."""
+
+import sys
+import argparse
+from fail2ban.server.server import Server
+
+
+def main():
+    """Main entry point for fail2ban-server."""
+    parser = argparse.ArgumentParser(
+        description='Fail2Ban server - intrusion prevention daemon',
+        prog='fail2ban-server',
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s 0.11.0',
+    )
+    
+    parser.add_argument(
+        '--help',
+        action='help',
+        help='show this help message and exit',
+    )
+    
+    parser.add_argument(
+        '-c', '--config',
+        default='/etc/fail2ban',
+        help='Configuration directory (default: /etc/fail2ban)',
+    )
+    
+    parser.add_argument(
+        '-p', '--pidfile',
+        default='/var/run/fail2ban/fail2ban.pid',
+        help='PID file location',
+    )
+    
+    parser.add_argument(
+        '-f', '--foreground',
+        action='store_true',
+        help='Run in foreground (do not daemonize)',
+    )
+    
+    args = parser.parse_args()
+    
+    print(f"Fail2Ban server 0.11.0", file=sys.stderr)
+    print(f"Config directory: {args.config}", file=sys.stderr)
+    
+    if args.foreground:
+        print("Running in foreground mode", file=sys.stderr)
+    
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

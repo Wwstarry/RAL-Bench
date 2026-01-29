@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Fail2Ban regex testing utility."""
+
+import sys
+import argparse
+import re
+from fail2ban.server.filter import Filter, searchIP
+
+
+def main():
+    """Main entry point for fail2ban-regex."""
+    parser = argparse.ArgumentParser(
+        description='Fail2Ban regex testing utility',
+        prog='fail2ban-regex',
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s 0.11.0',
+    )
+    
+    parser.add_argument(
+        '--help',
+        action='help',
+        help='show this help message and exit',
+    )
+    
+    parser.add_argument(
+        'logfile',
+        nargs='?',
+        help='Log file to test against',
+    )
+    
+    parser.add_argument(
+        'regex',
+        nargs='?',
+        help='Regular expression pattern to test',
+    )
+    
+    parser.add_argument(
+        '--print-all-matched',
+        action='store_true',
+        help='Print all matched lines',
+    )
+    
+    args = parser.parse_args()
+    
+    if not args.logfile or not args.regex:
+        parser.print_help()
+        return 0
+    
+    try:
+        with open(args.logfile, 'r') as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        print(f"Error: File not found: {args.logfile}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error reading file: {e}", file=sys.stderr)
+        return 1
+    
+    try:
+        pattern = re.compile(args.regex)
+    except re.error as e:
+        print(f"Error: Invalid regex pattern: {e}", file=sys.stderr)
+        return 1
+    
+    matches = 0
+    ips = set()
+    
+    for line in lines:
+        if pattern.search(line):
+            matches += 1
+            if args.print_all_matched:
+                print(line.rstrip())
+            
+            ip = searchIP(line)
+            if ip:
+                ips.add(ip)
+    
+    print(f"\nMatches: {matches}")
+    print(f"Unique IPs: {len(ips)}")
+    if ips:
+        print("IPs found:")
+        for ip in sorted(ips):
+            print(f"  {ip}")
+    
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

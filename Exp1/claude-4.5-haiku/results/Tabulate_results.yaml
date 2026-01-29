@@ -1,0 +1,347 @@
+project_name: Tabulate
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Tabulate\tabulate.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Tabulate
+timestamp: '2026-01-01 11:50:39'
+functional_score: 0.5
+non_functional_score: 0.52
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "..FF.F.FF.F.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_headers_firstrow_and_simple_format ___________________\n\
+      \n    def test_headers_firstrow_and_simple_format() -> None:\n        table\
+      \ = [\n            [\"Name\", \"Age\"],\n            [\"Alice\", 24],\n    \
+      \        [\"Bob\", 19],\n        ]\n    \n>       output = tabulate(table, headers=\"\
+      firstrow\", tablefmt=\"simple\")\n\ntests\\Tabulate\\functional_test.py:117:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\ntabular_data = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]]\n\
+      headers = ['f', 'i', 'r', 's', 't', 'r', ...], tablefmt = 'simple'\nfloatfmt\
+      \ = 'g', numalign = 'decimal', stralign = 'left', missingval = ''\nshowindex\
+      \ = False, disable_numparse = False, colalign = None\n\n    def tabulate(tabular_data,\
+      \ headers=(), tablefmt=\"simple\", floatfmt=\"g\",\n                 numalign=\"\
+      decimal\", stralign=\"left\", missingval=\"\",\n                 showindex=False,\
+      \ disable_numparse=False, colalign=None):\n        \"\"\"\n        Format a\
+      \ table from tabular data.\n    \n        Args:\n            tabular_data: List\
+      \ of lists, list of dicts, or dict\n            headers: List of header names\
+      \ or \"keys\" for dict keys\n            tablefmt: Table format name (e.g.,\
+      \ \"grid\", \"pipe\", \"plain\")\n            floatfmt: Format string for floats\
+      \ (default \"g\")\n            numalign: Alignment for numbers (\"decimal\"\
+      , \"right\", \"center\", \"left\")\n            stralign: Alignment for strings\
+      \ (\"left\", \"center\", \"right\")\n            missingval: String to use for\
+      \ missing values\n            showindex: Show row indices\n            disable_numparse:\
+      \ Don't parse numeric strings\n            colalign: Per-column alignment override\n\
+      \    \n        Returns:\n            Formatted table as a string\n        \"\
+      \"\"\n    \n        # Get the table format\n        if isinstance(tablefmt,\
+      \ str):\n            fmt = get_named_table_format(tablefmt)\n        else:\n\
+      \            fmt = tablefmt\n    \n        # Normalize data\n        rows, headers\
+      \ = _normalize_tabular_data(tabular_data, headers)\n    \n        # Convert\
+      \ headers to strings\n        if headers:\n            headers = [str(h) for\
+      \ h in headers]\n    \n        # Add index column if needed\n        if showindex:\n\
+      \            if headers:\n                headers = [\"\"] + headers\n     \
+      \       rows = [[i] + list(row) for i, row in enumerate(rows)]\n    \n     \
+      \   # Convert all cells to strings and handle multiline\n        max_lines =\
+      \ 1\n        processed_rows = []\n        for row in rows:\n            processed_row\
+      \ = []\n            for cell in row:\n                lines = _split_multiline(cell)\n\
+      \                processed_row.append(lines)\n                max_lines = max(max_lines,\
+      \ len(lines))\n            processed_rows.append(processed_row)\n    \n    \
+      \    # Expand multiline cells\n        expanded_rows = []\n        for row in\
+      \ processed_rows:\n            expanded_row = []\n            for lines in row:\n\
+      \                # Pad lines to max_lines\n                padded = lines +\
+      \ [\"\"] * (max_lines - len(lines))\n                expanded_row.append(padded)\n\
+      \            expanded_rows.append(expanded_row)\n    \n        # Transpose to\
+      \ get columns\n        if not expanded_rows:\n            columns = []\n   \
+      \     else:\n            num_cols = len(expanded_rows[0])\n            columns\
+      \ = []\n            for col_idx in range(num_cols):\n                col = []\n\
+      \                for row in expanded_rows:\n                    col.extend(row[col_idx])\n\
+      \                columns.append(col)\n    \n        # Calculate column widths\n\
+      \        col_widths = []\n        for col_idx, col in enumerate(columns):\n\
+      \            width = 0\n            if headers and col_idx < len(headers):\n\
+      \                width = len(headers[col_idx])\n            for cell_lines in\
+      \ col:\n                for line in cell_lines:\n                    width =\
+      \ max(width, len(line))\n            col_widths.append(width)\n    \n      \
+      \  # Determine alignment for each column\n        alignments = []\n        for\
+      \ col_idx, col in enumerate(columns):\n            if colalign and col_idx <\
+      \ len(colalign):\n                alignments.append(colalign[col_idx])\n   \
+      \         else:\n                # Auto-detect alignment\n                has_number\
+      \ = False\n                has_text = False\n                for cell_lines\
+      \ in col:\n                    for line in cell_lines:\n                   \
+      \     if line:\n                            if _isnumber(line):\n          \
+      \                      has_number = True\n                            else:\n\
+      \                                has_text = True\n    \n                if has_number\
+      \ and not has_text:\n                    alignments.append(numalign if numalign\
+      \ != \"decimal\" else \"right\")\n                else:\n                  \
+      \  alignments.append(stralign)\n    \n        # Align columns\n        aligned_columns\
+      \ = []\n        for col_idx, col in enumerate(columns):\n            aligned_col\
+      \ = []\n            for cell_lines in col:\n                aligned_lines =\
+      \ []\n                for line in cell_lines:\n                    aligned =\
+      \ _align_column([line], alignments[col_idx], col_widths[col_idx])[0]\n     \
+      \               aligned_lines.append(aligned)\n                aligned_col.append(aligned_lines)\n\
+      \            aligned_columns.append(aligned_col)\n    \n        # Build output\n\
+      \        lines = []\n    \n        # Line above\n        if fmt.lineabove:\n\
+      \            line = _build_line(fmt.lineabove, col_widths, fmt.padding)\n  \
+      \          lines.append(line)\n    \n        # Header row\n        if headers:\n\
+      \            header_cells = []\n            for col_idx, h in enumerate(headers):\n\
+      >               aligned = _align_column([h], alignments[col_idx], col_widths[col_idx])[0]\n\
+      E               IndexError: list index out of range\n\ngeneration\\Tabulate\\\
+      tabulate\\core.py:219: IndexError\n___________________ test_headers_keys_on_dict_of_iterables\
+      \ ____________________\n\n    def test_headers_keys_on_dict_of_iterables() ->\
+      \ None:\n        table = {\n            \"Name\": [\"Alice\", \"Bob\"],\n  \
+      \          \"Age\": [24, 19],\n        }\n    \n        output = tabulate(table,\
+      \ headers=\"keys\")\n        lines = _lines(output)\n    \n>       assert \"\
+      Name\" in lines[0]\nE       AssertionError: assert 'Name' in '--------'\n\n\
+      tests\\Tabulate\\functional_test.py:137: AssertionError\n________________________\
+      \ test_github_and_grid_formats _________________________\n\n    def test_github_and_grid_formats()\
+      \ -> None:\n        table = [\n            [\"item\", \"qty\"],\n          \
+      \  [\"spam\", 42],\n            [\"eggs\", 451],\n            [\"bacon\", 0],\n\
+      \        ]\n    \n>       out_github = tabulate(table[1:], headers=table[0],\
+      \ tablefmt=\"github\")\n\ntests\\Tabulate\\functional_test.py:170: \n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      generation\\Tabulate\\tabulate\\core.py:112: in tabulate\n    fmt = get_named_table_format(tablefmt)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nname = 'github'\n\n    def get_named_table_format(name):\n        \"\
+      \"\"Get a table format by name.\"\"\"\n        if name not in _FORMATS:\n> \
+      \          raise ValueError(f\"Unknown table format: {name}\")\nE          \
+      \ ValueError: Unknown table format: github\n\ngeneration\\Tabulate\\tabulate\\\
+      formats.py:301: ValueError\n_____________________ test_missingval_renders_placeholder\
+      \ _____________________\n\n    def test_missingval_renders_placeholder() ->\
+      \ None:\n        rows = [\n            [\"Alice\", None],\n            [\"Bob\"\
+      , \"ok\"],\n        ]\n        output = tabulate(rows, headers=[\"name\", \"\
+      status\"], tablefmt=\"plain\", missingval=\"N/A\")\n        lines = _lines(output)\n\
+      \    \n        joined = \"\\n\".join(lines)\n        assert \"Alice\" in joined\n\
+      \        assert \"Bob\" in joined\n>       assert \"N/A\" in joined\nE     \
+      \  AssertionError: assert 'N/A' in 'namestatus\\nAlice\\nBobok'\n\ntests\\Tabulate\\\
+      functional_test.py:213: AssertionError\n__________________ test_floatfmt_controls_numeric_rendering\
+      \ ___________________\n\n    def test_floatfmt_controls_numeric_rendering()\
+      \ -> None:\n        rows = [\n            [\"pi\", 3.14159],\n            [\"\
+      e\", 2.71828],\n        ]\n        output = tabulate(rows, headers=[\"name\"\
+      , \"value\"], tablefmt=\"plain\", floatfmt=\".2f\")\n        lines = _lines(output)\n\
+      \    \n        joined = \"\\n\".join(lines)\n        assert \"pi\" in joined\
+      \ and \"3.14\" in joined\n>       assert \"e\" in joined and \"2.72\" in joined\n\
+      E       AssertionError: assert ('e' in 'namevalue\\npi3.14159\\ne2.71828' and\
+      \ '2.72' in 'namevalue\\npi3.14159\\ne2.71828')\n\ntests\\Tabulate\\functional_test.py:227:\
+      \ AssertionError\n______________________ test_maxcolwidths_wraps_long_text ______________________\n\
+      \n    def test_maxcolwidths_wraps_long_text() -> None:\n        long_text =\
+      \ \"alpha beta gamma delta epsilon zeta\"\n        rows = [\n            [\"\
+      id\", \"note\"],\n            [1, long_text],\n            [2, \"short\"],\n\
+      \        ]\n>       output = tabulate(\n            rows[1:],\n            headers=rows[0],\n\
+      \            tablefmt=\"simple\",\n            maxcolwidths=[None, 10],\n  \
+      \      )\nE       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'\n\
+      \ntests\\Tabulate\\functional_test.py:251: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format\n\
+      FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables\n\
+      FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...\n\
+      FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder\n\
+      FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering\n\
+      FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text\n\
+      6 failed, 6 passed in 0.56s\n"
+    elapsed_time_s: 1.951598
+    avg_memory_mb: 33.25
+    avg_cpu_percent: 99.1
+    passed: 6
+    failed: 6
+    skipped: 0
+    total: 12
+    score_inputs_passed: 6
+    score_inputs_failed: 6
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.40s
+
+      '
+    elapsed_time_s: 1.730826
+    avg_memory_mb: 31.82
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.772085
+    score_inputs_actual_time_s: 1.730826
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_memory_usage_for_large_tables ______________________\n\
+      \n    def test_memory_usage_for_large_tables():\n        rows = [\n        \
+      \    [f\"row-{i}\", i, i * 0.1234, f\"value-{i % 10}\"]\n            for i in\
+      \ range(5000)\n        ]\n        headers = [\"name\", \"index\", \"metric\"\
+      , \"tag\"]\n    \n        before = _memory_mb()\n    \n        # Call tabulate\
+      \ several times to exercise allocations.\n        out1 = tabulate(rows, headers=headers,\
+      \ tablefmt=\"simple\")\n>       out2 = tabulate(rows, headers=headers, tablefmt=\"\
+      github\")\n\ntests\\Tabulate\\resource_test.py:38: \n_ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Tabulate\\\
+      tabulate\\core.py:112: in tabulate\n    fmt = get_named_table_format(tablefmt)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nname = 'github'\n\n    def get_named_table_format(name):\n        \"\
+      \"\"Get a table format by name.\"\"\"\n        if name not in _FORMATS:\n> \
+      \          raise ValueError(f\"Unknown table format: {name}\")\nE          \
+      \ ValueError: Unknown table format: github\n\ngeneration\\Tabulate\\tabulate\\\
+      formats.py:301: ValueError\n=========================== short test summary info\
+      \ ===========================\nFAILED tests/Tabulate/resource_test.py::test_memory_usage_for_large_tables\
+      \ - ...\n1 failed in 0.98s\n"
+    elapsed_time_s: 2.453448
+    avg_memory_mb: 36.71
+    avg_cpu_percent: 97.4
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 36.26
+    score_inputs_baseline_cpu_pct: 99.0
+    score_inputs_actual_mem_mb: 36.71
+    score_inputs_actual_cpu_pct: 97.4
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.83s
+
+      '
+    elapsed_time_s: 2.236814
+    avg_memory_mb: 32.05
+    avg_cpu_percent: 98.5
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=584.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.56067
+    avg_memory_mb: 31.68
+    avg_cpu_percent: 98.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 584.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=18.2673 files_scanned=4.0 total_loc=584.0 max_cc=44.0
+
+      .
+
+      1 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.532041
+    avg_memory_mb: 31.84
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 18.2673
+      files_scanned: 4.0
+      total_loc: 584.0
+      max_cc: 44.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 18.2673
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.772085
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 3.401749
+    resource_tests_total: 1
+    avg_memory_mb: 36.26
+    avg_cpu_percent: 99.0
+  functional:
+    functional_suite_time_s: 1.659825
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 2.291708
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.459004
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 2425.0
+  maintainability:
+    maintainability_suite_time_s: 1.673018
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 1.0
+      total_loc: 2425.0
+      max_cc: 77.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Tabulate\pytest_logs

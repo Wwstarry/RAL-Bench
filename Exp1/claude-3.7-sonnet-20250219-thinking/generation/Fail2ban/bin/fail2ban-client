@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+# This file is part of Fail2Ban.
+#
+# Fail2Ban is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Fail2Ban is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Fail2Ban; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+import sys
+import argparse
+import logging
+import os.path
+
+# Add parent directory to path to import fail2ban
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from fail2ban import version
+
+def main():
+    """Main entry point for fail2ban-client."""
+    parser = argparse.ArgumentParser(
+        description="Fail2Ban client - communicates with the server and controls it.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    parser.add_argument('-c', '--conf', default='/etc/fail2ban',
+                      help='configuration directory')
+    parser.add_argument('-s', '--socket', default='/var/run/fail2ban/fail2ban.sock',
+                      help='socket path')
+    parser.add_argument('-V', '--version', action='version', 
+                      version='Fail2Ban v' + version)
+    parser.add_argument('-v', '--verbose', action='store_true',
+                      help='increase verbosity')
+    parser.add_argument('--loglevel', default='INFO',
+                      help='set the log level')
+    parser.add_argument('command', nargs='*',
+                      help='command to send to the server')
+    
+    args = parser.parse_args()
+    
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, args.loglevel),
+        format='%(levelname)-7s [%(name)s] %(message)s',
+        stream=sys.stdout
+    )
+    
+    log = logging.getLogger('fail2ban-client')
+    
+    if not args.command:
+        parser.print_help()
+        sys.exit(0)
+    
+    # Print help message and exit if this is a safe mode operation
+    if args.command[0] == "--help" or "-h" in args.command:
+        print("Fail2Ban client (safe mode) v" + version)
+        print("\nThis is a minimal implementation of fail2ban-client that doesn't")
+        print("perform any actual server communication or firewall modifications.")
+        print("\nIn a full implementation, this would interact with fail2ban-server")
+        print("to manage jails, ban/unban IP addresses, and view status.")
+        sys.exit(0)
+        
+    # For safety, we don't actually communicate with the server in this implementation
+    print("This is a minimal implementation running in safe mode.")
+    print("Command would have been:", " ".join(args.command))
+    print("No actions will be performed.")
+
+if __name__ == "__main__":
+    main()

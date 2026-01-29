@@ -1,0 +1,325 @@
+project_name: Dataset
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Dataset\dataset.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Dataset
+timestamp: '2026-01-01 11:31:56'
+functional_score: 0.5455
+non_functional_score: 0.6479
+non_functional_subscores:
+  maintainability: 0.6886
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FF...F..F.F                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_insert_and_query_basic_rows _______________________\n\
+      \n    def test_insert_and_query_basic_rows() -> None:\n        db = create_in_memory_db()\n\
+      \        table = db[\"users\"]\n    \n        table.insert({\"name\": \"Alice\"\
+      , \"age\": 30, \"country\": \"DE\"})\n        table.insert({\"name\": \"Bob\"\
+      , \"age\": 41, \"country\": \"US\", \"active\": True})\n        table.insert({\"\
+      name\": \"Charlie\", \"age\": 41, \"country\": \"US\", \"active\": False})\n\
+      \    \n        assert \"id\" in _table_columns(table)\n        assert \"name\"\
+      \ in _table_columns(table)\n        assert \"country\" in _table_columns(table)\n\
+      \        assert len(table) == 3\n    \n        alice = table.find_one(name=\"\
+      Alice\")\n        assert alice is not None\n        assert alice[\"country\"\
+      ] == \"DE\"\n    \n>       older = list(table.find(age={\">=\": 40}))\n\ntests\\\
+      Dataset\\functional_test.py:155: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <dataset.table.Table object\
+      \ at 0x0000022578BFCC10>\nfilters = {'age': {'>=': 40}}, where_parts = ['age\
+      \ = ?']\nwhere_values = [{'>=': 40}], col = 'age', val = {'>=': 40}\nwhere_clause\
+      \ = 'age = ?', sql = 'SELECT * FROM users WHERE age = ?'\n\n    def find(self,\
+      \ **filters):\n        \"\"\"\n        Find rows matching the given filters.\n\
+      \    \n        Args:\n            **filters: Column name to value mappings for\
+      \ WHERE clause\n    \n        Yields:\n            Row dictionaries.\n     \
+      \   \"\"\"\n        if not self._table_exists():\n            return\n    \n\
+      \        if not filters:\n            # No filters, return all rows\n      \
+      \      for row in self.all():\n                yield row\n            return\n\
+      \    \n        # Build WHERE clause\n        where_parts = []\n        where_values\
+      \ = []\n        for col, val in filters.items():\n            where_parts.append(f\"\
+      {col} = ?\")\n            where_values.append(val)\n    \n        where_clause\
+      \ = ' AND '.join(where_parts)\n        sql = f\"SELECT * FROM {self.name} WHERE\
+      \ {where_clause}\"\n    \n        cursor = self.database._connection.cursor()\n\
+      \        cursor.row_factory = sqlite3.Row\n>       cursor.execute(sql, where_values)\n\
+      E       sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported\
+      \ type.\n\ngeneration\\Dataset\\dataset\\table.py:281: InterfaceError\n_______________________\
+      \ test_update_upsert_and_indexes ________________________\n\n    def test_update_upsert_and_indexes()\
+      \ -> None:\n        db = create_in_memory_db()\n        table = db[\"accounts\"\
+      ]\n    \n        rows = [\n            {\"account_id\": 1, \"owner\": \"Alice\"\
+      , \"balance\": 100.0, \"currency\": \"EUR\"},\n            {\"account_id\":\
+      \ 2, \"owner\": \"Bob\", \"balance\": 250.0, \"currency\": \"USD\"},\n     \
+      \   ]\n        table.insert_many(rows)\n    \n        if hasattr(table, \"create_index\"\
+      ) and hasattr(table, \"has_index\"):\n            table.create_index([\"owner\"\
+      , \"currency\"])\n            assert table.has_index([\"owner\", \"currency\"\
+      ])\n    \n        table.update({\"account_id\": 1, \"balance\": 150.0}, [\"\
+      account_id\"])\n        updated = table.find_one(account_id=1)\n        assert\
+      \ updated is not None\n>       assert pytest.approx(updated[\"balance\"]) ==\
+      \ 150.0\nE       assert 150.0 == 150.0\nE         \nE         comparison failed\n\
+      E         Obtained: 150.0\nE         Expected: 150.0\n\ntests\\Dataset\\functional_test.py:184:\
+      \ AssertionError\n_______________________ test_find_order_by_limit_offset _______________________\n\
+      \n    def test_find_order_by_limit_offset() -> None:\n        db = create_in_memory_db()\n\
+      \        table = db[\"nums\"]\n        for i in range(10):\n            table.insert({\"\
+      n\": i})\n    \n>       rows = list(table.find(order_by=\"n\", _limit=3, _offset=4))\n\
+      \ntests\\Dataset\\functional_test.py:248: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <dataset.table.Table\
+      \ object at 0x0000022578C5F9D0>\nfilters = {'_limit': 3, '_offset': 4, 'order_by':\
+      \ 'n'}\nwhere_parts = ['order_by = ?', '_limit = ?', '_offset = ?']\nwhere_values\
+      \ = ['n', 3, 4], col = '_offset', val = 4\nwhere_clause = 'order_by = ? AND\
+      \ _limit = ? AND _offset = ?'\nsql = 'SELECT * FROM nums WHERE order_by = ?\
+      \ AND _limit = ? AND _offset = ?'\n\n    def find(self, **filters):\n      \
+      \  \"\"\"\n        Find rows matching the given filters.\n    \n        Args:\n\
+      \            **filters: Column name to value mappings for WHERE clause\n   \
+      \ \n        Yields:\n            Row dictionaries.\n        \"\"\"\n       \
+      \ if not self._table_exists():\n            return\n    \n        if not filters:\n\
+      \            # No filters, return all rows\n            for row in self.all():\n\
+      \                yield row\n            return\n    \n        # Build WHERE\
+      \ clause\n        where_parts = []\n        where_values = []\n        for col,\
+      \ val in filters.items():\n            where_parts.append(f\"{col} = ?\")\n\
+      \            where_values.append(val)\n    \n        where_clause = ' AND '.join(where_parts)\n\
+      \        sql = f\"SELECT * FROM {self.name} WHERE {where_clause}\"\n    \n \
+      \       cursor = self.database._connection.cursor()\n        cursor.row_factory\
+      \ = sqlite3.Row\n>       cursor.execute(sql, where_values)\nE       sqlite3.OperationalError:\
+      \ no such column: order_by\n\ngeneration\\Dataset\\dataset\\table.py:281: OperationalError\n\
+      ___________________ test_drop_table_removes_from_db_tables ____________________\n\
+      \n    def test_drop_table_removes_from_db_tables() -> None:\n        db = create_in_memory_db()\n\
+      \        table = db[\"to_drop\"]\n        table.insert({\"x\": 1})\n    \n>\
+      \       assert \"to_drop\" in _db_tables(db)\nE       AssertionError: assert\
+      \ 'to_drop' in []\nE        +  where [] = _db_tables(<dataset.database.Database\
+      \ object at 0x0000022578C6F310>)\n\ntests\\Dataset\\functional_test.py:301:\
+      \ AssertionError\n_____________________ test_distinct_returns_unique_values\
+      \ _____________________\n\n    def test_distinct_returns_unique_values() ->\
+      \ None:\n        db = create_in_memory_db()\n        table = db[\"colors\"]\n\
+      \        table.insert_many([{\"c\": \"red\"}, {\"c\": \"red\"}, {\"c\": \"blue\"\
+      }])\n    \n        distinct = list(table.distinct(\"c\"))\n>       values =\
+      \ {r[\"c\"] for r in distinct}\n\ntests\\Dataset\\functional_test.py:333: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\n.0 = <list_iterator object at 0x00000225775C8EE0>\n\n>   values = {r[\"\
+      c\"] for r in distinct}\nE   TypeError: string indices must be integers\n\n\
+      tests\\Dataset\\functional_test.py:333: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows\
+      \ - s...\nFAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes\
+      \ - ass...\nFAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset\
+      \ - sq...\nFAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables\n\
+      FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values\n\
+      5 failed, 6 passed in 3.87s\n"
+    elapsed_time_s: 5.196673
+    avg_memory_mb: 34.02
+    avg_cpu_percent: 97.6
+    passed: 6
+    failed: 5
+    skipped: 0
+    total: 11
+    score_inputs_passed: 6
+    score_inputs_failed: 5
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Dataset/performance_test.py ______________\n\
+      tests\\Dataset\\performance_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Unsupported DATASET_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ DATASET_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Dataset/performance_test.py\
+      \ - RuntimeError: Unsupported DATASET_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.57s\n"
+    elapsed_time_s: 2.029013
+    avg_memory_mb: 35.73
+    avg_cpu_percent: 97.5
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.781374
+    score_inputs_actual_time_s: 2.029013
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Dataset/resource_test.py _______________\n\
+      tests\\Dataset\\resource_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Unsupported DATASET_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ DATASET_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Dataset/resource_test.py - RuntimeError:\
+      \ Unsupported DATASET_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.54s\n"
+    elapsed_time_s: 1.970924
+    avg_memory_mb: 35.49
+    avg_cpu_percent: 97.5
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 55.98
+    score_inputs_baseline_cpu_pct: 100.6
+    score_inputs_actual_mem_mb: 35.49
+    score_inputs_actual_cpu_pct: 97.5
+  robustness:
+    returncode: 0
+    stdout: "......                                                              \
+      \     [100%]\n============================== warnings summary ===============================\n\
+      tests\\Dataset\\robustness_test.py:92\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:92: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dataset\\robustness_test.py:102\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:102: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dataset\\robustness_test.py:120\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:120: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dataset\\robustness_test.py:135\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:135: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dataset\\robustness_test.py:149\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:149: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dataset\\robustness_test.py:163\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dataset\\robustness_test.py:163: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      6 passed, 6 warnings in 0.16s\n"
+    elapsed_time_s: 1.560413
+    avg_memory_mb: 31.9
+    avg_cpu_percent: 97.9
+    passed: 6
+    failed: 0
+    skipped: 0
+    total: 6
+    score_inputs_passed: 6
+    score_inputs_failed: 0
+    score_inputs_total: 6
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=3.0 total_loc=443.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.451021
+    avg_memory_mb: 31.72
+    avg_cpu_percent: 97.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 3.0
+      total_loc: 443.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=17.0699 files_scanned=3.0 total_loc=443.0 max_cc=9.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.464416
+    avg_memory_mb: 31.85
+    avg_cpu_percent: 98.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 17.0699
+      files_scanned: 3.0
+      total_loc: 443.0
+      max_cc: 9.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 7.7184
+    score_inputs_generated_mi_min: 17.0699
+    score_inputs_ratio_g_over_b: 2.2115853026533996
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.781374
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 2.854474
+    resource_tests_total: 2
+    avg_memory_mb: 55.98
+    avg_cpu_percent: 100.6
+  functional:
+    functional_suite_time_s: 4.552087
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 2.083828
+    robustness_tests_total: 6
+  security:
+    security_suite_time_s: 1.286846
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 1131.0
+  maintainability:
+    maintainability_suite_time_s: 1.311875
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 7.7184
+      files_scanned: 6.0
+      total_loc: 1131.0
+      max_cc: 16.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Dataset\pytest_logs

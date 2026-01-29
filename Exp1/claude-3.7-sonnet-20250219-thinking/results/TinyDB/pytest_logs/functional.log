@@ -1,0 +1,182 @@
+FFFFFFFFFFF.                                                             [100%]
+================================== FAILURES ===================================
+___________________________ test_insert_and_search ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_insert_and_search0')
+
+    def test_insert_and_search(tmp_path: Path) -> None:
+        """Basic insert + search on the default table."""
+        db_path = tmp_path / "db.json"
+        db = TinyDB(str(db_path))
+    
+        User = Query()
+>       db.insert({"name": "Alice", "age": 30})
+E       AttributeError: 'TinyDB' object has no attribute 'insert'
+
+tests\TinyDB\functional_test.py:63: AttributeError
+_______________________ test_multiple_tables_isolation ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_multiple_tables_isolation0')
+
+    def test_multiple_tables_isolation(tmp_path: Path) -> None:
+        """Data in different tables should be isolated."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "write code", "done": False})
+        tasks.insert({"title": "write tests", "done": False})
+        logs.insert({"event": "created_tasks"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:88: TypeError
+___________________________ test_update_and_remove ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_update_and_remove0')
+
+    def test_update_and_remove(tmp_path: Path) -> None:
+        """Update and remove operations should work on matching documents."""
+        db = _open_db(tmp_path)
+    
+        Task = Query()
+        table = db.table("tasks")
+    
+        table.insert({"title": "task-1", "done": False})
+        table.insert({"title": "task-2", "done": False})
+        table.insert({"title": "task-3", "done": False})
+    
+>       table.update({"done": True}, Task.title == "task-2")
+E       AttributeError: 'Query' object has no attribute 'title'
+
+tests\TinyDB\functional_test.py:108: AttributeError
+_________________________ test_where_helper_querying __________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_where_helper_querying0')
+
+    def test_where_helper_querying(tmp_path: Path) -> None:
+        """where('field') helper should build a working query for search()."""
+        db = _open_db(tmp_path)
+>       db.insert({"name": "Alice", "city": "Tokyo"})
+E       AttributeError: 'TinyDB' object has no attribute 'insert'
+
+tests\TinyDB\functional_test.py:125: AttributeError
+______________________ test_get_returns_single_document _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_get_returns_single_docume0')
+
+    def test_get_returns_single_document(tmp_path: Path) -> None:
+        """get(query) should retrieve one matching document."""
+        db = _open_db(tmp_path)
+        User = Query()
+    
+>       db.insert({"name": "Alice", "age": 30})
+E       AttributeError: 'TinyDB' object has no attribute 'insert'
+
+tests\TinyDB\functional_test.py:140: AttributeError
+________________________ test_insert_multiple_and_all _________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_insert_multiple_and_all0')
+
+    def test_insert_multiple_and_all(tmp_path: Path) -> None:
+        """insert_multiple should add several documents and return their ids."""
+        db = _open_db(tmp_path)
+    
+        docs = [
+            {"k": "a", "v": 1},
+            {"k": "b", "v": 2},
+            {"k": "c", "v": 3},
+        ]
+>       ids = db.insert_multiple(docs)
+E       AttributeError: 'TinyDB' object has no attribute 'insert_multiple'
+
+tests\TinyDB\functional_test.py:160: AttributeError
+___________________________ test_contains_and_count ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_contains_and_count0')
+
+    def test_contains_and_count(tmp_path: Path) -> None:
+        """contains and count should reflect stored data and queries."""
+        db = _open_db(tmp_path)
+        User = Query()
+    
+>       db.insert({"name": "Alice", "age": 30})
+E       AttributeError: 'TinyDB' object has no attribute 'insert'
+
+tests\TinyDB\functional_test.py:176: AttributeError
+_____________________ test_persistence_reopen_and_search ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_persistence_reopen_and_se0')
+
+    def test_persistence_reopen_and_search(tmp_path: Path) -> None:
+        """Data should persist on disk and be readable after reopening."""
+        db_path = tmp_path / "persist.json"
+    
+        db1 = TinyDB(str(db_path))
+>       db1.insert({"name": "Ada", "lang": "Python"})
+E       AttributeError: 'TinyDB' object has no attribute 'insert'
+
+tests\TinyDB\functional_test.py:194: AttributeError
+_________________ test_table_truncate_clears_only_that_table __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_table_truncate_clears_onl0')
+
+    def test_table_truncate_clears_only_that_table(tmp_path: Path) -> None:
+        """truncate on a table should clear its rows without affecting other tables."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "t1"})
+        tasks.insert({"title": "t2"})
+        logs.insert({"event": "created"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:215: TypeError
+____________________________ test_update_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_update_by_doc_id0')
+
+    def test_update_by_doc_id(tmp_path: Path) -> None:
+        """update with doc_ids should modify the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        doc_id = table.insert({"name": "ItemA", "qty": 1})
+>       assert len(table) == 1
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:231: TypeError
+____________________________ test_remove_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-445/test_remove_by_doc_id0')
+
+    def test_remove_by_doc_id(tmp_path: Path) -> None:
+        """remove with doc_ids should delete the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        id1 = table.insert({"name": "A"})
+        id2 = table.insert({"name": "B"})
+>       assert len(table) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:249: TypeError
+=========================== short test summary info ===========================
+FAILED tests/TinyDB/functional_test.py::test_insert_and_search - AttributeErr...
+FAILED tests/TinyDB/functional_test.py::test_multiple_tables_isolation - Type...
+FAILED tests/TinyDB/functional_test.py::test_update_and_remove - AttributeErr...
+FAILED tests/TinyDB/functional_test.py::test_where_helper_querying - Attribut...
+FAILED tests/TinyDB/functional_test.py::test_get_returns_single_document - At...
+FAILED tests/TinyDB/functional_test.py::test_insert_multiple_and_all - Attrib...
+FAILED tests/TinyDB/functional_test.py::test_contains_and_count - AttributeEr...
+FAILED tests/TinyDB/functional_test.py::test_persistence_reopen_and_search - ...
+FAILED tests/TinyDB/functional_test.py::test_table_truncate_clears_only_that_table
+FAILED tests/TinyDB/functional_test.py::test_update_by_doc_id - TypeError: ob...
+FAILED tests/TinyDB/functional_test.py::test_remove_by_doc_id - TypeError: ob...
+11 failed, 1 passed in 0.83s

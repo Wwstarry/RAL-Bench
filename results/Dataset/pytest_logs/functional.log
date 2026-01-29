@@ -1,91 +1,100 @@
-F....F..F.F                                                              [100%]
+FF...F..F.F                                                              [100%]
 ================================== FAILURES ===================================
 ______________________ test_insert_and_query_basic_rows _______________________
 
-    def test_insert_and_query_basic_rows() -> None:
-        db = create_in_memory_db()
-        table = db["users"]
-    
-        table.insert({"name": "Alice", "age": 30, "country": "DE"})
-        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
-        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
-    
-        assert "id" in _table_columns(table)
-        assert "name" in _table_columns(table)
-        assert "country" in _table_columns(table)
-        assert len(table) == 3
-    
-        alice = table.find_one(name="Alice")
-        assert alice is not None
-        assert alice["country"] == "DE"
-    
->       older = list(table.find(age={">=": 40}))
+>   ???
 
-tests\Dataset\functional_test.py:155: 
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:155: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-generation_m3\Dataset\dataset\table.py:193: in find
-    cur = self.db.execute(f"SELECT * FROM {self._quoted}{where_sql}", params)
+generation\claude-4.5-sonnet\Dataset\dataset\table.py:233: in find
+    cursor = self.database.execute(sql, values)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-self = <dataset.database.Database object at 0x0000024E985B1CD0>
-sql = 'SELECT * FROM "users" WHERE "age" = :w_0', params = {'w_0': {'>=': 40}}
+self = <dataset.database.Database object at 0x000001412DB5CBB0>
+sql = 'SELECT * FROM users WHERE age = ?', params = [{'>=': 40}]
 
-    def execute(self, sql: str, params: Optional[Dict[str, Any]] = None) -> sqlite3.Cursor:
-        with self._lock:
->           return self._conn.execute(sql, params or {})
-E           sqlite3.InterfaceError: Error binding parameter :w_0 - probably unsupported type.
+    def execute(self, sql, params=None):
+        """
+        Execute a SQL statement.
+    
+        Args:
+            sql: SQL statement
+            params: Parameters (dict or tuple)
+    
+        Returns:
+            Cursor object
+        """
+        if params is None:
+            params = {}
+>       return self._connection.execute(sql, params)
+E       sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported type.
 
-generation_m3\Dataset\dataset\database.py:138: InterfaceError
+generation\claude-4.5-sonnet\Dataset\dataset\database.py:107: InterfaceError
+_______________________ test_update_upsert_and_indexes ________________________
+
+>   ???
+E   assert 150.0 == 150.0
+E     
+E     comparison failed
+E     Obtained: 150.0
+E     Expected: 150.0
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:184: AssertionError
 _______________________ test_find_order_by_limit_offset _______________________
 
-    def test_find_order_by_limit_offset() -> None:
-        db = create_in_memory_db()
-        table = db["nums"]
-        for i in range(10):
-            table.insert({"n": i})
-    
-        rows = list(table.find(order_by="n", _limit=3, _offset=4))
->       assert [r["n"] for r in rows] == [4, 5, 6]
-E       assert [] == [4, 5, 6]
-E         
-E         Right contains 3 more items, first extra item: 4
-E         Use -v to get more diff
+>   ???
 
-tests\Dataset\functional_test.py:249: AssertionError
-___________________ test_drop_table_removes_from_db_tables ____________________
-
-    def test_drop_table_removes_from_db_tables() -> None:
-        db = create_in_memory_db()
-        table = db["to_drop"]
-        table.insert({"x": 1})
-    
->       assert "to_drop" in _db_tables(db)
-E       AssertionError: assert 'to_drop' in []
-E        +  where [] = _db_tables(<dataset.database.Database object at 0x0000024E96AE1AC0>)
-
-tests\Dataset\functional_test.py:301: AssertionError
-_____________________ test_distinct_returns_unique_values _____________________
-
-    def test_distinct_returns_unique_values() -> None:
-        db = create_in_memory_db()
-        table = db["colors"]
-        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
-    
-        distinct = list(table.distinct("c"))
->       values = {r["c"] for r in distinct}
-
-tests\Dataset\functional_test.py:333: 
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\claude-4.5-sonnet\Dataset\dataset\table.py:233: in find
+    cursor = self.database.execute(sql, values)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-.0 = <list_iterator object at 0x0000024E986173A0>
+self = <dataset.database.Database object at 0x000001412DBC9C40>
+sql = 'SELECT * FROM nums WHERE order_by = ? AND _limit = ? AND _offset = ?'
+params = ['n', 3, 4]
 
->   values = {r["c"] for r in distinct}
+    def execute(self, sql, params=None):
+        """
+        Execute a SQL statement.
+    
+        Args:
+            sql: SQL statement
+            params: Parameters (dict or tuple)
+    
+        Returns:
+            Cursor object
+        """
+        if params is None:
+            params = {}
+>       return self._connection.execute(sql, params)
+E       sqlite3.OperationalError: no such column: order_by
+
+generation\claude-4.5-sonnet\Dataset\dataset\database.py:107: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+>   ???
+E   AssertionError: assert 'to_drop' in []
+E    +  where [] = _db_tables(<dataset.database.Database object at 0x000001412DBE8730>)
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_distinct_returns_unique_values _____________________
+
+>   ???
+
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000001412DBCFB50>
+
+>   ???
 E   TypeError: string indices must be integers
 
-tests\Dataset\functional_test.py:333: TypeError
+D:\桌面\RealAppCodeBench_generic_eval\tests\Dataset\functional_test.py:333: TypeError
 =========================== short test summary info ===========================
 FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
-FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - as...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - ass...
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
 FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
 FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
-4 failed, 7 passed in 3.87s
+5 failed, 6 passed in 3.55s

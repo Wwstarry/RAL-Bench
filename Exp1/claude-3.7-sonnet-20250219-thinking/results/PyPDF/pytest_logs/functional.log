@@ -1,0 +1,111 @@
+.F.....F.Fs.                                                             [100%]
+================================== FAILURES ===================================
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+        reader = PdfReader(str(pdf_path))
+        page = reader.pages[0]
+        w, h = _page_size(page)
+    
+>       assert w > 0 and h > 0
+E       assert (0.0 > 0)
+
+tests\PyPDF\functional_test.py:149: AssertionError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        writer.add_page(reader.pages[0])
+        writer.encrypt("pw")
+    
+        with enc.open("wb") as fp:
+            writer.write(fp)
+    
+        enc_reader = PdfReader(str(enc))
+        assert enc_reader.is_encrypted
+        assert enc_reader.decrypt("pw")
+    
+        page = enc_reader.pages[0]
+        w, h = _page_size(page)
+>       assert w > 0 and h > 0
+E       assert (0.0 > 0)
+
+tests\PyPDF\functional_test.py:272: AssertionError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        writer.add_page(reader.pages[0])
+    
+        writer.add_metadata(
+            {
+                "/Title": "Doc Title",
+                "/Author": "Author Name",
+                "/Subject": "Subject Line",
+                "/Producer": "PyPDF",
+            }
+        )
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+        meta = reader2.metadata
+        assert meta is not None
+        assert meta.get("/Title") == "Doc Title"
+        assert meta.get("/Author") == "Author Name"
+>       assert meta.get("/Subject") == "Subject Line"
+E       AssertionError: assert None == 'Subject Line'
+E        +  where None = <built-in method get of dict object at 0x0000019C8E024FC0>('/Subject')
+E        +    where <built-in method get of dict object at 0x0000019C8E024FC0> = {'/Author': 'Author Name', '/Title': 'Doc Title'}.get
+
+tests\PyPDF\functional_test.py:329: AssertionError
+============================== warnings summary ===============================
+generation\PyPDF\pypdf\pdf.py:81
+  D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF\pypdf\pdf.py:81: DeprecationWarning: invalid escape sequence \s
+    info_match = re.search(b"/Info\s+(\d+)\s+\d+\s+R", data)
+
+generation\PyPDF\pypdf\pdf.py:84
+  D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF\pypdf\pdf.py:84: DeprecationWarning: invalid escape sequence \s
+    title_match = re.search(b"/Title\s*\((.*?)\)", data)
+
+generation\PyPDF\pypdf\pdf.py:88
+  D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF\pypdf\pdf.py:88: DeprecationWarning: invalid escape sequence \s
+    author_match = re.search(b"/Author\s*\((.*?)\)", data)
+
+generation\PyPDF\pypdf\pdf.py:93
+  D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF\pypdf\pdf.py:93: DeprecationWarning: invalid escape sequence \s
+    page_count = len(re.findall(b"/Type\s*/Page[^s]", data))
+
+generation\PyPDF\pypdf\pdf.py:107
+  D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF\pypdf\pdf.py:107: DeprecationWarning: invalid escape sequence \s
+    rotation_match = re.search(b"/Rotate\s+(\d+)", data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - as...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+3 failed, 8 passed, 1 skipped, 5 warnings in 0.60s

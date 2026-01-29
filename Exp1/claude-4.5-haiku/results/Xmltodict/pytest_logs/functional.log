@@ -1,0 +1,23 @@
+....F.......                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+        data = _parse(xml)
+    
+        root = data["root"]
+        keys = [k for k in root.keys() if isinstance(k, str)]
+>       assert any(k.startswith("x:") for k in keys)
+E       assert False
+E        +  where False = any(<generator object test_namespace_prefix_is_preserved.<locals>.<genexpr> at 0x0000020356158580>)
+
+tests\Xmltodict\functional_test.py:131: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved
+1 failed, 11 passed in 0.44s

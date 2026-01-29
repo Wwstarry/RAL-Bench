@@ -1,0 +1,346 @@
+FFF..FFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+        app = _create_greeter_app()
+>       result = runner.invoke(app, ["World"])
+
+tests\Typer\functional_test.py:198: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1821: in parse_args
+    self.error(msg % ' '.join(argv))
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2575: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = '__main__.py: error: unrecognized arguments: World\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+        app = _create_greeter_app()
+        # Safer ordering across Click versions: options before args.
+>       result = runner.invoke(app, ["--excited", "World"])
+
+tests\Typer\functional_test.py:206: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1821: in parse_args
+    self.error(msg % ' '.join(argv))
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2575: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = '__main__.py: error: unrecognized arguments: --excited World\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+        app = _create_greeter_app()
+>       result = runner.invoke(app, ["--help"])
+
+tests\Typer\functional_test.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1818: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2060: in _parse_known_args
+    start_index = consume_optional(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2000: in consume_optional
+    take_action(action, args, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1928: in take_action
+    action(self, namespace, argument_values, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1093: in __call__
+    parser.exit()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 0, message = None
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 0
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result 1>.exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_____________________ test_help_output_includes_commands ______________________
+
+    def test_help_output_includes_commands() -> None:
+        app = _create_todo_app()
+>       result = runner.invoke(app, ["--help"])
+
+tests\Typer\functional_test.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1818: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2060: in _parse_known_args
+    start_index = consume_optional(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2000: in consume_optional
+    take_action(action, args, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1928: in take_action
+    action(self, namespace, argument_values, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1093: in __call__
+    parser.exit()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 0, message = None
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 0
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+>       result = runner.invoke(app, ["add", "--help"])
+
+tests\Typer\functional_test.py:273: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1818: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2042: in _parse_known_args
+    positionals_end_index = consume_positionals(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2019: in consume_positionals
+    take_action(action, args)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1928: in take_action
+    action(self, namespace, argument_values, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1207: in __call__
+    subnamespace, arg_strings = parser.parse_known_args(arg_strings, None)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2060: in _parse_known_args
+    start_index = consume_optional(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2000: in consume_optional
+    take_action(action, args, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1928: in take_action
+    action(self, namespace, argument_values, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1093: in __call__
+    parser.exit()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py add', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 0, message = None
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 0
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+>       app = _create_prompt_app()
+
+tests\Typer\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_prompt_app() -> typer.Typer:
+        """
+        Multi-command app to avoid Typer's single-command "collapse" behavior in
+        some versions. This guarantees that "greet" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+        def greet(
+>           name: str = typer.Option(
+                None,
+                "--name",
+                prompt=True,
+                help="Name to greet (prompted when missing).",
+            )
+        ) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'prompt'
+
+tests\Typer\functional_test.py:121: TypeError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000023B77313370>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+>       app = _create_env_app()
+
+tests\Typer\functional_test.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_env_app() -> typer.Typer:
+        """
+        Multi-command app to guarantee that "show" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+>       def show(token: str = typer.Option(..., "--token", envvar="APP_TOKEN")) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+tests\Typer\functional_test.py:144: TypeError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+        app = _create_callback_app()
+    
+        r1 = runner.invoke(app, ["run"])
+        assert r1.exit_code == 0
+        assert "running" in r1.stdout
+        assert "verbose" not in r1.stdout
+    
+>       r2 = runner.invoke(app, ["--verbose", "run"])
+
+tests\Typer\functional_test.py:304: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1821: in parse_args
+    self.error(msg % ' '.join(argv))
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2575: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = '__main__.py: error: unrecognized arguments: --verbose\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+>       app = _create_types_app()
+
+tests\Typer\functional_test.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Typer\functional_test.py:181: in _create_types_app
+    def calc(x: int, y: int, scale: float = typer.Option(1.0, "--scale")) -> None:
+generation\Typer\typer\main.py:60: in decorator
+    parser.add_argument(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py calc', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+args = ('--scale',)
+kwargs = {'default': 1.0, 'dest': 'scale', 'help': ' (default: 1.0)', 'option_strings': ['--scale'], ...}
+chars = '-', action_class = <class 'argparse._StoreAction'>
+action = _StoreAction(option_strings=['--scale'], dest='scale', nargs=None, const=None, default=1.0, type='float', choices=None, help=' (default: 1.0)', metavar=None)
+type_func = 'float'
+
+    def add_argument(self, *args, **kwargs):
+        """
+        add_argument(dest, ..., name=value, ...)
+        add_argument(option_string, option_string, ..., name=value, ...)
+        """
+    
+        # if no positional args are supplied or only one is supplied and
+        # it doesn't look like an option string, parse a positional
+        # argument
+        chars = self.prefix_chars
+        if not args or len(args) == 1 and args[0][0] not in chars:
+            if args and 'dest' in kwargs:
+                raise ValueError('dest supplied twice for positional argument')
+            kwargs = self._get_positional_kwargs(*args, **kwargs)
+    
+        # otherwise, we're adding an optional argument
+        else:
+            kwargs = self._get_optional_kwargs(*args, **kwargs)
+    
+        # if no default was supplied, use the parser-level default
+        if 'default' not in kwargs:
+            dest = kwargs['dest']
+            if dest in self._defaults:
+                kwargs['default'] = self._defaults[dest]
+            elif self.argument_default is not None:
+                kwargs['default'] = self.argument_default
+    
+        # create the action object, and add it to the parser
+        action_class = self._pop_action_class(kwargs)
+        if not callable(action_class):
+            raise ValueError('unknown action "%s"' % (action_class,))
+        action = action_class(**kwargs)
+    
+        # raise an error if the action type is not callable
+        type_func = self._registry_get('type', action.type, action.type)
+        if not callable(type_func):
+>           raise ValueError('%r is not callable' % (type_func,))
+E           ValueError: 'float' is not callable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1421: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - SystemExit: 2
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - Sy...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - a...
+FAILED tests/Typer/functional_test.py::test_help_output_includes_commands - S...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+10 failed, 2 passed in 22.19s

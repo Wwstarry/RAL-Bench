@@ -1,0 +1,39 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+        data = Data(normalized, labels)
+        args = _make_args()
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\resource_test.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:83: in draw
+    normalized_data = self.normalize_data()
+generation\Termgraph\termgraph\charts.py:41: in normalize_data
+    normalized.append([int((val / max_val) * self.args.width) for val in row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <str_iterator object at 0x0000022A7A9BD5B0>
+
+>   normalized.append([int((val / max_val) * self.args.width) for val in row])
+E   TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:41: TypeError
+---------------------------- Captured stdout call -----------------------------
+Normalized Stats
+
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.35s

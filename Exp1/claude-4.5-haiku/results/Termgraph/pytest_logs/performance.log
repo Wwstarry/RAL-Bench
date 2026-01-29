@@ -1,0 +1,51 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(width=20)
+    
+        start = time.perf_counter()
+        for _ in range(200):
+            chart = BarChart(data, args)
+>           chart.draw()
+
+tests\Termgraph\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001E329CFD250>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if not self.data.series or not self.data.series[0]:
+            return
+    
+        # Print title if provided
+        if self.args.title:
+            print(self.args.title)
+    
+        # Calculate dimensions
+        num_rows = len(self.data.series)
+        num_series = len(self.data.series[0]) if self.data.series else 0
+    
+        if num_series == 0:
+            return
+    
+        # Find max value for scaling
+        max_value = 0
+        for row in self.data.series:
+            for val in row:
+>               if val > max_value:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:46: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.33s

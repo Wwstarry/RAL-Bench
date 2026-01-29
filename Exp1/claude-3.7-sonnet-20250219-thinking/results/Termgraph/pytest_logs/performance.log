@@ -1,0 +1,34 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(width=20)
+    
+        start = time.perf_counter()
+        for _ in range(200):
+            chart = BarChart(data, args)
+>           chart.draw()
+
+tests\Termgraph\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:83: in draw
+    normalized_data = self.normalize_data()
+generation\Termgraph\termgraph\charts.py:41: in normalize_data
+    normalized.append([int((val / max_val) * self.args.width) for val in row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <str_iterator object at 0x00000286C7C7D4C0>
+
+>   normalized.append([int((val / max_val) * self.args.width) for val in row])
+E   TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:41: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.41s

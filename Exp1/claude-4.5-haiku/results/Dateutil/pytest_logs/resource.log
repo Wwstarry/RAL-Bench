@@ -1,0 +1,36 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_meeting_schedule_integration ______________________
+
+    def test_meeting_schedule_integration() -> None:
+        """Integration test for building a recurring meeting schedule."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 2, 29)
+    
+        # Approximate "Europe/Berlin" as UTC+1 for this test.
+        meetings = _generate_meeting_schedule(start, end, offset_hours=1)
+    
+        # There should be a reasonable number of meetings in this range.
+>       assert 10 <= len(meetings) <= 25
+E       assert 10 <= 0
+E        +  where 0 = len([])
+
+tests\Dateutil\resource_test.py:78: AssertionError
+_____________ test_duration_between_two_events_with_relativedelta _____________
+
+    def test_duration_between_two_events_with_relativedelta() -> None:
+        """Use relativedelta to compute calendar duration between first and last meeting."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 3, 31)
+    
+        # Approximate "America/New_York" as UTC-5 for this test.
+        meetings = _generate_meeting_schedule(start, end, offset_hours=-5)
+>       assert len(meetings) > 0
+E       assert 0 > 0
+E        +  where 0 = len([])
+
+tests\Dateutil\resource_test.py:107: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/resource_test.py::test_meeting_schedule_integration - a...
+FAILED tests/Dateutil/resource_test.py::test_duration_between_two_events_with_relativedelta
+2 failed in 0.33s

@@ -1,0 +1,223 @@
+<file:name=petl/__init__.py>
+class Table:
+    def __init__(self, source):
+        self.source = source
+
+    def __iter__(self):
+        return iter(self.source)
+
+
+def fromcsv(path):
+    """Create a table from a CSV file."""
+    from petl.io.csv import CSVSource
+    return Table(CSVSource(path))
+
+
+def tocsv(table, path):
+    """Write a table to a CSV file."""
+    from petl.io.csv import write_csv
+    write_csv(table, path)
+
+
+def fromdicts(records, header=None):
+    """Create a table from a sequence of dictionaries."""
+    if not records:
+        return Table([])
+    
+    if header is None:
+        # Use the keys of the first dictionary as header
+        header = list(next(iter(records)).keys())
+    
+    def generate_rows():
+        yield header
+        for record in records:
+            yield [record.get(field, None) for field in header]
+    
+    return Table(generate_rows())
+
+
+def convert(table, field, func):
+    """Convert a field using the given function."""
+    from petl.transform.conversions import ConvertView
+    return Table(ConvertView(table, field, func))
+
+
+def select(table, predicate):
+    """Select rows that satisfy the given predicate."""
+    from petl.transform.selects import SelectView
+    return Table(SelectView(table, predicate))
+
+
+def selectge(table, field, threshold):
+    """Select rows where the field value is greater than or equal to the threshold."""
+    def predicate(row, index, header):
+        field_index = header.index(field)
+        return row[field_index] >= threshold
+    return select(table, predicate)
+
+
+def selectgt(table, field, threshold):
+    """Select rows where the field value is greater than the threshold."""
+    def predicate(row, index, header):
+        field_index = header.index(field)
+        return row[field_index] > threshold
+    return select(table, predicate)
+
+
+def sort(table, field):
+    """Sort the table by the given field."""
+    from petl.transform.sort import SortView
+    return Table(SortView(table, field))
+
+
+def addfield(table, fieldname, func):
+    """Add a field with the given name, computing values with the given function."""
+    from petl.transform.conversions import AddFieldView
+    return Table(AddFieldView(table, fieldname, func))
+
+
+def join(left, right, key='id'):
+    """Join two tables based on a common key field."""
+    from petl.transform.joins import JoinView
+    return Table(JoinView(left, right, key))
+</file:name=petl/__init__.py>
+
+<file:name=petl/io/__init__.py>
+# Package initialization
+</file:name=petl/io/__init__.py>
+
+<file:name=petl/io/csv.py>
+import csv
+
+class CSVSource:
+    def __init__(self, path):
+        self.path = path
+
+    def __iter__(self):
+        with open(self.path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                yield row
+
+
+def write_csv(table, path):
+    with open(path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for row in table:
+            writer.writerow(row)
+</file:name=petl/io/csv.py>
+
+<file:name=petl/transform/__init__.py>
+# Package initialization
+</file:name=petl/transform/__init__.py>
+
+<file:name=petl/transform/conversions.py>
+class ConvertView:
+    def __init__(self, source, field, func):
+        self.source = source
+        self.field = field
+        self.func = func
+
+    def __iter__(self):
+        it = iter(self.source)
+        header = next(it)
+        yield header
+        
+        field_index = header.index(self.field)
+        
+        for row in it:
+            new_row = list(row)
+            new_row[field_index] = self.func(row[field_index])
+            yield new_row
+
+
+class AddFieldView:
+    def __init__(self, source, fieldname, func):
+        self.source = source
+        self.fieldname = fieldname
+        self.func = func
+
+    def __iter__(self):
+        it = iter(self.source)
+        header = next(it)
+        new_header = header + [self.fieldname]
+        yield new_header
+        
+        for i, row in enumerate(it):
+            new_value = self.func(row, i, header)
+            yield list(row) + [new_value]
+</file:name=petl/transform/conversions.py>
+
+<file:name=petl/transform/selects.py>
+class SelectView:
+    def __init__(self, source, predicate):
+        self.source = source
+        self.predicate = predicate
+
+    def __iter__(self):
+        it = iter(self.source)
+        header = next(it)
+        yield header
+        
+        for i, row in enumerate(it):
+            if self.predicate(row, i, header):
+                yield row
+</file:name=petl/transform/selects.py>
+
+<file:name=petl/transform/sort.py>
+class SortView:
+    def __init__(self, source, field):
+        self.source = source
+        self.field = field
+
+    def __iter__(self):
+        it = iter(self.source)
+        header = next(it)
+        yield header
+        
+        field_index = header.index(self.field)
+        rows = list(it)  # Materialize for sorting
+        
+        # Sort the rows based on the field value
+        for row in sorted(rows, key=lambda row: row[field_index]):
+            yield row
+</file:name=petl/transform/sort.py>
+
+<file:name=petl/transform/joins.py>
+class JoinView:
+    def __init__(self, left, right, key):
+        self.left = left
+        self.right = right
+        self.key = key
+
+    def __iter__(self):
+        # Get headers and data from both tables
+        left_it = iter(self.left)
+        left_header = next(left_it)
+        left_key_index = left_header.index(self.key)
+        
+        right_it = iter(self.right)
+        right_header = next(right_it)
+        right_key_index = right_header.index(self.key)
+        
+        # Combine headers (excluding duplicate key field)
+        right_header_without_key = [f for i, f in enumerate(right_header) if i != right_key_index]
+        new_header = left_header + right_header_without_key
+        yield new_header
+        
+        # Create a dictionary to store right table rows by key
+        right_dict = {}
+        for right_row in right_it:
+            key_value = right_row[right_key_index]
+            if key_value not in right_dict:
+                right_dict[key_value] = []
+            right_dict[key_value].append(right_row)
+        
+        # Join with left table
+        for left_row in left_it:
+            key_value = left_row[left_key_index]
+            if key_value in right_dict:
+                for right_row in right_dict[key_value]:
+                    right_row_without_key = [v for i, v in enumerate(right_row) if i != right_key_index]
+                    yield list(left_row) + right_row_without_key
+</file:name=petl/transform/joins.py>

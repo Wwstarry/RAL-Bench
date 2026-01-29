@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""
+Fail2Ban regex tester - test regex patterns against log files.
+
+This tool allows offline testing of fail2ban filter patterns.
+"""
+
+import sys
+import argparse
+import re
+import os
+
+
+def test_regex(log_file, regex_pattern, ignore_pattern=None):
+    """
+    Test a regex pattern against a log file.
+    
+    Args:
+        log_file: Path to log file
+        regex_pattern: Regex pattern to test
+        ignore_pattern: Optional ignore pattern
+        
+    Returns:
+        Tuple of (matches, total_lines)
+    """
+    if not os.path.exists(log_file):
+        print(f"Error: Log file '{log_file}' not found")
+        return 0, 0
+    
+    try:
+        fail_regex = re.compile(regex_pattern)
+    except re.error as e:
+        print(f"Error: Invalid regex pattern: {e}")
+        return 0, 0
+    
+    ignore_regex = None
+    if ignore_pattern:
+        try:
+            ignore_regex = re.compile(ignore_pattern)
+        except re.error as e:
+            print(f"Error: Invalid ignore pattern: {e}")
+            return 0, 0
+    
+    matches = []
+    total_lines = 0
+    
+    with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+        for line_num, line in enumerate(f, 1):
+            total_lines += 1
+            line = line.rstrip('\n')
+            
+            # Check ignore pattern first
+            if ignore_regex and ignore_regex.search(line):
+                continue
+            
+            # Check fail pattern
+            match = fail_regex.search(line)
+            if match:
+                matches.append((line_num, line, match.groups()))
+    
+    return matches, total_lines
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Fail2Ban regex tester - test filter patterns against log files',
+        prog='fail2ban-regex'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='Fail2Ban v1.0.0'
+    )
+    
+    parser.add_argument(
+        'log_file',
+        nargs='?',
+        help='Log file to test against'
+    )
+    
+    parser.add_argument(
+        'regex',
+        nargs='?',
+        help='Regex pattern to test'
+    )
+    
+    parser.add_argument(
+        '--ignore-regex',
+        dest='ignore_regex',
+        help='Ignore regex pattern'
+    )
+    
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Verbose output'
+    )
+    
+    args = parser.parse_args()
+    
+    if not args.log_file or not args.regex:
+        parser.print_help()
+        return 0
+    
+    print(f"Testing regex pattern against log file: {args.log_file}")
+    print(f"Regex: {args.regex}")
+    if args.ignore_regex:
+        print(f"Ignore regex: {args.ignore_regex}")
+    print()
+    
+    matches, total_lines = test_regex(args.log_file, args.regex, args.ignore_regex)
+    
+    if isinstance(matches, int):
+        return 1
+    
+    print(f"Results:")
+    print(f"  Total lines: {total_lines}")
+    print(f"  Matches: {len(matches)}")
+    print()
+    
+    if matches and args.verbose:
+        print("Matched lines:")
+        for line_num, line, groups in matches:
+            print(f"  Line {line_num}: {line}")
+            if groups:
+                print(f"    Groups: {groups}")
+    
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

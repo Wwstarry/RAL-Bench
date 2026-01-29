@@ -1,0 +1,301 @@
+project_name: Stegano
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Stegano\stegano.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Stegano
+timestamp: '2026-01-01 11:49:23'
+functional_score: 0.6667
+non_functional_score: 0.7707
+non_functional_subscores:
+  maintainability: 0.5377
+  security: 1.0
+  robustness: 1.0
+  performance: 0.4763
+  resource: 1.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F......FFF.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_lsb_hide_and_reveal_with_generator ___________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_lsb_hide_and_reveal_with_0')\n\
+      \n    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:\n\
+      \        \"\"\"lsb hide/reveal with a deterministic generator.\"\"\"\n     \
+      \   _ensure_image_samples_exist()\n    \n        secret = \"generator secret\"\
+      \n        output = tmp_path / \"lsb_generator.png\"\n    \n        gen = generators.eratosthenes()\n\
+      >       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)\n\ntests\\\
+      Stegano\\functional_test.py:105: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nimage = 'D:\\\\桌面\\\\RealAppCodeBench_generic_eval\\\
+      \\repositories\\\\Stegano\\\\tests\\\\sample-files\\\\Lenna.png'\nmessage =\
+      \ 'generator secret'\ngenerator = <generator object eratosthenes at 0x000001E6F0B8BCF0>,\
+      \ shift = 0\nencoding = 'UTF-8', auto_convert_rgb = False\n\n    def hide(image,\
+      \ message, generator=None, shift=0, encoding=\"UTF-8\", auto_convert_rgb=False):\n\
+      \        \"\"\"\n        Hide a message in an image using LSB steganography.\n\
+      \    \n        Args:\n            image: PIL Image or path to image file\n \
+      \           message: String message to hide\n            generator: Optional\
+      \ generator for pixel selection (default: sequential)\n            shift: Bit\
+      \ shift for LSB position (default: 0)\n            encoding: Text encoding (default:\
+      \ \"UTF-8\")\n            auto_convert_rgb: Convert image to RGB if needed (default:\
+      \ False)\n    \n        Returns:\n            PIL Image with hidden message\n\
+      \        \"\"\"\n        if isinstance(image, str):\n            img = Image.open(image)\n\
+      \        else:\n            img = image.copy()\n    \n        if auto_convert_rgb\
+      \ and img.mode != 'RGB':\n            img = img.convert('RGB')\n    \n     \
+      \   if img.mode not in ('RGB', 'RGBA'):\n            raise ValueError(f\"Unsupported\
+      \ image mode: {img.mode}\")\n    \n        # Encode message\n        message_bytes\
+      \ = message.encode(encoding)\n        message_bits = _bytes_to_bits(message_bytes)\n\
+      \    \n        # Add length header (32 bits for message length)\n        length\
+      \ = len(message_bytes)\n        length_bits = _int_to_bits(length, 32)\n   \
+      \     all_bits = length_bits + message_bits\n    \n        # Get pixel data\n\
+      \        pixels = img.load()\n        width, height = img.size\n    \n     \
+      \   # Determine which pixels to use\n        if generator is None:\n       \
+      \     pixel_indices = range(width * height)\n        else:\n>           pixel_indices\
+      \ = generator()\nE           TypeError: 'generator' object is not callable\n\
+      \ngeneration\\Stegano\\stegano\\lsb\\lsb.py:53: TypeError\n________________________\
+      \ test_wav_hide_and_reveal_text ________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_text0')\n\
+      \n    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:\n        \"\
+      \"\"wav.hide writes output WAV; wav.reveal returns the same string.\"\"\"\n\
+      \        wav_in = _pick_sample_wav()\n    \n        secret = \"wav secret\"\n\
+      \        output = tmp_path / \"out.wav\"\n    \n>       wav.hide(str(wav_in),\
+      \ secret, str(output))\n\ntests\\Stegano\\functional_test.py:219: \n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      generation\\Stegano\\stegano\\wav\\wav.py:61: in hide\n    audio_data = _samples_to_audio(samples,\
+      \ sample_width, n_channels)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nsamples = [65526, 65530, 65526, 4, 65520,\
+      \ 0, ...], sample_width = 2\nn_channels = 1\n\n    def _samples_to_audio(samples,\
+      \ sample_width, n_channels):\n        \"\"\"Convert list of samples back to\
+      \ audio data\"\"\"\n        audio_data = b''\n    \n        if sample_width\
+      \ == 1:\n            for sample in samples:\n                audio_data += bytes([sample\
+      \ & 0xFF])\n        elif sample_width == 2:\n            for sample in samples:\n\
+      >               audio_data += struct.pack('<h', sample & 0xFFFF)\nE        \
+      \       struct.error: short format requires (-32768) <= number <= 32767\n\n\
+      generation\\Stegano\\stegano\\wav\\wav.py:152: error\n_____________________\
+      \ test_wav_hide_and_reveal_short_text _____________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_short0')\n\
+      \n    def test_wav_hide_and_reveal_short_text(tmp_path: Path) -> None:\n   \
+      \     \"\"\"A short message should also roundtrip.\"\"\"\n        wav_in = _pick_sample_wav()\n\
+      \    \n        secret = \"ok\"\n        output = tmp_path / \"out_short.wav\"\
+      \n    \n>       wav.hide(str(wav_in), secret, str(output))\n\ntests\\Stegano\\\
+      functional_test.py:234: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Stegano\\stegano\\wav\\wav.py:61:\
+      \ in hide\n    audio_data = _samples_to_audio(samples, sample_width, n_channels)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nsamples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2\n\
+      n_channels = 1\n\n    def _samples_to_audio(samples, sample_width, n_channels):\n\
+      \        \"\"\"Convert list of samples back to audio data\"\"\"\n        audio_data\
+      \ = b''\n    \n        if sample_width == 1:\n            for sample in samples:\n\
+      \                audio_data += bytes([sample & 0xFF])\n        elif sample_width\
+      \ == 2:\n            for sample in samples:\n>               audio_data += struct.pack('<h',\
+      \ sample & 0xFFFF)\nE               struct.error: short format requires (-32768)\
+      \ <= number <= 32767\n\ngeneration\\Stegano\\stegano\\wav\\wav.py:152: error\n\
+      ____________________ test_wav_hide_and_reveal_longer_text _____________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-400/test_wav_hide_and_reveal_longe0')\n\
+      \n    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:\n  \
+      \      \"\"\"Roundtrip a longer ASCII message via WAV backend.\"\"\"\n     \
+      \   wav_in = _pick_sample_wav()\n    \n        secret = \"WAV backend long message:\
+      \ 1234567890 abcdefghijklmnopqrstuvwxyz\"\n        output = tmp_path / \"out_long.wav\"\
+      \n    \n>       wav.hide(str(wav_in), secret, str(output))\n\ntests\\Stegano\\\
+      functional_test.py:249: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Stegano\\stegano\\wav\\wav.py:61:\
+      \ in hide\n    audio_data = _samples_to_audio(samples, sample_width, n_channels)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nsamples = [65526, 65530, 65526, 4, 65520, 0, ...], sample_width = 2\n\
+      n_channels = 1\n\n    def _samples_to_audio(samples, sample_width, n_channels):\n\
+      \        \"\"\"Convert list of samples back to audio data\"\"\"\n        audio_data\
+      \ = b''\n    \n        if sample_width == 1:\n            for sample in samples:\n\
+      \                audio_data += bytes([sample & 0xFF])\n        elif sample_width\
+      \ == 2:\n            for sample in samples:\n>               audio_data += struct.pack('<h',\
+      \ sample & 0xFFFF)\nE               struct.error: short format requires (-32768)\
+      \ <= number <= 32767\n\ngeneration\\Stegano\\stegano\\wav\\wav.py:152: error\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator\n\
+      FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - stru...\n\
+      FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_short_text\n\
+      FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text\n\
+      4 failed, 8 passed in 7.76s\n"
+    elapsed_time_s: 9.178938
+    avg_memory_mb: 38.34
+    avg_cpu_percent: 98.8
+    passed: 8
+    failed: 4
+    skipped: 0
+    total: 12
+    score_inputs_passed: 8
+    score_inputs_failed: 4
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 3.29s
+
+      '
+    elapsed_time_s: 4.740419
+    avg_memory_mb: 33.96
+    avg_cpu_percent: 99.3
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.257945
+    score_inputs_actual_time_s: 4.740419
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.36s
+
+      '
+    elapsed_time_s: 1.754656
+    avg_memory_mb: 36.27
+    avg_cpu_percent: 95.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 50.48
+    score_inputs_baseline_cpu_pct: 96.4
+    score_inputs_actual_mem_mb: 36.27
+    score_inputs_actual_cpu_pct: 95.2
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.28s
+
+      '
+    elapsed_time_s: 1.71244
+    avg_memory_mb: 33.88
+    avg_cpu_percent: 102.9
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=16.0 total_loc=587.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.354536
+    avg_memory_mb: 31.65
+    avg_cpu_percent: 98.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 16.0
+      total_loc: 587.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=26.1111 files_scanned=16.0 total_loc=587.0 max_cc=14.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.420982
+    avg_memory_mb: 31.78
+    avg_cpu_percent: 97.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 26.1111
+      files_scanned: 16.0
+      total_loc: 587.0
+      max_cc: 14.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 22.4495
+    score_inputs_generated_mi_min: 26.1111
+    score_inputs_ratio_g_over_b: 1.1631038553197175
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 12.134699
+    functional_tests_total: 12
+  performance:
+    performance_suite_time_s: 2.257945
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.861629
+    resource_tests_total: 1
+    avg_memory_mb: 50.48
+    avg_cpu_percent: 96.4
+  robustness:
+    robustness_suite_time_s: 1.749913
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.434441
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 20.0
+      total_loc: 1057.0
+  maintainability:
+    maintainability_suite_time_s: 1.529301
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 22.4495
+      files_scanned: 18.0
+      total_loc: 1057.0
+      max_cc: 20.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Stegano\pytest_logs

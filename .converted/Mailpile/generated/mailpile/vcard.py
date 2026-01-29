@@ -1,121 +1,166 @@
+# -*- coding: utf-8 -*-
+"""
+VCardLine parsing and serialization.
+
+This module implements a small, robust subset of vCard line parsing:
+- NAME;PARAM=VALUE;PARAM2="QUOTED":VALUE
+- Multiple param values separated by commas
+- Escaping in value using backslash (\\n, \\;, \\, \\,)
+"""
+
+
+
 import re
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Sequence, Tuple, Union
+
+_PARAM_SPLIT_RE = re.compile(r";")
+_NAME_VALUE_SPLIT_RE = re.compile(r":", re.S)
 
 
 def _unescape_value(val: str) -> str:
-    # vCard escaping (subset sufficient for tests)
-    return (
-        val.replace(r"\n", "\n")
-        .replace(r"\N", "\n")
-        .replace(r"\,", ",")
-        .replace(r"\;", ";")
-        .replace(r"\\", "\\")
-    )
+    # vCard 3.0 style escaping
+    out = []
+    i = 0
+    while i < len(val):
+        ch = val[i]
+        if ch == "\\" and i + 1 < len(val):
+            nxt = val[i + 1]
+            if nxt in ("\\", ";", ",", ":"):
+                out.append(nxt)
+                i += 2
+                continue
+            if nxt in ("n", "N"):
+                out.append("\n")
+                i += 2
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def _escape_value(val: str) -> str:
-    val = val.replace("\\", r"\\")
-    val = val.replace("\n", r"\n")
-    val = val.replace(",", r"\,")
-    val = val.replace(";", r"\;")
-    return val
+    return (
+        val.replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace(";", r"\;")
+        .replace(",", r"\,")
+        .replace(":", r"\:")
+    )
 
 
-_PARAM_SPLIT_RE = re.compile(r";(?=(?:[^"]*"[^"]*")*[^"]*$)")
+def _quote_param(v: str) -> str:
+    if any(c in v for c in (';', ':', ',', '"')) or v.strip() != v:
+        return '"' + v.replace('"', r"\"") + '"'
+    return v
 
 
+def _split_params(head: str) -> Tuple[str, List[str]]:
+    parts = head.split(";")
+    name = parts[0].strip()
+    return name, parts[1:]
+
+
+def _parse_param(p: str) -> Tuple[str, List[str]]:
+    if "=" in p:
+        k, v = p.split("=", 1)
+        key = k.strip().upper()
+        raw = v.strip()
+    else:
+        # Bare parameter in vCard 2.1 (TYPE as bare token) - treat as TYPE
+        key = "TYPE"
+        raw = p.strip()
+
+    vals: List[str] = []
+    cur = []
+    in_quotes = False
+    i = 0
+    while i < len(raw):
+        ch = raw[i]
+        if ch == '"' and (i == 0 or raw[i - 1] != "\\"):
+            in_quotes = not in_quotes
+            i += 1
+            continue
+        if ch == "," and not in_quotes:
+            vals.append("".join(cur).strip())
+            cur = []
+            i += 1
+            continue
+        if ch == "\\" and i + 1 < len(raw):
+            # allow escaping quotes inside quoted values
+            nxt = raw[i + 1]
+            cur.append(nxt)
+            i += 2
+            continue
+        cur.append(ch)
+        i += 1
+    if cur or raw.endswith(","):
+        vals.append("".join(cur).strip())
+
+    # Strip surrounding quotes if any remained (defensive)
+    cleaned: List[str] = []
+    for v in vals:
+        v = v.strip()
+        if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
+            v = v[1:-1].replace(r"\"", '"')
+        cleaned.append(v)
+    return key, cleaned
+
+
+@dataclass
 class VCardLine:
-    """
-    Parse and serialize a single vCard content line.
-
-    Supported format:
-      NAME;PARAM=VALUE;PARAM2=V1,V2:VALUE
-    """
-
-    def __init__(
-        self,
-        name: str,
-        value: str = "",
-        params: Optional[Dict[str, List[str]]] = None,
-        group: Optional[str] = None,
-    ):
-        self.group = group
-        self.name = (name or "").upper()
-        self.params: Dict[str, List[str]] = {}
-        if params:
-            for k, v in params.items():
-                self.params[k.upper()] = list(v)
-        self.value = value
+    name: str
+    value: str = ""
+    params: Dict[str, List[str]] = field(default_factory=dict)
 
     @classmethod
-    def parse(cls, line: str) -> "VCardLine":
+    def Parse(cls, line: Union[str, bytes]) -> "VCardLine":
         if isinstance(line, bytes):
-            line = line.decode("utf-8", "replace")
-        line = line.strip("\r\n")
-        if ":" not in line:
-            raise ValueError("Invalid vCard line (missing ':'): %r" % line)
-        left, value = line.split(":", 1)
+            s = line.decode("utf-8", "replace")
+        else:
+            s = str(line)
+        s = s.strip("\r\n")
 
-        group = None
-        if "." in left:
-            group, left = left.split(".", 1)
+        if ":" in s:
+            head, val = s.split(":", 1)
+        else:
+            head, val = s, ""
 
-        parts = _PARAM_SPLIT_RE.split(left)
-        name = parts[0]
+        name, raw_params = _split_params(head)
         params: Dict[str, List[str]] = {}
-        for p in parts[1:]:
+        for p in raw_params:
             if not p:
                 continue
-            if "=" in p:
-                k, v = p.split("=", 1)
-                k = k.strip().upper()
-                v = v.strip()
-                # Remove surrounding quotes; keep simple
-                if len(v) >= 2 and v[0] == '"' and v[-1] == '"':
-                    v = v[1:-1]
-                vals = [x for x in v.split(",") if x != ""]
-                params[k] = vals
-            else:
-                # "TYPE" shorthand (RFC allows bare parameter values)
-                params.setdefault("TYPE", []).append(p.strip())
-        return cls(name=name, value=_unescape_value(value), params=params, group=group)
+            k, vs = _parse_param(p)
+            params.setdefault(k, [])
+            for v in vs:
+                if v and v not in params[k]:
+                    params[k].append(v)
+
+        return cls(name=name.upper(), value=_unescape_value(val), params=params)
+
+    def get(self, param: str, default: Optional[Sequence[str]] = None) -> List[str]:
+        return list(self.params.get(param.upper(), default or []))
+
+    def set_param(self, key: str, values: Union[str, Sequence[str]]) -> None:
+        k = key.upper()
+        if isinstance(values, str):
+            vs = [values]
+        else:
+            vs = list(values)
+        self.params[k] = vs
 
     def as_vcardline(self) -> str:
-        left = self.name
-        if self.group:
-            left = f"{self.group}.{left}"
-
-        # Stable order: TYPE first, then others sorted
-        items: List[Tuple[str, List[str]]] = []
-        if "TYPE" in self.params:
-            items.append(("TYPE", self.params["TYPE"]))
-        for k in sorted(k for k in self.params.keys() if k != "TYPE"):
-            items.append((k, self.params[k])
-
-                         )
-        for k, vals in items:
-            if vals is None:
+        parts = [self.name.upper()]
+        # stable order for tests
+        for k in sorted(self.params.keys()):
+            vs = self.params[k]
+            if not vs:
                 continue
-            if len(vals) == 0:
-                left += f";{k}="
-            else:
-                left += f";{k}=" + ",".join(vals)
-        return left + ":" + _escape_value(self.value)
+            joined = ",".join(_quote_param(v) for v in vs)
+            parts.append(f"{k}={joined}")
+        head = ";".join(parts)
+        return f"{head}:{_escape_value(self.value)}"
 
     def __str__(self) -> str:
         return self.as_vcardline()
-
-    def get_param(self, key: str, default=None):
-        key = (key or "").upper()
-        if key not in self.params:
-            return default
-        return self.params[key]
-
-    def set_param(self, key: str, values):
-        key = (key or "").upper()
-        if values is None:
-            self.params.pop(key, None)
-        elif isinstance(values, (list, tuple)):
-            self.params[key] = [str(v) for v in values]
-        else:
-            self.params[key] = [str(values)]

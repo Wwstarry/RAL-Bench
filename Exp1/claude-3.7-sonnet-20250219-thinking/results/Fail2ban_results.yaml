@@ -1,0 +1,289 @@
+project_name: Fail2ban
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Fail2ban\fail2ban.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Fail2ban
+timestamp: '2026-01-01 18:42:35'
+functional_score: 0.8333
+non_functional_score: 0.5691
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.6
+  performance: 0.9467
+  resource: 0.9958
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".....F.....F                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________________ test_006_bin_scripts_exist __________________________\n\
+      \n    def test_006_bin_scripts_exist():\n        base = _resolve_repo_root()\n\
+      \        b = base / \"bin\"\n        assert b.is_dir(), \"Expected bin/ directory\"\
+      \n        assert (b / \"fail2ban-client\").is_file(), \"Expected bin/fail2ban-client\"\
+      \n        assert (b / \"fail2ban-server\").is_file(), \"Expected bin/fail2ban-server\"\
+      \n>       assert (b / \"fail2ban-regex\").is_file(), \"Expected bin/fail2ban-regex\"\
+      \nE       AssertionError: Expected bin/fail2ban-regex\nE       assert False\n\
+      E        +  where False = is_file()\nE        +    where is_file = (WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Fail2ban/bin')\
+      \ / 'fail2ban-regex').is_file\n\ntests\\Fail2ban\\functional_test.py:144: AssertionError\n\
+      ___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________\n\
+      \n    def test_012_fail2ban_regex_matches_simple_pattern_offline():\n      \
+      \  \"\"\"\n        Offline-only functional check:\n        - Create a temp log\
+      \ with repeated failure lines.\n        - Run fail2ban-regex <LOG> <REGEX>\n\
+      \        - Assert output indicates it processed lines and found matches.\n \
+      \       \"\"\"\n        base = _resolve_repo_root()\n        script = base /\
+      \ \"bin\" / \"fail2ban-regex\"\n    \n        env = os.environ.copy()\n    \
+      \    env[\"PYTHONUNBUFFERED\"] = \"1\"\n        env[\"PYTHONPATH\"] = str(_resolve_repo_root())\
+      \ + (os.pathsep + env[\"PYTHONPATH\"] if env.get(\"PYTHONPATH\") else \"\")\n\
+      \    \n        with tempfile.TemporaryDirectory(prefix=\"racb_fail2ban_\") as\
+      \ td:\n            logp = Path(td) / \"auth.log\"\n            logp.write_text(\n\
+      \                \"\\n\".join(\n                    [\n                    \
+      \    \"Failed password for invalid user root from 203.0.113.5 port 2222 ssh2\"\
+      ,\n                        \"Failed password for invalid user admin from 203.0.113.5\
+      \ port 2223 ssh2\",\n                        \"Accepted password for user ok\
+      \ from 198.51.100.2 port 3333 ssh2\",\n                        \"Failed password\
+      \ for invalid user test from 203.0.113.9 port 4444 ssh2\",\n               \
+      \     ]\n                ),\n                encoding=\"utf-8\",\n         \
+      \   )\n    \n            # Use a very simple regex (do not rely on <HOST> substitutions).\n\
+      \            regex = r\"Failed password\"\n            p = subprocess.run(\n\
+      \                [sys.executable, str(script), str(logp), regex],\n        \
+      \        text=True,\n                input=\"\",\n                capture_output=True,\n\
+      \                timeout=30,\n                env=env,\n            )\n    \
+      \        out = _out(p)\n    \n            # Must not hang; and should show it\
+      \ processed lines.\n>           assert (\"line\" in out) or (\"lines\" in out)\n\
+      E           assert ('line' in \"\\nc:\\\\users\\\\86152\\\\appdata\\\\local\\\
+      \\programs\\\\python\\\\python39\\\\python.exe: can't open file 'd:\\\\妗岄潰\\\
+      \\realappcodebench_generic_eval\\\\generation\\\\fail2ban\\\\bin\\\\fail2ban-regex':\
+      \ [errno 2] no such file or directory\\n\" or 'lines' in \"\\nc:\\\\users\\\\\
+      86152\\\\appdata\\\\local\\\\programs\\\\python\\\\python39\\\\python.exe: can't\
+      \ open file 'd:\\\\妗岄潰\\\\realappcodebench_generic_eval\\\\generation\\\\fail2ban\\\
+      \\bin\\\\fail2ban-regex': [errno 2] no such file or directory\\n\")\n\ntests\\\
+      Fail2ban\\functional_test.py:246: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Fail2ban/functional_test.py::test_006_bin_scripts_exist\
+      \ - Assert...\nFAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline\n\
+      2 failed, 10 passed in 1.19s\n"
+    elapsed_time_s: 2.532968
+    avg_memory_mb: 32.88
+    avg_cpu_percent: 72.3
+    passed: 10
+    failed: 2
+    skipped: 0
+    total: 12
+    score_inputs_passed: 10
+    score_inputs_failed: 2
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.31s
+
+      '
+    elapsed_time_s: 1.650211
+    avg_memory_mb: 30.73
+    avg_cpu_percent: 85.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.562239
+    score_inputs_actual_time_s: 1.650211
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.36s
+
+      '
+    elapsed_time_s: 1.939675
+    avg_memory_mb: 33.16
+    avg_cpu_percent: 83.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.7
+    score_inputs_baseline_cpu_pct: 83.2
+    score_inputs_actual_mem_mb: 33.16
+    score_inputs_actual_cpu_pct: 83.9
+  robustness:
+    returncode: 1
+    stdout: ".FF..                                                               \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________ test_002_fail2ban_regex_invalid_regex_reports_error _____________\n\
+      \n    def test_002_fail2ban_regex_invalid_regex_reports_error():\n        base\
+      \ = _resolve_repo_root()\n        script = base / \"bin\" / \"fail2ban-regex\"\
+      \n    \n        with tempfile.TemporaryDirectory(prefix=\"racb_fail2ban_\")\
+      \ as td:\n            logp = Path(td) / \"x.log\"\n            logp.write_text(\"\
+      Failed password for invalid user root from 203.0.113.5\\n\", encoding=\"utf-8\"\
+      )\n    \n            # invalid regex: unbalanced bracket\n            p = _run(script,\
+      \ [str(logp), r\"(unbalanced[\"], timeout_s=20)\n            out = _out(p)\n\
+      >           assert (\"error\" in out) or (\"exception\" in out) or (\"re.error\"\
+      \ in out) or (\"invalid\" in out)\nE           assert ('error' in \"\\nc:\\\\\
+      users\\\\86152\\\\appdata\\\\local\\\\programs\\\\python\\\\python39\\\\python.exe:\
+      \ can't open file 'd:\\\\妗岄潰\\\\realappcodebench_generic_eval\\\\generation\\\
+      \\fail2ban\\\\bin\\\\fail2ban-regex': [errno 2] no such file or directory\\\
+      n\" or 'exception' in \"\\nc:\\\\users\\\\86152\\\\appdata\\\\local\\\\programs\\\
+      \\python\\\\python39\\\\python.exe: can't open file 'd:\\\\妗岄潰\\\\realappcodebench_generic_eval\\\
+      \\generation\\\\fail2ban\\\\bin\\\\fail2ban-regex': [errno 2] no such file or\
+      \ directory\\n\" or 're.error' in \"\\nc:\\\\users\\\\86152\\\\appdata\\\\local\\\
+      \\programs\\\\python\\\\python39\\\\python.exe: can't open file 'd:\\\\妗岄潰\\\
+      \\realappcodebench_generic_eval\\\\generation\\\\fail2ban\\\\bin\\\\fail2ban-regex':\
+      \ [errno 2] no such file or directory\\n\" or 'invalid' in \"\\nc:\\\\users\\\
+      \\86152\\\\appdata\\\\local\\\\programs\\\\python\\\\python39\\\\python.exe:\
+      \ can't open file 'd:\\\\妗岄潰\\\\realappcodebench_generic_eval\\\\generation\\\
+      \\fail2ban\\\\bin\\\\fail2ban-regex': [errno 2] no such file or directory\\\
+      n\")\n\ntests\\Fail2ban\\robustness_test.py:67: AssertionError\n___________\
+      \ test_003_fail2ban_client_unknown_command_reports_usage ____________\n\n  \
+      \  def test_003_fail2ban_client_unknown_command_reports_usage():\n        base\
+      \ = _resolve_repo_root()\n        script = base / \"bin\" / \"fail2ban-client\"\
+      \n        p = _run(script, [\"this-command-should-not-exist\"], timeout_s=20)\n\
+      \        out = _out(p)\n>       assert (\"usage\" in out) or (\"unknown\" in\
+      \ out) or (\"error\" in out)\nE       AssertionError: assert ('usage' in 'this\
+      \ is a minimal implementation running in safe mode.\\ncommand would have been:\
+      \ this-command-should-not-exist\\nno actions will be performed.\\n\\n' or 'unknown'\
+      \ in 'this is a minimal implementation running in safe mode.\\ncommand would\
+      \ have been: this-command-should-not-exist\\nno actions will be performed.\\\
+      n\\n' or 'error' in 'this is a minimal implementation running in safe mode.\\\
+      ncommand would have been: this-command-should-not-exist\\nno actions will be\
+      \ performed.\\n\\n')\n\ntests\\Fail2ban\\robustness_test.py:75: AssertionError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Fail2ban/robustness_test.py::test_002_fail2ban_regex_invalid_regex_reports_error\n\
+      FAILED tests/Fail2ban/robustness_test.py::test_003_fail2ban_client_unknown_command_reports_usage\n\
+      2 failed, 3 passed in 1.59s\n"
+    elapsed_time_s: 3.02005
+    avg_memory_mb: 31.79
+    avg_cpu_percent: 59.9
+    passed: 3
+    failed: 2
+    skipped: 0
+    total: 5
+    score_inputs_passed: 3
+    score_inputs_failed: 2
+    score_inputs_total: 5
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=288.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.448112
+    avg_memory_mb: 31.27
+    avg_cpu_percent: 96.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 288.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 5.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=27.9716 files_scanned=6.0 total_loc=288.0 max_cc=11.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.588469
+    avg_memory_mb: 31.42
+    avg_cpu_percent: 96.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 27.9716
+      files_scanned: 6.0
+      total_loc: 288.0
+      max_cc: 11.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 27.9716
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.665516
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 3.301722
+    robustness_tests_total: 5
+  performance:
+    performance_suite_time_s: 1.562239
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.604329
+    resource_tests_total: 1
+    avg_memory_mb: 33.7
+    avg_cpu_percent: 83.2
+  security:
+    security_suite_time_s: 1.888481
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 5.0
+      files_scanned: 48.0
+      total_loc: 13128.0
+  maintainability:
+    maintainability_suite_time_s: 4.689749
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 78.0
+      total_loc: 24927.0
+      max_cc: 98.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Fail2ban\pytest_logs
