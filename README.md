@@ -41,8 +41,8 @@ RAL-Bench/
 ├── 📂 scripts/               # Helper scripts (data prep / analysis / plotting / utilities)
 ├── 📂 tmp_perf/              # Temporary artifacts for performance measurement (cache/intermediate)
 ├── 📂 tmp_resource/          # Temporary artifacts for resource measurement (cache/intermediate)
-├── 📂 .venv/                 # Local virtual environment (optional; not required by the artifact)
-└── 📂 .converted/            # Local conversion/intermediate folder (optional; tooling-dependent)
+├── 📂 .venv/                 # Local virtual environment
+└── 📂 .converted/            # Local conversion/intermediate folder
 ```
 
 ### 📂 Key directories
