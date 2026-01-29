@@ -1,0 +1,483 @@
+<file:name=pyproject.toml>
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+
+[project]
+name = "mailpile-core-benchmark"
+version = "0.1.0"
+description = "A benchmark for a slice of Mailpile's core library."
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-benchmark",
+]
+</file:name>
+<file:name=README.md>
+# Mailpile Core Library Benchmark
+
+This repository contains a self-contained slice of the [Mailpile](https://www.mailpile.is/) core library for benchmarking purposes.
+
+It includes simplified, representative implementations of the following modules:
+- `mailpile.safe_popen`: Safe subprocess wrapper and pipe helpers
+- `mailpile.util`: Utilities (CleanText, base36 conversion, helpers)
+- `mailpile.vcard`: VCardLine parsing and serialization
+- `mailpile.i18n`: gettext passthrough helper
+
+## Setup
+
+It is recommended to use a virtual environment.
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+```
+
+Install the required dependencies for running the benchmarks:
+
+```bash
+pip install ".[test]"
+```
+
+## Running Benchmarks
+
+The benchmarks are written using `pytest` and `pytest-benchmark`. To run them:
+
+```bash
+pytest --benchmark-only
+```
+
+This will run the functional tests and report performance metrics for the core functions in each module.
+</file:name>
+<file:name=mailpile/__init__.py>
+</file:name>
+<file:name=mailpile/i18n.py>
+import gettext
+
+# This is a stub for the real i18n system.
+# For benchmarking, we don't need full translation capabilities.
+_ = lambda s: s
+ngettext = lambda s, p, n: (s if n == 1 else p)
+
+def get_translation(language=None):
+    """
+    In a real app, this would load a .mo file.
+    Here, we just return a dummy translator.
+    """
+    return gettext.NullTranslations()
+
+def set_language(lang):
+    """Dummy function for API compatibility."""
+    pass
+</file:name>
+<file:name=mailpile/safe_popen.py>
+import subprocess
+import sys
+import os
+
+# A simplified version of Mailpile's safe_popen.
+# The real one has more features for security and environment cleaning.
+
+def safe_popen(argv, **kwargs):
+    """
+    A wrapper for subprocess.Popen that enforces some safe defaults.
+    """
+    # Default arguments for Popen
+    defaults = {
+        'stdin': subprocess.PIPE,
+        'stdout': subprocess.PIPE,
+        'stderr': subprocess.PIPE,
+        'close_fds': (sys.platform != 'win32'),
+        'shell': False,
+    }
+
+    # User arguments override defaults
+    defaults.update(kwargs)
+
+    return subprocess.Popen(argv, **defaults)
+
+
+def Popen(argv, **kwargs):
+    """Alias for safe_popen."""
+    return safe_popen(argv, **kwargs)
+
+
+def read_from_pipe(pipe, max_bytes=1024*1024):
+    """
+    Reads data from a pipe until EOF or max_bytes is reached.
+    """
+    data = b''
+    while max_bytes > 0:
+        try:
+            # Use os.read for non-blocking behavior in some cases
+            chunk = os.read(pipe.fileno(), min(max_bytes, 4096))
+            if not chunk:
+                break
+            data += chunk
+            max_bytes -= len(chunk)
+        except (IOError, OSError):
+            break
+    return data
+
+
+def write_to_pipe(pipe, data):
+    """
+    Writes data to a pipe and closes it.
+    """
+    try:
+        bytes_written = os.write(pipe.fileno(), data)
+        pipe.close()
+        return bytes_written
+    except (IOError, OSError):
+        return -1
+</file:name>
+<file:name=mailpile/util.py>
+import base64
+import hashlib
+import re
+import string
+
+# A simplified version of utilities found in Mailpile.
+
+# Characters we consider printable, for the CleanText function.
+_PRINTABLE_CLEAN = ''.join(c for c in string.printable if c not in '\t\n\r\x0b\x0c')
+_RE_NONPRINTABLE = re.compile('[^%s]' % re.escape(_PRINTABLE_CLEAN))
+
+def CleanText(text, want_type=str):
+    """
+    A simplified text cleaning function.
+    - Converts to a specific type (str or bytes).
+    - Removes non-printable characters.
+    """
+    if isinstance(text, want_type):
+        pass
+    elif want_type is str:
+        if isinstance(text, bytes):
+            try:
+                text = text.decode('utf-8')
+            except UnicodeDecodeError:
+                text = text.decode('latin-1', 'replace')
+        else:
+            text = str(text)
+    elif want_type is bytes:
+        if isinstance(text, str):
+            text = text.encode('utf-8')
+        else:
+            text = bytes(text)
+    else:
+        raise TypeError('Invalid want_type for CleanText')
+
+    if isinstance(text, str):
+        return _RE_NONPRINTABLE.sub(' ', text).strip()
+    else:
+        # For bytes, we can't use the same regex easily.
+        # This is a simplified cleaning.
+        return bytes(b for b in text if b in _PRINTABLE_CLEAN.encode())
+
+# Base36 conversion
+B36_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz'
+
+def b36(i):
+    """Converts an integer to a base36 string."""
+    if not isinstance(i, int) or i < 0:
+        raise ValueError("Input must be a non-negative integer.")
+    if i == 0:
+        return '0'
+    result = ''
+    while i > 0:
+        i, rem = divmod(i, 36)
+        result = B36_ALPHABET[rem] + result
+    return result
+
+def unb36(s):
+    """Converts a base36 string to an integer."""
+    return int(s, 36)
+
+def b64w(data):
+    """URL-safe Base64 encoding."""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode('ascii')
+
+def unb64w(data):
+    """URL-safe Base64 decoding."""
+    if isinstance(data, str):
+        data = data.encode('ascii')
+    padding = 4 - (len(data) % 4)
+    if padding and padding != 4:
+        data += b'=' * padding
+    return base64.urlsafe_b64decode(data)
+
+def sha1_hex(data):
+    """Computes the SHA1 hexdigest of data."""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    return hashlib.sha1(data).hexdigest()
+</file:name>
+<file:name=mailpile/vcard.py>
+import re
+from mailpile.i18n import _
+
+class VCardLine(object):
+    """
+    A class for parsing and manipulating a single line of a VCard.
+    """
+    # Regex to parse a VCard line
+    # Example: ADR;TYPE=work:;;100 Waters Edge;Baytown;LA;30314;United States
+    LINE_RE = re.compile(r'^(?P<key>[^;:]+)'
+                         r'(?P<prm>(;[^:]+)*):'
+                         r'(?P<val>.*)$', re.I)
+    PARAM_RE = re.compile(r';(?P<key>[^=]+)=(?P<val>("[^"]*"|[^;]+))')
+
+    def __init__(self, line=None, key=None, value=None, params=None):
+        self.key = key
+        self.value = value
+        self.params = params or {}
+        if line:
+            self.parse(line)
+
+    def parse(self, line):
+        match = self.LINE_RE.match(line)
+        if not match:
+            raise ValueError(_('Invalid VCard line: %s') % line)
+
+        self.key = match.group('key').upper()
+        self.value = self._unescape_value(match.group('val'))
+        self.params = {}
+        prm_str = match.group('prm')
+        if prm_str:
+            for p_match in self.PARAM_RE.finditer(prm_str):
+                p_key = p_match.group('key').upper()
+                p_val = p_match.group('val')
+                if p_val.startswith('"') and p_val.endswith('"'):
+                    p_val = p_val[1:-1]
+                self.params[p_key] = p_val.split(',')
+        return self
+
+    def _unescape_value(self, val):
+        return val.replace('\\,', ',').replace('\\;', ';').replace('\\n', '\n').replace('\\\\', '\\')
+
+    def _escape_value(self, val):
+        return val.replace('\\', '\\\\').replace('\n', '\\n').replace(';', '\\;').replace(',', '\\,')
+
+    def format(self):
+        parts = [self.key]
+        if self.params:
+            for p_key, p_vals in sorted(self.params.items()):
+                val_str = ','.join(p_vals)
+                # Quote if necessary
+                if ';' in val_str or ',' in val_str or ':' in val_str:
+                    val_str = '"%s"' % val_str
+                parts.append(';%s=%s' % (p_key, val_str))
+        parts.append(':')
+        parts.append(self._escape_value(self.value))
+        return ''.join(parts)
+
+    def __str__(self):
+        return self.format()
+
+    def __repr__(self):
+        return 'VCardLine(%s)' % repr(self.format())
+</file:name>
+<file:name=tests/__init__.py>
+</file:name>
+<file:name=tests/test_i18n.py>
+from mailpile.i18n import _, ngettext, get_translation
+
+def test_i18n_passthrough(benchmark):
+    """Benchmark the overhead of the i18n passthrough functions."""
+    def run_test():
+        assert _("Hello") == "Hello"
+        assert _("World") == "World"
+        assert ngettext("Singular", "Plural", 1) == "Singular"
+        assert ngettext("Singular", "Plural", 2) == "Plural"
+        assert get_translation() is not None
+
+    benchmark(run_test)
+</file:name>
+<file:name=tests/test_safe_popen.py>
+import sys
+import pytest
+from mailpile.safe_popen import Popen, read_from_pipe, write_to_pipe
+
+def test_popen_echo(benchmark):
+    """Benchmark creating a subprocess and reading its output."""
+    command = [sys.executable, '-c', 'import sys; sys.stdout.write("hello"); sys.stderr.write("world")']
+
+    def run_popen():
+        p = Popen(command)
+        stdout, stderr = p.communicate()
+        assert stdout == b"hello"
+        assert stderr == b"world"
+        assert p.wait() == 0
+
+    benchmark(run_popen)
+
+def test_popen_pipe_rw(benchmark):
+    """Benchmark writing to and reading from a subprocess pipe."""
+    command = [sys.executable, '-c', 'import sys; data = sys.stdin.read(); sys.stdout.write(data.upper())']
+    input_data = b"some test data to be piped" * 10
+
+    def run_pipe_rw():
+        p = Popen(command)
+        # Note: communicate() is simpler, but we test the pipe helpers here
+        write_to_pipe(p.stdin, input_data)
+        stdout = read_from_pipe(p.stdout)
+        stderr = read_from_pipe(p.stderr)
+        p.wait()
+
+        assert stdout == input_data.upper()
+        assert stderr == b""
+
+    benchmark(run_pipe_rw)
+
+# Functional check to ensure basic correctness
+def test_popen_functional():
+    """A simple functional test for Popen."""
+    p = Popen([sys.executable, '-c', 'import sys; sys.exit(42)'])
+    p.communicate()
+    assert p.returncode == 42
+</file:name>
+<file:name=tests/test_util.py>
+import pytest
+from mailpile.util import CleanText, b36, unb36, sha1_hex, b64w, unb64w
+
+def test_b36_conversion(benchmark):
+    """Benchmark integer to base36 conversion."""
+    def run_b36():
+        for i in range(1000):
+            b36(i * 12345)
+
+    benchmark(run_b36)
+
+def test_unb36_conversion(benchmark):
+    """Benchmark base36 to integer conversion."""
+    test_strings = [b36(i * 12345) for i in range(1000)]
+    def run_unb36():
+        for s in test_strings:
+            unb36(s)
+
+    benchmark(run_unb36)
+
+def test_clean_text_str(benchmark):
+    """Benchmark cleaning a string with control characters."""
+    text = "This is a test\x00\x01\x02 with some \t control characters\r\n and stuff." * 10
+    def run_clean():
+        CleanText(text)
+
+    benchmark(run_clean)
+
+def test_clean_text_bytes(benchmark):
+    """Benchmark cleaning a bytestring."""
+    text = b"This is a test\x00\x01\x02 with some \t control characters\r\n and stuff." * 10
+    def run_clean():
+        CleanText(text, want_type=bytes)
+
+    benchmark(run_clean)
+
+def test_sha1_hex(benchmark):
+    """Benchmark SHA1 hashing."""
+    data = b"The quick brown fox jumps over the lazy dog" * 10
+    def run_sha():
+        sha1_hex(data)
+
+    benchmark(run_sha)
+
+def test_b64w_unb64w(benchmark):
+    """Benchmark a full cycle of URL-safe base64 encoding and decoding."""
+    data = b"some random data for testing url-safe base64 encoding and decoding" * 5
+    def run_b64w_cycle():
+        encoded = b64w(data)
+        decoded = unb64w(encoded)
+        assert data == decoded
+
+    benchmark(run_b64w_cycle)
+
+# Functional checks to ensure correctness
+def test_b36_values():
+    assert b36(0) == '0'
+    assert b36(35) == 'z'
+    assert b36(36) == '10'
+    assert unb36('10') == 36
+    assert unb36(b36(123456789)) == 123456789
+
+def test_clean_text_values():
+    assert CleanText("hello\x00world") == "hello world"
+    assert CleanText(b"hello\x01world", want_type=bytes) == b"helloworld"
+    assert CleanText(123) == "123"
+    assert CleanText("  \ttrim me\r\n  ") == "trim me"
+</file:name>
+<file:name=tests/test_vcard.py>
+import pytest
+from mailpile.vcard import VCardLine
+
+SIMPLE_LINE = "FN:Forrest Gump"
+COMPLEX_LINE = 'ADR;TYPE=work,home;LABEL="100 Waters Edge\\nBaytown, LA 30314\\nUnited States":;;100 Waters Edge;Baytown;LA;30314;United States'
+TEL_LINE = "TEL;TYPE=work,voice;VALUE=uri:tel:+1-111-555-1212"
+
+def test_vcard_parse_simple(benchmark):
+    """Benchmark parsing a simple VCard line."""
+    def run_parse():
+        VCardLine(SIMPLE_LINE)
+    benchmark(run_parse)
+
+def test_vcard_parse_complex(benchmark):
+    """Benchmark parsing a complex VCard line with parameters."""
+    def run_parse():
+        VCardLine(COMPLEX_LINE)
+    benchmark(run_parse)
+
+def test_vcard_format_simple(benchmark):
+    """Benchmark formatting a simple VCard line."""
+    vcard = VCardLine(key='FN', value='Forrest Gump')
+    def run_format():
+        vcard.format()
+    benchmark(run_format)
+
+def test_vcard_format_complex(benchmark):
+    """Benchmark formatting a complex VCard line."""
+    vcard = VCardLine().parse(COMPLEX_LINE)
+    def run_format():
+        vcard.format()
+    benchmark(run_format)
+
+def test_vcard_full_cycle(benchmark):
+    """Benchmark a full parse -> format -> parse cycle."""
+    def run_cycle():
+        v = VCardLine(COMPLEX_LINE)
+        formatted = v.format()
+        v2 = VCardLine(formatted)
+        assert v.key == v2.key
+        assert v.value == v2.value
+        assert v.params == v2.params
+    benchmark(run_cycle)
+
+# Functional checks for correctness
+def test_vcard_parsing_correctness():
+    v = VCardLine(SIMPLE_LINE)
+    assert v.key == 'FN'
+    assert v.value == 'Forrest Gump'
+    assert v.params == {}
+
+    v = VCardLine(TEL_LINE)
+    assert v.key == 'TEL'
+    assert v.value == 'tel:+1-111-555-1212'
+    assert v.params == {'TYPE': ['work', 'voice'], 'VALUE': ['uri']}
+
+def test_vcard_formatting_correctness():
+    v = VCardLine(key='N', value='Gump;Forrest;;;')
+    assert v.format() == 'N:Gump\\;Forrest;;;'
+
+    v = VCardLine(key='TEL', value='tel:+1-111-555-1212', params={'TYPE': ['work', 'voice'], 'VALUE': ['uri']})
+    # Order of params can vary, so we check parts
+    formatted = v.format()
+    assert formatted.startswith('TEL;')
+    assert ';TYPE=work,voice' in formatted
+    assert ';VALUE=uri' in formatted
+    assert formatted.endswith(':tel:+1-111-555-1212')
+</file:name>

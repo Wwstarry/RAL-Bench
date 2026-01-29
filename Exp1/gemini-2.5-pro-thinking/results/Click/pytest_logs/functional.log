@@ -1,0 +1,229 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_simple_command_with_argument_and_option _________________
+
+    def test_simple_command_with_argument_and_option():
+        @click.command()
+        @click.option("--count", "-c", type=int, default=1)
+        @click.argument("name")
+>       def greet(count: int, name: str) -> None:
+
+tests\Click\functional_test.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E7914790>
+decls = ('--count', '-c')
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+>       def cli(flag: bool) -> None:
+
+tests\Click\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E78D1250>
+decls = ('--flag/--no-flag',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+>       @cli.command()
+E       AttributeError: 'function' object has no attribute 'command'
+
+tests\Click\functional_test.py:170: AttributeError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+        def cli() -> None:
+            pass
+    
+>       @cli.command(help="Say hello")
+E       AttributeError: 'function' object has no attribute 'command'
+
+tests\Click\functional_test.py:196: AttributeError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+>       def cli(config: str) -> None:
+
+tests\Click\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E79D9A60>, decls = ('--config',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+_________________ test_command_exception_is_exposed_in_result _________________
+
+    def test_command_exception_is_exposed_in_result():
+        class CustomError(Exception):
+            pass
+    
+        @click.command()
+        def boom() -> None:
+            raise CustomError("explode")
+    
+        runner = CliRunner()
+        result = runner.invoke(boom, [])
+    
+        assert result.exit_code != 0
+>       assert isinstance(result.exception, CustomError)
+E       AssertionError: assert False
+E        +  where False = isinstance(AttributeError('__enter__'), <class 'functional_test.test_command_exception_is_exposed_in_result.<locals>.CustomError'>)
+E        +    where AttributeError('__enter__') = <Result exit_code=1>.exception
+
+tests\Click\functional_test.py:251: AssertionError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+>       def cli(name: str) -> None:
+
+tests\Click\functional_test.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E7962D60>, decls = ('--name',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+>       def cli(token: str) -> None:
+
+tests\Click\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E79CAFD0>, decls = ('--token',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+>       @cli.command()
+E       AttributeError: 'function' object has no attribute 'command'
+
+tests\Click\functional_test.py:294: AttributeError
+_______________ test_parameter_type_validation_error_exit_code ________________
+
+    def test_parameter_type_validation_error_exit_code():
+        @click.command()
+        @click.option("--count", type=int, required=True)
+>       def cli(count: int) -> None:
+
+tests\Click\functional_test.py:308: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000250E79143D0>, decls = ('--count',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - IndexE...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - Attribut...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - I...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+11 failed in 4.14s

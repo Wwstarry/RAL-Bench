@@ -1,0 +1,42 @@
+.F                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_batch_conversion_integration ______________________
+
+    def test_batch_conversion_integration() -> None:
+        """Integration test for converting multiple documents sequentially."""
+        docs = [
+            "# Doc 1\n\nFirst document.",
+            "## Doc 2\n\nSecond document with *emphasis*.",
+            textwrap.dedent(
+                """
+                # Doc 3
+    
+                - item A
+                - item B
+    
+                ```python
+                print("hello")
+                ```
+                """
+            ),
+        ]
+    
+        html_outputs = [markdown.markdown(src) for src in docs]
+        norms = [normalize_html(html) for html in html_outputs]
+    
+        assert len(norms) == 3
+        assert "Doc 1" in norms[0]
+        assert "<h1>" in norms[0] or "<h2>" in norms[0]
+    
+        assert "Doc 2" in norms[1]
+        assert "<em>" in norms[1] or "<i>" in norms[1]
+    
+        assert "Doc 3" in norms[2]
+        assert "<ul>" in norms[2]
+>       assert "<code>" in norms[2]
+E       AssertionError: assert '<code>' in '<h1>Doc 3</h1>\n<ul>\n<li>item A</li>\n<li>item B</li>\n</ul>\n<p>```python print(&quot;hello&quot;) ```</p>'
+
+tests\Markdown\resource_test.py:131: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/resource_test.py::test_batch_conversion_integration - A...
+1 failed, 1 passed in 0.40s

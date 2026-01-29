@@ -1,0 +1,52 @@
+...........F                                                             [100%]
+================================== FAILURES ===================================
+___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________
+
+    def test_012_fail2ban_regex_matches_simple_pattern_offline():
+        """
+        Offline-only functional check:
+        - Create a temp log with repeated failure lines.
+        - Run fail2ban-regex <LOG> <REGEX>
+        - Assert output indicates it processed lines and found matches.
+        """
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONPATH"] = str(_resolve_repo_root()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "auth.log"
+            logp.write_text(
+                "\n".join(
+                    [
+                        "Failed password for invalid user root from 203.0.113.5 port 2222 ssh2",
+                        "Failed password for invalid user admin from 203.0.113.5 port 2223 ssh2",
+                        "Accepted password for user ok from 198.51.100.2 port 3333 ssh2",
+                        "Failed password for invalid user test from 203.0.113.9 port 4444 ssh2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+    
+            # Use a very simple regex (do not rely on <HOST> substitutions).
+            regex = r"Failed password"
+            p = subprocess.run(
+                [sys.executable, str(script), str(logp), regex],
+                text=True,
+                input="",
+                capture_output=True,
+                timeout=30,
+                env=env,
+            )
+            out = _out(p)
+    
+            # Must not hang; and should show it processed lines.
+>           assert ("line" in out) or ("lines" in out)
+E           AssertionError: assert ('line' in 'error: file not found: failed password\n\n' or 'lines' in 'error: file not found: failed password\n\n')
+
+tests\Fail2ban\functional_test.py:246: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline
+1 failed, 11 passed in 1.24s

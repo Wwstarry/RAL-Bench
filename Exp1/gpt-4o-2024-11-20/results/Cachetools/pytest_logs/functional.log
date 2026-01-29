@@ -1,0 +1,101 @@
+F....FFF.FF..                                                            [100%]
+================================== FAILURES ===================================
+________________________ test_basic_lru_cache_eviction ________________________
+
+    def test_basic_lru_cache_eviction():
+        cache = LRUCache(maxsize=2)
+    
+        cache["a"] = 1
+        cache["b"] = 2
+    
+        # Touch "a" so it becomes most recently used
+        _ = cache["a"]
+    
+        # Adding "c" should evict the least recently used entry ("b")
+        cache["c"] = 3
+    
+        assert "a" in cache
+        assert "c" in cache
+        assert "b" not in cache
+>       assert len(cache) == 2
+E       assert 0 == 2
+E        +  where 0 = len({})
+
+tests\Cachetools\functional_test.py:45: AssertionError
+________________ test_lru_cache_update_does_not_increase_size _________________
+
+    def test_lru_cache_update_does_not_increase_size():
+        cache = LRUCache(maxsize=3)
+        cache["a"] = 1
+        cache["b"] = 2
+>       assert len(cache) == 2
+E       assert 0 == 2
+E        +  where 0 = len({})
+
+tests\Cachetools\functional_test.py:165: AssertionError
+______________________ test_lru_cache_clear_resets_state ______________________
+
+    def test_lru_cache_clear_resets_state():
+        cache = LRUCache(maxsize=2)
+        cache["a"] = 1
+        cache["b"] = 2
+>       assert len(cache) == 2
+E       assert 0 == 2
+E        +  where 0 = len({})
+
+tests\Cachetools\functional_test.py:176: AssertionError
+__________________ test_lru_cache_popitem_removes_one_entry ___________________
+
+    def test_lru_cache_popitem_removes_one_entry():
+        cache = LRUCache(maxsize=3)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+>       assert len(cache) == 3
+E       assert 0 == 3
+E        +  where 0 = len({})
+
+tests\Cachetools\functional_test.py:189: AssertionError
+__________________ test_ttl_cache_len_drops_after_expiration __________________
+
+    def test_ttl_cache_len_drops_after_expiration():
+        ttl_seconds = 0.15
+        cache = TTLCache(maxsize=10, ttl=ttl_seconds)
+    
+        cache["a"] = 1
+        cache["b"] = 2
+>       assert len(cache) >= 2
+E       assert 0 >= 2
+E        +  where 0 = len({})
+
+tests\Cachetools\functional_test.py:217: AssertionError
+_____________ test_cached_decorator_cache_clear_forces_recompute ______________
+
+    def test_cached_decorator_cache_clear_forces_recompute():
+        cache = LRUCache(maxsize=32)
+        calls = {"count": 0}
+    
+        @cached(cache=cache)
+        def f(x: int) -> int:
+            calls["count"] += 1
+            return x + 1
+    
+        assert f(1) == 2
+        assert calls["count"] == 1
+        assert f(1) == 2
+        assert calls["count"] == 1  # cached
+    
+        cache.clear()
+        assert f(1) == 2
+>       assert calls["count"] == 2  # recomputed after clear
+E       assert 1 == 2
+
+tests\Cachetools\functional_test.py:247: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_basic_lru_cache_eviction - a...
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_update_does_not_increase_size
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_clear_resets_state
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_popitem_removes_one_entry
+FAILED tests/Cachetools/functional_test.py::test_ttl_cache_len_drops_after_expiration
+FAILED tests/Cachetools/functional_test.py::test_cached_decorator_cache_clear_forces_recompute
+6 failed, 7 passed in 1.53s

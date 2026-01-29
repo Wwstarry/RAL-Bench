@@ -1,0 +1,31 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_memory_usage_for_many_commands _____________________
+
+    def test_memory_usage_for_many_commands() -> None:
+        app = ResourceApp()
+        commands = ["noop"] * 3000
+    
+        process = psutil.Process()
+        base_mem = process.memory_info().rss
+    
+>       run_commands(app, commands)
+
+tests\Cmd2\resource_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <resource_test.ResourceApp object at 0x000002A5B204E280>
+commands = ['noop', 'noop', 'noop', 'noop', 'noop', 'noop', ...]
+
+    def run_commands(app: ResourceApp, commands: list[str]) -> str:
+        buffer = io.StringIO()
+        saved_stdout = app.stdout
+        app.stdout = buffer
+        try:
+>           app.runcmds_plus_hooks(commands)
+E           AttributeError: 'ResourceApp' object has no attribute 'runcmds_plus_hooks'
+
+tests\Cmd2\resource_test.py:44: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/resource_test.py::test_memory_usage_for_many_commands - Att...
+1 failed in 0.45s

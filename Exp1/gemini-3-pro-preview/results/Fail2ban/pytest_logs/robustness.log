@@ -1,0 +1,16 @@
+F....                                                                    [100%]
+================================== FAILURES ===================================
+_____________ test_001_fail2ban_regex_missing_log_file_fails_fast _____________
+
+    def test_001_fail2ban_regex_missing_log_file_fails_fast():
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+        p = _run(script, ["this_file_should_not_exist.log", "Failed password"], timeout_s=20)
+        out = _out(p)
+>       assert ("no such file" in out) or ("not found" in out) or ("error" in out) or ("unable" in out)
+E       AssertionError: assert ('no such file' in 'running tests\nuse   regex : failed password\nuse   log line : this_file_should_not_exist.log\nmatched  : no\n\n' or 'not found' in 'running tests\nuse   regex : failed password\nuse   log line : this_file_should_not_exist.log\nmatched  : no\n\n' or 'error' in 'running tests\nuse   regex : failed password\nuse   log line : this_file_should_not_exist.log\nmatched  : no\n\n' or 'unable' in 'running tests\nuse   regex : failed password\nuse   log line : this_file_should_not_exist.log\nmatched  : no\n\n')
+
+tests\Fail2ban\robustness_test.py:53: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/robustness_test.py::test_001_fail2ban_regex_missing_log_file_fails_fast
+1 failed, 4 passed in 1.76s

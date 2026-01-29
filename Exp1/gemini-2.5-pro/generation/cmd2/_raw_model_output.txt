@@ -1,0 +1,455 @@
+<file:name=cmd2/utils.py>
+#
+# coding=utf-8
+"""
+Utility functions and classes for the cmd2 package.
+"""
+import sys
+import io
+
+class StdSim:
+    """A class to simulate stdout or stderr for capturing output."""
+    def __init__(self, inner_stream):
+        self.inner_stream = inner_stream
+        self.buffer = io.StringIO()
+
+    def write(self, s):
+        # Write to both the actual stream and the internal buffer
+        if self.inner_stream:
+            self.inner_stream.write(s)
+        self.buffer.write(s)
+
+    def getvalue(self):
+        """Get the contents of the buffer."""
+        return self.buffer.getvalue()
+
+    def flush(self):
+        """Flush both the actual stream and the internal buffer."""
+        if self.inner_stream:
+            self.inner_stream.flush()
+        self.buffer.flush()
+
+class CaptureStdout:
+    """A context manager to capture stdout and stderr."""
+    def __init__(self):
+        self.old_stdout = None
+        self.old_stderr = None
+        self.stdout_simulator = None
+        self.stderr_simulator = None
+
+    def __enter__(self):
+        self.old_stdout = sys.stdout
+        self.old_stderr = sys.stderr
+        
+        # Use our simulator to capture output
+        self.stdout_simulator = StdSim(self.old_stdout)
+        self.stderr_simulator = StdSim(self.old_stderr)
+        
+        sys.stdout = self.stdout_simulator
+        sys.stderr = self.stderr_simulator
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Restore the original streams
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+
+    def get_output(self):
+        """Returns the combined captured output from stdout and stderr."""
+        return self.stdout_simulator.getvalue() + self.stderr_simulator.getvalue()
+
+def quote_string(s: str) -> str:
+    """Quotes a string if it contains spaces or is empty."""
+    if not s or ' ' in s or '\t' in s:
+        return '"' + s.replace('"', '\\"') + '"'
+    return s
+
+def unquote_string(s: str) -> str:
+    """Unquotes a string if it is quoted."""
+    if s and len(s) > 1 and s[0] in ('"', "'") and s[0] == s[-1]:
+        return s[1:-1].replace('\\' + s[0], s[0])
+    return s
+</file:name>
+<file:name=cmd2/parsing.py>
+#
+# coding=utf-8
+"""
+Parsing classes and functions for cmd2.
+"""
+import shlex
+from collections import namedtuple
+
+# A Statement is a parsed command line, including the command, arguments,
+# and any redirection or termination characters.
+Statement = namedtuple('Statement', ['command', 'args', 'raw', 'terminator', 'redirect_op', 'redirect_dest'])
+
+class Parser:
+    """
+    Parses a command line string into a Statement.
+    Handles redirection, terminators, and quoted arguments.
+    """
+    def __init__(self, line: str):
+        self.raw = line
+        self.command = ''
+        self.args = ''
+        self.terminator = ''
+        self.redirect_op = ''
+        self.redirect_dest = ''
+        self._parse()
+
+    def _parse(self):
+        """The main parsing logic."""
+        line = self.raw.strip()
+
+        # Handle terminators like ';'
+        if line and line[-1] in (';',):
+            self.terminator = line[-1]
+            line = line[:-1].rstrip()
+
+        # Use shlex for robust, shell-like splitting
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            # Handle unmatched quotes by falling back to a simple split
+            parts = line.split()
+
+        # Find and process redirection operators ('>', '>>')
+        redirect_op = None
+        redirect_dest = None
+        for i, part in enumerate(parts):
+            if part in ('>', '>>'):
+                if i + 1 < len(parts):
+                    redirect_op = part
+                    redirect_dest = parts[i+1]
+                    # The command is everything before the redirection
+                    parts = parts[:i]
+                    break
+                else:
+                    # Malformed redirection (e.g., 'echo foo >')
+                    break
+        
+        if not parts:
+            return
+
+        self.command = parts[0]
+        self.args = ' '.join(parts[1:])
+        self.redirect_op = redirect_op
+        self.redirect_dest = redirect_dest
+
+    def to_statement(self) -> Statement:
+        """Returns the parsed result as a Statement object."""
+        return Statement(
+            command=self.command,
+            args=self.args,
+            raw=self.raw,
+            terminator=self.terminator,
+            redirect_op=self.redirect_op,
+            redirect_dest=self.redirect_dest
+        )
+
+def parse(line: str) -> Statement:
+    """Convenience function to parse a line and return a Statement."""
+    return Parser(line).to_statement()
+
+class ArgumentParser(object):
+    """
+    A wrapper around argparse.ArgumentParser that is compatible with cmd2.
+    It raises exceptions on error instead of calling sys.exit().
+    """
+    def __init__(self, *args, **kwargs):
+        import argparse
+        self._parser = argparse.ArgumentParser(*args, **kwargs)
+        # Monkeypatch the exit method to prevent it from terminating the app
+        self._parser.exit = self._exit_method
+
+    def _exit_method(self, status=0, message=None):
+        """
+        This method replaces argparse.ArgumentParser.exit().
+        It raises an exception that can be caught by the command handler.
+        """
+        # argparse uses a custom error message for --help, which we want to show
+        if message and 'usage:' in message.lower():
+            raise SystemExit(message)
+        # For other errors, raise a ValueError
+        raise ValueError(message)
+
+    def parse_args(self, args):
+        """Parses arguments and returns the result."""
+        # shlex.split is needed to handle quoted arguments correctly
+        if isinstance(args, str):
+            args = shlex.split(args)
+        return self._parser.parse_args(args)
+
+    def add_argument(self, *args, **kwargs):
+        """Proxy for argparse.ArgumentParser.add_argument."""
+        return self._parser.add_argument(*args, **kwargs)
+</file:name>
+<file:name=cmd2/cmd2.py>
+#
+# coding=utf-8
+"""
+The core Cmd2 class.
+"""
+import cmd
+import os
+import shlex
+import sys
+import traceback
+import difflib
+
+from . import parsing
+from . import utils
+
+class Cmd2(cmd.Cmd):
+    """
+    A feature-rich subclass of cmd.Cmd, providing a powerful framework for
+    building command-line applications.
+    """
+
+    # --- Constants ---
+    DEFAULT_PROMPT = '(Cmd) '
+    CONTINUATION_PROMPT = '> '
+    shortcuts = {'?': 'help', '!': 'shell', '@': 'run_script', '@@': 'run_script'}
+
+    def __init__(self, completekey='tab', stdin=None, stdout=None):
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
+
+        # --- Public Attributes ---
+        self.continuation_prompt = self.CONTINUATION_PROMPT
+        self.default_to_shell = False
+        self.debug = False
+        self.echo = False
+        self.prompt = self.DEFAULT_PROMPT
+        self.allow_cli_args = True
+
+        # --- Private Attributes ---
+        self._last_result = None
+        self._stopped = False
+
+    def poutput(self, msg, end='\n'):
+        """Print output to self.stdout."""
+        if msg is not None:
+            self.stdout.write(str(msg) + end)
+
+    def perror(self, msg, end='\n'):
+        """Print error output to sys.stderr."""
+        sys.stderr.write("ERROR: " + str(msg) + end)
+
+    def pfeedback(self, msg, end='\n'):
+        """Print feedback to self.stdout, used for non-essential output."""
+        if self.echo:
+            self.poutput(msg, end)
+
+    def parseline(self, line):
+        """
+        Parse a line into a command and arguments.
+        This is overridden for compatibility with cmd.Cmd, but our main
+        logic is in onecmd, which does its own more advanced parsing.
+        """
+        statement = parsing.parse(line)
+        return statement.command, statement.args, line
+
+    def onecmd(self, line):
+        """
+        Interpret the argument as a command and execute it.
+        This is the heart of the command processing loop.
+        """
+        if self.echo:
+            self.poutput(self.prompt + line)
+
+        statement = parsing.parse(line)
+        
+        if not statement.command:
+            return self.emptyline()
+
+        if statement.command in self.shortcuts:
+            statement = statement._replace(command=self.shortcuts[statement.command])
+
+        try:
+            func = getattr(self, 'do_' + statement.command)
+        except AttributeError:
+            if self.default_to_shell:
+                return self.do_shell(statement.raw)
+            return self.default(line)
+
+        argparser = getattr(func, 'argparser', None)
+        if argparser:
+            try:
+                args = argparser.parse_args(statement.args)
+            except SystemExit as e:
+                # This is raised by our custom parser for --help
+                self.poutput(e)
+                return False
+            except (ValueError, Exception) as e:
+                self.perror(f"Error parsing arguments for '{statement.command}': {e}")
+                if self.debug:
+                    traceback.print_exc()
+                return False
+        else:
+            args = statement.args
+
+        stop = False
+        redirect_out = None
+        orig_stdout, sys.stdout = sys.stdout, sys.stdout
+        orig_self_stdout = self.stdout
+
+        try:
+            if statement.redirect_op:
+                mode = 'w' if statement.redirect_op == '>' else 'a'
+                redirect_out = open(statement.redirect_dest, mode)
+                sys.stdout = redirect_out
+                self.stdout = redirect_out
+            
+            self._last_result = func(args)
+            if self._last_result is True:
+                stop = True
+        except Exception as e:
+            self.perror(f"Exception in command '{statement.command}': {e}")
+            if self.debug:
+                traceback.print_exc(file=sys.stderr)
+        finally:
+            if redirect_out:
+                redirect_out.close()
+            sys.stdout = orig_stdout
+            self.stdout = orig_self_stdout
+
+        return self.postcmd(stop, line)
+
+    def postcmd(self, stop, line):
+        """Hook method executed just after a command dispatch is finished."""
+        if self._stopped:
+            return True
+        return stop
+
+    def cmdloop(self, intro=None):
+        """Repeatedly issue a prompt, accept input, and dispatch to action methods."""
+        if self.allow_cli_args and len(sys.argv) > 1:
+            script_path = sys.argv[1]
+            if os.path.exists(script_path):
+                self.run_script(script_path)
+            else:
+                self.perror(f"Script file not found: {script_path}")
+            return
+
+        return super().cmdloop(intro)
+
+    def run_script(self, path):
+        """Run commands from a script file."""
+        try:
+            with open(path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if self.onecmd(line):
+                        break
+        except IOError as e:
+            self.perror(f"Error reading script file {path}: {e}")
+
+    def run_transcript_tests(self, transcript_files):
+        """Runs transcript-based tests."""
+        all_passed = True
+        for test_path in transcript_files:
+            command_script = test_path
+            transcript_file = os.path.splitext(test_path)[0] + '.txt'
+
+            self.poutput(f"TESTING {test_path} against {transcript_file}...")
+
+            capturer = utils.CaptureStdout()
+            with capturer:
+                self.run_script(command_script)
+            
+            captured_output = capturer.get_output()
+
+            try:
+                with open(transcript_file, 'r', encoding='utf-8') as f:
+                    golden_output = f.read()
+            except IOError:
+                self.perror(f"Transcript file not found: {transcript_file}")
+                with open(transcript_file, 'w', encoding='utf-8') as f:
+                    f.write(captured_output)
+                self.pfeedback(f"Created transcript file: {transcript_file}")
+                continue
+
+            captured_lines = [line.rstrip() for line in captured_output.splitlines()]
+            golden_lines = [line.rstrip() for line in golden_output.splitlines()]
+
+            if captured_lines == golden_lines:
+                self.poutput("PASSED")
+            else:
+                all_passed = False
+                self.poutput("FAILED")
+                diff = difflib.unified_diff(golden_lines, captured_lines,
+                                            fromfile=transcript_file,
+                                            tofile='captured_output', lineterm='')
+                self.poutput('\n'.join(list(diff)))
+        
+        return all_passed
+
+    # --- Core Commands ---
+    def do_quit(self, _):
+        """Exit the application."""
+        self._stopped = True
+        return True
+
+    def do_eof(self, _):
+        """Handle End-of-File (Ctrl+D) as a command to exit."""
+        self.poutput()
+        return self.do_quit(_)
+
+    def do_shell(self, line):
+        """Execute a command in the operating system shell."""
+        import subprocess
+        try:
+            result = subprocess.run(line, shell=True, check=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    text=True, encoding='utf-8')
+            if result.stdout:
+                self.poutput(result.stdout, end='')
+            if result.stderr:
+                self.perror(result.stderr, end='')
+        except subprocess.CalledProcessError as e:
+            self.perror(f"Shell command '{line}' returned non-zero exit status {e.returncode}")
+            if e.stdout: self.poutput(e.stdout, end='')
+            if e.stderr: self.perror(e.stderr, end='')
+        except Exception as e:
+            self.perror(f"Error executing shell command: {e}")
+
+    def do_run_script(self, line):
+        """Run commands from a script file. Usage: run_script <path>"""
+        args = shlex.split(line)
+        if not args:
+            self.perror("Usage: run_script <script_path>")
+            return
+        self.run_script(args[0])
+
+def with_argparser(parser):
+    """A decorator to add an argparse-based parser to a do_* command."""
+    def decorator(func):
+        func.argparser = parser
+        return func
+    return decorator
+</file:name>
+<file:name=cmd2/__init__.py>
+#
+# coding=utf-8
+"""
+A python package for building powerful command-line interpreters,
+compatible with the core API of the cmd2 project.
+"""
+
+from .cmd2 import Cmd2, with_argparser
+from .parsing import Statement, ArgumentParser
+from .utils import CaptureStdout
+
+__version__ = '0.9.0'  # A version that suggests near-1.0 compatibility
+
+# Expose the main class and key utilities at the package level for easy access.
+__all__ = [
+    'Cmd2',
+    'with_argparser',
+    'Statement',
+    'ArgumentParser',
+    'CaptureStdout',
+]
+</file:name>

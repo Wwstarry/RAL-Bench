@@ -1,0 +1,432 @@
+FFFFFFFFF.F                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E756F8E0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E7612AC0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+____________________ test_transactions_commit_and_rollback ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-324/test_transactions_commit_and_r0')
+
+    def test_transactions_commit_and_rollback(tmp_path: Path) -> None:
+        db_path = tmp_path / "tx_sample.db"
+        db_url = "sqlite:///%s" % str(db_path)
+        db = dataset.connect(db_url)
+        table = db["events"]
+    
+        db.begin()
+>       table.insert({"name": "committed", "category": "ok"})
+
+tests\Dataset\functional_test.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:103: in insert
+    return self.find_one(id=row_id)
+generation\Dataset\dataset\table.py:286: in find_one
+    for row in self.find(**filters):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x00000226E75F1B80>, filters = {'id': 1}
+where_parts = ['"id" = ?'], params = [1], key = 'id', value = 1
+sql = 'SELECT * FROM "events" WHERE "id" = ?'
+
+    def find(self, **filters: Any) -> Iterator[Dict[str, Any]]:
+        """
+        Find rows matching the filters.
+    
+        Args:
+            **filters: Filter conditions
+    
+        Yields:
+            Matching rows as dictionaries
+        """
+        if not filters:
+            yield from self.all()
+            return
+    
+        where_parts = []
+        params = []
+    
+        for key, value in filters.items():
+            if value is None:
+                where_parts.append(f"{self._quote(key)} IS NULL")
+            else:
+                where_parts.append(f"{self._quote(key)} = ?")
+                params.append(value)
+    
+        sql = f"SELECT * FROM {self._quote(self.name)} WHERE {' AND '.join(where_parts)}"
+>       yield from self.db.query(sql, *params)
+E       TypeError: query() takes 2 positional arguments but 3 were given
+
+generation\Dataset\dataset\table.py:274: TypeError
+___________________ test_insert_many_returns_ids_and_count ____________________
+
+    def test_insert_many_returns_ids_and_count() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E760E970>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E7646BB0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:243: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E7627CD0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+___________________ test_table_all_iteration_and_row_shape ____________________
+
+    def test_table_all_iteration_and_row_shape() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E75F1370>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_______________________ test_delete_and_clear_all_rows ________________________
+
+    def test_delete_and_clear_all_rows() -> None:
+        """
+        Older dataset.Table may not expose truncate().
+        Clear a table and end at 0 rows without relying on result iteration for DML.
+        """
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E7563F70>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:297: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E760BB20>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\__init__.py:22: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x00000226E753D460>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        """
+        Initialize database connection.
+    
+        Args:
+            url: Database URL (only sqlite:// is supported)
+        """
+        parsed = urlparse(url)
+        if parsed.scheme != "sqlite":
+            raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    
+        # Extract database path (remove leading //)
+        db_path = parsed.netloc + parsed.path
+        if db_path.startswith("//"):
+            db_path = db_path[2:]
+        if db_path == ":memory:":
+            db_path = ":memory:"
+    
+        self.url = url
+        self.db_path = db_path
+>       self._conn = sqlite3.connect(db_path, check_same_thread=False)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:36: OperationalError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_transactions_commit_and_rollback
+FAILED tests/Dataset/functional_test.py::test_insert_many_returns_ids_and_count
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_table_all_iteration_and_row_shape
+FAILED tests/Dataset/functional_test.py::test_delete_and_clear_all_rows - sql...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+10 failed, 1 passed in 29.03s

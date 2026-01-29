@@ -1,0 +1,125 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_catalog_structure_and_types _______________________
+
+    def test_catalog_structure_and_types() -> None:
+        """The parsed catalog should have the expected nested structure and types."""
+>       data = _parse_catalog()
+
+tests\Xmltodict\resource_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\resource_test.py:52: in _parse_catalog
+    return xmltodict.parse(_COMPLEX_XML)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x000001913AD9E040>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x000001913ADDE550>
+parser = <pyexpat.xmlparser object at 0x000001913ACF8AC0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+_______________________ test_roundtrip_complex_catalog ________________________
+
+    def test_roundtrip_complex_catalog() -> None:
+        """
+        Parsing and then unparsing the complex catalog XML should preserve
+        the logical structure when parsed again.
+        """
+>       original_dict = _parse_catalog()
+
+tests\Xmltodict\resource_test.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\resource_test.py:52: in _parse_catalog
+    return xmltodict.parse(_COMPLEX_XML)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x000001913AE1DCA0>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x000001913AE25B80>
+parser = <pyexpat.xmlparser object at 0x000001913AE20340>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/resource_test.py::test_catalog_structure_and_types - T...
+FAILED tests/Xmltodict/resource_test.py::test_roundtrip_complex_catalog - Typ...
+2 failed in 0.34s

@@ -1,0 +1,209 @@
+<file:name=xmltodict.py>
+"""
+A pure Python XML parsing and serialization library with an API compatible
+with the core of the reference xmltodict project.
+"""
+
+import xml.parsers.expat
+
+__all__ = ['parse', 'unparse']
+__version__ = '0.1.0'
+
+
+# --- Private Utilities ---
+
+def _escape_cdata(s):
+    """Escapes characters for XML CDATA sections."""
+    s = str(s)
+    s = s.replace("&", "&amp;")
+    s = s.replace("<", "&lt;")
+    s = s.replace(">", "&gt;")
+    return s
+
+def _escape_attrib(s):
+    """Escapes characters for XML attributes."""
+    s = str(s)
+    s = _escape_cdata(s)
+    s = s.replace("\"", "&quot;")
+    return s
+
+
+# --- Parse Implementation ---
+
+class _DictSAXHandler:
+    """SAX handler to build a dictionary from an XML document."""
+    def __init__(self,
+                 attr_prefix='@',
+                 cdata_key='#text',
+                 **kwargs):
+        self.path = []
+        self.stack = []
+        self.root = {}
+        self.text_accumulator = []
+        self.attr_prefix = attr_prefix
+        self.cdata_key = cdata_key
+
+    def startElement(self, name, attrs):
+        self.path.append(name)
+        self.text_accumulator = []
+        
+        current_dict = {}
+        if attrs:
+            for key, value in attrs.items():
+                current_dict[self.attr_prefix + key] = value
+        
+        self.stack.append((name, current_dict))
+
+    def endElement(self, name):
+        last_name, last_dict = self.stack.pop()
+        assert last_name == name
+        
+        self.path.pop()
+        
+        # Process accumulated text
+        text = "".join(self.text_accumulator).strip()
+        self.text_accumulator = []
+
+        if text:
+            # If the dict is otherwise empty, the element's value is just the text
+            if not last_dict:
+                processed_item = text
+            # Otherwise, add text as a special key
+            else:
+                last_dict[self.cdata_key] = text
+                processed_item = last_dict
+        elif not last_dict:
+            # Empty element, e.g., <tag/> or <tag></tag>
+            processed_item = None
+        else:
+            # Element with only attributes or children
+            processed_item = last_dict
+
+        # Post-process to simplify dicts with only a #text key
+        if isinstance(processed_item, dict):
+            keys = list(processed_item.keys())
+            has_attrs = any(k.startswith(self.attr_prefix) for k in keys)
+            is_cdata_only = len(keys) == 1 and keys[0] == self.cdata_key
+            if not has_attrs and is_cdata_only:
+                processed_item = processed_item[self.cdata_key]
+
+        if not self.stack:
+            self.root = {name: processed_item}
+            return
+
+        _parent_name, parent_dict = self.stack[-1]
+        
+        if name in parent_dict:
+            # A key for this tag already exists, make it a list
+            if isinstance(parent_dict[name], list):
+                parent_dict[name].append(processed_item)
+            else:
+                parent_dict[name] = [parent_dict[name], processed_item]
+        else:
+            # First time seeing this tag at this level
+            parent_dict[name] = processed_item
+
+    def characters(self, content):
+        self.text_accumulator.append(content)
+
+
+def parse(xml_input, encoding='utf-8', **kwargs):
+    """
+    Parses an XML string or file-like object into a Python dictionary.
+
+    :param xml_input: An XML string, bytes, or a file-like object.
+    :param encoding: The encoding to use if xml_input is a string.
+    :param kwargs: Additional arguments for compatibility (e.g., attr_prefix).
+    :return: A dictionary representing the XML structure.
+    """
+    handler = _DictSAXHandler(**kwargs)
+    parser = xml.parsers.expat.ParserCreate(encoding)
+    parser.StartElementHandler = handler.startElement
+    parser.EndElementHandler = handler.endElement
+    parser.CharacterDataHandler = handler.characters
+
+    if hasattr(xml_input, 'read'):
+        xml_input = xml_input.read()
+
+    if isinstance(xml_input, str):
+        xml_input = xml_input.encode(encoding)
+    
+    try:
+        parser.Parse(xml_input, True)
+    except xml.parsers.expat.ExpatError as e:
+        raise e
+
+    return handler.root
+
+
+# --- Unparse Implementation ---
+
+def _unparse_helper(tag, value, pretty, level, indent_str, attr_prefix, cdata_key):
+    indent = (indent_str * level) if pretty else ''
+    newline = '\n' if pretty else ''
+
+    # Case 1: Empty element (value is None)
+    if value is None:
+        return f'{indent}<{tag}/>{newline}'
+
+    # Case 2: Dictionary value (complex element)
+    if isinstance(value, dict):
+        attrs = ''
+        children = []
+        text = ''
+        
+        for k, v in value.items():
+            if k.startswith(attr_prefix):
+                attrs += f' {k[len(attr_prefix):]}="{_escape_attrib(v)}"'
+            elif k == cdata_key:
+                text = _escape_cdata(v)
+            else:
+                # Child element
+                if isinstance(v, list):
+                    for item in v:
+                        children.append(_unparse_helper(k, item, pretty, level + 1, indent_str, attr_prefix, cdata_key))
+                else:
+                    children.append(_unparse_helper(k, v, pretty, level + 1, indent_str, attr_prefix, cdata_key))
+        
+        children_xml = "".join(children)
+        
+        if not children_xml and not text:
+            return f'{indent}<{tag}{attrs}/>{newline}'
+        
+        content = (newline + children_xml + indent) if children_xml else text
+        return f'{indent}<{tag}{attrs}>{content}</{tag}>{newline}'
+
+    # Case 3: Simple value (str, int, etc.)
+    else:
+        return f'{indent}<{tag}>{_escape_cdata(value)}</{tag}>{newline}'
+
+
+def unparse(input_dict, full_document=False, pretty=False, indent='  ',
+            attr_prefix='@', cdata_key='#text'):
+    """
+    Serializes a Python dictionary into an XML string.
+
+    :param input_dict: The dictionary to serialize. Must have a single root key.
+    :param full_document: If True, prepend an XML declaration.
+    :param pretty: If True, format the output with newlines and indentation.
+    :param indent: The indentation string to use when pretty-printing.
+    :param attr_prefix: The prefix used for attribute keys in the dictionary.
+    :param cdata_key: The key used for text content in the dictionary.
+    :return: An XML string.
+    """
+    if not isinstance(input_dict, dict):
+        raise TypeError('unparse input must be a dict')
+    if len(input_dict) != 1:
+        raise ValueError('unparse input must have a single root element')
+
+    root_tag, root_value = list(input_dict.items())[0]
+    
+    xml_content = _unparse_helper(
+        root_tag, root_value, pretty, 0, indent, attr_prefix, cdata_key
+    ).strip()
+
+    if full_document:
+        return f'<?xml version="1.0" encoding="utf-8"?>\n{xml_content}'
+    
+    return xml_content
+</file:name=xmltodict.py>

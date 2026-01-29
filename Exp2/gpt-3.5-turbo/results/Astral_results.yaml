@@ -1,0 +1,350 @@
+project_name: Astral
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Astral\astral.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Astral
+timestamp: '2025-12-31 20:55:41'
+functional_score: 0.4545
+non_functional_score: 0.7302
+non_functional_subscores:
+  maintainability: 0.9171
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FF.F.FFF...                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________________ test_sun_times_basic_sanity _________________________\n\
+      \n    def test_sun_times_basic_sanity() -> None:\n        \"\"\"sun() returns\
+      \ expected keys and times are in a plausible order.\"\"\"\n        loc = _london_location()\n\
+      \        d = dt.date(2020, 6, 1)\n    \n>       s = sun(_observer_from_location(loc),\
+      \ date=d, tzinfo=_safe_tzinfo())\n\ntests\\Astral\\functional_test.py:116: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration\\Astral\\astral\\sun.py:208: in sun\n    return _sun_times(observer,\
+      \ dt, tzinfo)\ngeneration\\Astral\\astral\\sun.py:155: in _sun_times\n    ha\
+      \ = _hour_angle(observer.latitude, decl, ZENITH_OFFICIAL)\n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlatitude\
+      \ = 'Europe/London', declination = 0.38468842668571496, zenith = 90.8333\n\n\
+      \    def _hour_angle(latitude: float, declination: float, zenith: float) ->\
+      \ Optional[float]:\n        \"\"\"\n        Calculate the hour angle for the\
+      \ sun at the given zenith.\n        Returns hour angle in degrees or None if\
+      \ sun never rises/sets.\n        \"\"\"\n>       lat_rad = radians(latitude)\n\
+      E       TypeError: must be real number, not str\n\ngeneration\\Astral\\astral\\\
+      sun.py:100: TypeError\n______________________ test_sun_time_changes_across_days\
+      \ ______________________\n\n    def test_sun_time_changes_across_days() -> None:\n\
+      \        \"\"\"Sunrise and sunset should change slightly between consecutive\
+      \ days.\"\"\"\n        loc = _london_location()\n        d1 = dt.date(2020,\
+      \ 1, 1)\n        d2 = d1 + dt.timedelta(days=1)\n    \n>       s1 = sun(_observer_from_location(loc),\
+      \ date=d1, tzinfo=_safe_tzinfo())\n\ntests\\Astral\\functional_test.py:131:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Astral\\astral\\sun.py:208: in sun\n    return _sun_times(observer,\
+      \ dt, tzinfo)\ngeneration\\Astral\\astral\\sun.py:155: in _sun_times\n    ha\
+      \ = _hour_angle(observer.latitude, decl, ZENITH_OFFICIAL)\n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlatitude\
+      \ = 'Europe/London', declination = -0.4029454635354721, zenith = 90.8333\n\n\
+      \    def _hour_angle(latitude: float, declination: float, zenith: float) ->\
+      \ Optional[float]:\n        \"\"\"\n        Calculate the hour angle for the\
+      \ sun at the given zenith.\n        Returns hour angle in degrees or None if\
+      \ sun never rises/sets.\n        \"\"\"\n>       lat_rad = radians(latitude)\n\
+      E       TypeError: must be real number, not str\n\ngeneration\\Astral\\astral\\\
+      sun.py:100: TypeError\n______________ test_locationinfo_has_lat_lon_fields_or_observer\
+      \ _______________\n\n    def test_locationinfo_has_lat_lon_fields_or_observer()\
+      \ -> None:\n        loc = _london_location()\n    \n        if hasattr(loc,\
+      \ \"observer\"):\n            obs = _observer_from_location(loc)\n         \
+      \   lat = getattr(obs, \"latitude\", None)\n            lon = getattr(obs, \"\
+      longitude\", None)\n        else:\n            lat = getattr(loc, \"latitude\"\
+      , None)\n            lon = getattr(loc, \"longitude\", None)\n    \n>      \
+      \ assert isinstance(lat, (int, float))\nE       AssertionError: assert False\n\
+      E        +  where False = isinstance('Europe/London', (<class 'int'>, <class\
+      \ 'float'>))\n\ntests\\Astral\\functional_test.py:169: AssertionError\n_________________________\
+      \ test_sun_returns_datetimes __________________________\n\n    def test_sun_returns_datetimes()\
+      \ -> None:\n        loc = _london_location()\n        d = dt.date(2020, 6, 1)\n\
+      >       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())\n\
+      \ntests\\Astral\\functional_test.py:185: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Astral\\astral\\\
+      sun.py:208: in sun\n    return _sun_times(observer, dt, tzinfo)\ngeneration\\\
+      Astral\\astral\\sun.py:155: in _sun_times\n    ha = _hour_angle(observer.latitude,\
+      \ decl, ZENITH_OFFICIAL)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlatitude = 'Europe/London', declination =\
+      \ 0.38468842668571496, zenith = 90.8333\n\n    def _hour_angle(latitude: float,\
+      \ declination: float, zenith: float) -> Optional[float]:\n        \"\"\"\n \
+      \       Calculate the hour angle for the sun at the given zenith.\n        Returns\
+      \ hour angle in degrees or None if sun never rises/sets.\n        \"\"\"\n>\
+      \       lat_rad = radians(latitude)\nE       TypeError: must be real number,\
+      \ not str\n\ngeneration\\Astral\\astral\\sun.py:100: TypeError\n_________________\
+      \ test_sun_noon_is_between_sunrise_and_sunset _________________\n\n    def test_sun_noon_is_between_sunrise_and_sunset()\
+      \ -> None:\n        loc = _london_location()\n        d = dt.date(2020, 3, 1)\n\
+      >       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())\n\
+      \ntests\\Astral\\functional_test.py:196: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Astral\\astral\\\
+      sun.py:208: in sun\n    return _sun_times(observer, dt, tzinfo)\ngeneration\\\
+      Astral\\astral\\sun.py:155: in _sun_times\n    ha = _hour_angle(observer.latitude,\
+      \ decl, ZENITH_OFFICIAL)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlatitude = 'Europe/London', declination =\
+      \ -0.13301090125781806, zenith = 90.8333\n\n    def _hour_angle(latitude: float,\
+      \ declination: float, zenith: float) -> Optional[float]:\n        \"\"\"\n \
+      \       Calculate the hour angle for the sun at the given zenith.\n        Returns\
+      \ hour angle in degrees or None if sun never rises/sets.\n        \"\"\"\n>\
+      \       lat_rad = radians(latitude)\nE       TypeError: must be real number,\
+      \ not str\n\ngeneration\\Astral\\astral\\sun.py:100: TypeError\n_______ test_sun_times_differ_between_locations_same_date_or_one_raises\
+      \ _______\n\n    def test_sun_times_differ_between_locations_same_date_or_one_raises()\
+      \ -> None:\n        \"\"\"\n        Some generated implementations have edge-case\
+      \ bugs for certain longitudes that can\n        yield out-of-range hours (e.g.,\
+      \ hour < 0 or > 23) and raise ValueError.\n        This test remains targeted\
+      \ (different locations) while being compatible across\n        implementations\
+      \ by accepting either:\n          - both computations succeed and differ, OR\n\
+      \          - one implementation raises a clear exception for the second location.\n\
+      \        \"\"\"\n        london = _london_location()\n        nyc = _new_york_location()\n\
+      \        d = dt.date(2020, 6, 1)\n    \n>       s_l = sun(_observer_from_location(london),\
+      \ date=d, tzinfo=_safe_tzinfo())\n\ntests\\Astral\\functional_test.py:213: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration\\Astral\\astral\\sun.py:208: in sun\n    return _sun_times(observer,\
+      \ dt, tzinfo)\ngeneration\\Astral\\astral\\sun.py:155: in _sun_times\n    ha\
+      \ = _hour_angle(observer.latitude, decl, ZENITH_OFFICIAL)\n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nlatitude\
+      \ = 'Europe/London', declination = 0.38468842668571496, zenith = 90.8333\n\n\
+      \    def _hour_angle(latitude: float, declination: float, zenith: float) ->\
+      \ Optional[float]:\n        \"\"\"\n        Calculate the hour angle for the\
+      \ sun at the given zenith.\n        Returns hour angle in degrees or None if\
+      \ sun never rises/sets.\n        \"\"\"\n>       lat_rad = radians(latitude)\n\
+      E       TypeError: must be real number, not str\n\ngeneration\\Astral\\astral\\\
+      sun.py:100: TypeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Astral/functional_test.py::test_sun_times_basic_sanity - TypeErr...\n\
+      FAILED tests/Astral/functional_test.py::test_sun_time_changes_across_days -\
+      \ T...\nFAILED tests/Astral/functional_test.py::test_locationinfo_has_lat_lon_fields_or_observer\n\
+      FAILED tests/Astral/functional_test.py::test_sun_returns_datetimes - TypeErro...\n\
+      FAILED tests/Astral/functional_test.py::test_sun_noon_is_between_sunrise_and_sunset\n\
+      FAILED tests/Astral/functional_test.py::test_sun_times_differ_between_locations_same_date_or_one_raises\n\
+      6 failed, 5 passed in 0.51s\n"
+    elapsed_time_s: 1.654534
+    avg_memory_mb: 32.99
+    avg_cpu_percent: 99.0
+    passed: 5
+    failed: 6
+    skipped: 0
+    total: 11
+    score_inputs_passed: 5
+    score_inputs_failed: 6
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_astral_performance_smoke ________________________\n\
+      \n    def test_astral_performance_smoke() -> None:\n        \"\"\"Smoke test\
+      \ to ensure the performance benchmark runs successfully.\"\"\"\n>       metrics\
+      \ = run_astral_performance_benchmark(iterations=5, days=10)\n\ntests\\Astral\\\
+      performance_test.py:75: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Astral\\performance_test.py:60: in run_astral_performance_benchmark\n\
+      \    _ = sun(loc.observer, date=d, tzinfo=loc.timezone)\n_ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nobserver =\
+      \ Observer(latitude='Europe/London', longitude=51.5074, elevation=0.0)\ndate\
+      \ = datetime.date(2020, 1, 1), tzinfo = -0.1278\n\n    def sun(observer: Observer,\
+      \ date: Optional[datetime] = None, tzinfo=None) -> Dict[str, datetime]:\n  \
+      \      \"\"\"\n        Calculate sun times for the given observer and date.\n\
+      \        Returns dict with keys: dawn, sunrise, noon, sunset, dusk.\n      \
+      \  \"\"\"\n        if date is None:\n            date = datetime.now(tz=tzinfo)\n\
+      \        # Normalize date to date only\n        date = date.date() if hasattr(date,\
+      \ \"date\") else date\n        # Convert date to datetime at midnight in tzinfo\n\
+      \        if tzinfo is None:\n            tzinfo = timezone.utc\n>       dt =\
+      \ datetime(date.year, date.month, date.day, tzinfo=tzinfo)\nE       TypeError:\
+      \ tzinfo argument must be None or of a tzinfo subclass, not type 'float'\n\n\
+      generation\\Astral\\astral\\sun.py:207: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Astral/performance_test.py::test_astral_performance_smoke\
+      \ - Type...\n1 failed in 0.33s\n"
+    elapsed_time_s: 1.468569
+    avg_memory_mb: 31.95
+    avg_cpu_percent: 95.4
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.209133
+    score_inputs_actual_time_s: 1.468569
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________________ test_resource_usage_smoke __________________________\n\
+      \n    def test_resource_usage_smoke() -> None:\n        \"\"\"\n        Smoke\
+      \ test: run a representative batch workload and verify\n        we can observe\
+      \ process resource info without crashing.\n    \n        Note: The benchmark\
+      \ runner measures subprocess resources.\n        This test is correctness-oriented\
+      \ only.\n        \"\"\"\n        proc = psutil.Process()\n        rss_before\
+      \ = proc.memory_info().rss\n    \n        loc = _london_location()\n       \
+      \ base_date = dt.date(2020, 1, 1)\n    \n        for offset in range(60):\n\
+      \            d = base_date + dt.timedelta(days=offset)\n>           _ = sun(loc.observer,\
+      \ date=d, tzinfo=loc.timezone)\n\ntests\\Astral\\resource_test.py:65: \n_ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _\n\nobserver = Observer(latitude='Europe/London', longitude=51.5074, elevation=0.0)\n\
+      date = datetime.date(2020, 1, 1), tzinfo = -0.1278\n\n    def sun(observer:\
+      \ Observer, date: Optional[datetime] = None, tzinfo=None) -> Dict[str, datetime]:\n\
+      \        \"\"\"\n        Calculate sun times for the given observer and date.\n\
+      \        Returns dict with keys: dawn, sunrise, noon, sunset, dusk.\n      \
+      \  \"\"\"\n        if date is None:\n            date = datetime.now(tz=tzinfo)\n\
+      \        # Normalize date to date only\n        date = date.date() if hasattr(date,\
+      \ \"date\") else date\n        # Convert date to datetime at midnight in tzinfo\n\
+      \        if tzinfo is None:\n            tzinfo = timezone.utc\n>       dt =\
+      \ datetime(date.year, date.month, date.day, tzinfo=tzinfo)\nE       TypeError:\
+      \ tzinfo argument must be None or of a tzinfo subclass, not type 'float'\n\n\
+      generation\\Astral\\astral\\sun.py:207: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Astral/resource_test.py::test_resource_usage_smoke\
+      \ - TypeError: ...\n1 failed in 0.36s\n"
+    elapsed_time_s: 1.533747
+    avg_memory_mb: 34.09
+    avg_cpu_percent: 98.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.35
+    score_inputs_baseline_cpu_pct: 104.2
+    score_inputs_actual_mem_mb: 34.09
+    score_inputs_actual_cpu_pct: 98.9
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.252917
+    avg_memory_mb: 30.82
+    avg_cpu_percent: 97.3
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=247.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.190148
+    avg_memory_mb: 31.41
+    avg_cpu_percent: 97.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 247.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=23.9731 files_scanned=4.0 total_loc=247.0 max_cc=4.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.208507
+    avg_memory_mb: 31.46
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 23.9731
+      files_scanned: 4.0
+      total_loc: 247.0
+      max_cc: 4.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 2.1658
+    score_inputs_generated_mi_min: 23.9731
+    score_inputs_ratio_g_over_b: 11.068935266414258
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.258826
+    functional_tests_total: 11
+  performance:
+    performance_suite_time_s: 1.209133
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.220496
+    resource_tests_total: 1
+    avg_memory_mb: 33.35
+    avg_cpu_percent: 104.2
+  robustness:
+    robustness_suite_time_s: 1.213882
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.42552
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 36.0
+      total_loc: 4949.0
+  maintainability:
+    maintainability_suite_time_s: 1.668661
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 2.1658
+      files_scanned: 36.0
+      total_loc: 4949.0
+      max_cc: 20.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Astral\pytest_logs

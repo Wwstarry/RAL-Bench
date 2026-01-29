@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_many_invocations_performance ______________________
+
+    def test_many_invocations_performance():
+        @click.command()
+        @click.option("--count", type=int, default=1)
+        @click.argument("name")
+        def greet(count: int, name: str) -> None:
+            for _ in range(count):
+                click.echo(f"Hello {name}!")
+    
+        runner = CliRunner()
+    
+        num_runs = 1000
+        start = time.perf_counter()
+        for i in range(num_runs):
+            result = runner.invoke(greet, ["--count", "1", f"User-{i}"])
+>           assert result.exit_code == 0
+E           assert 1 == 0
+E            +  where 1 = <Result exit_code=1>.exit_code
+
+tests\Click\performance_test.py:39: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Click/performance_test.py::test_many_invocations_performance - a...
+1 failed in 0.39s

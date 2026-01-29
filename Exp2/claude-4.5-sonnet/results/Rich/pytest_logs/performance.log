@@ -1,0 +1,32 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________ test_large_table_and_progress_performance __________________
+
+    def test_large_table_and_progress_performance():
+        console, buf = make_console_buffer()
+    
+        table = Table(title="Performance Table")
+        table.add_column("Index")
+        table.add_column("Value")
+        table.add_column("Status")
+    
+        for i in range(2000):
+            table.add_row(str(i), f"value-{i}", "OK" if i % 2 == 0 else "WARN")
+    
+        start = time.perf_counter()
+        console.print(table)
+    
+        with Progress(console=console, transient=False) as progress:
+            task_id = progress.add_task("PerfTask", total=500)
+            for _ in range(500):
+                progress.advance(task_id, 1)
+        elapsed = time.perf_counter() - start
+    
+        output = buf.getvalue()
+>       assert "Performance Table" in output
+E       AssertionError: assert 'Performance Table' in '<rich.table.Table object at 0x0000026DCFE88A60>\n'
+
+tests\Rich\performance_test.py:56: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Rich/performance_test.py::test_large_table_and_progress_performance
+1 failed in 0.47s

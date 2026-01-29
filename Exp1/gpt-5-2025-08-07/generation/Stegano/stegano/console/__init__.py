@@ -1,0 +1,1 @@
+# Minimal console package placeholder

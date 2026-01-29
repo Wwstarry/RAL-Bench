@@ -1,0 +1,208 @@
+FF..F.FFF.F                                                              [100%]
+================================== FAILURES ===================================
+______________ test_dataset_export_import_csv_and_json_roundtrip ______________
+
+    def test_dataset_export_import_csv_and_json_roundtrip() -> None:
+        """Exercise core CSV/JSON export and import roundtrips on Dataset."""
+        data = _build_sample_dataset()
+    
+        # CSV roundtrip via export + .csv setter.
+        csv_text = data.export("csv")
+        assert isinstance(csv_text, str)
+    
+        loaded_csv = tablib.Dataset()
+        loaded_csv.csv = csv_text
+    
+        assert loaded_csv.headers == data.headers
+        assert loaded_csv.height == data.height
+        assert loaded_csv.width == data.width
+    
+        orig_dict_norm = _normalize_dict_rows(data.dict)
+        loaded_dict_norm = _normalize_dict_rows(loaded_csv.dict)
+        assert loaded_dict_norm == orig_dict_norm
+    
+        # JSON roundtrip via export + .json setter.
+        json_text = data.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'data': [['John', 'Adams', '90'], ['George', 'Washington', '67'], ['Ada', 'Lovelace', '36']], 'headers': ['first_name', 'last_name', 'age'], 'title': None}, list)
+
+tests\Tablib\functional_test.py:146: AssertionError
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001FA7EEA6CD0>, fmt = 'tsv'
+
+    def export(self, fmt: str) -> str:
+        """
+        Export this dataset to a string in the requested format ('csv' or 'json').
+        """
+        if fmt == "csv":
+            return csv_format.export_set(self)
+        elif fmt == "json":
+            return json_format.export_set(self)
+        else:
+>           raise ValueError(f"Unsupported format '{fmt}'.")
+E           ValueError: Unsupported format 'tsv'.
+
+generation\Tablib\tablib\core.py:97: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+_________________ test_dataset_title_and_headers_persistence __________________
+
+    def test_dataset_title_and_headers_persistence() -> None:
+        """Dataset title and headers should be assignable and remain consistent."""
+        data = tablib.Dataset(headers=("k", "v"))
+        data.title = "Config"
+        data.append(("a", 1))
+        data.append(("b", 2))
+    
+        assert getattr(data, "title") == "Config"
+        assert tuple(data.headers) == ("k", "v")
+        assert data.height == 2
+>       assert data[1][0] == "b"
+
+tests\Tablib\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001FA7EF19F70>, key = 1
+
+    def __getitem__(self, key):
+        """
+        - If key is a slice, return a list of row tuples (start:stop).
+        - If key is a string, return the column data for that header.
+        """
+        if isinstance(key, slice):
+            return [tuple(row) for row in self._data[key]]
+        elif isinstance(key, str):
+            if key not in self._headers:
+                raise KeyError(f"Column '{key}' does not exist in headers.")
+            col_idx = self._headers.index(key)
+            return [row[col_idx] for row in self._data]
+        else:
+>           raise TypeError("Dataset indices must be slice or str (column name).")
+E           TypeError: Dataset indices must be slice or str (column name).
+
+generation\Tablib\tablib\core.py:58: TypeError
+________________ test_dataset_export_json_contains_all_records ________________
+
+    def test_dataset_export_json_contains_all_records() -> None:
+        """JSON export should serialize all dataset records in a list-like structure."""
+        data = _build_sample_dataset()
+        json_text = data.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'data': [['John', 'Adams', '90'], ['George', 'Washington', '67'], ['Ada', 'Lovelace', '36']], 'headers': ['first_name', 'last_name', 'age'], 'title': None}, list)
+
+tests\Tablib\functional_test.py:278: AssertionError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001FA7EF0E2E0>, fmt = 'html'
+
+    def export(self, fmt: str) -> str:
+        """
+        Export this dataset to a string in the requested format ('csv' or 'json').
+        """
+        if fmt == "csv":
+            return csv_format.export_set(self)
+        elif fmt == "json":
+            return json_format.export_set(self)
+        else:
+>           raise ValueError(f"Unsupported format '{fmt}'.")
+E           ValueError: Unsupported format 'html'.
+
+generation\Tablib\tablib\core.py:97: ValueError
+_________________ test_databook_add_sheet_and_iteration_order _________________
+
+    def test_databook_add_sheet_and_iteration_order() -> None:
+        """Databook should allow adding sheets and preserve the order in iteration."""
+        s1 = tablib.Dataset((1, "x"), headers=("id", "val"))
+        s1.title = "S1"
+        s2 = tablib.Dataset((2, "y"), headers=("id", "val"))
+        s2.title = "S2"
+    
+        book = tablib.Databook([s1])
+    
+        if hasattr(book, "add_sheet"):
+            book.add_sheet(s2)  # type: ignore[attr-defined]
+        else:
+            # Fallback: reconstruct via the public constructor (still normal usage).
+            book = tablib.Databook([s1, s2])
+    
+        assert book.size == 2
+    
+        sheets = _iter_databook_sheets(book)
+        assert len(sheets) == 2
+        assert sheets[0].title == "S1"
+        assert sheets[1].title == "S2"
+>       assert sheets[0][0] == (1, "x")
+
+tests\Tablib\functional_test.py:365: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001FA7EF4D880>, key = 0
+
+    def __getitem__(self, key):
+        """
+        - If key is a slice, return a list of row tuples (start:stop).
+        - If key is a string, return the column data for that header.
+        """
+        if isinstance(key, slice):
+            return [tuple(row) for row in self._data[key]]
+        elif isinstance(key, str):
+            if key not in self._headers:
+                raise KeyError(f"Column '{key}' does not exist in headers.")
+            col_idx = self._headers.index(key)
+            return [row[col_idx] for row in self._data]
+        else:
+>           raise TypeError("Dataset indices must be slice or str (column name).")
+E           TypeError: Dataset indices must be slice or str (column name).
+
+generation\Tablib\tablib\core.py:58: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_csv_and_json_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_title_and_headers_persistence
+FAILED tests/Tablib/functional_test.py::test_dataset_export_json_contains_all_records
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_add_sheet_and_iteration_order
+7 failed, 4 passed in 0.69s

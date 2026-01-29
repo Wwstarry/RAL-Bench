@@ -1,0 +1,34 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_memory_usage_for_large_tables ______________________
+
+    def test_memory_usage_for_large_tables():
+        rows = [
+            [f"row-{i}", i, i * 0.1234, f"value-{i % 10}"]
+            for i in range(5000)
+        ]
+        headers = ["name", "index", "metric", "tag"]
+    
+        before = _memory_mb()
+    
+        # Call tabulate several times to exercise allocations.
+>       out1 = tabulate(rows, headers=headers, tablefmt="simple")
+
+tests\Tabulate\resource_test.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [['row-0', 0, 0.0, 'value-0'], ['row-1', 1, 0.1234, 'value-1'], ['row-2', 2, 0.2468, 'value-2'], ['row-3', 3, 0.3702, 'value-3'], ['row-4', 4, 0.4936, 'value-4'], ['row-5', 5, 0.617, 'value-5'], ...]
+headers = ['name', 'index', 'metric', 'tag'], tablefmt = 'simple'
+numalign = 'right', stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+>           raise ValueError(f"Table format {tablefmt} not supported")
+E           ValueError: Table format simple not supported
+
+generation\Tabulate\tabulate\core.py:61: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/resource_test.py::test_memory_usage_for_large_tables - ...
+1 failed in 0.35s

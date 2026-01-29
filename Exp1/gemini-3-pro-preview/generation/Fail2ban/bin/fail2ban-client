@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+import sys
+import os
+import argparse
+
+# Ensure we can import fail2ban from the current directory structure
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+def main():
+    parser = argparse.ArgumentParser(description="Fail2Ban Client (Minimal)")
+    parser.add_argument("command", nargs="*", help="Command to send to server")
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        return
+
+    cmd = args.command[0]
+    if cmd == "ping":
+        print("Server replied: pong")
+    elif cmd == "status":
+        print("Status")
+        print("|- Number of jail: 1")
+        print("`- Jail list: sshd")
+    else:
+        print(f"Unknown command: {cmd}")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,59 @@
+........FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+3 failed, 8 passed in 0.59s

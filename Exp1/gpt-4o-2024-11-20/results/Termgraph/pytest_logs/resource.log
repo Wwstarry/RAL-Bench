@@ -1,0 +1,37 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+        data = Data(normalized, labels)
+        args = _make_args()
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\resource_test.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x00000264AFB8C2B0>
+
+    def draw(self):
+        """
+        Render the horizontal bar chart to stdout.
+        """
+        self.data.validate()
+        max_value = max(max(series) for series in self.data.series)
+>       scale = self.args.width / max_value if max_value > 0 else 1
+E       TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:23: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.31s

@@ -1,0 +1,55 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(width=20)
+    
+        start = time.perf_counter()
+        for _ in range(200):
+            chart = BarChart(data, args)
+>           chart.draw()
+
+tests\Termgraph\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001E5B07AD6A0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000001E5AECDD6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.33s

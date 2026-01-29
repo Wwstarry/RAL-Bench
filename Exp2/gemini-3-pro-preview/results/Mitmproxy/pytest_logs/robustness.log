@@ -1,0 +1,51 @@
+.FF.F                                                                    [100%]
+================================== FAILURES ===================================
+____________ test_002_missing_OpenSSL_is_handled_deterministically ____________
+
+    def test_002_missing_OpenSSL_is_handled_deterministically():
+        """
+        If OpenSSL is missing, importing mitmproxy.http should fail with ModuleNotFoundError(OpenSSL),
+        not with an unrelated exception or a hang.
+        """
+        _prepend_import_path()
+        if _has_module("OpenSSL"):
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\robustness_test.py:55: Failed
+_________ test_003_missing_mitmproxy_rs_is_handled_deterministically __________
+
+    def test_003_missing_mitmproxy_rs_is_handled_deterministically():
+        """
+        If mitmproxy_rs is missing, importing mitmproxy.tools.main should fail with ModuleNotFoundError(mitmproxy_rs).
+        """
+        _prepend_import_path()
+        if _has_module("mitmproxy_rs"):
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\robustness_test.py:69: Failed
+________________ test_005_static_mode_specs_mentions_examples _________________
+
+    def test_005_static_mode_specs_mentions_examples():
+        _prepend_import_path()
+        pkg = Path(_pythonpath_root()) / "mitmproxy"
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\robustness_test.py:85: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/robustness_test.py::test_002_missing_OpenSSL_is_handled_deterministically
+FAILED tests/Mitmproxy/robustness_test.py::test_003_missing_mitmproxy_rs_is_handled_deterministically
+FAILED tests/Mitmproxy/robustness_test.py::test_005_static_mode_specs_mentions_examples
+3 failed, 2 passed in 0.42s

@@ -1,0 +1,77 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+____________ test_performance_large_marker_map_build_and_html_size ____________
+
+    def test_performance_large_marker_map_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\performance_test.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000002211145FDC0>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+_____________ test_performance_markercluster_build_and_html_size ______________
+
+    def test_performance_markercluster_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x00000221114DA130>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+=========================== short test summary info ===========================
+FAILED tests/Folium/performance_test.py::test_performance_large_marker_map_build_and_html_size
+FAILED tests/Folium/performance_test.py::test_performance_markercluster_build_and_html_size
+2 failed in 0.42s

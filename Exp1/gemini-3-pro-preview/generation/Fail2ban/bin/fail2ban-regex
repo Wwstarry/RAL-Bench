@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import sys
+import os
+import re
+import argparse
+
+# Ensure we can import fail2ban from the current directory structure
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from fail2ban.server.filter import searchIP, isValidIP
+
+def main():
+    parser = argparse.ArgumentParser(description="Fail2Ban Regex Tester (Minimal)")
+    parser.add_argument("logstring", help="Log line to test")
+    parser.add_argument("regex", help="Regex to test against log line")
+    args = parser.parse_args()
+
+    print(f"Running tests")
+    print(f"Use   regex : {args.regex}")
+    print(f"Use   log line : {args.logstring}")
+
+    # 1. Test Regex Match
+    match = re.search(args.regex, args.logstring)
+    if match:
+        print("Matched  : Yes")
+        # 2. Test IP extraction
+        ip_match = searchIP(args.logstring)
+        if ip_match:
+            ip_str = ip_match.group(0)
+            print(f"Found IP : {ip_str}")
+            if isValidIP(ip_str):
+                print("Valid IP : Yes")
+            else:
+                print("Valid IP : No")
+        else:
+            print("Found IP : None")
+    else:
+        print("Matched  : No")
+
+if __name__ == "__main__":
+    main()

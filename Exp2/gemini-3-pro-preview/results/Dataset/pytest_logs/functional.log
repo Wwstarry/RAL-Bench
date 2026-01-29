@@ -1,0 +1,639 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+>       table.insert({"name": "Alice", "age": 30, "country": "DE"})
+
+tests\Dataset\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA56113790>
+rows = [{'age': 30, 'country': 'DE', 'name': 'Alice'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: users
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+>       table.insert_many(rows)
+
+tests\Dataset\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617DB50>
+rows = [{'account_id': 1, 'balance': 100.0, 'currency': 'EUR', 'owner': 'Alice'}, {'account_id': 2, 'balance': 250.0, 'currency': 'USD', 'owner': 'Bob'}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: accounts
+
+generation\Dataset\dataset\table.py:138: OperationalError
+____________________ test_transactions_commit_and_rollback ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-308/test_transactions_commit_and_r0')
+
+    def test_transactions_commit_and_rollback(tmp_path: Path) -> None:
+        db_path = tmp_path / "tx_sample.db"
+        db_url = "sqlite:///%s" % str(db_path)
+        db = dataset.connect(db_url)
+        table = db["events"]
+    
+        db.begin()
+>       table.insert({"name": "committed", "category": "ok"})
+
+tests\Dataset\functional_test.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA56113E20>
+rows = [{'category': 'ok', 'name': 'committed'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: events
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_insert_many_returns_ids_and_count ____________________
+
+    def test_insert_many_returns_ids_and_count() -> None:
+        db = create_in_memory_db()
+        table = db["items"]
+    
+        rows = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
+>       ret = table.insert_many(rows)
+
+tests\Dataset\functional_test.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5616BDF0>
+rows = [{'name': 'A'}, {'name': 'B'}, {'name': 'C'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: items
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+        db = create_in_memory_db()
+        table = db["t"]
+>       table.insert({"name": "only"})
+
+tests\Dataset\functional_test.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560D5E80>
+rows = [{'name': 'only'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: t
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+>           table.insert({"n": i})
+
+tests\Dataset\functional_test.py:246: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617D700>, rows = [{'n': 0}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: nums
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_table_all_iteration_and_row_shape ____________________
+
+    def test_table_all_iteration_and_row_shape() -> None:
+        db = create_in_memory_db()
+        table = db["people"]
+>       table.insert({"name": "Alice", "age": 30})
+
+tests\Dataset\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617EA90>
+rows = [{'age': 30, 'name': 'Alice'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: people
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_delete_and_clear_all_rows ________________________
+
+    def test_delete_and_clear_all_rows() -> None:
+        """
+        Older dataset.Table may not expose truncate().
+        Clear a table and end at 0 rows without relying on result iteration for DML.
+        """
+        db = create_in_memory_db()
+        table = db["logs"]
+>       table.insert_many([{"kind": "a"}, {"kind": "b"}, {"kind": "b"}])
+
+tests\Dataset\functional_test.py:270: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560D15B0>
+rows = [{'kind': 'a'}, {'kind': 'b'}, {'kind': 'b'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: logs
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+>       table.insert({"x": 1})
+
+tests\Dataset\functional_test.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA561879A0>, rows = [{'x': 1}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: to_drop
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_raw_sql_query_with_parameters ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-308/test_raw_sql_query_with_parame0')
+
+    def test_raw_sql_query_with_parameters(tmp_path: Path) -> None:
+        db_path = tmp_path / "param.db"
+        db = dataset.connect("sqlite:///%s" % str(db_path))
+        table = db["kv"]
+>       table.insert_many([{"k": "a", "v": 1}, {"k": "b", "v": 2}])
+
+tests\Dataset\functional_test.py:319: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA561B2610>
+rows = [{'k': 'a', 'v': 1}, {'k': 'b', 'v': 2}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: kv
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+>       table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+
+tests\Dataset\functional_test.py:330: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560CEC40>
+rows = [{'c': 'red'}, {'c': 'red'}, {'c': 'blue'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: colors
+
+generation\Dataset\dataset\table.py:138: OperationalError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_transactions_commit_and_rollback
+FAILED tests/Dataset/functional_test.py::test_insert_many_returns_ids_and_count
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_table_all_iteration_and_row_shape
+FAILED tests/Dataset/functional_test.py::test_delete_and_clear_all_rows - sql...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_raw_sql_query_with_parameters
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+11 failed in 54.44s

@@ -1,0 +1,297 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_basic_levels_and_formatting _______________________
+
+    def test_basic_levels_and_formatting() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+
+tests\Loguru\functional_test.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+____________________________ test_level_filtering _____________________________
+
+    def test_level_filtering() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="INFO")
+
+tests\Loguru\functional_test.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'INFO'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+_______________________ test_log_method_with_level_name _______________________
+
+    def test_log_method_with_level_name() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+
+tests\Loguru\functional_test.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+_______________________ test_bind_extra_renders_fields ________________________
+
+    def test_bind_extra_renders_fields() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message} user={extra[user]} req={extra[request_id]}")
+
+tests\Loguru\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message} user={extra[user]} req={extra[request_id]}'
+level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+>       log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+
+tests\Loguru\functional_test.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{message} user={extra[user]}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+__________________ test_multiple_sinks_receive_same_message ___________________
+
+    def test_multiple_sinks_receive_same_message() -> None:
+        buf1 = io.StringIO()
+        buf2 = io.StringIO()
+    
+        logger.remove()
+        logger.add(buf1, format="{level}:{message}", level="INFO")
+        logger.add(buf2, format="{level}:{message}", level="INFO")
+    
+        logger.info("fanout")
+    
+        out1 = buf1.getvalue()
+        out2 = buf2.getvalue()
+>       assert "fanout" in out1
+E       AssertionError: assert 'fanout' in ''
+
+tests\Loguru\functional_test.py:169: AssertionError
+_______________________ test_add_file_sink_writes_lines _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-483/test_add_file_sink_writes_line0')
+
+    def test_add_file_sink_writes_lines(tmp_path: Path) -> None:
+        log_path = tmp_path / "loguru_test.log"
+    
+        logger.remove()
+        logger.add(log_path, format="{level}:{message}", level="INFO")
+    
+        logger.info("file-line-1")
+        logger.warning("file-line-2")
+    
+>       assert log_path.exists()
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-483/test_add_file_sink_writes_line0/loguru_test.log').exists
+
+tests\Loguru\functional_test.py:184: AssertionError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+>       log, buf = make_buffer_logger(level="INFO", serialize=True)
+
+tests\Loguru\functional_test.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'INFO'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+>       log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+
+tests\Loguru\functional_test.py:209: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{message} patched={extra[patched]}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+________________ test_filter_callable_allows_subset_of_records ________________
+
+    def test_filter_callable_allows_subset_of_records() -> None:
+        def only_info(record) -> bool:
+            return record["level"].name == "INFO"
+    
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG", filter_=only_info)
+
+tests\Loguru\functional_test.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+        logger.remove()
+        add_kwargs = {"format": fmt, "level": level, "colorize": colorize, "serialize": serialize}
+        if filter_ is not None:
+            add_kwargs["filter"] = filter_
+>       logger.add(buf, **add_kwargs)
+E       TypeError: add() got an unexpected keyword argument 'colorize'
+
+tests\Loguru\functional_test.py:85: TypeError
+____________________ test_time_and_level_in_default_format ____________________
+
+    def test_time_and_level_in_default_format() -> None:
+        # Default format should include some timestamp-like content, level, and message.
+        buf = io.StringIO()
+        logger.remove()
+        logger.add(buf)
+    
+        logger.info("default-format-test")
+    
+        output = buf.getvalue()
+>       assert "INFO" in output
+E       AssertionError: assert 'INFO' in ''
+
+tests\Loguru\functional_test.py:243: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_basic_levels_and_formatting - Ty...
+FAILED tests/Loguru/functional_test.py::test_level_filtering - TypeError: add...
+FAILED tests/Loguru/functional_test.py::test_log_method_with_level_name - Typ...
+FAILED tests/Loguru/functional_test.py::test_bind_extra_renders_fields - Type...
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_multiple_sinks_receive_same_message
+FAILED tests/Loguru/functional_test.py::test_add_file_sink_writes_lines - Ass...
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+FAILED tests/Loguru/functional_test.py::test_filter_callable_allows_subset_of_records
+FAILED tests/Loguru/functional_test.py::test_time_and_level_in_default_format
+11 failed in 0.77s

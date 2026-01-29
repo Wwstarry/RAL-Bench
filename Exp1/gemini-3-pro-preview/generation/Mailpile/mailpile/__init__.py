@@ -1,0 +1,1 @@
+# Mailpile package root

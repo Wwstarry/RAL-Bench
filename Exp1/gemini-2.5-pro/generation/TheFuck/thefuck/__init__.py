@@ -1,0 +1,1 @@
+# This file makes 'thefuck' a package.

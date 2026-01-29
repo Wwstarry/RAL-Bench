@@ -1,0 +1,319 @@
+project_name: Dateutil
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Dateutil\dateutil.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Dateutil
+timestamp: '2025-12-31 21:00:13'
+functional_score: 0.0
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    error: 'Test file not found: D:\桌面\RealAppCodeBench_generic_eval\tests\Dateutil\functional_test.py'']'
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    elapsed_time_s: 0.0
+    avg_memory_mb: 0.0
+    avg_cpu_percent: 0.0
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_dateutil_performance_smoke _______________________\n\
+      \n    def test_dateutil_performance_smoke() -> None:\n        \"\"\"Smoke test\
+      \ to ensure the performance benchmark runs successfully.\"\"\"\n>       metrics\
+      \ = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)\n\n\
+      tests\\Dateutil\\performance_test.py:83: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Dateutil\\performance_test.py:56:\
+      \ in run_dateutil_performance_benchmark\n    dt_obj = parser.parse(s)\ngeneration\\\
+      Dateutil\\dateutil\\parser.py:211: in parse\n    dt = _parse_common(timestr)\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\ntext = 'April 5, 2021 7:15 pm UTC'\n\n    def _parse_common(text):\n\
+      \        \"\"\"\n        Parse common human-friendly date/time strings like:\n\
+      \        - 'Jan 2 2003 4:05 PM'\n        - '2 Jan 2003 16:05'\n        - '2003-01-02\
+      \ 16:05:00'\n        - '2003/01/02 16:05'\n        - 'Jan 2, 2003'\n       \
+      \ - '2 Jan 2003'\n        - '2003 Jan 2'\n        - '4:05 PM'\n        - '16:05'\n\
+      \        - 'today', 'now'\n        \"\"\"\n        text = text.strip()\n   \
+      \     lower = text.lower()\n    \n        if lower in ('now', 'today'):\n  \
+      \          now = datetime.datetime.now(tz.UTC)\n            if lower == 'today':\n\
+      \                return now.replace(hour=0, minute=0, second=0, microsecond=0)\n\
+      \            return now\n    \n        # Try to parse ISO8601 first\n      \
+      \  dt = _parse_iso8601(text)\n        if dt:\n            return dt\n    \n\
+      \        # Try to parse common formats with regex\n        # Patterns:\n   \
+      \     # 1) MonthName Day Year [time]\n        # 2) Day MonthName Year [time]\n\
+      \        # 3) Year MonthName Day [time]\n        # 4) Date with slashes or dashes\n\
+      \        # 5) Time only\n        # 6) Date only\n    \n        # Extract time\
+      \ part if present\n        time_part = None\n        date_part = text\n    \
+      \    time_match = re.search(r'(\\d{1,2}:\\d{2}(:\\d{2})?(\\.\\d+)?\\s*(AM|PM|am|pm)?)$',\
+      \ text)\n        if time_match:\n            time_part = time_match.group(1)\n\
+      \            date_part = text[:time_match.start()].strip()\n    \n        #\
+      \ Parse time\n        hour = 0\n        minute = 0\n        second = 0\n   \
+      \     microsecond = 0\n        if time_part:\n            # Parse time with\
+      \ optional AM/PM\n            time_re = re.compile(r'(\\d{1,2}):(\\d{2})(?::(\\\
+      d{2})(?:\\.(\\d+))?)?\\s*(AM|PM|am|pm)?')\n            m = time_re.match(time_part)\n\
+      \            if m:\n                hour = int(m.group(1))\n               \
+      \ minute = int(m.group(2))\n                if m.group(3):\n               \
+      \     second = int(m.group(3))\n                if m.group(4):\n           \
+      \         ms = m.group(4)[:6].ljust(6, '0')\n                    microsecond\
+      \ = int(ms)\n                ampm = m.group(5)\n                if ampm:\n \
+      \                   ampm = ampm.lower()\n                    if ampm == 'pm'\
+      \ and hour != 12:\n                        hour += 12\n                    elif\
+      \ ampm == 'am' and hour == 12:\n                        hour = 0\n    \n   \
+      \     # Parse date_part\n        # Try MonthName Day Year\n        m = re.match(r'^(?P<month>[A-Za-z]{3,9})[\
+      \ ,\\-\\.]+(?P<day>\\d{1,2})(?:[ ,\\-\\.]+(?P<year>\\d{4}))?$', date_part)\n\
+      \        if m:\n            month = _months.get(m.group('month')[:3].lower())\n\
+      \            day = int(m.group('day'))\n            year = int(m.group('year'))\
+      \ if m.group('year') else datetime.datetime.now().year\n            try:\n \
+      \               return datetime.datetime(year, month, day, hour, minute, second,\
+      \ microsecond)\n            except ValueError:\n                pass\n    \n\
+      \        # Try Day MonthName Year\n        m = re.match(r'^(?P<day>\\d{1,2})[\
+      \ ,\\-\\.]+(?P<month>[A-Za-z]{3,9})(?:[ ,\\-\\.]+(?P<year>\\d{4}))?$', date_part)\n\
+      \        if m:\n            month = _months.get(m.group('month')[:3].lower())\n\
+      \            day = int(m.group('day'))\n            year = int(m.group('year'))\
+      \ if m.group('year') else datetime.datetime.now().year\n            try:\n \
+      \               return datetime.datetime(year, month, day, hour, minute, second,\
+      \ microsecond)\n            except ValueError:\n                pass\n    \n\
+      \        # Try Year MonthName Day\n        m = re.match(r'^(?P<year>\\d{4})[\
+      \ ,\\-\\.]+(?P<month>[A-Za-z]{3,9})[ ,\\-\\.]+(?P<day>\\d{1,2})$', date_part)\n\
+      \        if m:\n            year = int(m.group('year'))\n            month =\
+      \ _months.get(m.group('month')[:3].lower())\n            day = int(m.group('day'))\n\
+      \            try:\n                return datetime.datetime(year, month, day,\
+      \ hour, minute, second, microsecond)\n            except ValueError:\n     \
+      \           pass\n    \n        # Try numeric date formats: YYYY-MM-DD, YYYY/MM/DD,\
+      \ DD-MM-YYYY, DD/MM/YYYY\n        m = re.match(r'^(?P<y>\\d{4})[-/](?P<m>\\\
+      d{1,2})[-/](?P<d>\\d{1,2})$', date_part)\n        if m:\n            try:\n\
+      \                return datetime.datetime(int(m.group('y')), int(m.group('m')),\
+      \ int(m.group('d')), hour, minute, second, microsecond)\n            except\
+      \ ValueError:\n                pass\n    \n        m = re.match(r'^(?P<d>\\\
+      d{1,2})[-/](?P<m>\\d{1,2})[-/](?P<y>\\d{4})$', date_part)\n        if m:\n \
+      \           try:\n                return datetime.datetime(int(m.group('y')),\
+      \ int(m.group('m')), int(m.group('d')), hour, minute, second, microsecond)\n\
+      \            except ValueError:\n                pass\n    \n        # Try time\
+      \ only\n        if not date_part and time_part:\n            now = datetime.datetime.now()\n\
+      \            return datetime.datetime(now.year, now.month, now.day, hour, minute,\
+      \ second, microsecond)\n    \n        # Try date only with no time\n       \
+      \ m = re.match(r'^(?P<year>\\d{4})$', date_part)\n        if m:\n          \
+      \  return datetime.datetime(int(m.group('year')), 1, 1)\n    \n        # If\
+      \ all fails, raise ValueError\n>       raise ValueError(f\"Unknown string format:\
+      \ {text}\")\nE       ValueError: Unknown string format: April 5, 2021 7:15 pm\
+      \ UTC\n\ngeneration\\Dateutil\\dateutil\\parser.py:201: ValueError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Dateutil/performance_test.py::test_dateutil_performance_smoke\
+      \ - ...\n1 failed in 0.48s\n"
+    elapsed_time_s: 1.886275
+    avg_memory_mb: 32.54
+    avg_cpu_percent: 100.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.285375
+    score_inputs_actual_time_s: 1.886275
+  resource:
+    returncode: 1
+    stdout: "FF                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_meeting_schedule_integration ______________________\n\
+      \n    def test_meeting_schedule_integration() -> None:\n        \"\"\"Integration\
+      \ test for building a recurring meeting schedule.\"\"\"\n        start = dt.date(2020,\
+      \ 1, 1)\n        end = dt.date(2020, 2, 29)\n    \n        # Approximate \"\
+      Europe/Berlin\" as UTC+1 for this test.\n        meetings = _generate_meeting_schedule(start,\
+      \ end, offset_hours=1)\n    \n        # There should be a reasonable number\
+      \ of meetings in this range.\n>       assert 10 <= len(meetings) <= 25\nE  \
+      \     assert 10 <= 9\nE        +  where 9 = len([datetime.datetime(2020, 1,\
+      \ 2, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), datetime.datetime(2020, 1, 9,\
+      \ 10, 0, tzinfo=<t...0, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), datetime.datetime(2020,\
+      \ 2, 6, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), ...])\n\ntests\\Dateutil\\\
+      resource_test.py:78: AssertionError\n_____________ test_duration_between_two_events_with_relativedelta\
+      \ _____________\n\n    def test_duration_between_two_events_with_relativedelta()\
+      \ -> None:\n        \"\"\"Use relativedelta to compute calendar duration between\
+      \ first and last meeting.\"\"\"\n        start = dt.date(2020, 1, 1)\n     \
+      \   end = dt.date(2020, 3, 31)\n    \n        # Approximate \"America/New_York\"\
+      \ as UTC-5 for this test.\n        meetings = _generate_meeting_schedule(start,\
+      \ end, offset_hours=-5)\n        assert len(meetings) > 0\n    \n        first\
+      \ = meetings[0]\n        last = meetings[-1]\n    \n        delta = relativedelta(last,\
+      \ first)\n    \n        # The total duration should be several weeks.\n>   \
+      \    weeks = delta.years * 52 + delta.months * 4 + delta.days // 7\nE      \
+      \ TypeError: unsupported operand type(s) for *: 'datetime.datetime' and 'int'\n\
+      \ntests\\Dateutil\\resource_test.py:115: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Dateutil/resource_test.py::test_meeting_schedule_integration\
+      \ - a...\nFAILED tests/Dateutil/resource_test.py::test_duration_between_two_events_with_relativedelta\n\
+      2 failed in 0.51s\n"
+    elapsed_time_s: 2.213173
+    avg_memory_mb: 31.88
+    avg_cpu_percent: 97.0
+    passed: 0
+    failed: 2
+    skipped: 0
+    total: 2
+    score_inputs_passed: 0
+    score_inputs_failed: 2
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.66
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 31.88
+    score_inputs_actual_cpu_pct: 97.0
+  robustness:
+    returncode: 0
+    stdout: "......                                                              \
+      \     [100%]\n============================== warnings summary ===============================\n\
+      tests\\Dateutil\\robustness_test.py:92\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:92: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dateutil\\robustness_test.py:103\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:103: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dateutil\\robustness_test.py:123\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:123: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dateutil\\robustness_test.py:138\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:138: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dateutil\\robustness_test.py:152\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:152: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Dateutil\\robustness_test.py:173\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Dateutil\\robustness_test.py:173: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      6 passed, 6 warnings in 0.22s\n"
+    elapsed_time_s: 1.849477
+    avg_memory_mb: 30.9
+    avg_cpu_percent: 94.6
+    passed: 6
+    failed: 0
+    skipped: 0
+    total: 6
+    score_inputs_passed: 6
+    score_inputs_failed: 0
+    score_inputs_total: 6
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=462.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.620861
+    avg_memory_mb: 31.74
+    avg_cpu_percent: 96.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 462.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=20.8456 files_scanned=5.0 total_loc=462.0 max_cc=34.0
+
+      .
+
+      1 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.770193
+    avg_memory_mb: 31.95
+    avg_cpu_percent: 97.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 20.8456
+      files_scanned: 5.0
+      total_loc: 462.0
+      max_cc: 34.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 20.8456
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.285375
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.234135
+    resource_tests_total: 2
+    avg_memory_mb: 31.66
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.125135
+    functional_tests_total: 1
+  robustness:
+    robustness_suite_time_s: 1.313908
+    robustness_tests_total: 6
+  security:
+    security_suite_time_s: 1.372555
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 22.0
+      total_loc: 5945.0
+  maintainability:
+    maintainability_suite_time_s: 3.147629
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 37.0
+      total_loc: 14362.0
+      max_cc: 96.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Dateutil\pytest_logs

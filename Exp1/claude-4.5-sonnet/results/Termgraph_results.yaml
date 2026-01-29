@@ -1,0 +1,542 @@
+project_name: Termgraph
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Termgraph\termgraph.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Termgraph
+timestamp: '2025-12-31 14:06:02'
+functional_score: 0.0
+non_functional_score: 0.6393
+non_functional_subscores:
+  maintainability: 0.6646
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_simple_horizontal_bar_chart _______________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064B2EAC0>\n\n\
+      \    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"A\", \"B\", \"C\"]\n        values = [[3], [5],\
+      \ [2]]\n    \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      Test Chart\", width=20, format=\"{:>5.1f}\")\n    \n        chart = BarChart(data,\
+      \ args)\n>       chart.draw()\n\ntests\\Termgraph\\functional_test.py:94: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nself = <termgraph.charts.BarChart object at 0x0000021064B2EA60>\n\n\
+      \    def draw(self):\n        \"\"\"\n        Render the bar chart to stdout.\n\
+      \        \"\"\"\n        if self.args.title:\n            print(f\"\\n# {self.args.title}\\\
+      n\")\n    \n        # Collect all data and determine if multi-series\n     \
+      \   all_data = []\n        max_label_len = 0\n        is_multi_series = False\n\
+      \    \n        for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      ---------------------------- Captured stdout call -----------------------------\n\
+      \n# Test Chart\n\n_____________________ test_stacked_chart_multiple_series ______________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064B7E940>\n\n\
+      \    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"X\", \"Y\"]\n        values = [[1, 2], [3, 4]]\n\
+      \    \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      Stacked Chart\", width=30, format=\"{:>4.1f}\")\n    \n        chart = StackedChart(data,\
+      \ args)\n>       chart.draw()\n\ntests\\Termgraph\\functional_test.py:111: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration\\Termgraph\\termgraph\\charts.py:177: in draw\n    total =\
+      \ sum(v if v > 0 else 0 for v in values_list)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n.0 = <list_iterator object\
+      \ at 0x0000021064B7E370>\n\n>   total = sum(v if v > 0 else 0 for v in values_list)\n\
+      E   TypeError: '>' not supported between instances of 'str' and 'int'\n\ngeneration\\\
+      Termgraph\\termgraph\\charts.py:177: TypeError\n----------------------------\
+      \ Captured stdout call -----------------------------\n\n# Stacked Chart\n\n\
+      _______________________ test_bar_chart_object_interface _______________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064B76D60>\n\n\
+      \    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"D\", \"E\"]\n        values = [[4], [1]]\n \
+      \   \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      Bars\", width=10, format=\"{:>4.1f}\")\n    \n        chart = BarChart(data,\
+      \ args)\n>       chart.draw()\n\ntests\\Termgraph\\functional_test.py:127: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nself = <termgraph.charts.BarChart object at 0x0000021064B76D90>\n\n\
+      \    def draw(self):\n        \"\"\"\n        Render the bar chart to stdout.\n\
+      \        \"\"\"\n        if self.args.title:\n            print(f\"\\n# {self.args.title}\\\
+      n\")\n    \n        # Collect all data and determine if multi-series\n     \
+      \   all_data = []\n        max_label_len = 0\n        is_multi_series = False\n\
+      \    \n        for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      ---------------------------- Captured stdout call -----------------------------\n\
+      \n# Bars\n\n___________________ test_bar_chart_respects_no_values_flag ____________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064B0E340>\n\n\
+      \    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"A\", \"B\"]\n        values = [[2], [7]]\n \
+      \   \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      No Values\", width=12, no_values=True, format=\"{:>5.1f}\")\n    \n>       BarChart(data,\
+      \ args).draw()\n\ntests\\Termgraph\\functional_test.py:142: \n_ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself\
+      \ = <termgraph.charts.BarChart object at 0x0000021064B0E6A0>\n\n    def draw(self):\n\
+      \        \"\"\"\n        Render the bar chart to stdout.\n        \"\"\"\n \
+      \       if self.args.title:\n            print(f\"\\n# {self.args.title}\\n\"\
+      )\n    \n        # Collect all data and determine if multi-series\n        all_data\
+      \ = []\n        max_label_len = 0\n        is_multi_series = False\n    \n \
+      \       for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      ---------------------------- Captured stdout call -----------------------------\n\
+      \n# No Values\n\n___________________ test_bar_chart_respects_no_labels_flag\
+      \ ____________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x0000021064B80A30>\n\n    def test_bar_chart_respects_no_labels_flag(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"L1\", \"L2\", \"\
+      L3\"]\n        values = [[1], [2], [3]]\n    \n        data = Data(values, labels)\n\
+      \        args = _make_args(title=\"No Labels\", width=10, no_labels=True, format=\"\
+      {:>4.1f}\")\n    \n>       BarChart(data, args).draw()\n\ntests\\Termgraph\\\
+      functional_test.py:158: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <termgraph.charts.BarChart object\
+      \ at 0x0000021064B80760>\n\n    def draw(self):\n        \"\"\"\n        Render\
+      \ the bar chart to stdout.\n        \"\"\"\n        if self.args.title:\n  \
+      \          print(f\"\\n# {self.args.title}\\n\")\n    \n        # Collect all\
+      \ data and determine if multi-series\n        all_data = []\n        max_label_len\
+      \ = 0\n        is_multi_series = False\n    \n        for label, values in self.data:\n\
+      \            if not self.args.no_labels and self.args.labels:\n            \
+      \    max_label_len = max(max_label_len, len(str(label)))\n    \n           \
+      \ # Check if values is a list (multi-series) or single value\n            if\
+      \ isinstance(values, (list, tuple)):\n                is_multi_series = True\n\
+      \                all_data.append((label, list(values)))\n            else:\n\
+      \                all_data.append((label, [values]))\n    \n        # Find maximum\
+      \ value for scaling\n        if is_multi_series and not self.args.different_scale:\n\
+      \            # For multi-series, find max across all series\n            max_val\
+      \ = 0\n            for label, values in all_data:\n                max_val =\
+      \ max(max_val, max(values) if values else 0)\n        else:\n            max_val\
+      \ = 0\n            for label, values in all_data:\n>               max_val =\
+      \ max(max_val, max(values) if values else 0)\nE               TypeError: '>'\
+      \ not supported between instances of 'str' and 'int'\n\ngeneration\\Termgraph\\\
+      termgraph\\charts.py:67: TypeError\n---------------------------- Captured stdout\
+      \ call -----------------------------\n\n# No Labels\n\n__________________ test_bar_chart_suffix_appended_to_values\
+      \ ___________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x0000021064B916D0>\n\n    def test_bar_chart_suffix_appended_to_values(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"CPU\", \"RAM\"]\n\
+      \        values = [[12.5], [7.0]]\n    \n        data = Data(values, labels)\n\
+      \        args = _make_args(title=\"Suffix\", width=18, suffix=\"%\", format=\"\
+      {:>4.1f}\")\n    \n>       BarChart(data, args).draw()\n\ntests\\Termgraph\\\
+      functional_test.py:175: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <termgraph.charts.BarChart object\
+      \ at 0x0000021064B91A60>\n\n    def draw(self):\n        \"\"\"\n        Render\
+      \ the bar chart to stdout.\n        \"\"\"\n        if self.args.title:\n  \
+      \          print(f\"\\n# {self.args.title}\\n\")\n    \n        # Collect all\
+      \ data and determine if multi-series\n        all_data = []\n        max_label_len\
+      \ = 0\n        is_multi_series = False\n    \n        for label, values in self.data:\n\
+      \            if not self.args.no_labels and self.args.labels:\n            \
+      \    max_label_len = max(max_label_len, len(str(label)))\n    \n           \
+      \ # Check if values is a list (multi-series) or single value\n            if\
+      \ isinstance(values, (list, tuple)):\n                is_multi_series = True\n\
+      \                all_data.append((label, list(values)))\n            else:\n\
+      \                all_data.append((label, [values]))\n    \n        # Find maximum\
+      \ value for scaling\n        if is_multi_series and not self.args.different_scale:\n\
+      \            # For multi-series, find max across all series\n            max_val\
+      \ = 0\n            for label, values in all_data:\n                max_val =\
+      \ max(max_val, max(values) if values else 0)\n        else:\n            max_val\
+      \ = 0\n            for label, values in all_data:\n>               max_val =\
+      \ max(max_val, max(values) if values else 0)\nE               TypeError: '>'\
+      \ not supported between instances of 'str' and 'int'\n\ngeneration\\Termgraph\\\
+      termgraph\\charts.py:67: TypeError\n---------------------------- Captured stdout\
+      \ call -----------------------------\n\n# Suffix\n\n___________ test_bar_chart_custom_format_changes_numeric_rendering\
+      \ ____________\n\ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064BD3C70>\n\
+      \n    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"P\", \"Q\"]\n        values = [[3.14159], [2.71828]]\n\
+      \    \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      Fmt\", width=20, format=\"{:>6.2f}\")\n    \n>       BarChart(data, args).draw()\n\
+      \ntests\\Termgraph\\functional_test.py:191: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <termgraph.charts.BarChart\
+      \ object at 0x0000021064BD3D00>\n\n    def draw(self):\n        \"\"\"\n   \
+      \     Render the bar chart to stdout.\n        \"\"\"\n        if self.args.title:\n\
+      \            print(f\"\\n# {self.args.title}\\n\")\n    \n        # Collect\
+      \ all data and determine if multi-series\n        all_data = []\n        max_label_len\
+      \ = 0\n        is_multi_series = False\n    \n        for label, values in self.data:\n\
+      \            if not self.args.no_labels and self.args.labels:\n            \
+      \    max_label_len = max(max_label_len, len(str(label)))\n    \n           \
+      \ # Check if values is a list (multi-series) or single value\n            if\
+      \ isinstance(values, (list, tuple)):\n                is_multi_series = True\n\
+      \                all_data.append((label, list(values)))\n            else:\n\
+      \                all_data.append((label, [values]))\n    \n        # Find maximum\
+      \ value for scaling\n        if is_multi_series and not self.args.different_scale:\n\
+      \            # For multi-series, find max across all series\n            max_val\
+      \ = 0\n            for label, values in all_data:\n                max_val =\
+      \ max(max_val, max(values) if values else 0)\n        else:\n            max_val\
+      \ = 0\n            for label, values in all_data:\n>               max_val =\
+      \ max(max_val, max(values) if values else 0)\nE               TypeError: '>'\
+      \ not supported between instances of 'str' and 'int'\n\ngeneration\\Termgraph\\\
+      termgraph\\charts.py:67: TypeError\n---------------------------- Captured stdout\
+      \ call -----------------------------\n\n# Fmt\n\n____________________ test_stacked_chart_renders_all_labels\
+      \ ____________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x0000021064B92BB0>\n\n    def test_stacked_chart_renders_all_labels(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"S1\", \"S2\", \"\
+      S3\"]\n        values = [[1, 1], [2, 1], [1, 3]]\n    \n        data = Data(values,\
+      \ labels)\n        args = _make_args(title=\"Stack Labels\", width=25, format=\"\
+      {:>4.1f}\")\n    \n>       StackedChart(data, args).draw()\n\ntests\\Termgraph\\\
+      functional_test.py:207: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Termgraph\\termgraph\\charts.py:177:\
+      \ in draw\n    total = sum(v if v > 0 else 0 for v in values_list)\n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n\
+      .0 = <list_iterator object at 0x0000021064B92550>\n\n>   total = sum(v if v\
+      \ > 0 else 0 for v in values_list)\nE   TypeError: '>' not supported between\
+      \ instances of 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:177:\
+      \ TypeError\n---------------------------- Captured stdout call -----------------------------\n\
+      \n# Stack Labels\n\n____________ test_stacked_chart_no_values_still_renders_structure\
+      \ _____________\n\ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064AEFD60>\n\
+      \n    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"A\", \"B\"]\n        values = [[1, 2, 3], [3,\
+      \ 2, 1]]\n    \n        data = Data(values, labels)\n        args = _make_args(title=\"\
+      Stack No Values\", width=30, no_values=True, format=\"{:>4.1f}\")\n    \n> \
+      \      StackedChart(data, args).draw()\n\ntests\\Termgraph\\functional_test.py:222:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Termgraph\\termgraph\\charts.py:177: in draw\n    total\
+      \ = sum(v if v > 0 else 0 for v in values_list)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n.0 = <list_iterator\
+      \ object at 0x0000021064AEF1F0>\n\n>   total = sum(v if v > 0 else 0 for v in\
+      \ values_list)\nE   TypeError: '>' not supported between instances of 'str'\
+      \ and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:177: TypeError\n\
+      ---------------------------- Captured stdout call -----------------------------\n\
+      \n# Stack No Values\n\n__________________ test_title_none_does_not_break_rendering\
+      \ ___________________\n\ncapsys = <_pytest.capture.CaptureFixture object at\
+      \ 0x0000021064BDE2E0>\n\n    def test_title_none_does_not_break_rendering(capsys:\
+      \ pytest.CaptureFixture[str]) -> None:\n        labels = [\"U\", \"V\"]\n  \
+      \      values = [[4], [6]]\n    \n        data = Data(values, labels)\n    \
+      \    args = _make_args(title=None, width=15, format=\"{:>4.1f}\")\n    \n> \
+      \      BarChart(data, args).draw()\n\ntests\\Termgraph\\functional_test.py:238:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\nself = <termgraph.charts.BarChart object at 0x0000021064BDE700>\n\
+      \n    def draw(self):\n        \"\"\"\n        Render the bar chart to stdout.\n\
+      \        \"\"\"\n        if self.args.title:\n            print(f\"\\n# {self.args.title}\\\
+      n\")\n    \n        # Collect all data and determine if multi-series\n     \
+      \   all_data = []\n        max_label_len = 0\n        is_multi_series = False\n\
+      \    \n        for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      ________________ test_width_parameter_affects_output_presence _________________\n\
+      \ncapsys = <_pytest.capture.CaptureFixture object at 0x0000021064B88BB0>\n\n\
+      \    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str])\
+      \ -> None:\n        labels = [\"W\"]\n        values = [[9]]\n    \n       \
+      \ data = Data(values, labels)\n    \n        args_narrow = _make_args(title=\"\
+      Narrow\", width=5, format=\"{:>4.1f}\")\n>       BarChart(data, args_narrow).draw()\n\
+      \ntests\\Termgraph\\functional_test.py:253: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <termgraph.charts.BarChart\
+      \ object at 0x0000021064B88C70>\n\n    def draw(self):\n        \"\"\"\n   \
+      \     Render the bar chart to stdout.\n        \"\"\"\n        if self.args.title:\n\
+      \            print(f\"\\n# {self.args.title}\\n\")\n    \n        # Collect\
+      \ all data and determine if multi-series\n        all_data = []\n        max_label_len\
+      \ = 0\n        is_multi_series = False\n    \n        for label, values in self.data:\n\
+      \            if not self.args.no_labels and self.args.labels:\n            \
+      \    max_label_len = max(max_label_len, len(str(label)))\n    \n           \
+      \ # Check if values is a list (multi-series) or single value\n            if\
+      \ isinstance(values, (list, tuple)):\n                is_multi_series = True\n\
+      \                all_data.append((label, list(values)))\n            else:\n\
+      \                all_data.append((label, [values]))\n    \n        # Find maximum\
+      \ value for scaling\n        if is_multi_series and not self.args.different_scale:\n\
+      \            # For multi-series, find max across all series\n            max_val\
+      \ = 0\n            for label, values in all_data:\n                max_val =\
+      \ max(max_val, max(values) if values else 0)\n        else:\n            max_val\
+      \ = 0\n            for label, values in all_data:\n>               max_val =\
+      \ max(max_val, max(values) if values else 0)\nE               TypeError: '>'\
+      \ not supported between instances of 'str' and 'int'\n\ngeneration\\Termgraph\\\
+      termgraph\\charts.py:67: TypeError\n---------------------------- Captured stdout\
+      \ call -----------------------------\n\n# Narrow\n\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface -\
+      \ ...\nFAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values\n\
+      FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels\n\
+      FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure\n\
+      FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering\n\
+      FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence\n\
+      11 failed in 27.79s\n"
+    elapsed_time_s: 55.754068
+    avg_memory_mb: 32.64
+    avg_cpu_percent: 0.31
+    passed: 0
+    failed: 11
+    skipped: 0
+    total: 11
+    score_inputs_passed: 0
+    score_inputs_failed: 11
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_performance_many_small_charts ______________________\n\
+      \n    def test_performance_many_small_charts() -> None:\n        \"\"\"Render\
+      \ many small charts to ensure performance is reasonable.\"\"\"\n        labels\
+      \ = [\"A\", \"B\", \"C\"]\n        values = [[1], [2], [3]]\n    \n        data\
+      \ = Data(values, labels)\n        args = _make_args(width=20)\n    \n      \
+      \  start = time.perf_counter()\n        for _ in range(200):\n            chart\
+      \ = BarChart(data, args)\n>           chart.draw()\n\ntests\\Termgraph\\performance_test.py:57:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\nself = <termgraph.charts.BarChart object at 0x000001BCE3D3A370>\n\
+      \n    def draw(self):\n        \"\"\"\n        Render the bar chart to stdout.\n\
+      \        \"\"\"\n        if self.args.title:\n            print(f\"\\n# {self.args.title}\\\
+      n\")\n    \n        # Collect all data and determine if multi-series\n     \
+      \   all_data = []\n        max_label_len = 0\n        is_multi_series = False\n\
+      \    \n        for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts\n\
+      1 failed in 0.34s\n"
+    elapsed_time_s: 1.506225
+    avg_memory_mb: 32.18
+    avg_cpu_percent: 97.8
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.899932
+    score_inputs_actual_time_s: 1.506225
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_pipeline_generate_and_render ______________________\n\
+      \n    def test_pipeline_generate_and_render() -> None:\n        \"\"\"Integration-like\
+      \ test: data processing pipeline feeding termgraph.\"\"\"\n        raw_values\
+      \ = [10, 20, 15, 5]\n        labels = [f\"Item-{i}\" for i in range(len(raw_values))]\n\
+      \    \n        # Simple normalization step\n        max_val = max(raw_values)\n\
+      \        normalized = [[v / max_val * 10.0] for v in raw_values]\n    \n   \
+      \     data = Data(normalized, labels)\n        args = _make_args()\n    \n \
+      \       chart = BarChart(data, args)\n>       chart.draw()\n\ntests\\Termgraph\\\
+      resource_test.py:58: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <termgraph.charts.BarChart object at 0x000002AD4CD2B3A0>\n\
+      \n    def draw(self):\n        \"\"\"\n        Render the bar chart to stdout.\n\
+      \        \"\"\"\n        if self.args.title:\n            print(f\"\\n# {self.args.title}\\\
+      n\")\n    \n        # Collect all data and determine if multi-series\n     \
+      \   all_data = []\n        max_label_len = 0\n        is_multi_series = False\n\
+      \    \n        for label, values in self.data:\n            if not self.args.no_labels\
+      \ and self.args.labels:\n                max_label_len = max(max_label_len,\
+      \ len(str(label)))\n    \n            # Check if values is a list (multi-series)\
+      \ or single value\n            if isinstance(values, (list, tuple)):\n     \
+      \           is_multi_series = True\n                all_data.append((label,\
+      \ list(values)))\n            else:\n                all_data.append((label,\
+      \ [values]))\n    \n        # Find maximum value for scaling\n        if is_multi_series\
+      \ and not self.args.different_scale:\n            # For multi-series, find max\
+      \ across all series\n            max_val = 0\n            for label, values\
+      \ in all_data:\n                max_val = max(max_val, max(values) if values\
+      \ else 0)\n        else:\n            max_val = 0\n            for label, values\
+      \ in all_data:\n>               max_val = max(max_val, max(values) if values\
+      \ else 0)\nE               TypeError: '>' not supported between instances of\
+      \ 'str' and 'int'\n\ngeneration\\Termgraph\\termgraph\\charts.py:67: TypeError\n\
+      ---------------------------- Captured stdout call -----------------------------\n\
+      \n# Normalized Stats\n\n=========================== short test summary info\
+      \ ===========================\nFAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render\
+      \ - ...\n1 failed in 0.32s\n"
+    elapsed_time_s: 1.488636
+    avg_memory_mb: 32.04
+    avg_cpu_percent: 98.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.12
+    score_inputs_baseline_cpu_pct: 96.6
+    score_inputs_actual_mem_mb: 32.04
+    score_inputs_actual_cpu_pct: 98.9
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.334506
+    avg_memory_mb: 31.43
+    avg_cpu_percent: 99.9
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=378.0
+
+      .
+
+      1 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.261573
+    avg_memory_mb: 31.32
+    avg_cpu_percent: 101.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 378.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=23.4657 files_scanned=5.0 total_loc=378.0 max_cc=14.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.273598
+    avg_memory_mb: 31.41
+    avg_cpu_percent: 97.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 23.4657
+      files_scanned: 5.0
+      total_loc: 378.0
+      max_cc: 14.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 11.8403
+    score_inputs_generated_mi_min: 23.4657
+    score_inputs_ratio_g_over_b: 1.9818501220408267
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.899932
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.487286
+    resource_tests_total: 1
+    avg_memory_mb: 31.12
+    avg_cpu_percent: 96.6
+  functional:
+    functional_suite_time_s: 1.609595
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.807216
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.441997
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 8.0
+      total_loc: 1034.0
+  maintainability:
+    maintainability_suite_time_s: 1.642721
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 11.8403
+      files_scanned: 8.0
+      total_loc: 1034.0
+      max_cc: 24.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Termgraph\pytest_logs

@@ -1,0 +1,60 @@
+..FF.FF..Fsssss                                                          [100%]
+================================== FAILURES ===================================
+______________________________ test_naturalsize _______________________________
+
+    def test_naturalsize() -> None:
+>       assert humanize.naturalsize(1024) == "1.0 kB"
+E       AssertionError: assert '1.0 KB' == '1.0 kB'
+E         
+E         - 1.0 kB
+E         ?     ^
+E         + 1.0 KB
+E         ?     ^
+
+tests\Humanize\functional_test.py:107: AssertionError
+__________________________ test_precisedelta_numeric __________________________
+
+    def test_precisedelta_numeric() -> None:
+        d = humanize.precisedelta(3661)  # seconds
+>       assert "1 hour" in d
+E       AssertionError: assert '1 hour' in '3661'
+
+tests\Humanize\functional_test.py:113: AssertionError
+______________________ test_naturaltime_reference_point _______________________
+
+    def test_naturaltime_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        earlier = ref - timedelta(minutes=10)
+>       s = humanize.naturaltime(earlier, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:129: TypeError
+_____________________ test_intcomma_float_keeps_decimals ______________________
+
+    def test_intcomma_float_keeps_decimals() -> None:
+        s = humanize.intcomma(1234.56)
+        assert isinstance(s, str)
+>       assert s == "1,234.56"
+E       AssertionError: assert '1,234' == '1,234.56'
+E         
+E         - 1,234.56
+E         ?      ---
+E         + 1,234
+
+tests\Humanize\functional_test.py:140: AssertionError
+___________________ test_naturaltime_future_reference_point ___________________
+
+    def test_naturaltime_future_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        later = ref + timedelta(minutes=10)
+>       s = humanize.naturaltime(later, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:165: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_naturalsize - AssertionError: ...
+FAILED tests/Humanize/functional_test.py::test_precisedelta_numeric - Asserti...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_reference_point - ...
+FAILED tests/Humanize/functional_test.py::test_intcomma_float_keeps_decimals
+FAILED tests/Humanize/functional_test.py::test_naturaltime_future_reference_point
+5 failed, 5 passed, 5 skipped in 0.57s

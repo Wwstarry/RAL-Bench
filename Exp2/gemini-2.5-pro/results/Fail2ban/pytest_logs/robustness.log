@@ -1,0 +1,16 @@
+..F..                                                                    [100%]
+================================== FAILURES ===================================
+___________ test_003_fail2ban_client_unknown_command_reports_usage ____________
+
+    def test_003_fail2ban_client_unknown_command_reports_usage():
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-client"
+        p = _run(script, ["this-command-should-not-exist"], timeout_s=20)
+        out = _out(p)
+>       assert ("usage" in out) or ("unknown" in out) or ("error" in out)
+E       AssertionError: assert ('usage' in 'simulating client action: this-command-should-not-exist\n\n' or 'unknown' in 'simulating client action: this-command-should-not-exist\n\n' or 'error' in 'simulating client action: this-command-should-not-exist\n\n')
+
+tests\Fail2ban\robustness_test.py:75: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/robustness_test.py::test_003_fail2ban_client_unknown_command_reports_usage
+1 failed, 4 passed in 1.75s

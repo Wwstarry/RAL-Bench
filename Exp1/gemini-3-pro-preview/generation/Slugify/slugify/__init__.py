@@ -1,0 +1,1 @@
+from slugify.slugify import slugify

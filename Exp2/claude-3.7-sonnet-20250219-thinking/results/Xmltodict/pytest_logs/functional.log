@@ -1,0 +1,377 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_parse_simple_element __________________________
+
+    def test_parse_simple_element() -> None:
+        """Parsing a simple XML element should produce the expected dict."""
+        xml = "<root><message>Hello</message></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B0477CD0>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+____________________ test_parse_repeated_elements_as_list _____________________
+
+    def test_parse_repeated_elements_as_list() -> None:
+        """Repeated child elements should be represented as a list."""
+        xml = "<root><item>1</item><item>2</item><item>3</item></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B04DA670>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+_______________________ test_parse_attributes_and_text ________________________
+
+    def test_parse_attributes_and_text() -> None:
+        """Attributes and text content should be exposed using @attr and #text keys."""
+        xml = '<user id="123">Alice</user>'
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B034AB80>, name = 'user'
+attrs = ['id', '123']
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+___________________ test_unparse_roundtrip_basic_structure ____________________
+
+    def test_unparse_roundtrip_basic_structure() -> None:
+        """unparse() followed by parse() should preserve the logical structure."""
+        original = {
+            "root": {
+                "item": [
+                    {"@id": "1", "#text": "A"},
+                    {"@id": "2", "#text": "B"},
+                ]
+            }
+        }
+    
+        xml = _unparse(original)
+>       round_tripped = _parse(xml)
+
+tests\Xmltodict\functional_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B04DE340>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B04D91F0>, name = 'root'
+attrs = ['xmlns:x', 'http://example.com/x']
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+_________________________ test_parse_nested_structure _________________________
+
+    def test_parse_nested_structure() -> None:
+        """Nested XML elements should map to nested dict structures."""
+        xml = """
+        <root>
+            <user>
+                <name>Ada</name>
+                <address>
+                    <city>London</city>
+                    <country>UK</country>
+                </address>
+            </user>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B04EAAF0>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+__________________ test_force_list_option_for_single_element __________________
+
+    def test_force_list_option_for_single_element() -> None:
+        """force_list should allow representing a single child as a list when supported."""
+        xml = "<root><item>1</item></root>"
+    
+        # Prefer a targeted force_list that is common in xmltodict.
+>       data = _parse(xml, force_list=("item",))
+
+tests\Xmltodict\functional_test.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B05658B0>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+_____________ test_custom_attr_prefix_and_cdata_key_if_supported ______________
+
+    def test_custom_attr_prefix_and_cdata_key_if_supported() -> None:
+        """attr_prefix / cdata_key customization should reflect in output when supported."""
+        xml = '<user id="7">Bob</user>'
+    
+>       data = _parse(xml, attr_prefix="$", cdata_key="text")
+
+tests\Xmltodict\functional_test.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B0360F70>, name = 'user'
+attrs = ['id', '7']
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+____________ test_xml_attribs_false_drops_attributes_if_supported _____________
+
+    def test_xml_attribs_false_drops_attributes_if_supported() -> None:
+        """xml_attribs=False should omit attribute keys when supported."""
+        xml = '<user id="9"><name>Alice</name></user>'
+    
+>       data = _parse(xml, xml_attribs=False)
+
+tests\Xmltodict\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B036B400>, name = 'user'
+attrs = ['id', '9']
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+______________________ test_dict_constructor_ordereddict ______________________
+
+    def test_dict_constructor_ordereddict() -> None:
+        """dict_constructor should allow choosing mapping type (e.g., OrderedDict) when supported."""
+        xml = "<root><a>1</a><b>2</b></root>"
+>       data = _parse(xml, dict_constructor=OrderedDict)
+
+tests\Xmltodict\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B04DABB0>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+_____________________ test_unparse_pretty_and_parse_back ______________________
+
+    def test_unparse_pretty_and_parse_back() -> None:
+        """Pretty/full_document knobs should not break roundtrip of basic structure."""
+        original: Dict[str, Any] = {"root": {"x": "1", "y": "2"}}
+    
+        xml = _unparse(original, pretty=True, full_document=True)
+        assert "<root>" in xml or "<root" in xml
+    
+>       round_tripped = _parse(xml)
+
+tests\Xmltodict\functional_test.py:226: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B0477D60>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+______________ test_postprocessor_transforms_value_if_supported _______________
+
+    def test_postprocessor_transforms_value_if_supported() -> None:
+        """postprocessor can transform values in a happy-path parse when supported."""
+        xml = "<root><message>Hello</message></root>"
+    
+        def _pp(path: Any, key: str, value: Any) -> Any:
+            if key == "message" and isinstance(value, str):
+                return key, value.upper()
+            return key, value
+    
+>       data = _parse(xml, postprocessor=_pp)
+
+tests\Xmltodict\functional_test.py:239: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:86: in parse
+    parser.Parse(xml_input)
+C:\A\31\s\Modules\pyexpat.c:407: in StartElement
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <xmltodict._DictSAXHandler object at 0x00000281B034A8B0>, name = 'root'
+attrs = []
+
+    def start_element(self, name, attrs):
+        name = self._build_name(name)
+        attrs = self.dict_constructor([(self._build_name(key), value)
+>                                     for key, value in attrs.items()])
+E       AttributeError: 'list' object has no attribute 'items'
+
+generation\Xmltodict\xmltodict.py:175: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/functional_test.py::test_parse_simple_element - Attrib...
+FAILED tests/Xmltodict/functional_test.py::test_parse_repeated_elements_as_list
+FAILED tests/Xmltodict/functional_test.py::test_parse_attributes_and_text - A...
+FAILED tests/Xmltodict/functional_test.py::test_unparse_roundtrip_basic_structure
+FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved
+FAILED tests/Xmltodict/functional_test.py::test_parse_nested_structure - Attr...
+FAILED tests/Xmltodict/functional_test.py::test_force_list_option_for_single_element
+FAILED tests/Xmltodict/functional_test.py::test_custom_attr_prefix_and_cdata_key_if_supported
+FAILED tests/Xmltodict/functional_test.py::test_xml_attribs_false_drops_attributes_if_supported
+FAILED tests/Xmltodict/functional_test.py::test_dict_constructor_ordereddict
+FAILED tests/Xmltodict/functional_test.py::test_unparse_pretty_and_parse_back
+FAILED tests/Xmltodict/functional_test.py::test_postprocessor_transforms_value_if_supported
+12 failed in 24.40s

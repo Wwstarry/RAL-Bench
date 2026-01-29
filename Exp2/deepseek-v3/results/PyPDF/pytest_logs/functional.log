@@ -1,0 +1,209 @@
+FFFFFF.FFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+        _create_simple_pdf(pdf_path, num_pages=3)
+    
+        reader = PdfReader(str(pdf_path))
+>       assert len(reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05093FEB0>.pages
+
+tests\PyPDF\functional_test.py:137: AssertionError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+        reader = PdfReader(str(pdf_path))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:146: IndexError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+        _create_simple_pdf(pdf1, num_pages=1)
+        _create_simple_pdf(pdf2, num_pages=2)
+    
+        _write_pdf_with_pages([pdf1, pdf2], merged)
+    
+        merged_reader = PdfReader(str(merged))
+>       assert len(merged_reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05094E910>.pages
+
+tests\PyPDF\functional_test.py:165: AssertionError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+        _create_simple_pdf(src, num_pages=4)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 4
+E       assert 0 == 4
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E050950FA0>.pages
+
+tests\PyPDF\functional_test.py:183: AssertionError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:192: IndexError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:213: IndexError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:260: IndexError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        writer.add_metadata(
+            {
+                "/Title": "PyPDF Benchmark Document",
+                "/Author": "RealAppCodeBench",
+            }
+        )
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+        meta = reader2.metadata
+        assert meta is not None
+>       assert meta.get("/Title") == "PyPDF Benchmark Document"
+E       AssertionError: assert 'Document Title' == 'PyPDF Benchmark Document'
+E         
+E         - PyPDF Benchmark Document
+E         + Document Title
+
+tests\PyPDF\functional_test.py:298: AssertionError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:310: IndexError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+        _create_simple_pdf(src, num_pages=3)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for p in reader.pages:
+            writer.add_page(p)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05093F8B0>.pages
+
+tests\PyPDF\functional_test.py:372: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - asser...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - In...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - assert 0 == 3
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - IndexError: list in...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Inde...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AssertionErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+10 failed, 1 passed, 1 skipped in 0.74s

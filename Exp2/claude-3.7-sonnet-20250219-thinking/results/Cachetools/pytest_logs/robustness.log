@@ -1,0 +1,95 @@
+F..FF....F.                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+        cachetools = _import_cachetools()
+    
+>       c = cachetools.Cache(-1)
+
+tests\Cachetools\robustness_test.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cachetools.cache.Cache object at 0x0000021BC8D49E20>, maxsize = -1
+getsizeof = None
+
+    def __init__(self, maxsize, getsizeof=None):
+        if maxsize is not None and maxsize < 0:
+>           raise ValueError('maxsize must be non-negative')
+E           ValueError: maxsize must be non-negative
+
+generation\Cachetools\cachetools\cache.py:12: ValueError
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'FIFOCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'LFUCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+_____________________ test_cachedmethod_basic_usage_smoke _____________________
+
+    def test_cachedmethod_basic_usage_smoke():
+        """
+        cachedmethod should work in a minimal class use case (present in many versions).
+        """
+        cachetools = _import_cachetools()
+    
+        if not hasattr(cachetools, "cachedmethod"):
+            pytest.skip("cachetools.cachedmethod not available in this implementation")
+    
+        class TestClass:
+            @cachetools.cachedmethod(lambda self: cachetools.LRUCache(maxsize=10))
+            def cached_method(self, x):
+                return x
+    
+        obj = TestClass()
+>       assert obj.cached_method(1) == 1
+
+tests\Cachetools\robustness_test.py:210: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\decorators.py:111: in wrapper
+    k = key(method, *args, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+method = <function test_cachedmethod_basic_usage_smoke.<locals>.TestClass.cached_method at 0x0000021BC8D9A4C0>
+args = (1,), kwargs = {}
+
+    def methodkey(method, *args, **kwargs):
+        """Return a cache key for a method call."""
+>       return (method.__self__, method.__func__, args, frozenset(kwargs.items()))
+E       AttributeError: 'function' object has no attribute '__self__'
+
+generation\Cachetools\cachetools\keys.py:24: AttributeError
+============================== warnings summary ===============================
+tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Cachetools\cachetools\cache.py:7: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+    class Cache(collections.MutableMapping):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+FAILED tests/Cachetools/robustness_test.py::test_cachedmethod_basic_usage_smoke
+4 failed, 7 passed, 1 warning in 0.41s

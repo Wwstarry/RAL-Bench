@@ -1,0 +1,56 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: exercise a representative workload.
+    
+        Important:
+          - Benchmark runner (measure_generated.py) measures resource usage of pytest subprocess.
+          - This test remains a correctness-oriented smoke test.
+        """
+        assert LENNA_PNG.exists(), f"Missing sample file: {LENNA_PNG}"
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        secret = "resource secret"
+        out = REPO_ROOT / "tmp_resource.png"
+    
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret)  # returns PIL.Image
+
+tests\Stegano\resource_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'resource secret', generator = None, shift = 0, encoding = 'UTF-8'
+auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/resource_test.py::test_resource_usage_smoke - AttributeE...
+1 failed in 0.41s

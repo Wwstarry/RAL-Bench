@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_scheduler_resource_usage_smoke _____________________
+
+    def test_scheduler_resource_usage_smoke() -> None:
+        """
+        Rough resource-usage sanity check for registering and running many jobs.
+    
+        The goal is to exercise the scheduler with a moderate number of jobs and
+        sample memory and CPU usage, not to enforce a particular limit.
+        """
+        proc = psutil.Process(os.getpid())
+    
+        schedule.clear()
+        calls = 0
+    
+        def job() -> None:
+            nonlocal calls
+            calls += 1
+    
+        # Register a moderate number of jobs
+        for _ in range(300):
+>           schedule.every().seconds.do(job)
+E           AttributeError: 'function' object has no attribute 'do'
+
+tests\Schedule\resource_test.py:41: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/resource_test.py::test_scheduler_resource_usage_smoke
+1 failed in 0.49s

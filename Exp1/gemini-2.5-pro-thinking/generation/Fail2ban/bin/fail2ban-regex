@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+import sys
+import re
+import argparse
+import configparser
+import os
+
+try:
+    from fail2ban.server.filter import IP_REGEX
+except ImportError:
+    print("Error: The 'fail2ban' module was not found.", file=sys.stderr)
+    print("Please install the package or run from the repository root with PYTHONPATH='.'", file=sys.stderr)
+    sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(description="Test Fail2Ban regular expressions.")
+    parser.add_argument("logpath", help="Path to the log file to test.")
+    parser.add_argument("failregex", help="Failregex string or path to a config file containing it.")
+    
+    args = parser.parse_args()
+
+    logpath = args.logpath
+    failregex_arg = args.failregex
+
+    failregex_list = []
+    
+    if os.path.isfile(failregex_arg):
+        config = configparser.ConfigParser()
+        try:
+            config.read(failregex_arg)
+            # For this minimal version, we only check for a specific section
+            if 'sshd' in config and 'failregex' in config['sshd']:
+                failregex_list.append(config['sshd']['failregex'])
+            else:
+                 print(f"Warning: Config file '{failregex_arg}' read, but no [sshd] section with 'failregex' found.", file=sys.stderr)
+        except configparser.Error as e:
+            print(f"Error parsing config file '{failregex_arg}': {e}", file=sys.stderr)
+            return 1
+    else:
+        # Assume it's a raw regex string
+        failregex_list.append(failregex_arg)
+
+    if not failregex_list:
+        print("Error: No failregex patterns to test.", file=sys.stderr)
+        return 1
+
+    print("Running tests")
+    print("=============")
+    print()
+    print(f"Use failregex: {failregex_list}")
+    print(f"Use log file: {logpath}")
+    print()
+
+    results = {
+        "lines": 0,
+        "matches": 0,
+        "misses": 0,
+    }
+
+    compiled_regexes = []
+    for fr in failregex_list:
+        regex_str = fr.replace('<HOST>', f'({IP_REGEX})')
+        compiled_regexes.append(re.compile(regex_str))
+
+    try:
+        with open(logpath, 'r') as f:
+            for line in f:
+                results["lines"] += 1
+                line = line.strip()
+                matched = False
+                for regex in compiled_regexes:
+                    if regex.search(line):
+                        print(f"MATCH: '{line}'")
+                        results["matches"] += 1
+                        matched = True
+                        break
+                if not matched:
+                    results["misses"] += 1
+    except FileNotFoundError:
+        print(f"Error: Log file not found at '{logpath}'", file=sys.stderr)
+        return 1
+    
+    print()
+    print("Results")
+    print("=======")
+    print(f"Lines: {results['lines']} lines")
+    print(f"Matched: {results['matches']} lines")
+    print(f"Missed: {results['misses']} lines")
+    print()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

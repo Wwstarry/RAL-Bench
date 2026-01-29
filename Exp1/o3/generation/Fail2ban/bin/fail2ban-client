@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+"""
+A *stub* implementation of the ``fail2ban-client`` CLI.
+
+It only supports ``--help`` and a few read-only sub-commands that are safe to
+execute in a test environment.
+"""
+import argparse
+import sys
+from pathlib import Path
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Minimal re-implementation – TEST/EDU USE ONLY.",
+    )
+    sub = p.add_subparsers(dest="command")
+
+    sub.add_parser("ping", help="Always returns 'pong'.")
+    sub.add_parser("status", help="Displays a fake status.")
+    info = sub.add_parser("status-jail", help="Show jail status.")
+    info.add_argument("jail", help="Jail name")
+    return p
+
+def main(argv=None) -> None:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    if args.command is None:
+        parser.print_help()
+        return
+
+    if args.command == "ping":
+        print("pong")
+    elif args.command == "status":
+        print("Status\n|- Number of jail: 0\n`- Server ready")
+    elif args.command == "status-jail":
+        print(f"Status for the jail: {args.jail}\n`- No data (stub)")
+    else:  # pragma: no cover
+        parser.error(f"unsupported command {args.command!r}")
+
+if __name__ == "__main__":
+    main()

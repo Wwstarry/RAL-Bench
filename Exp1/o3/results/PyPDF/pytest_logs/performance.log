@@ -1,0 +1,47 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_pypdf_performance_smoke _________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-471/test_pypdf_performance_smoke0')
+
+    def test_pypdf_performance_smoke(tmp_path: Path) -> None:
+        """Smoke test to ensure that the performance benchmark runs successfully."""
+>       metrics = run_pypdf_performance_benchmark(tmp_path)
+
+tests\PyPDF\performance_test.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\performance_test.py:50: in run_pypdf_performance_benchmark
+    pdf_paths = _build_corpus(tmp_dir)
+tests\PyPDF\performance_test.py:43: in _build_corpus
+    _create_pdf_with_pages(path, num_pages=5 + (i % 3))
+tests\PyPDF\performance_test.py:35: in _create_pdf_with_pages
+    writer.write(fp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf._writer.PdfWriter object at 0x0000020EDE91CCD0>
+stream = <_io.BufferedWriter name='C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-471\\test_pypdf_performance_smoke0\\doc_0.pdf'>
+
+    def write(self, stream: Union[str, IO[bytes], io.BufferedIOBase]):
+        """
+        Serialise the current document into *stream*.
+    
+        *stream* may be:
+          \u2022 a str / Path \u2013 interpreted as a file path to open,
+          \u2022 a binary file-like object.
+        """
+        data = dumps_doc(
+            {
+                "pages": [p.to_dict() for p in self._pages],
+                "metadata": self._metadata,
+                "encrypted": self._encrypt_password is not None,
+                "password": self._encrypt_password or "",
+            }
+        )
+    
+>       if isinstance(stream, (str, bytes, io.PathLike)):
+E       AttributeError: module 'io' has no attribute 'PathLike'
+
+generation\PyPDF\pypdf\_writer.py:73: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/performance_test.py::test_pypdf_performance_smoke - Attrib...
+1 failed in 0.36s

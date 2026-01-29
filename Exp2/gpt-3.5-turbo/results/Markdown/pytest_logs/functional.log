@@ -1,0 +1,82 @@
+......F.FFsssssssss                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<pre><code>literal &lt;b&gt; tag in code block\n</code></pre>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+___________________________ test_markdown_from_file ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-339/test_markdown_from_file0')
+
+    def test_markdown_from_file(tmp_path: Path) -> None:
+        src = textwrap.dedent(
+            """
+            # Title from file
+    
+            Some text from file.
+            """
+        )
+        md_path = tmp_path / "input.md"
+        md_path.write_text(src, encoding="utf-8")
+    
+        out_path = tmp_path / "output.html"
+        markdown.markdownFromFile(input=str(md_path), output=str(out_path))
+>       html = out_path.read_text(encoding="utf-8")
+
+tests\Markdown\functional_test.py:247: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1255: in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1241: in open
+    return io.open(self, mode, buffering, encoding, errors, newline,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-339/test_markdown_from_file0/output.html')
+name = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-339\\test_markdown_from_file0\\output.html'
+flags = 32896, mode = 438
+
+    def _opener(self, name, flags, mode=0o666):
+        # A stub for the opener argument to built-in open()
+>       return self._accessor.open(self, flags, mode)
+E       FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-339\\test_markdown_from_file0\\output.html'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\pathlib.py:1109: FileNotFoundError
+_______________________ test_horizontal_rule_renders_hr _______________________
+
+    def test_horizontal_rule_renders_hr() -> None:
+        src = textwrap.dedent(
+            """
+            Paragraph above
+    
+            ---
+    
+            Paragraph below
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<hr" in norm
+E       AssertionError: assert '<hr' in '<p>Paragraph above</p>\n<p>---</p>\n<p>Paragraph below</p>'
+
+tests\Markdown\functional_test.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+FAILED tests/Markdown/functional_test.py::test_markdown_from_file - FileNotFo...
+FAILED tests/Markdown/functional_test.py::test_horizontal_rule_renders_hr - A...
+3 failed, 7 passed, 9 skipped in 0.67s

@@ -1,0 +1,295 @@
+project_name: Imageio
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Imageio\imageio.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Imageio
+timestamp: '2025-12-31 14:54:06'
+functional_score: 0.2
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "F.FFFFFFF.                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________ test_png_roundtrip_with_imread_and_imwrite __________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_roundtrip_with_imread0')\n\
+      \n    def test_png_roundtrip_with_imread_and_imwrite(tmp_path: Path) -> None:\n\
+      \        \"\"\"Exercise a simple PNG roundtrip and verify image shape and data.\"\
+      \"\"\n        img = _make_color_image()\n        path = tmp_path / \"test.png\"\
+      \n    \n        iio.imwrite(path, img)\n        assert path.exists()\n    \n\
+      \        loaded = iio.imread(path)\n        assert isinstance(loaded, np.ndarray)\n\
+      >       assert loaded.shape == img.shape\nE       assert (48, 3, 3) == (32,\
+      \ 48, 3)\nE         \nE         At index 0 diff: 48 != 32\nE         Use -v\
+      \ to get more diff\n\ntests\\Imageio\\functional_test.py:90: AssertionError\n\
+      ____________________ test_improps_and_immeta_basic_fields _____________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_improps_and_immeta_basic_0')\n\
+      \n    def test_improps_and_immeta_basic_fields(tmp_path: Path) -> None:\n  \
+      \      \"\"\"Check that improps and immeta expose basic metadata for a PNG image.\"\
+      \"\"\n        img = _make_color_image(height=40, width=50)\n        path = tmp_path\
+      \ / \"meta_test.png\"\n    \n        iio.imwrite(path, img)\n        assert\
+      \ path.exists()\n    \n        props = iio.improps(path)\n>       assert tuple(props.shape)\
+      \ == img.shape\nE       assert (40, 50, 3, 3) == (40, 50, 3)\nE         \nE\
+      \         Left contains one more item: 3\nE         Use -v to get more diff\n\
+      \ntests\\Imageio\\functional_test.py:122: AssertionError\n_____________________\
+      \ test_png_roundtrip_via_bytes_buffer _____________________\n\n    def test_png_roundtrip_via_bytes_buffer()\
+      \ -> None:\n        \"\"\"Write PNG to in-memory bytes, then read back using\
+      \ extension.\"\"\"\n        img = _make_color_image(height=20, width=31)\n \
+      \   \n>       blob = iio.imwrite(\"<bytes>\", img, extension=\".png\")\nE  \
+      \     TypeError: imwrite() got an unexpected keyword argument 'extension'\n\n\
+      tests\\Imageio\\functional_test.py:139: TypeError\n_____________ test_png_imiter_yields_single_frame_equal_to_image\
+      \ ______________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imiter_yields_single_0')\n\
+      \n    def test_png_imiter_yields_single_frame_equal_to_image(tmp_path: Path)\
+      \ -> None:\n        \"\"\"For a single-image PNG, imiter should yield exactly\
+      \ one frame.\"\"\"\n        img = _make_color_image(height=18, width=22)\n \
+      \       path = tmp_path / \"single.png\"\n    \n        iio.imwrite(path, img)\n\
+      \        assert path.exists()\n    \n        frames = list(iio.imiter(path))\n\
+      >       assert len(frames) == 1\nE       assert 18 == 1\nE        +  where 18\
+      \ = len([array([[[157, 157, 157],\\n        [193, 193, 193],\\n        [255,\
+      \ 255, 255]],\\n\\n       [[178, 178, 178],\\n        [141, 1...     [228, 228,\
+      \ 228]],\\n\\n       [[154, 154, 154],\\n        [109, 109, 109],\\n       \
+      \ [  6,   6,   6]]], dtype=uint8), ...])\n\ntests\\Imageio\\functional_test.py:159:\
+      \ AssertionError\n______________ test_png_imread_accepts_path_and_str_equivalently\
+      \ ______________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imread_accepts_path_a0')\n\
+      \n    def test_png_imread_accepts_path_and_str_equivalently(tmp_path: Path)\
+      \ -> None:\n        \"\"\"Read the same PNG via Path and str(path) and verify\
+      \ identical content.\"\"\"\n        img = _make_color_image(height=25, width=27)\n\
+      \        path = tmp_path / \"path_vs_str.png\"\n    \n        iio.imwrite(path,\
+      \ img)\n        assert path.exists()\n    \n        a = iio.imread(path)\n \
+      \       b = iio.imread(str(path))\n    \n        assert isinstance(a, np.ndarray)\n\
+      \        assert isinstance(b, np.ndarray)\n>       assert a.shape == b.shape\
+      \ == img.shape\nE       assert (27, 3, 3) == (25, 27, 3)\nE         \nE    \
+      \     At index 0 diff: 27 != 25\nE         Use -v to get more diff\n\ntests\\\
+      Imageio\\functional_test.py:178: AssertionError\n___________ test_gif_imread_returns_stack_with_expected_frame_count\
+      \ ___________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_returns_stack_0')\n\
+      \n    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Reading a GIF via imread should produce a stack/sequence\
+      \ with the right number of frames.\"\"\"\n        frames = _make_grayscale_frames(num_frames=5,\
+      \ height=20, width=21)\n        path = tmp_path / \"stack.gif\"\n    \n    \
+      \    iio.imwrite(path, frames)\n        assert path.exists()\n    \n       \
+      \ loaded = iio.imread(path)\n        assert isinstance(loaded, np.ndarray)\n\
+      >       assert loaded.shape[0] == frames.shape[0]\nE       assert 20 == 5\n\n\
+      tests\\Imageio\\functional_test.py:194: AssertionError\n___________ test_gif_imread_index0_matches_first_imiter_frame_shape\
+      \ ___________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_index0_matches0')\n\
+      \n    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Read first GIF frame using both index=0 and\
+      \ imiter; verify consistent spatial shape.\"\"\"\n        frames = _make_grayscale_frames(num_frames=4,\
+      \ height=19, width=23)\n        path = tmp_path / \"index0.gif\"\n    \n   \
+      \     iio.imwrite(path, frames)\n        assert path.exists()\n    \n>     \
+      \  first_by_index = iio.imread(path, index=0)\nE       TypeError: imread() got\
+      \ an unexpected keyword argument 'index'\n\ntests\\Imageio\\functional_test.py:206:\
+      \ TypeError\n_______________________ test_imopen_write_then_read_png _______________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_imopen_write_then_read_pn0')\n\
+      \n    def test_imopen_write_then_read_png(tmp_path: Path) -> None:\n       \
+      \ \"\"\"Use the v3 imopen context manager to write then read a PNG.\"\"\"\n\
+      \        img = _make_color_image(height=16, width=20)\n        path = tmp_path\
+      \ / \"imopen.png\"\n    \n>       with iio.imopen(path, \"w\") as f:\nE    \
+      \   AttributeError: module 'imageio.v3' has no attribute 'imopen'\n\ntests\\\
+      Imageio\\functional_test.py:221: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Imageio/functional_test.py::test_png_roundtrip_with_imread_and_imwrite\n\
+      FAILED tests/Imageio/functional_test.py::test_improps_and_immeta_basic_fields\n\
+      FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer\n\
+      FAILED tests/Imageio/functional_test.py::test_png_imiter_yields_single_frame_equal_to_image\n\
+      FAILED tests/Imageio/functional_test.py::test_png_imread_accepts_path_and_str_equivalently\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape\n\
+      FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...\n\
+      8 failed, 2 passed in 1.19s\n"
+    elapsed_time_s: 2.59291
+    avg_memory_mb: 45.86
+    avg_cpu_percent: 100.0
+    passed: 2
+    failed: 8
+    skipped: 0
+    total: 10
+    score_inputs_passed: 2
+    score_inputs_failed: 8
+    score_inputs_total: 10
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Imageio/performance_test.py ______________\n\
+      tests\\Imageio\\performance_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/performance_test.py\
+      \ - RuntimeError: Unsupported IMAGEIO_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.88s\n"
+    elapsed_time_s: 2.346547
+    avg_memory_mb: 43.71
+    avg_cpu_percent: 96.5
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.827932
+    score_inputs_actual_time_s: 2.346547
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Imageio/resource_test.py _______________\n\
+      tests\\Imageio\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/resource_test.py - RuntimeError:\
+      \ Unsupported IMAGEIO_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.86s\n"
+    elapsed_time_s: 2.368363
+    avg_memory_mb: 44.02
+    avg_cpu_percent: 100.7
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 49.3
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 44.02
+    score_inputs_actual_cpu_pct: 100.7
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.41s
+
+      '
+    elapsed_time_s: 1.903926
+    avg_memory_mb: 41.28
+    avg_cpu_percent: 100.9
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=176.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.488115
+    avg_memory_mb: 31.55
+    avg_cpu_percent: 101.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 176.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=23.4560 files_scanned=2.0 total_loc=176.0 max_cc=21.0
+
+      .
+
+      1 passed in 0.19s
+
+      '
+    elapsed_time_s: 1.541247
+    avg_memory_mb: 31.57
+    avg_cpu_percent: 95.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 23.456
+      files_scanned: 2.0
+      total_loc: 176.0
+      max_cc: 21.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 23.456
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Imageio\pytest_logs

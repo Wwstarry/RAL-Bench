@@ -1,0 +1,54 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_click_robustness_invalid_inputs_do_not_crash ______________
+
+    def test_click_robustness_invalid_inputs_do_not_crash():
+        """
+        Robustness tests should be version-tolerant:
+          - Invalid inputs may raise exceptions (acceptable).
+          - Some invalid inputs may be coerced/ignored (also acceptable).
+        Requirement: no hard crashes; library remains importable and callable.
+        """
+        click = _import_click()
+    
+        results: list[Tuple[bool, str]] = []
+    
+        # 1) Construct basic objects
+        cmd = click.Command(name="test")
+        group = click.Group(name="test_group")
+    
+        # 2) Callback non-callable: assignment may or may not raise; both OK
+        def _set_callback():
+            cmd.callback = "not a function"  # type: ignore[assignment]
+    
+        results.append(_run_case("Command callback set to non-callable", _set_callback))
+    
+        # 3) Option invalid type: signature/validation varies across versions
+        results.append(_run_case("Option with invalid type", click.Option, ["--test"], type="not a type"))  # type: ignore[arg-type]
+    
+        # 4) Group add duplicate command names: may override or raise
+        results.append(_run_case("Group add_command duplicate name", group.add_command, cmd, name="dup"))
+        results.append(_run_case("Group add_command duplicate name again", group.add_command, cmd, name="dup"))
+    
+        # 5) Context creation with valid/None command
+        results.append(_run_case("Context with command", click.Context, cmd))
+        results.append(_run_case("Context with None command", click.Context, None))  # type: ignore[arg-type]
+    
+        # 6) ClickException with None message
+        results.append(_run_case("ClickException with None message", click.ClickException, None))  # type: ignore[arg-type]
+    
+        # 7) Argument invalid type
+        results.append(_run_case("Argument invalid type", click.Argument, ["arg"], type="invalid_type"))  # type: ignore[arg-type]
+    
+        # 8) echo invalid file object
+        results.append(_run_case("echo invalid file", click.echo, "test", file="not a file"))  # type: ignore[arg-type]
+    
+        # 9) Avoid interactive calls (prompt/confirm/pause/edit) - ensure surface exists
+>       assert hasattr(click, "prompt")
+E       AssertionError: assert False
+E        +  where False = hasattr(<module 'click' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Click\\click\\__init__.py'>, 'prompt')
+
+tests\Click\robustness_test.py:127: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash
+1 failed in 0.31s

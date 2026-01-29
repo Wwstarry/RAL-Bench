@@ -1,0 +1,61 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_generate_recurring_schedule_and_group_by_day ______________
+
+    def test_generate_recurring_schedule_and_group_by_day() -> None:
+        """
+        Integration-style test: build a recurring schedule, convert to another
+        timezone, and group events by local calendar day.
+        """
+        # Start from a fixed UTC anchor.
+        start = pendulum.datetime(2022, 1, 1, 8, 0, 0, tz="UTC")
+    
+        # Create a small weekly schedule with three "meetings" per day.
+        meetings_utc = []
+        for day in range(7):
+            for hour in (9, 13, 17):
+                meetings_utc.append(start.add(days=day, hours=hour))
+    
+        tz_tokyo = pendulum.timezone("Asia/Tokyo")
+>       meetings_local = [m.in_timezone(tz_tokyo) for m in meetings_utc]
+
+tests\Pendulum\resource_test.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Pendulum\resource_test.py:47: in <listcomp>
+    meetings_local = [m.in_timezone(tz_tokyo) for m in meetings_utc]
+generation\Pendulum\pendulum\datetime.py:97: in in_timezone
+    tzinfo = _timezone(tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tz = zoneinfo.ZoneInfo(key='Asia/Tokyo')
+
+    def timezone(tz: str | int | float | None = None):
+        """
+        Convert the *tz* specifier to a proper ``tzinfo`` implementation.
+    
+        *tz* accepted values:
+          * ``None`` –> UTC
+          * ``str``  –> resolved through ``zoneinfo.ZoneInfo``
+          * number   –> treated as *seconds* offset from UTC
+        """
+        if tz is None:
+            return UTC
+    
+        # ------------------------------------------------------------------ #
+        # Numeric offset
+        # ------------------------------------------------------------------ #
+        if isinstance(tz, (int, float)):
+            offset = int(math.floor(tz))
+            return _fixed_offset(offset)
+    
+        # ------------------------------------------------------------------ #
+        # String => ZoneInfo
+        # ------------------------------------------------------------------ #
+        if not isinstance(tz, str):
+>           raise TypeError("tz must be None | str | int | float")
+E           TypeError: tz must be None | str | int | float
+
+generation\Pendulum\pendulum\timezone.py:64: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day
+1 failed in 0.51s

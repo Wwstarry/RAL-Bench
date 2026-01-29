@@ -1,0 +1,41 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: run a representative batch workload and verify
+        we can observe process resource info without crashing.
+    
+        Note: The benchmark runner measures subprocess resources.
+        This test is correctness-oriented only.
+        """
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        loc = _london_location()
+        base_date = dt.date(2020, 1, 1)
+    
+        for offset in range(60):
+            d = base_date + dt.timedelta(days=offset)
+>           _ = sun(loc.observer, date=d, tzinfo=loc.timezone)
+
+tests\Astral\resource_test.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:53: in sun
+    times[event] = calculate_event(observer, date, zenith, is_rise, tzinfo)
+generation\Astral\astral\sun.py:23: in calculate_event
+    hour_angle = calculate_hour_angle(observer.latitude, declination, zenith)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+latitude = 'Europe/London', declination = -23.001823663166522, zenith = 96
+
+    def calculate_hour_angle(latitude: float, declination: float, zenith: float) -> float:
+        """Calculate the hour angle for sunrise/sunset."""
+>       latitude_rad = radians(latitude)
+E       TypeError: must be real number, not str
+
+generation\Astral\astral\sun.py:11: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Astral/resource_test.py::test_resource_usage_smoke - TypeError: ...
+1 failed in 0.34s

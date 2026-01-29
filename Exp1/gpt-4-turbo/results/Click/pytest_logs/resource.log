@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_repeated_invocations_memory_usage ____________________
+
+    def test_repeated_invocations_memory_usage():
+        @click.command()
+        @click.option("--times", type=int, default=1)
+        @click.argument("name")
+        def greet(times: int, name: str) -> None:
+            for _ in range(times):
+                click.echo(f"Hello {name}!")
+    
+        runner = CliRunner()
+    
+        before = _memory_mb()
+    
+        for i in range(300):
+            result = runner.invoke(greet, ["--times", "3", f"User-{i}"])
+>           assert result.exit_code == 0
+E           assert 1 == 0
+E            +  where 1 = <click.testing.Result object at 0x0000022BF6D30A30>.exit_code
+
+tests\Click\resource_test.py:45: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Click/resource_test.py::test_repeated_invocations_memory_usage
+1 failed in 0.33s

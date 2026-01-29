@@ -1,0 +1,24 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_requests_performance_smoke _______________________
+
+    def test_requests_performance_smoke() -> None:
+>       m = run_requests_prepare_benchmark(iterations=1000)
+
+tests\Requests\performance_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+iterations = 1000
+
+    def run_requests_prepare_benchmark(iterations: int = 5000) -> Dict[str, float]:
+        s = requests.Session()
+        url = "http://example.invalid/path"  # only used to prepare, not to send
+        t0 = time.perf_counter()
+        for _ in range(iterations):
+>           req = requests.Request("GET", url, headers={"X": "1"})
+E           TypeError: __init__() got an unexpected keyword argument 'headers'
+
+tests\Requests\performance_test.py:43: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Requests/performance_test.py::test_requests_performance_smoke - ...
+1 failed in 0.46s

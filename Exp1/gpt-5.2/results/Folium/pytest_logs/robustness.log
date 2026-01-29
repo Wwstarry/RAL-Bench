@@ -1,0 +1,42 @@
+..F.F                                                                    [100%]
+================================== FAILURES ===================================
+_______________ test_003_geojson_invalid_object_raises_cleanly ________________
+
+    def test_003_geojson_invalid_object_raises_cleanly():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        with pytest.raises(Exception):
+>           folium.GeoJson(object()).add_to(m)
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Folium\robustness_test.py:51: Failed
+________________ test_005_markercluster_handles_empty_cluster _________________
+
+    def test_005_markercluster_handles_empty_cluster():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        MarkerCluster().add_to(m)
+    
+>       html = m.get_root().render().lower()
+
+tests\Folium\robustness_test.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+generation\Folium\folium\map.py:103: in render
+    return fig.render(**kwargs)
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+E   RecursionError: maximum recursion depth exceeded while calling a Python object
+!!! Recursion detected (same locals & position)
+=========================== short test summary info ===========================
+FAILED tests/Folium/robustness_test.py::test_003_geojson_invalid_object_raises_cleanly
+FAILED tests/Folium/robustness_test.py::test_005_markercluster_handles_empty_cluster
+2 failed, 3 passed in 1.77s

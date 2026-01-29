@@ -1,0 +1,1 @@
+from folium.plugins.marker_cluster import MarkerCluster

@@ -1,0 +1,31 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_many_invocations_performance ______________________
+
+    def test_many_invocations_performance():
+        @click.command()
+        @click.option("--count", type=int, default=1)
+        @click.argument("name")
+>       def greet(count: int, name: str) -> None:
+
+tests\Click\performance_test.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000222B54AA460>, decls = ('--count',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+=========================== short test summary info ===========================
+FAILED tests/Click/performance_test.py::test_many_invocations_performance - I...
+1 failed in 0.44s

@@ -1,0 +1,456 @@
+.FFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+_________________________ test_kmf_on_waltons_groups __________________________
+
+    def test_kmf_on_waltons_groups() -> None:
+        """Fit KMF on the Waltons dataset for two groups."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        control = df[df["group"] == "control"]
+        treated = df[df["group"] != "control"]
+    
+        kmf_control = KaplanMeierFitter()
+        kmf_treated = KaplanMeierFitter()
+    
+        kmf_control.fit(control["T"], control["E"], label="control")
+        kmf_treated.fit(treated["T"], treated["E"], label="treated")
+    
+        t = 10.0
+>       s_control = float(kmf_control.predict(t))
+
+tests\Lifelines\functional_test.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\kaplan_meier_fitter.py:80: in predict
+    merged = pd.merge_asof(predict_df, sf_df, on='timeline')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:691: in merge_asof
+    op = _AsOfMerge(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1999: in __init__
+    _OrderedMerge.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1911: in __init__
+    _MergeOperation.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:802: in __init__
+    self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2124: in _maybe_require_matching_dtypes
+    _check_dtype_match(lk, rk, i)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+left = array([10.]), right = array([ 0,  6,  9, 13, 19, 26, 33, 40]), i = 0
+
+    def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        if left.dtype != right.dtype:
+            if isinstance(left.dtype, CategoricalDtype) and isinstance(
+                right.dtype, CategoricalDtype
+            ):
+                # The generic error message is confusing for categoricals.
+                #
+                # In this function, the join keys include both the original
+                # ones of the merge_asof() call, and also the keys passed
+                # to its by= argument. Unordered but equal categories
+                # are not supported for the former, but will fail
+                # later with a ValueError, so we don't *need* to check
+                # for them here.
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, both sides category, but not equal ones"
+                )
+            else:
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, must be the same type"
+                )
+>           raise MergeError(msg)
+E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64') and dtype('int64'), must be the same type
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2120: MergeError
+____________________________ test_coxph_basic_fit _____________________________
+
+self = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x00000237B170AB50>
+X = array([[30,  0],
+       [40,  0],
+       [50,  1],
+       [20,  1],
+       [60,  1],
+       [35,  0],
+       [45,  1],
+       [55,  0]])
+T = array([5, 6, 6, 2, 4, 3, 8, 7]), E = array([1, 0, 1, 1, 1, 0, 1, 1])
+initial_beta = array([0., 0.]), max_iter = 50, tol = 1e-09
+
+    def _newton_rhapson(self, X, T, E, initial_beta, max_iter=50, tol=1e-9):
+        n_features = X.shape[1]
+        beta = np.array(initial_beta, dtype=float)
+    
+        for i in range(max_iter):
+            risk_scores = np.exp(X @ beta)
+            unique_event_times = np.unique(T[E == 1])
+    
+            gradient = np.zeros(n_features)
+            hessian = np.zeros((n_features, n_features))
+            log_likelihood = 0.0
+    
+            for t in sorted(unique_event_times):
+                at_risk_mask = T >= t
+                event_mask = (T == t) & (E == 1)
+                d_i = np.sum(event_mask)
+    
+                if d_i == 0: continue
+    
+                risk_set_X = X[at_risk_mask]
+                risk_set_scores = risk_scores[at_risk_mask]
+    
+                S0 = np.sum(risk_set_scores)
+                if S0 == 0: continue
+    
+                S1 = np.sum(risk_set_X * risk_set_scores[:, np.newaxis], axis=0)
+                S2 = np.sum(np.einsum('ij,ik->ijk', risk_set_X, risk_set_X) * risk_set_scores[:, np.newaxis, np.newaxis], axis=0)
+    
+                event_X_sum = np.sum(X[event_mask], axis=0)
+    
+                log_likelihood += np.sum(X[event_mask] @ beta) - d_i * np.log(S0)
+                gradient += event_X_sum - d_i * (S1 / S0)
+                hessian -= d_i * ((S2 / S0) - np.outer(S1, S1) / (S0 ** 2))
+    
+            try:
+>               inv_hessian = linalg.inv(-hessian)
+
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\linalg\_basic.py:940: in inv
+    a1 = _asarray_validated(a, check_finite=check_finite)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\_util.py:321: in _asarray_validated
+    a = toarray(a)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = array([[nan, nan],
+       [nan, nan]]), dtype = None, order = None
+
+    @set_module('numpy')
+    def asarray_chkfinite(a, dtype=None, order=None):
+        """Convert the input to an array, checking for NaNs or Infs.
+    
+        Parameters
+        ----------
+        a : array_like
+            Input data, in any form that can be converted to an array.  This
+            includes lists, lists of tuples, tuples, tuples of tuples, tuples
+            of lists and ndarrays.  Success requires no NaNs or Infs.
+        dtype : data-type, optional
+            By default, the data-type is inferred from the input data.
+        order : {'C', 'F', 'A', 'K'}, optional
+            Memory layout.  'A' and 'K' depend on the order of input array a.
+            'C' row-major (C-style),
+            'F' column-major (Fortran-style) memory representation.
+            'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise
+            'K' (keep) preserve input order
+            Defaults to 'C'.
+    
+        Returns
+        -------
+        out : ndarray
+            Array interpretation of `a`.  No copy is performed if the input
+            is already an ndarray.  If `a` is a subclass of ndarray, a base
+            class ndarray is returned.
+    
+        Raises
+        ------
+        ValueError
+            Raises ValueError if `a` contains NaN (Not a Number) or Inf (Infinity).
+    
+        See Also
+        --------
+        asarray : Create and array.
+        asanyarray : Similar function which passes through subclasses.
+        ascontiguousarray : Convert input to a contiguous array.
+        asfortranarray : Convert input to an ndarray with column-major
+                         memory order.
+        fromiter : Create an array from an iterator.
+        fromfunction : Construct an array by executing a function on grid
+                       positions.
+    
+        Examples
+        --------
+        Convert a list into an array.  If all elements are finite
+        ``asarray_chkfinite`` is identical to ``asarray``.
+    
+        >>> a = [1, 2]
+        >>> np.asarray_chkfinite(a, dtype=float)
+        array([1., 2.])
+    
+        Raises ValueError if array_like contains Nans or Infs.
+    
+        >>> a = [1, 2, np.inf]
+        >>> try:
+        ...     np.asarray_chkfinite(a)
+        ... except ValueError:
+        ...     print('ValueError')
+        ...
+        ValueError
+    
+        """
+        a = asarray(a, dtype=dtype, order=order)
+        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():
+>           raise ValueError(
+                "array must not contain infs or NaNs")
+E           ValueError: array must not contain infs or NaNs
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\numpy\lib\_function_base_impl.py:649: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_coxph_basic_fit() -> None:
+        """Fit a simple Cox proportional hazards model on a toy dataset."""
+        df = _toy_cox_df()
+    
+        cph = CoxPHFitter()
+>       cph.fit(df, duration_col="duration", event_col="event")
+
+tests\Lifelines\functional_test.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:95: in fit
+    final_beta, final_hessian = self._newton_rhapson(X, T, E, initial_beta)
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:56: in _newton_rhapson
+    inv_hessian = linalg.pinv(-hessian)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\deprecation.py:213: in inner_f
+    return f(*args, **kwargs)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\linalg\_basic.py:1422: in pinv
+    a = _asarray_validated(a, check_finite=check_finite)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\_util.py:321: in _asarray_validated
+    a = toarray(a)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = array([[nan, nan],
+       [nan, nan]]), dtype = None, order = None
+
+    @set_module('numpy')
+    def asarray_chkfinite(a, dtype=None, order=None):
+        """Convert the input to an array, checking for NaNs or Infs.
+    
+        Parameters
+        ----------
+        a : array_like
+            Input data, in any form that can be converted to an array.  This
+            includes lists, lists of tuples, tuples, tuples of tuples, tuples
+            of lists and ndarrays.  Success requires no NaNs or Infs.
+        dtype : data-type, optional
+            By default, the data-type is inferred from the input data.
+        order : {'C', 'F', 'A', 'K'}, optional
+            Memory layout.  'A' and 'K' depend on the order of input array a.
+            'C' row-major (C-style),
+            'F' column-major (Fortran-style) memory representation.
+            'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise
+            'K' (keep) preserve input order
+            Defaults to 'C'.
+    
+        Returns
+        -------
+        out : ndarray
+            Array interpretation of `a`.  No copy is performed if the input
+            is already an ndarray.  If `a` is a subclass of ndarray, a base
+            class ndarray is returned.
+    
+        Raises
+        ------
+        ValueError
+            Raises ValueError if `a` contains NaN (Not a Number) or Inf (Infinity).
+    
+        See Also
+        --------
+        asarray : Create and array.
+        asanyarray : Similar function which passes through subclasses.
+        ascontiguousarray : Convert input to a contiguous array.
+        asfortranarray : Convert input to an ndarray with column-major
+                         memory order.
+        fromiter : Create an array from an iterator.
+        fromfunction : Construct an array by executing a function on grid
+                       positions.
+    
+        Examples
+        --------
+        Convert a list into an array.  If all elements are finite
+        ``asarray_chkfinite`` is identical to ``asarray``.
+    
+        >>> a = [1, 2]
+        >>> np.asarray_chkfinite(a, dtype=float)
+        array([1., 2.])
+    
+        Raises ValueError if array_like contains Nans or Infs.
+    
+        >>> a = [1, 2, np.inf]
+        >>> try:
+        ...     np.asarray_chkfinite(a)
+        ... except ValueError:
+        ...     print('ValueError')
+        ...
+        ValueError
+    
+        """
+        a = asarray(a, dtype=dtype, order=order)
+        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():
+>           raise ValueError(
+                "array must not contain infs or NaNs")
+E           ValueError: array must not contain infs or NaNs
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\numpy\lib\_function_base_impl.py:649: ValueError
+____________________ test_kmf_predict_at_time_zero_is_one _____________________
+
+    def test_kmf_predict_at_time_zero_is_one() -> None:
+        """KMF predict at t=0 should be 1.0 for standard KM survival."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       s0 = float(kmf.predict(0.0))
+
+tests\Lifelines\functional_test.py:141: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\kaplan_meier_fitter.py:80: in predict
+    merged = pd.merge_asof(predict_df, sf_df, on='timeline')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:691: in merge_asof
+    op = _AsOfMerge(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1999: in __init__
+    _OrderedMerge.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1911: in __init__
+    _MergeOperation.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:802: in __init__
+    self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2124: in _maybe_require_matching_dtypes
+    _check_dtype_match(lk, rk, i)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+left = array([0.]), right = array([0, 2, 4, 5, 6]), i = 0
+
+    def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        if left.dtype != right.dtype:
+            if isinstance(left.dtype, CategoricalDtype) and isinstance(
+                right.dtype, CategoricalDtype
+            ):
+                # The generic error message is confusing for categoricals.
+                #
+                # In this function, the join keys include both the original
+                # ones of the merge_asof() call, and also the keys passed
+                # to its by= argument. Unordered but equal categories
+                # are not supported for the former, but will fail
+                # later with a ValueError, so we don't *need* to check
+                # for them here.
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, both sides category, but not equal ones"
+                )
+            else:
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, must be the same type"
+                )
+>           raise MergeError(msg)
+E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64') and dtype('int64'), must be the same type
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2120: MergeError
+________________ test_kmf_predict_is_non_increasing_over_time _________________
+
+    def test_kmf_predict_is_non_increasing_over_time() -> None:
+        """KMF predicted survival should not increase as time increases."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       s1 = float(kmf.predict(1.0))
+
+tests\Lifelines\functional_test.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\kaplan_meier_fitter.py:80: in predict
+    merged = pd.merge_asof(predict_df, sf_df, on='timeline')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:691: in merge_asof
+    op = _AsOfMerge(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1999: in __init__
+    _OrderedMerge.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:1911: in __init__
+    _MergeOperation.__init__(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:802: in __init__
+    self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2124: in _maybe_require_matching_dtypes
+    _check_dtype_match(lk, rk, i)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+left = array([1.]), right = array([0, 2, 4, 5, 6]), i = 0
+
+    def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+        if left.dtype != right.dtype:
+            if isinstance(left.dtype, CategoricalDtype) and isinstance(
+                right.dtype, CategoricalDtype
+            ):
+                # The generic error message is confusing for categoricals.
+                #
+                # In this function, the join keys include both the original
+                # ones of the merge_asof() call, and also the keys passed
+                # to its by= argument. Unordered but equal categories
+                # are not supported for the former, but will fail
+                # later with a ValueError, so we don't *need* to check
+                # for them here.
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, both sides category, but not equal ones"
+                )
+            else:
+                msg = (
+                    f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                    f"{repr(right.dtype)}, must be the same type"
+                )
+>           raise MergeError(msg)
+E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64') and dtype('int64'), must be the same type
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\reshape\merge.py:2120: MergeError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       et = kmf.event_table
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'event_table'
+
+tests\Lifelines\functional_test.py:183: AttributeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+_________________ test_coxph_params_index_matches_covariates __________________
+
+self = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x00000237F0717F10>
+X = array([[30,  0],
+       [40,  0],
+       [50,  1],
+       [20,  1],
+       [60,  1],
+       [35,  0],
+       [45,  1],
+       [55,  0]])
+T = array([5, 6, 6, 2, 4, 3, 8, 7]), E = array([1, 0, 1, 1, 1, 0, 1, 1])
+initial_beta = array([0., 0.]), max_iter = 50, tol = 1e-09
+
+    def _newton_rhapson(self, X, T, E, initial_beta, max_iter=50, tol=1e-9):
+        n_features = X.shape[1]

@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_report_generation_pipeline _______________________
+
+    def test_report_generation_pipeline() -> None:
+        """
+        Integration-like test: simulate a log/report formatting pipeline.
+        Ensures humanize functions can be composed.
+        """
+    
+        base = {
+            "bytes_sent": 123456789,
+            "items_processed": 2345,
+            "start": datetime(2020, 1, 1, 12, 0, 0),
+            "end": datetime(2020, 1, 1, 14, 30, 0),
+        }
+    
+        report = {
+            "size_human": humanize.naturalsize(base["bytes_sent"]),
+            "items": humanize.intcomma(base["items_processed"]),
+            "duration": humanize.naturaldelta(base["end"] - base["start"]),
+>           "finished": humanize.naturaltime(base["end"], when=base["end"]),
+        }
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\resource_test.py:63: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/resource_test.py::test_report_generation_pipeline - Typ...
+1 failed in 0.52s

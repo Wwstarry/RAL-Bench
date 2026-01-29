@@ -1,0 +1,333 @@
+<file:name=astral/__init__.py>
+"""
+Pure Python implementation of the core Astral library for sun and moon calculations.
+"""
+
+__version__ = "3.0.1"  # Mimic a plausible version
+
+class Observer:
+    """Defines the location of an observer on Earth."""
+    def __init__(self, latitude, longitude, elevation=0.0):
+        if not -90.0 <= latitude <= 90.0:
+            raise ValueError("Latitude must be between -90 and 90 degrees")
+        if not -180.0 <= longitude <= 180.0:
+            raise ValueError("Longitude must be between -180 and 180 degrees")
+        
+        self.latitude = float(latitude)
+        self.longitude = float(longitude)
+        self.elevation = float(elevation)
+
+    def __repr__(self):
+        return f"Observer(latitude={self.latitude}, longitude={self.longitude}, elevation={self.elevation})"
+
+
+class LocationInfo:
+    """
+    A class that holds information about a location.
+    It is defined by a name, region, timezone, latitude and longitude.
+    """
+    def __init__(self, name="", region="", timezone="UTC", latitude=0.0, longitude=0.0):
+        self.name = name
+        self.region = region
+        self.timezone = timezone
+        self.latitude = float(latitude)
+        self.longitude = float(longitude)
+        self.observer = Observer(self.latitude, self.longitude)
+
+    def __repr__(self):
+        return f"{self.name}/{self.region}, tz={self.timezone}, lat={self.latitude:.4f}, lon={self.longitude:.4f}"
+
+# Expose submodules for API compatibility
+from . import sun
+from . import moon
+</file:name>
+<file:name=astral/moon.py>
+# astral/moon.py
+import datetime
+
+# Constants for moon phase calculation
+# Based on a simple approximation using a known new moon epoch.
+# Epoch: 2000-01-06 18:14 UTC (a known new moon)
+# Julian day for 2000-01-01 12:00:00 is 2451545.0
+EPOCH_JD = 2451550.2597  # JD for the epoch new moon
+LUNAR_CYCLE = 29.53058868  # Length of a synodic month
+
+def _to_julian_date(dt):
+    """Converts a python date or datetime to Julian Day."""
+    # Ensure we're working with a datetime object for consistency
+    if isinstance(dt, datetime.date) and not isinstance(dt, datetime.datetime):
+        # Use noon to average out the day
+        dt = datetime.datetime.combine(dt, datetime.time(12, 0))
+    
+    # Algorithm from https://en.wikipedia.org/wiki/Julian_day
+    a = (14 - dt.month) // 12
+    y = dt.year + 4800 - a
+    m = dt.month + 12 * a - 3
+    
+    jdn = dt.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100 + y // 400 - 32045
+    
+    # Add the fractional day
+    jd = jdn + (dt.hour - 12) / 24.0 + dt.minute / 1440.0 + dt.second / 86400.0
+    return jd
+
+def phase(date=None):
+    """
+    Calculates the phase of the moon on the specified date.
+
+    Args:
+        date: The date to calculate the phase for. A `datetime.date` or
+              `datetime.datetime` object. Defaults to today.
+
+    Returns:
+        A number from 0 to 27.99..., where:
+            0: New Moon
+            7: First Quarter
+            14: Full Moon
+            21: Last Quarter
+    """
+    if date is None:
+        # Use today's date, not datetime, to match astral's typical usage
+        date = datetime.date.today()
+
+    current_jd = _to_julian_date(date)
+    days_since_epoch = current_jd - EPOCH_JD
+    
+    # Get the fraction of the current lunar cycle
+    phase_fraction = (days_since_epoch / LUNAR_CYCLE) % 1.0
+    
+    # The reference astral library returns a value where 0=New, 7=1st Q, 14=Full, 21=3rd Q.
+    # This corresponds to a 28-day cycle. We scale our 0-1 fraction to that.
+    return phase_fraction * 28.0
+</file:name>
+<file:name=astral/sun.py>
+# astral/sun.py
+import datetime
+import math
+
+# Zenith angles for different sun events, in degrees
+ZENITH_OFFICIAL = 90.833  # Sunrise/sunset
+ZENITH_CIVIL = 96.0       # Civil dawn/dusk
+
+class SunDirection:
+    """Simple enum to signify rising or setting."""
+    RISING = 1
+    SETTING = -1
+
+def _handle_tzinfo(tzinfo):
+    """Converts a string timezone to a tzinfo object if possible."""
+    if hasattr(tzinfo, 'utcoffset'): # Already a tzinfo object
+        return tzinfo
+    
+    if isinstance(tzinfo, str):
+        try:
+            from zoneinfo import ZoneInfo
+            return ZoneInfo(tzinfo)
+        except ImportError:
+            if tzinfo.upper() == 'UTC':
+                return datetime.timezone.utc
+            raise TypeError(
+                "String timezones require Python 3.9+ (zoneinfo). "
+                "Please pass a datetime.tzinfo object instead."
+            )
+    raise TypeError("tzinfo must be a datetime.tzinfo object or a timezone name string.")
+
+
+def _calculate_sun_time(observer, date, tzinfo, zenith, direction):
+    """
+    Core calculation for a sun event (sunrise or sunset).
+    Based on the NOAA algorithm: https://gml.noaa.gov/grad/solcalc/solareqns.PDF
+    """
+    # Step 1: Day of the year
+    day_of_year = date.timetuple().tm_yday
+
+    # Step 2: Convert longitude to hour value and calculate approximate time
+    lng_hour = observer.longitude / 15.0
+    if direction == SunDirection.RISING:
+        t_approx = day_of_year + ((6.0 - lng_hour) / 24.0)
+    else:  # SETTING
+        t_approx = day_of_year + ((18.0 - lng_hour) / 24.0)
+
+    # Step 3: Calculate Sun's mean anomaly
+    m_deg = (0.9856 * t_approx) - 3.289
+    m_rad = math.radians(m_deg)
+
+    # Step 4: Calculate Sun's true longitude
+    l_deg = m_deg + (1.916 * math.sin(m_rad)) + (0.020 * math.sin(2 * m_rad)) + 282.634
+    l_deg = l_deg % 360.0
+    l_rad = math.radians(l_deg)
+
+    # Step 5: Calculate Sun's right ascension (RA)
+    ra_rad = math.atan(0.91764 * math.tan(l_rad))
+    ra_deg = math.degrees(ra_rad)
+    ra_deg = ra_deg % 360.0
+
+    # Adjust RA to be in the same quadrant as L
+    l_quadrant = (math.floor(l_deg / 90.0)) * 90.0
+    ra_quadrant = (math.floor(ra_deg / 90.0)) * 90.0
+    ra_deg = ra_deg + (l_quadrant - ra_quadrant)
+    ra_hour = ra_deg / 15.0
+
+    # Step 6: Calculate Sun's declination
+    sin_dec = 0.39782 * math.sin(l_rad)
+    cos_dec = math.cos(math.asin(sin_dec))
+    dec_rad = math.asin(sin_dec)
+
+    # Step 7: Calculate Sun's local hour angle
+    lat_rad = math.radians(observer.latitude)
+    zenith_rad = math.radians(zenith)
+    
+    cos_h_numerator = math.cos(zenith_rad) - (sin_dec * math.sin(lat_rad))
+    cos_h_denominator = cos_dec * math.cos(lat_rad)
+    
+    if abs(cos_h_denominator) < 1e-9:
+        if cos_h_numerator > 0:
+            raise ValueError("Sun is always below the horizon on this day")
+        else:
+            raise ValueError("Sun is always above the horizon on this day")
+
+    cos_h = cos_h_numerator / cos_h_denominator
+
+    if cos_h > 1.0:
+        raise ValueError("Sun is always below the horizon on this day")
+    if cos_h < -1.0:
+        raise ValueError("Sun is always above the horizon on this day")
+
+    h_rad = math.acos(cos_h)
+    h_deg = math.degrees(h_rad)
+    h_hour = h_deg / 15.0
+
+    # Step 8: Calculate local mean time of event
+    if direction == SunDirection.RISING:
+        t_local = h_hour + ra_hour - (0.06571 * t_approx) - 6.622
+    else:  # SETTING
+        t_local = -h_hour + ra_hour - (0.06571 * t_approx) - 6.622
+
+    # Step 9: Convert to UTC
+    t_utc_hours = t_local - lng_hour
+    
+    event_date = date
+    if t_utc_hours < 0:
+        t_utc_hours += 24.0
+        event_date -= datetime.timedelta(days=1)
+    elif t_utc_hours >= 24:
+        t_utc_hours -= 24.0
+        event_date += datetime.timedelta(days=1)
+
+    hours = int(t_utc_hours)
+    minutes_frac = (t_utc_hours - hours) * 60
+    minutes = int(minutes_frac)
+    seconds_frac = (minutes_frac - minutes) * 60
+    seconds = int(seconds_frac)
+    microseconds = int((seconds_frac - seconds) * 1_000_000)
+
+    utc_dt = datetime.datetime(
+        event_date.year, event_date.month, event_date.day,
+        hours, minutes, seconds, microseconds,
+        tzinfo=datetime.timezone.utc
+    )
+
+    # Step 10: Convert to target timezone
+    return utc_dt.astimezone(tzinfo)
+
+
+def _calculate_noon(observer, date, tzinfo):
+    """Calculates solar noon."""
+    day_of_year = date.timetuple().tm_yday
+    lng_hour = observer.longitude / 15.0
+    
+    t_approx = day_of_year + ((12.0 - lng_hour) / 24.0)
+    m_deg = (0.9856 * t_approx) - 3.289
+    m_rad = math.radians(m_deg)
+    l_deg = m_deg + (1.916 * math.sin(m_rad)) + (0.020 * math.sin(2 * m_rad)) + 282.634
+    l_deg = l_deg % 360.0
+    l_rad = math.radians(l_deg)
+    
+    ra_rad = math.atan(0.91764 * math.tan(l_rad))
+    ra_deg = math.degrees(ra_rad)
+    ra_deg = ra_deg % 360.0
+    
+    l_quadrant = (math.floor(l_deg / 90.0)) * 90.0
+    ra_quadrant = (math.floor(ra_deg / 90.0)) * 90.0
+    ra_deg = ra_deg + (l_quadrant - ra_quadrant)
+    ra_hour = ra_deg / 15.0
+
+    t_local = ra_hour - (0.06571 * t_approx) - 6.622
+    t_utc_hours = t_local - lng_hour
+    
+    event_date = date
+    if t_utc_hours < 0:
+        t_utc_hours += 24.0
+        event_date -= datetime.timedelta(days=1)
+    elif t_utc_hours >= 24:
+        t_utc_hours -= 24.0
+        event_date += datetime.timedelta(days=1)
+
+    hours = int(t_utc_hours)
+    minutes_frac = (t_utc_hours - hours) * 60
+    minutes = int(minutes_frac)
+    seconds_frac = (minutes_frac - minutes) * 60
+    seconds = int(seconds_frac)
+    microseconds = int((seconds_frac - seconds) * 1_000_000)
+
+    utc_dt = datetime.datetime(
+        event_date.year, event_date.month, event_date.day,
+        hours, minutes, seconds, microseconds,
+        tzinfo=datetime.timezone.utc
+    )
+    return utc_dt.astimezone(tzinfo)
+
+
+def sun(observer, date=None, tzinfo=datetime.timezone.utc):
+    """
+    Calculates sun events for the given observer and date.
+    Returns a dictionary containing datetimes for dawn, sunrise, noon, sunset, and dusk.
+    """
+    if date is None:
+        if isinstance(tzinfo, str):
+            tz = _handle_tzinfo(tzinfo)
+            date = datetime.datetime.now(tz).date()
+        elif hasattr(tzinfo, 'utcoffset'):
+            date = datetime.datetime.now(tzinfo).date()
+        else:
+            date = datetime.date.today()
+
+    tz = _handle_tzinfo(tzinfo)
+
+    try:
+        sunrise_dt = _calculate_sun_time(observer, date, tz, ZENITH_OFFICIAL, SunDirection.RISING)
+    except ValueError as e:
+        if "below" in str(e):
+            raise ValueError("Sun never rises on this day at this location") from e
+        elif "above" in str(e):
+            raise ValueError("Sun never sets on this day at this location") from e
+        else:
+            raise e
+
+    return {
+        'dawn': _calculate_sun_time(observer, date, tz, ZENITH_CIVIL, SunDirection.RISING),
+        'sunrise': sunrise_dt,
+        'noon': _calculate_noon(observer, date, tz),
+        'sunset': _calculate_sun_time(observer, date, tz, ZENITH_OFFICIAL, SunDirection.SETTING),
+        'dusk': _calculate_sun_time(observer, date, tz, ZENITH_CIVIL, SunDirection.SETTING),
+    }
+
+def sunrise(observer, date=None, tzinfo=datetime.timezone.utc):
+    """Calculates sunrise time."""
+    return sun(observer, date, tzinfo)['sunrise']
+
+def sunset(observer, date=None, tzinfo=datetime.timezone.utc):
+    """Calculates sunset time."""
+    return sun(observer, date, tzinfo)['sunset']
+
+def dawn(observer, date=None, tzinfo=datetime.timezone.utc):
+    """Calculates dawn time (civil)."""
+    return sun(observer, date, tzinfo)['dawn']
+
+def dusk(observer, date=None, tzinfo=datetime.timezone.utc):
+    """Calculates dusk time (civil)."""
+    return sun(observer, date, tzinfo)['dusk']
+
+def noon(observer, date=None, tzinfo=datetime.timezone.utc):
+    """Calculates solar noon time."""
+    return sun(observer, date, tzinfo)['noon']
+</file:name>

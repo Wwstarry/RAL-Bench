@@ -1,0 +1,41 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_catalog_structure_and_types _______________________
+
+    def test_catalog_structure_and_types() -> None:
+        """The parsed catalog should have the expected nested structure and types."""
+        data = _parse_catalog()
+    
+>       assert "catalog" in data
+E       AssertionError: assert 'catalog' in {'book': [{'@id': 'bk101', 'author': 'Gambardella, Matthew', 'description': 'An in-depth look at creating applications...02', 'author': 'Ralls, Kim', 'description': 'A former architect battles corporate zombies.', 'genre': 'Fantasy', ...}]}
+
+tests\Xmltodict\resource_test.py:59: AssertionError
+_______________________ test_roundtrip_complex_catalog ________________________
+
+    def test_roundtrip_complex_catalog() -> None:
+        """
+        Parsing and then unparsing the complex catalog XML should preserve
+        the logical structure when parsed again.
+        """
+        original_dict = _parse_catalog()
+    
+        xml = xmltodict.unparse(original_dict)
+        round_tripped = xmltodict.parse(xml)
+    
+>       assert round_tripped == original_dict
+E       AssertionError: assert {'@id': 'bk10...antasy'], ...} == {'book': [{'@...ntasy', ...}]}
+E         
+E         Left contains 7 more items:
+E         {'@id': 'bk102',
+E          'author': ['Gambardella, Matthew', 'Ralls, Kim'],
+E          'description': ['An in-depth look at creating applications with XML.',
+E                          'A former architect battles corporate zombies.'],
+E          'genre': ['Computer', 'Fantasy'],...
+E         
+E         ...Full output truncated (20 lines hidden), use '-vv' to show
+
+tests\Xmltodict\resource_test.py:84: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/resource_test.py::test_catalog_structure_and_types - A...
+FAILED tests/Xmltodict/resource_test.py::test_roundtrip_complex_catalog - Ass...
+2 failed in 0.42s

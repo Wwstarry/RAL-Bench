@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_recursive_directory_events _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-307/test_recursive_directory_event0')
+
+    def test_recursive_directory_events(tmp_path: Path) -> None:
+        """Recursive observer should record events in subdirectories."""
+        handler = _Recorder()
+        obs = Observer()
+        obs.schedule(handler, str(tmp_path), recursive=True)
+        obs.start()
+    
+        sub = tmp_path / "sub"
+        sub.mkdir()
+        (sub / "inner.txt").write_text("hello")
+        time.sleep(0.3)
+    
+        obs.stop()
+>       obs.join(timeout=1)
+E       TypeError: join() got an unexpected keyword argument 'timeout'
+
+tests\Watchdog\resource_test.py:52: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Watchdog/resource_test.py::test_recursive_directory_events - Typ...
+1 failed in 1.41s

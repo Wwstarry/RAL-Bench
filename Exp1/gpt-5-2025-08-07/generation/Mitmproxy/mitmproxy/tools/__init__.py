@@ -1,0 +1,1 @@
+# Namespace package for tools frontends (mitmdump, mitmweb). This is a minimal subset.

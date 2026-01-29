@@ -1,0 +1,186 @@
+..FFFFFFFF.F                                                             [100%]
+================================== FAILURES ===================================
+__________________ test_002_create_basic_map_renders_leaflet __________________
+
+    def test_002_create_basic_map_renders_leaflet():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       html = m.get_root().render()
+
+tests\Folium\functional_test.py:47: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\map.py:63: in render
+    if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <odict_iterator object at 0x000001AECF2B4CC0>
+
+>   if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+E   AttributeError: 'NoneType' object has no attribute 'get_name'
+
+generation\Folium\folium\map.py:63: AttributeError
+_________________________ test_003_map_has_html_root __________________________
+
+    def test_003_map_has_html_root():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        root = m.get_root()
+        assert hasattr(root, "render")
+>       html = root.render().lower()
+
+tests\Folium\functional_test.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\map.py:63: in render
+    if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <odict_iterator object at 0x000001AECCFE80E0>
+
+>   if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+E   AttributeError: 'NoneType' object has no attribute 'get_name'
+
+generation\Folium\folium\map.py:63: AttributeError
+__________________ test_004_add_marker_layer_changes_output ___________________
+
+    def test_004_add_marker_layer_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       base = m.get_root().render()
+
+tests\Folium\functional_test.py:67: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\map.py:63: in render
+    if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <odict_iterator object at 0x000001AECF351090>
+
+>   if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+E   AttributeError: 'NoneType' object has no attribute 'get_name'
+
+generation\Folium\folium\map.py:63: AttributeError
+__________________ test_005_add_circle_marker_changes_output __________________
+
+    def test_005_add_circle_marker_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       base = m.get_root().render()
+
+tests\Folium\functional_test.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\map.py:63: in render
+    if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <odict_iterator object at 0x000001AECF30C400>
+
+>   if any(child.get_name().startswith('marker_cluster') for child in self._children.values()):
+E   AttributeError: 'NoneType' object has no attribute 'get_name'
+
+generation\Folium\folium\map.py:63: AttributeError
+__________________ test_006_add_tile_layer_and_layer_control __________________
+
+    def test_006_add_tile_layer_and_layer_control():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+>       folium.TileLayer("OpenStreetMap", name="osm").add_to(m)
+E       AttributeError: 'TileLayer' object has no attribute 'add_to'
+
+tests\Folium\functional_test.py:92: AttributeError
+__________________ test_007_geojson_adds_feature_collection ___________________
+
+    def test_007_geojson_adds_feature_collection():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"name": "p"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       folium.GeoJson(gj, name="g").add_to(m)
+E       AttributeError: 'GeoJson' object has no attribute 'add_to'
+
+tests\Folium\functional_test.py:115: AttributeError
+_________________ test_008_geojson_style_function_serializes __________________
+
+    def test_008_geojson_style_function_serializes():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"style": "x"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        def style_fn(feature):
+            _ = feature
+            return {"color": "red", "weight": 2}
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       folium.GeoJson(gj, style_function=style_fn).add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'style_function'
+
+tests\Folium\functional_test.py:141: TypeError
+________________________ test_009_map_save_writes_html ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-334/test_009_map_save_writes_html0')
+
+    def test_009_map_save_writes_html(tmp_path: Path):
+        _prepend_import_path()
+        import folium
+    
+        out = tmp_path / "m.html"
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       m.save(str(out))
+E       AttributeError: 'Map' object has no attribute 'save'
+
+tests\Folium\functional_test.py:153: AttributeError
+_________________ test_011_markercluster_adds_cluster_snippet _________________
+
+    def test_011_markercluster_adds_cluster_snippet():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       mc = MarkerCluster(name="mc").add_to(m)
+E       AttributeError: 'MarkerCluster' object has no attribute 'add_to'
+
+tests\Folium\functional_test.py:174: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/functional_test.py::test_002_create_basic_map_renders_leaflet
+FAILED tests/Folium/functional_test.py::test_003_map_has_html_root - Attribut...
+FAILED tests/Folium/functional_test.py::test_004_add_marker_layer_changes_output
+FAILED tests/Folium/functional_test.py::test_005_add_circle_marker_changes_output
+FAILED tests/Folium/functional_test.py::test_006_add_tile_layer_and_layer_control
+FAILED tests/Folium/functional_test.py::test_007_geojson_adds_feature_collection
+FAILED tests/Folium/functional_test.py::test_008_geojson_style_function_serializes
+FAILED tests/Folium/functional_test.py::test_009_map_save_writes_html - Attri...
+FAILED tests/Folium/functional_test.py::test_011_markercluster_adds_cluster_snippet
+9 failed, 3 passed in 0.72s

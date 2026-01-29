@@ -1,0 +1,76 @@
+.....FFFF.F..F.                                                          [100%]
+================================== FAILURES ===================================
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+        et = kmf.event_table
+        for col in ["removed", "observed", "censored", "at_risk"]:
+>           assert col in et.columns
+E           AssertionError: assert 'removed' in Index(['at_risk', 'observed'], dtype='object')
+E            +  where Index(['at_risk', 'observed'], dtype='object') =    at_risk  observed\n2        6         1\n3        5         0\n4        4         1\n5        3         1\n6        2         1.columns
+
+tests\Lifelines\functional_test.py:185: AssertionError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       bch = cph.baseline_cumulative_hazard_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'
+
+tests\Lifelines\functional_test.py:225: AttributeError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+6 failed, 9 passed in 3.53s

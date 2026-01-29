@@ -1,0 +1,164 @@
+FFFFFFFF.sFFF                                                            [100%]
+================================== FAILURES ===================================
+_____________________ test_parse_and_timezone_conversion ______________________
+
+    def test_parse_and_timezone_conversion() -> None:
+        """Parse an ISO string and convert between timezones."""
+>       dt_utc = pendulum.parse("2020-01-01T12:00:00+00:00")
+
+tests\Pendulum\functional_test.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:138: in parse
+    return DateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <DateTime 2020-01-01T12:00:00Z>, year = 2020, month = 1, day = 1
+hour = 12, minute = 0, second = 0, microsecond = 0, tz = datetime.timezone.utc
+
+    def __init__(self, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        self._dt = _dt(year, month, day, hour, minute, second, microsecond)
+        if tz is None:
+            self._tz = local_timezone()
+        elif isinstance(tz, str):
+            self._tz = _timezone(tz)
+        elif isinstance(tz, Timezone):
+            self._tz = tz
+        else:
+>           raise ValueError("Invalid timezone argument")
+E           ValueError: Invalid timezone argument
+
+generation\Pendulum\pendulum\datetime.py:18: ValueError
+____________________ test_datetime_arithmetic_and_duration ____________________
+
+    def test_datetime_arithmetic_and_duration() -> None:
+        """Basic arithmetic with pendulum.datetime and pendulum.duration."""
+        base = pendulum.datetime(2021, 3, 15, 10, 30, 0, tz="UTC")
+    
+        shifted = base.add(days=2, hours=5, minutes=15)
+        delta = shifted - base
+    
+        assert delta.days == 2
+        assert delta.seconds == 5 * 60 * 60 + 15 * 60
+    
+        dur = pendulum.duration(days=3, hours=4)
+>       via_duration = base + dur
+E       TypeError: unsupported operand type(s) for +: 'DateTime' and 'Duration'
+
+tests\Pendulum\functional_test.py:96: TypeError
+_________________________ test_diff_for_humans_months _________________________
+
+    def test_diff_for_humans_months() -> None:
+        """Human-readable differences between two datetimes."""
+        start = pendulum.datetime(2011, 8, 1, tz="UTC")
+        end = start.add(months=1)
+    
+        text = start.diff_for_humans(end)
+>       assert "month" in text
+E       AssertionError: assert 'month' in '31 days before'
+
+tests\Pendulum\functional_test.py:107: AssertionError
+_____________________ test_parse_date_only_to_date_string _____________________
+
+    def test_parse_date_only_to_date_string() -> None:
+        """Parse a date-only string and verify normalized date output."""
+>       d = pendulum.parse("2020-02-29")
+
+tests\Pendulum\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:135: in parse
+    dt, parsed_tz = parse_iso8601(dt_str)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+dt_str = '2020-02-29'
+
+    def parse_iso8601(dt_str):
+        # Returns (datetime, tzinfo or None)
+        # Example: 2020-01-01T12:34:56Z, 2020-01-01T12:34:56+02:00
+        iso_re = re.compile(
+            r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+            r"[T ](?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})"
+            r"(?:\.(?P<microsecond>\d{1,6}))?"
+            r"(?P<tz>Z|[+-]\d{2}:\d{2})?$"
+        )
+        m = iso_re.match(dt_str)
+        if not m:
+>           raise ValueError(f"Invalid ISO-8601 datetime string: {dt_str}")
+E           ValueError: Invalid ISO-8601 datetime string: 2020-02-29
+
+generation\Pendulum\pendulum\formatting.py:32: ValueError
+__________________ test_datetime_to_iso8601_string_roundtrip __________________
+
+    def test_datetime_to_iso8601_string_roundtrip() -> None:
+        """Create a datetime and verify ISO8601 string contains expected offset."""
+        dt = pendulum.datetime(2020, 1, 1, 12, 0, 0, tz="UTC")
+>       iso = dt.to_iso8601_string()
+E       AttributeError: 'DateTime' object has no attribute 'to_iso8601_string'
+
+tests\Pendulum\functional_test.py:127: AttributeError
+_____________________ test_formatting_with_custom_pattern _____________________
+
+    def test_formatting_with_custom_pattern() -> None:
+        """Verify formatting with a custom pattern is stable for a fixed datetime."""
+        dt = pendulum.datetime(2021, 12, 31, 23, 59, 58, tz="UTC")
+>       s = dt.format("YYYY/MM/DD HH:mm:ss")
+E       AttributeError: 'DateTime' object has no attribute 'format'
+
+tests\Pendulum\functional_test.py:136: AttributeError
+__________________________ test_start_of_end_of_day ___________________________
+
+    def test_start_of_end_of_day() -> None:
+        """Check start_of and end_of for a day boundary."""
+        dt = pendulum.datetime(2020, 5, 20, 13, 14, 15, tz="UTC")
+    
+>       sod = dt.start_of("day")
+E       AttributeError: 'DateTime' object has no attribute 'start_of'
+
+tests\Pendulum\functional_test.py:144: AttributeError
+_____________________ test_weekday_and_isoweekday_values ______________________
+
+    def test_weekday_and_isoweekday_values() -> None:
+        """Validate weekday values for a known date (2020-01-01 is Wednesday)."""
+>       dt = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:155: AttributeError
+_____________________ test_in_timezone_preserves_instant ______________________
+
+    def test_in_timezone_preserves_instant() -> None:
+        """Converting timezones should preserve the instant (timestamp)."""
+        dt_utc = pendulum.datetime(2020, 6, 1, 0, 0, 0, tz="UTC")
+        dt_ny = dt_utc.in_timezone("America/New_York")
+    
+>       assert int(dt_utc.timestamp()) == int(dt_ny.timestamp())
+E       AttributeError: 'DateTime' object has no attribute 'timestamp'
+
+tests\Pendulum\functional_test.py:201: AttributeError
+________________________ test_diff_in_days_is_integer _________________________
+
+    def test_diff_in_days_is_integer() -> None:
+        """Compute diff in days between two dates."""
+>       a = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:207: AttributeError
+____________________ test_add_months_across_year_boundary _____________________
+
+    def test_add_months_across_year_boundary() -> None:
+        """Add months and verify year boundary transitions."""
+>       dt = pendulum.date(2019, 12, 15)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:217: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/functional_test.py::test_parse_and_timezone_conversion
+FAILED tests/Pendulum/functional_test.py::test_datetime_arithmetic_and_duration
+FAILED tests/Pendulum/functional_test.py::test_diff_for_humans_months - Asser...
+FAILED tests/Pendulum/functional_test.py::test_parse_date_only_to_date_string
+FAILED tests/Pendulum/functional_test.py::test_datetime_to_iso8601_string_roundtrip
+FAILED tests/Pendulum/functional_test.py::test_formatting_with_custom_pattern
+FAILED tests/Pendulum/functional_test.py::test_start_of_end_of_day - Attribut...
+FAILED tests/Pendulum/functional_test.py::test_weekday_and_isoweekday_values
+FAILED tests/Pendulum/functional_test.py::test_in_timezone_preserves_instant
+FAILED tests/Pendulum/functional_test.py::test_diff_in_days_is_integer - Attr...
+FAILED tests/Pendulum/functional_test.py::test_add_months_across_year_boundary
+11 failed, 1 passed, 1 skipped in 0.48s

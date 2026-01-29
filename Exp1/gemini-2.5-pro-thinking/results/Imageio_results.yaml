@@ -1,0 +1,383 @@
+project_name: Imageio
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Imageio\imageio.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Imageio
+timestamp: '2026-01-01 20:05:33'
+functional_score: 0.4
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.F..FFFF                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________ test_gif_multiframe_roundtrip_with_imiter __________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_multiframe_roundtrip_0')\n\
+      \n    def test_gif_multiframe_roundtrip_with_imiter(tmp_path: Path) -> None:\n\
+      \        \"\"\"Write a small animated GIF and iterate frames using imiter.\"\
+      \"\"\n        frames = _make_grayscale_frames(num_frames=6, height=24, width=24)\n\
+      \        path = tmp_path / \"anim.gif\"\n    \n>       iio.imwrite(path, frames)\n\
+      \ntests\\Imageio\\functional_test.py:100: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Imageio\\imageio\\\
+      v3.py:64: in imwrite\n    _gif_write(path, image)\n_ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\npath = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_multiframe_roundtrip_0/anim.gif')\n\
+      images = array([[[175,  48,   5, ..., 108, 239,  95],\n        [239,  95,  27,\
+      \ ..., 228,  72, 250],\n        [155, 220,  51, ...,...99, 236, 251],\n    \
+      \    [120, 166, 247, ..., 100, 131,  54],\n        [ 79, 139,  45, ..., 112,\
+      \ 215,  45]]], dtype=uint8)\n\n    def _gif_write(path: pathlib.Path, images:\
+      \ np.ndarray):\n        # images shape: (N, H, W) or (N, H, W, 1) or (N, H,\
+      \ W, 3)\n        n, h, w = images.shape[:3]\n    \n        is_grayscale = images.ndim\
+      \ == 3 or (images.ndim == 4 and images.shape[3] == 1)\n    \n        with open(path,\
+      \ \"wb\") as f:\n            # Header\n            f.write(b\"GIF89a\")\n  \
+      \  \n            # Logical Screen Descriptor\n            palette: Optional[np.ndarray]\
+      \ = None\n            if is_grayscale:\n                palette = np.arange(256,\
+      \ dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)\n            else: # RGB\n\
+      \                # Simple palette generation from first frame\n            \
+      \    pixels = images[0].reshape(-1, 3)\n                unique_colors, inverse\
+      \ = np.unique(pixels, axis=0, return_inverse=True)\n                if len(unique_colors)\
+      \ > 256:\n                    raise ValueError(\"GIF supports a maximum of 256\
+      \ colors per frame.\")\n                palette = np.zeros((256, 3), dtype=np.uint8)\n\
+      \                palette[:len(unique_colors)] = unique_colors\n    \n      \
+      \      palette_size_log2 = (len(palette) - 1).bit_length() - 1\n           \
+      \ packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size\n\
+      >           f.write(struct.pack(\"<HHB_B\", w, h, packed, 0))\nE           struct.error:\
+      \ bad char in struct format\n\ngeneration\\Imageio\\imageio\\v3.py:526: error\n\
+      _____________________ test_png_roundtrip_via_bytes_buffer _____________________\n\
+      \n    def test_png_roundtrip_via_bytes_buffer() -> None:\n        \"\"\"Write\
+      \ PNG to in-memory bytes, then read back using extension.\"\"\"\n        img\
+      \ = _make_color_image(height=20, width=31)\n    \n>       blob = iio.imwrite(\"\
+      <bytes>\", img, extension=\".png\")\n\ntests\\Imageio\\functional_test.py:139:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\nuri = '<bytes>'\nimage = array([[[157, 193, 255],\n        [178,\
+      \ 141, 177],\n        [ 50,  58, 222],\n        ...,\n        [249,   7, 141],\n\
+      \     ...[  9, 234,  27],\n        ...,\n        [219, 110, 131],\n        [255,\
+      \ 135, 132],\n        [203,  36, 116]]], dtype=uint8)\nkwargs = {'extension':\
+      \ '.png'}, path = WindowsPath('<bytes>'), ext = ''\n\n    def imwrite(uri: Union[str,\
+      \ pathlib.Path], image: np.ndarray, **kwargs):\n        \"\"\"\n        Writes\
+      \ an image to the given path.\n        \"\"\"\n        path = pathlib.Path(uri)\n\
+      \        image = np.asarray(image)\n        ext = path.suffix.lower()\n    \n\
+      \        if image.dtype != np.uint8:\n            raise TypeError(\"Only uint8\
+      \ images are supported.\")\n    \n        if ext == \".png\":\n            is_sequence\
+      \ = (image.ndim == 3 and image.shape[2] not in (1, 3, 4)) or image.ndim >= 4\n\
+      \            if is_sequence:\n                raise ValueError(\"PNG format\
+      \ does not support image sequences.\")\n            _png_write(path, image)\n\
+      \        elif ext == \".gif\":\n            is_single_frame = (image.ndim ==\
+      \ 2) or (image.ndim == 3 and image.shape[2] in (1, 3, 4))\n            if is_single_frame:\n\
+      \                image = image[np.newaxis, ...]\n            _gif_write(path,\
+      \ image)\n        else:\n>           raise ValueError(f\"Unsupported file extension\
+      \ for writing: {ext}\")\nE           ValueError: Unsupported file extension\
+      \ for writing:\n\ngeneration\\Imageio\\imageio\\v3.py:66: ValueError\n___________\
+      \ test_gif_imread_returns_stack_with_expected_frame_count ___________\n\ntmp_path\
+      \ = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_returns_stack_0')\n\
+      \n    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Reading a GIF via imread should produce a stack/sequence\
+      \ with the right number of frames.\"\"\"\n        frames = _make_grayscale_frames(num_frames=5,\
+      \ height=20, width=21)\n        path = tmp_path / \"stack.gif\"\n    \n>   \
+      \    iio.imwrite(path, frames)\n\ntests\\Imageio\\functional_test.py:189: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration\\Imageio\\imageio\\v3.py:64: in imwrite\n    _gif_write(path,\
+      \ image)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _\n\npath = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_returns_stack_0/stack.gif')\n\
+      images = array([[[175,  48,   5, ..., 173,  66,  93],\n        [108, 239,  95,\
+      \ ...,  84,  50,  73],\n        [  3,  59, 140, ...,...18,  26, 217],\n    \
+      \    [255, 220, 204, ...,  46,  65,  79],\n        [235, 162, 251, ..., 155,\
+      \  10, 108]]], dtype=uint8)\n\n    def _gif_write(path: pathlib.Path, images:\
+      \ np.ndarray):\n        # images shape: (N, H, W) or (N, H, W, 1) or (N, H,\
+      \ W, 3)\n        n, h, w = images.shape[:3]\n    \n        is_grayscale = images.ndim\
+      \ == 3 or (images.ndim == 4 and images.shape[3] == 1)\n    \n        with open(path,\
+      \ \"wb\") as f:\n            # Header\n            f.write(b\"GIF89a\")\n  \
+      \  \n            # Logical Screen Descriptor\n            palette: Optional[np.ndarray]\
+      \ = None\n            if is_grayscale:\n                palette = np.arange(256,\
+      \ dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)\n            else: # RGB\n\
+      \                # Simple palette generation from first frame\n            \
+      \    pixels = images[0].reshape(-1, 3)\n                unique_colors, inverse\
+      \ = np.unique(pixels, axis=0, return_inverse=True)\n                if len(unique_colors)\
+      \ > 256:\n                    raise ValueError(\"GIF supports a maximum of 256\
+      \ colors per frame.\")\n                palette = np.zeros((256, 3), dtype=np.uint8)\n\
+      \                palette[:len(unique_colors)] = unique_colors\n    \n      \
+      \      palette_size_log2 = (len(palette) - 1).bit_length() - 1\n           \
+      \ packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size\n\
+      >           f.write(struct.pack(\"<HHB_B\", w, h, packed, 0))\nE           struct.error:\
+      \ bad char in struct format\n\ngeneration\\Imageio\\imageio\\v3.py:526: error\n\
+      ___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_index0_matches0')\n\
+      \n    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path:\
+      \ Path) -> None:\n        \"\"\"Read first GIF frame using both index=0 and\
+      \ imiter; verify consistent spatial shape.\"\"\"\n        frames = _make_grayscale_frames(num_frames=4,\
+      \ height=19, width=23)\n        path = tmp_path / \"index0.gif\"\n    \n>  \
+      \     iio.imwrite(path, frames)\n\ntests\\Imageio\\functional_test.py:203: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\ngeneration\\Imageio\\imageio\\v3.py:64: in imwrite\n    _gif_write(path,\
+      \ image)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _\n\npath = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_index0_matches0/index0.gif')\n\
+      images = array([[[175,  48,   5, ...,  93, 108, 239],\n        [ 95, 239,  95,\
+      \ ...,  59, 140, 228],\n        [ 72, 250, 155, ...,...57, 165, 255],\n    \
+      \    [ 18,  28,  29, ..., 155, 216, 213],\n        [219, 124,  59, ..., 250,\
+      \ 200, 138]]], dtype=uint8)\n\n    def _gif_write(path: pathlib.Path, images:\
+      \ np.ndarray):\n        # images shape: (N, H, W) or (N, H, W, 1) or (N, H,\
+      \ W, 3)\n        n, h, w = images.shape[:3]\n    \n        is_grayscale = images.ndim\
+      \ == 3 or (images.ndim == 4 and images.shape[3] == 1)\n    \n        with open(path,\
+      \ \"wb\") as f:\n            # Header\n            f.write(b\"GIF89a\")\n  \
+      \  \n            # Logical Screen Descriptor\n            palette: Optional[np.ndarray]\
+      \ = None\n            if is_grayscale:\n                palette = np.arange(256,\
+      \ dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)\n            else: # RGB\n\
+      \                # Simple palette generation from first frame\n            \
+      \    pixels = images[0].reshape(-1, 3)\n                unique_colors, inverse\
+      \ = np.unique(pixels, axis=0, return_inverse=True)\n                if len(unique_colors)\
+      \ > 256:\n                    raise ValueError(\"GIF supports a maximum of 256\
+      \ colors per frame.\")\n                palette = np.zeros((256, 3), dtype=np.uint8)\n\
+      \                palette[:len(unique_colors)] = unique_colors\n    \n      \
+      \      palette_size_log2 = (len(palette) - 1).bit_length() - 1\n           \
+      \ packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size\n\
+      >           f.write(struct.pack(\"<HHB_B\", w, h, packed, 0))\nE           struct.error:\
+      \ bad char in struct format\n\ngeneration\\Imageio\\imageio\\v3.py:526: error\n\
+      _______________________ test_imopen_write_then_read_png _______________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_imopen_write_then_read_pn0')\n\
+      \n    def test_imopen_write_then_read_png(tmp_path: Path) -> None:\n       \
+      \ \"\"\"Use the v3 imopen context manager to write then read a PNG.\"\"\"\n\
+      \        img = _make_color_image(height=16, width=20)\n        path = tmp_path\
+      \ / \"imopen.png\"\n    \n>       with iio.imopen(path, \"w\") as f:\nE    \
+      \   AttributeError: module 'imageio.v3' has no attribute 'imopen'\n\ntests\\\
+      Imageio\\functional_test.py:221: AttributeError\n____________ test_improps_for_gif_has_expected_spatial_dimensions\
+      \ _____________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_improps_for_gif_has_expec0')\n\
+      \n    def test_improps_for_gif_has_expected_spatial_dimensions(tmp_path: Path)\
+      \ -> None:\n        \"\"\"improps on a GIF should include the written frame\
+      \ height/width in its reported shape.\n    \n        In practice, different\
+      \ plugins/paths can report shapes like:\n          - (T, H, W)\n          -\
+      \ (T, H, W, C)\n          - (H, W, C)\n          - (W, H, C)\n        Therefore\
+      \ we validate that the expected H and W appear somewhere in props.shape,\n \
+      \       without assuming their exact positions.\n        \"\"\"\n        frames\
+      \ = _make_grayscale_frames(num_frames=3, height=17, width=19)\n        path\
+      \ = tmp_path / \"props.gif\"\n    \n>       iio.imwrite(path, frames)\n\ntests\\\
+      Imageio\\functional_test.py:248: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Imageio\\imageio\\v3.py:64:\
+      \ in imwrite\n    _gif_write(path, image)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\npath = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_improps_for_gif_has_expec0/props.gif')\n\
+      images = array([[[175,  48,   5,  97, 162,  98,  32, 180, 237, 234,  27, 119,\n\
+      \         129, 130, 192, 109,  49,  37, 173],\n    ...193, 108,  94, 224, 102,\
+      \  31,  61, 217, 175, 231, 194, 199,\n          97, 107,  97,  61, 152,  69,\
+      \ 111]]], dtype=uint8)\n\n    def _gif_write(path: pathlib.Path, images: np.ndarray):\n\
+      \        # images shape: (N, H, W) or (N, H, W, 1) or (N, H, W, 3)\n       \
+      \ n, h, w = images.shape[:3]\n    \n        is_grayscale = images.ndim == 3\
+      \ or (images.ndim == 4 and images.shape[3] == 1)\n    \n        with open(path,\
+      \ \"wb\") as f:\n            # Header\n            f.write(b\"GIF89a\")\n  \
+      \  \n            # Logical Screen Descriptor\n            palette: Optional[np.ndarray]\
+      \ = None\n            if is_grayscale:\n                palette = np.arange(256,\
+      \ dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)\n            else: # RGB\n\
+      \                # Simple palette generation from first frame\n            \
+      \    pixels = images[0].reshape(-1, 3)\n                unique_colors, inverse\
+      \ = np.unique(pixels, axis=0, return_inverse=True)\n                if len(unique_colors)\
+      \ > 256:\n                    raise ValueError(\"GIF supports a maximum of 256\
+      \ colors per frame.\")\n                palette = np.zeros((256, 3), dtype=np.uint8)\n\
+      \                palette[:len(unique_colors)] = unique_colors\n    \n      \
+      \      palette_size_log2 = (len(palette) - 1).bit_length() - 1\n           \
+      \ packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size\n\
+      >           f.write(struct.pack(\"<HHB_B\", w, h, packed, 0))\nE           struct.error:\
+      \ bad char in struct format\n\ngeneration\\Imageio\\imageio\\v3.py:526: error\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_multiframe_roundtrip_with_imiter\n\
+      FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count\n\
+      FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape\n\
+      FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...\n\
+      FAILED tests/Imageio/functional_test.py::test_improps_for_gif_has_expected_spatial_dimensions\n\
+      6 failed, 4 passed in 1.08s\n"
+    elapsed_time_s: 23.272221
+    avg_memory_mb: 45.05
+    avg_cpu_percent: 0.85
+    passed: 4
+    failed: 6
+    skipped: 0
+    total: 10
+    score_inputs_passed: 4
+    score_inputs_failed: 6
+    score_inputs_total: 10
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Imageio/performance_test.py ______________\n\
+      tests\\Imageio\\performance_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/performance_test.py\
+      \ - RuntimeError: Unsupported IMAGEIO_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.69s\n"
+    elapsed_time_s: 1.901519
+    avg_memory_mb: 43.7
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.827932
+    score_inputs_actual_time_s: 1.901519
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Imageio/resource_test.py _______________\n\
+      tests\\Imageio\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/resource_test.py - RuntimeError:\
+      \ Unsupported IMAGEIO_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.66s\n"
+    elapsed_time_s: 1.883838
+    avg_memory_mb: 44.38
+    avg_cpu_percent: 97.3
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 49.3
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 44.38
+    score_inputs_actual_cpu_pct: 97.3
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.31s
+
+      '
+    elapsed_time_s: 1.506545
+    avg_memory_mb: 40.08
+    avg_cpu_percent: 96.7
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=443.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.343692
+    avg_memory_mb: 32.41
+    avg_cpu_percent: 96.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 443.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=10.2512 files_scanned=2.0 total_loc=443.0 max_cc=25.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.392201
+    avg_memory_mb: 32.39
+    avg_cpu_percent: 97.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 10.2512
+      files_scanned: 2.0
+      total_loc: 443.0
+      max_cc: 25.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 10.2512
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Imageio\pytest_logs

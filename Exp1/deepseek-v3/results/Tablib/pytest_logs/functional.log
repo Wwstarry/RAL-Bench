@@ -1,0 +1,103 @@
+.F..F...F.F                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001AECEAAF610>, fmt = 'tsv'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            return self.csv
+        elif fmt == 'json':
+            return self.json
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:120: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001AECEAB0A90>, fmt = 'html'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            return self.csv
+        elif fmt == 'json':
+            return self.json
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:120: ValueError
+_________________ test_databook_add_sheet_and_iteration_order _________________
+
+    def test_databook_add_sheet_and_iteration_order() -> None:
+        """Databook should allow adding sheets and preserve the order in iteration."""
+        s1 = tablib.Dataset((1, "x"), headers=("id", "val"))
+        s1.title = "S1"
+        s2 = tablib.Dataset((2, "y"), headers=("id", "val"))
+        s2.title = "S2"
+    
+        book = tablib.Databook([s1])
+    
+        if hasattr(book, "add_sheet"):
+            book.add_sheet(s2)  # type: ignore[attr-defined]
+        else:
+            # Fallback: reconstruct via the public constructor (still normal usage).
+            book = tablib.Databook([s1, s2])
+    
+        assert book.size == 2
+    
+        sheets = _iter_databook_sheets(book)
+        assert len(sheets) == 2
+        assert sheets[0].title == "S1"
+        assert sheets[1].title == "S2"
+>       assert sheets[0][0] == (1, "x")
+E       AssertionError: assert ('1', 'x') == (1, 'x')
+E         
+E         At index 0 diff: '1' != 1
+E         Use -v to get more diff
+
+tests\Tablib\functional_test.py:365: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_add_sheet_and_iteration_order
+4 failed, 7 passed in 0.52s

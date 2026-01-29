@@ -1,0 +1,37 @@
+....F...F                                                                [100%]
+================================== FAILURES ===================================
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       AssertionError: assert None is not None
+E        +  where None = <function search at 0x000001E23BE399D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized argument: --batch\n')
+E        +    where <function search at 0x000001E23BE399D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+__________ test_009_unicode_output_dir_argument_stable_in_help_mode ___________
+
+    def test_009_unicode_output_dir_argument_stable_in_help_mode():
+        root = _project_root()
+        out_dir = root / "generation" / "Sqlmap" / "tmp_输出"
+        out_dir.mkdir(parents=True, exist_ok=True)
+    
+        p = _run_cli(["-h", "--output-dir", str(out_dir)], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...p.py: error: unrecognized arguments: --output-dir D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Sqlmap\\tmp_输出\n').returncode
+
+tests\Sqlmap\functional_test.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+FAILED tests/Sqlmap/functional_test.py::test_009_unicode_output_dir_argument_stable_in_help_mode
+2 failed, 7 passed in 2.00s

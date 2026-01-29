@@ -1,0 +1,1 @@
+# This file makes the 'mailpile' directory a Python package.

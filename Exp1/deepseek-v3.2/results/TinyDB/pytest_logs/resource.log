@@ -1,0 +1,46 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_task_database_integration ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-332/test_task_database_integration0')
+
+    def test_task_database_integration(tmp_path: Path) -> None:
+        """
+        End-to-end integration test for TinyDB as a local task manager backend.
+        """
+        db_path = tmp_path / "tasks.json"
+>       stats = _build_task_database(db_path, num_tasks=250)
+
+tests\TinyDB\resource_test.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+db_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-332/test_task_database_integration0/tasks.json')
+num_tasks = 250
+
+    def _build_task_database(db_path: Path, num_tasks: int = 300) -> Dict[str, Any]:
+        """
+        Build a small "personal task manager" database using TinyDB.
+    
+        This is used as an end-to-end workload for resource / integration tests.
+        """
+        db = TinyDB(db_path)
+        Task = Query()
+    
+        tasks_table = db.table("tasks")
+        projects_table = db.table("projects")
+    
+        # Create some projects
+        projects = [
+            {"key": "proj-docs", "name": "Write docs"},
+            {"key": "proj-code", "name": "Implement features"},
+        ]
+        for proj in projects:
+            projects_table.insert(proj)
+    
+>       num_projects = len(projects_table)
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\resource_test.py:45: TypeError
+=========================== short test summary info ===========================
+FAILED tests/TinyDB/resource_test.py::test_task_database_integration - TypeEr...
+1 failed in 0.44s

@@ -1,0 +1,630 @@
+project_name: Lifelines
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Lifelines\lifelines.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Lifelines
+timestamp: '2026-01-01 20:12:43'
+functional_score: 0.0
+non_functional_score: 0.52
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 124
+    stdout: ".FFFFFFFFFFFFFF                                                     \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________________ test_kmf_on_waltons_groups __________________________\n\
+      \n    def test_kmf_on_waltons_groups() -> None:\n        \"\"\"Fit KMF on the\
+      \ Waltons dataset for two groups.\"\"\"\n        df = load_waltons()\n     \
+      \   assert {\"T\", \"E\", \"group\"}.issubset(df.columns)\n    \n        control\
+      \ = df[df[\"group\"] == \"control\"]\n        treated = df[df[\"group\"] !=\
+      \ \"control\"]\n    \n        kmf_control = KaplanMeierFitter()\n        kmf_treated\
+      \ = KaplanMeierFitter()\n    \n        kmf_control.fit(control[\"T\"], control[\"\
+      E\"], label=\"control\")\n        kmf_treated.fit(treated[\"T\"], treated[\"\
+      E\"], label=\"treated\")\n    \n        t = 10.0\n>       s_control = float(kmf_control.predict(t))\n\
+      \ntests\\Lifelines\\functional_test.py:109: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Lifelines\\\
+      lifelines\\fitters\\kaplan_meier_fitter.py:80: in predict\n    merged = pd.merge_asof(predict_df,\
+      \ sf_df, on='timeline')\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:691: in merge_asof\n\
+      \    op = _AsOfMerge(\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:1999: in __init__\n\
+      \    _OrderedMerge.__init__(\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:1911: in __init__\n\
+      \    _MergeOperation.__init__(\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:802: in\
+      \ __init__\n    self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:2124: in _maybe_require_matching_dtypes\n  \
+      \  _check_dtype_match(lk, rk, i)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nleft = array([10.]), right = array([\
+      \ 0,  6,  9, 13, 19, 26, 33, 40]), i = 0\n\n    def _check_dtype_match(left:\
+      \ ArrayLike, right: ArrayLike, i: int):\n        if left.dtype != right.dtype:\n\
+      \            if isinstance(left.dtype, CategoricalDtype) and isinstance(\n \
+      \               right.dtype, CategoricalDtype\n            ):\n            \
+      \    # The generic error message is confusing for categoricals.\n          \
+      \      #\n                # In this function, the join keys include both the\
+      \ original\n                # ones of the merge_asof() call, and also the keys\
+      \ passed\n                # to its by= argument. Unordered but equal categories\n\
+      \                # are not supported for the former, but will fail\n       \
+      \         # later with a ValueError, so we don't *need* to check\n         \
+      \       # for them here.\n                msg = (\n                    f\"incompatible\
+      \ merge keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ both sides category, but not equal ones\"\n                )\n           \
+      \ else:\n                msg = (\n                    f\"incompatible merge\
+      \ keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ must be the same type\"\n                )\n>           raise MergeError(msg)\n\
+      E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64')\
+      \ and dtype('int64'), must be the same type\n\nC:\\Users\\86152\\AppData\\Local\\\
+      Programs\\Python\\Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:2120:\
+      \ MergeError\n____________________________ test_coxph_basic_fit _____________________________\n\
+      \nself = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x00000237B170AB50>\n\
+      X = array([[30,  0],\n       [40,  0],\n       [50,  1],\n       [20,  1],\n\
+      \       [60,  1],\n       [35,  0],\n       [45,  1],\n       [55,  0]])\nT\
+      \ = array([5, 6, 6, 2, 4, 3, 8, 7]), E = array([1, 0, 1, 1, 1, 0, 1, 1])\ninitial_beta\
+      \ = array([0., 0.]), max_iter = 50, tol = 1e-09\n\n    def _newton_rhapson(self,\
+      \ X, T, E, initial_beta, max_iter=50, tol=1e-9):\n        n_features = X.shape[1]\n\
+      \        beta = np.array(initial_beta, dtype=float)\n    \n        for i in\
+      \ range(max_iter):\n            risk_scores = np.exp(X @ beta)\n           \
+      \ unique_event_times = np.unique(T[E == 1])\n    \n            gradient = np.zeros(n_features)\n\
+      \            hessian = np.zeros((n_features, n_features))\n            log_likelihood\
+      \ = 0.0\n    \n            for t in sorted(unique_event_times):\n          \
+      \      at_risk_mask = T >= t\n                event_mask = (T == t) & (E ==\
+      \ 1)\n                d_i = np.sum(event_mask)\n    \n                if d_i\
+      \ == 0: continue\n    \n                risk_set_X = X[at_risk_mask]\n     \
+      \           risk_set_scores = risk_scores[at_risk_mask]\n    \n            \
+      \    S0 = np.sum(risk_set_scores)\n                if S0 == 0: continue\n  \
+      \  \n                S1 = np.sum(risk_set_X * risk_set_scores[:, np.newaxis],\
+      \ axis=0)\n                S2 = np.sum(np.einsum('ij,ik->ijk', risk_set_X, risk_set_X)\
+      \ * risk_set_scores[:, np.newaxis, np.newaxis], axis=0)\n    \n            \
+      \    event_X_sum = np.sum(X[event_mask], axis=0)\n    \n                log_likelihood\
+      \ += np.sum(X[event_mask] @ beta) - d_i * np.log(S0)\n                gradient\
+      \ += event_X_sum - d_i * (S1 / S0)\n                hessian -= d_i * ((S2 /\
+      \ S0) - np.outer(S1, S1) / (S0 ** 2))\n    \n            try:\n>           \
+      \    inv_hessian = linalg.inv(-hessian)\n\ngeneration\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:53: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\site-packages\\scipy\\linalg\\_basic.py:940: in inv\n\
+      \    a1 = _asarray_validated(a, check_finite=check_finite)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\scipy\\_lib\\\
+      _util.py:321: in _asarray_validated\n    a = toarray(a)\n_ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\na = array([[nan,\
+      \ nan],\n       [nan, nan]]), dtype = None, order = None\n\n    @set_module('numpy')\n\
+      \    def asarray_chkfinite(a, dtype=None, order=None):\n        \"\"\"Convert\
+      \ the input to an array, checking for NaNs or Infs.\n    \n        Parameters\n\
+      \        ----------\n        a : array_like\n            Input data, in any\
+      \ form that can be converted to an array.  This\n            includes lists,\
+      \ lists of tuples, tuples, tuples of tuples, tuples\n            of lists and\
+      \ ndarrays.  Success requires no NaNs or Infs.\n        dtype : data-type, optional\n\
+      \            By default, the data-type is inferred from the input data.\n  \
+      \      order : {'C', 'F', 'A', 'K'}, optional\n            Memory layout.  'A'\
+      \ and 'K' depend on the order of input array a.\n            'C' row-major (C-style),\n\
+      \            'F' column-major (Fortran-style) memory representation.\n     \
+      \       'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise\n  \
+      \          'K' (keep) preserve input order\n            Defaults to 'C'.\n \
+      \   \n        Returns\n        -------\n        out : ndarray\n            Array\
+      \ interpretation of `a`.  No copy is performed if the input\n            is\
+      \ already an ndarray.  If `a` is a subclass of ndarray, a base\n           \
+      \ class ndarray is returned.\n    \n        Raises\n        ------\n       \
+      \ ValueError\n            Raises ValueError if `a` contains NaN (Not a Number)\
+      \ or Inf (Infinity).\n    \n        See Also\n        --------\n        asarray\
+      \ : Create and array.\n        asanyarray : Similar function which passes through\
+      \ subclasses.\n        ascontiguousarray : Convert input to a contiguous array.\n\
+      \        asfortranarray : Convert input to an ndarray with column-major\n  \
+      \                       memory order.\n        fromiter : Create an array from\
+      \ an iterator.\n        fromfunction : Construct an array by executing a function\
+      \ on grid\n                       positions.\n    \n        Examples\n     \
+      \   --------\n        Convert a list into an array.  If all elements are finite\n\
+      \        ``asarray_chkfinite`` is identical to ``asarray``.\n    \n        >>>\
+      \ a = [1, 2]\n        >>> np.asarray_chkfinite(a, dtype=float)\n        array([1.,\
+      \ 2.])\n    \n        Raises ValueError if array_like contains Nans or Infs.\n\
+      \    \n        >>> a = [1, 2, np.inf]\n        >>> try:\n        ...     np.asarray_chkfinite(a)\n\
+      \        ... except ValueError:\n        ...     print('ValueError')\n     \
+      \   ...\n        ValueError\n    \n        \"\"\"\n        a = asarray(a, dtype=dtype,\
+      \ order=order)\n        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():\n\
+      >           raise ValueError(\n                \"array must not contain infs\
+      \ or NaNs\")\nE           ValueError: array must not contain infs or NaNs\n\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      numpy\\lib\\_function_base_impl.py:649: ValueError\n\nDuring handling of the\
+      \ above exception, another exception occurred:\n\n    def test_coxph_basic_fit()\
+      \ -> None:\n        \"\"\"Fit a simple Cox proportional hazards model on a toy\
+      \ dataset.\"\"\"\n        df = _toy_cox_df()\n    \n        cph = CoxPHFitter()\n\
+      >       cph.fit(df, duration_col=\"duration\", event_col=\"event\")\n\ntests\\\
+      Lifelines\\functional_test.py:122: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:95: in fit\n    final_beta, final_hessian = self._newton_rhapson(X,\
+      \ T, E, initial_beta)\ngeneration\\Lifelines\\lifelines\\fitters\\coxph_fitter.py:56:\
+      \ in _newton_rhapson\n    inv_hessian = linalg.pinv(-hessian)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\scipy\\_lib\\\
+      deprecation.py:213: in inner_f\n    return f(*args, **kwargs)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\scipy\\linalg\\\
+      _basic.py:1422: in pinv\n    a = _asarray_validated(a, check_finite=check_finite)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      scipy\\_lib\\_util.py:321: in _asarray_validated\n    a = toarray(a)\n_ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      \na = array([[nan, nan],\n       [nan, nan]]), dtype = None, order = None\n\n\
+      \    @set_module('numpy')\n    def asarray_chkfinite(a, dtype=None, order=None):\n\
+      \        \"\"\"Convert the input to an array, checking for NaNs or Infs.\n \
+      \   \n        Parameters\n        ----------\n        a : array_like\n     \
+      \       Input data, in any form that can be converted to an array.  This\n \
+      \           includes lists, lists of tuples, tuples, tuples of tuples, tuples\n\
+      \            of lists and ndarrays.  Success requires no NaNs or Infs.\n   \
+      \     dtype : data-type, optional\n            By default, the data-type is\
+      \ inferred from the input data.\n        order : {'C', 'F', 'A', 'K'}, optional\n\
+      \            Memory layout.  'A' and 'K' depend on the order of input array\
+      \ a.\n            'C' row-major (C-style),\n            'F' column-major (Fortran-style)\
+      \ memory representation.\n            'A' (any) means 'F' if `a` is Fortran\
+      \ contiguous, 'C' otherwise\n            'K' (keep) preserve input order\n \
+      \           Defaults to 'C'.\n    \n        Returns\n        -------\n     \
+      \   out : ndarray\n            Array interpretation of `a`.  No copy is performed\
+      \ if the input\n            is already an ndarray.  If `a` is a subclass of\
+      \ ndarray, a base\n            class ndarray is returned.\n    \n        Raises\n\
+      \        ------\n        ValueError\n            Raises ValueError if `a` contains\
+      \ NaN (Not a Number) or Inf (Infinity).\n    \n        See Also\n        --------\n\
+      \        asarray : Create and array.\n        asanyarray : Similar function\
+      \ which passes through subclasses.\n        ascontiguousarray : Convert input\
+      \ to a contiguous array.\n        asfortranarray : Convert input to an ndarray\
+      \ with column-major\n                         memory order.\n        fromiter\
+      \ : Create an array from an iterator.\n        fromfunction : Construct an array\
+      \ by executing a function on grid\n                       positions.\n    \n\
+      \        Examples\n        --------\n        Convert a list into an array. \
+      \ If all elements are finite\n        ``asarray_chkfinite`` is identical to\
+      \ ``asarray``.\n    \n        >>> a = [1, 2]\n        >>> np.asarray_chkfinite(a,\
+      \ dtype=float)\n        array([1., 2.])\n    \n        Raises ValueError if\
+      \ array_like contains Nans or Infs.\n    \n        >>> a = [1, 2, np.inf]\n\
+      \        >>> try:\n        ...     np.asarray_chkfinite(a)\n        ... except\
+      \ ValueError:\n        ...     print('ValueError')\n        ...\n        ValueError\n\
+      \    \n        \"\"\"\n        a = asarray(a, dtype=dtype, order=order)\n  \
+      \      if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():\n\
+      >           raise ValueError(\n                \"array must not contain infs\
+      \ or NaNs\")\nE           ValueError: array must not contain infs or NaNs\n\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      numpy\\lib\\_function_base_impl.py:649: ValueError\n____________________ test_kmf_predict_at_time_zero_is_one\
+      \ _____________________\n\n    def test_kmf_predict_at_time_zero_is_one() ->\
+      \ None:\n        \"\"\"KMF predict at t=0 should be 1.0 for standard KM survival.\"\
+      \"\"\n        durations, events = _toy_kmf_data()\n        kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\n>       s0 = float(kmf.predict(0.0))\n\
+      \ntests\\Lifelines\\functional_test.py:141: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Lifelines\\\
+      lifelines\\fitters\\kaplan_meier_fitter.py:80: in predict\n    merged = pd.merge_asof(predict_df,\
+      \ sf_df, on='timeline')\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:691: in merge_asof\n\
+      \    op = _AsOfMerge(\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:1999: in __init__\n\
+      \    _OrderedMerge.__init__(\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:1911: in __init__\n\
+      \    _MergeOperation.__init__(\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:802: in\
+      \ __init__\n    self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:2124: in _maybe_require_matching_dtypes\n  \
+      \  _check_dtype_match(lk, rk, i)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nleft = array([0.]), right = array([0,\
+      \ 2, 4, 5, 6]), i = 0\n\n    def _check_dtype_match(left: ArrayLike, right:\
+      \ ArrayLike, i: int):\n        if left.dtype != right.dtype:\n            if\
+      \ isinstance(left.dtype, CategoricalDtype) and isinstance(\n               \
+      \ right.dtype, CategoricalDtype\n            ):\n                # The generic\
+      \ error message is confusing for categoricals.\n                #\n        \
+      \        # In this function, the join keys include both the original\n     \
+      \           # ones of the merge_asof() call, and also the keys passed\n    \
+      \            # to its by= argument. Unordered but equal categories\n       \
+      \         # are not supported for the former, but will fail\n              \
+      \  # later with a ValueError, so we don't *need* to check\n                #\
+      \ for them here.\n                msg = (\n                    f\"incompatible\
+      \ merge keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ both sides category, but not equal ones\"\n                )\n           \
+      \ else:\n                msg = (\n                    f\"incompatible merge\
+      \ keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ must be the same type\"\n                )\n>           raise MergeError(msg)\n\
+      E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64')\
+      \ and dtype('int64'), must be the same type\n\nC:\\Users\\86152\\AppData\\Local\\\
+      Programs\\Python\\Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:2120:\
+      \ MergeError\n________________ test_kmf_predict_is_non_increasing_over_time\
+      \ _________________\n\n    def test_kmf_predict_is_non_increasing_over_time()\
+      \ -> None:\n        \"\"\"KMF predicted survival should not increase as time\
+      \ increases.\"\"\"\n        durations, events = _toy_kmf_data()\n        kmf\
+      \ = KaplanMeierFitter().fit(durations=durations, event_observed=events, label=\"\
+      km\")\n    \n>       s1 = float(kmf.predict(1.0))\n\ntests\\Lifelines\\functional_test.py:150:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Lifelines\\lifelines\\fitters\\kaplan_meier_fitter.py:80:\
+      \ in predict\n    merged = pd.merge_asof(predict_df, sf_df, on='timeline')\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:691: in merge_asof\n    op = _AsOfMerge(\nC:\\\
+      Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:1999: in __init__\n    _OrderedMerge.__init__(\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:1911: in __init__\n    _MergeOperation.__init__(\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      pandas\\core\\reshape\\merge.py:802: in __init__\n    self._maybe_require_matching_dtypes(self.left_join_keys,\
+      \ self.right_join_keys)\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\\
+      Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:2124: in _maybe_require_matching_dtypes\n\
+      \    _check_dtype_match(lk, rk, i)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nleft = array([1.]), right = array([0,\
+      \ 2, 4, 5, 6]), i = 0\n\n    def _check_dtype_match(left: ArrayLike, right:\
+      \ ArrayLike, i: int):\n        if left.dtype != right.dtype:\n            if\
+      \ isinstance(left.dtype, CategoricalDtype) and isinstance(\n               \
+      \ right.dtype, CategoricalDtype\n            ):\n                # The generic\
+      \ error message is confusing for categoricals.\n                #\n        \
+      \        # In this function, the join keys include both the original\n     \
+      \           # ones of the merge_asof() call, and also the keys passed\n    \
+      \            # to its by= argument. Unordered but equal categories\n       \
+      \         # are not supported for the former, but will fail\n              \
+      \  # later with a ValueError, so we don't *need* to check\n                #\
+      \ for them here.\n                msg = (\n                    f\"incompatible\
+      \ merge keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ both sides category, but not equal ones\"\n                )\n           \
+      \ else:\n                msg = (\n                    f\"incompatible merge\
+      \ keys [{i}] {repr(left.dtype)} and \"\n                    f\"{repr(right.dtype)},\
+      \ must be the same type\"\n                )\n>           raise MergeError(msg)\n\
+      E           pandas.errors.MergeError: incompatible merge keys [0] dtype('float64')\
+      \ and dtype('int64'), must be the same type\n\nC:\\Users\\86152\\AppData\\Local\\\
+      Programs\\Python\\Python39\\lib\\site-packages\\pandas\\core\\reshape\\merge.py:2120:\
+      \ MergeError\n________________ test_kmf_cumulative_density_is_non_decreasing\
+      \ ________________\n\n    def test_kmf_cumulative_density_is_non_decreasing()\
+      \ -> None:\n        \"\"\"Cumulative density should be non-decreasing and within\
+      \ [0, 1].\"\"\"\n        durations, events = _toy_kmf_data()\n        kmf =\
+      \ KaplanMeierFitter().fit(durations=durations, event_observed=events, label=\"\
+      km\")\n>       cd = kmf.cumulative_density_\nE       AttributeError: 'KaplanMeierFitter'\
+      \ object has no attribute 'cumulative_density_'\n\ntests\\Lifelines\\functional_test.py:170:\
+      \ AttributeError\n__________________ test_kmf_event_table_has_standard_columns\
+      \ __________________\n\n    def test_kmf_event_table_has_standard_columns()\
+      \ -> None:\n        \"\"\"KM event table should include standard bookkeeping\
+      \ columns.\"\"\"\n        durations, events = _toy_kmf_data()\n        kmf =\
+      \ KaplanMeierFitter().fit(durations=durations, event_observed=events, label=\"\
+      km\")\n>       et = kmf.event_table\nE       AttributeError: 'KaplanMeierFitter'\
+      \ object has no attribute 'event_table'\n\ntests\\Lifelines\\functional_test.py:183:\
+      \ AttributeError\n_____________ test_kmf_confidence_interval_matches_survival_index\
+      \ _____________\n\n    def test_kmf_confidence_interval_matches_survival_index()\
+      \ -> None:\n        \"\"\"Confidence intervals should align with survival function\
+      \ index.\"\"\"\n        durations, events = _toy_kmf_data()\n        kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\n>       ci = kmf.confidence_interval_\n\
+      E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'\n\
+      \ntests\\Lifelines\\functional_test.py:192: AttributeError\n___________ test_kmf_median_survival_time_is_within_duration_range\
+      \ ____________\n\n    def test_kmf_median_survival_time_is_within_duration_range()\
+      \ -> None:\n        \"\"\"Median survival time should be within the observed\
+      \ duration range.\"\"\"\n        durations, events = _toy_kmf_data()\n     \
+      \   kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events,\
+      \ label=\"km\")\n    \n>       m = float(kmf.median_survival_time_)\nE     \
+      \  AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'\n\
+      \ntests\\Lifelines\\functional_test.py:206: AttributeError\n_________________\
+      \ test_coxph_params_index_matches_covariates __________________\n\nself = <lifelines.fitters.coxph_fitter.CoxPHFitter\
+      \ object at 0x00000237F0717F10>\nX = array([[30,  0],\n       [40,  0],\n  \
+      \     [50,  1],\n       [20,  1],\n       [60,  1],\n       [35,  0],\n    \
+      \   [45,  1],\n       [55,  0]])\nT = array([5, 6, 6, 2, 4, 3, 8, 7]), E = array([1,\
+      \ 0, 1, 1, 1, 0, 1, 1])\ninitial_beta = array([0., 0.]), max_iter = 50, tol\
+      \ = 1e-09\n\n    def _newton_rhapson(self, X, T, E, initial_beta, max_iter=50,\
+      \ tol=1e-9):\n        n_features = X.shape[1]\n"
+    elapsed_time_s: 60.079529
+    avg_memory_mb: 91.37
+    avg_cpu_percent: 0.22
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    timeout: true
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 124
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 1.55s
+
+      '
+    elapsed_time_s: 2.805782
+    avg_memory_mb: 82.28
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 4.479736
+    score_inputs_actual_time_s: 2.805782
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ____________________ test_waltons_kmf_and_cox_integration _____________________\n\
+      \nself = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x000002497FC05CD0>\n\
+      X = array([[ True],\n       [ True],\n       [ True],\n       [ True],\n   \
+      \    [ True],\n       [ True],\n       [ True],\n      ...alse],\n       [False],\n\
+      \       [False],\n       [False],\n       [False],\n       [False],\n      \
+      \ [False],\n       [False]])\nT = array([ 6, 13, 13, 13, 19, 19, 19, 26, 26,\
+      \ 26, 26, 26, 33, 33, 40, 40, 40,\n       40,  6,  9,  9, 13, 13, 19, 19, 19,\
+      \ 19, 26, 26, 26, 26, 33, 33, 33,\n       33, 40, 40, 40, 40])\nE = array([1,\
+      \ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,\n       1,\
+      \ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])\ninitial_beta = array([0.]),\
+      \ max_iter = 50, tol = 1e-09\n\n    def _newton_rhapson(self, X, T, E, initial_beta,\
+      \ max_iter=50, tol=1e-9):\n        n_features = X.shape[1]\n        beta = np.array(initial_beta,\
+      \ dtype=float)\n    \n        for i in range(max_iter):\n            risk_scores\
+      \ = np.exp(X @ beta)\n            unique_event_times = np.unique(T[E == 1])\n\
+      \    \n            gradient = np.zeros(n_features)\n            hessian = np.zeros((n_features,\
+      \ n_features))\n            log_likelihood = 0.0\n    \n            for t in\
+      \ sorted(unique_event_times):\n                at_risk_mask = T >= t\n     \
+      \           event_mask = (T == t) & (E == 1)\n                d_i = np.sum(event_mask)\n\
+      \    \n                if d_i == 0: continue\n    \n                risk_set_X\
+      \ = X[at_risk_mask]\n                risk_set_scores = risk_scores[at_risk_mask]\n\
+      \    \n                S0 = np.sum(risk_set_scores)\n                if S0 ==\
+      \ 0: continue\n    \n                S1 = np.sum(risk_set_X * risk_set_scores[:,\
+      \ np.newaxis], axis=0)\n                S2 = np.sum(np.einsum('ij,ik->ijk',\
+      \ risk_set_X, risk_set_X) * risk_set_scores[:, np.newaxis, np.newaxis], axis=0)\n\
+      \    \n                event_X_sum = np.sum(X[event_mask], axis=0)\n    \n \
+      \               log_likelihood += np.sum(X[event_mask] @ beta) - d_i * np.log(S0)\n\
+      \                gradient += event_X_sum - d_i * (S1 / S0)\n               \
+      \ hessian -= d_i * ((S2 / S0) - np.outer(S1, S1) / (S0 ** 2))\n    \n      \
+      \      try:\n>               inv_hessian = linalg.inv(-hessian)\n\ngeneration\\\
+      Lifelines\\lifelines\\fitters\\coxph_fitter.py:53: \n_ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\scipy\\linalg\\\
+      _basic.py:940: in inv\n    a1 = _asarray_validated(a, check_finite=check_finite)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      scipy\\_lib\\_util.py:321: in _asarray_validated\n    a = toarray(a)\n_ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      \na = array([[nan]]), dtype = None, order = None\n\n    @set_module('numpy')\n\
+      \    def asarray_chkfinite(a, dtype=None, order=None):\n        \"\"\"Convert\
+      \ the input to an array, checking for NaNs or Infs.\n    \n        Parameters\n\
+      \        ----------\n        a : array_like\n            Input data, in any\
+      \ form that can be converted to an array.  This\n            includes lists,\
+      \ lists of tuples, tuples, tuples of tuples, tuples\n            of lists and\
+      \ ndarrays.  Success requires no NaNs or Infs.\n        dtype : data-type, optional\n\
+      \            By default, the data-type is inferred from the input data.\n  \
+      \      order : {'C', 'F', 'A', 'K'}, optional\n            Memory layout.  'A'\
+      \ and 'K' depend on the order of input array a.\n            'C' row-major (C-style),\n\
+      \            'F' column-major (Fortran-style) memory representation.\n     \
+      \       'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise\n  \
+      \          'K' (keep) preserve input order\n            Defaults to 'C'.\n \
+      \   \n        Returns\n        -------\n        out : ndarray\n            Array\
+      \ interpretation of `a`.  No copy is performed if the input\n            is\
+      \ already an ndarray.  If `a` is a subclass of ndarray, a base\n           \
+      \ class ndarray is returned.\n    \n        Raises\n        ------\n       \
+      \ ValueError\n            Raises ValueError if `a` contains NaN (Not a Number)\
+      \ or Inf (Infinity).\n    \n        See Also\n        --------\n        asarray\
+      \ : Create and array.\n        asanyarray : Similar function which passes through\
+      \ subclasses.\n        ascontiguousarray : Convert input to a contiguous array.\n\
+      \        asfortranarray : Convert input to an ndarray with column-major\n  \
+      \                       memory order.\n        fromiter : Create an array from\
+      \ an iterator.\n        fromfunction : Construct an array by executing a function\
+      \ on grid\n                       positions.\n    \n        Examples\n     \
+      \   --------\n        Convert a list into an array.  If all elements are finite\n\
+      \        ``asarray_chkfinite`` is identical to ``asarray``.\n    \n        >>>\
+      \ a = [1, 2]\n        >>> np.asarray_chkfinite(a, dtype=float)\n        array([1.,\
+      \ 2.])\n    \n        Raises ValueError if array_like contains Nans or Infs.\n\
+      \    \n        >>> a = [1, 2, np.inf]\n        >>> try:\n        ...     np.asarray_chkfinite(a)\n\
+      \        ... except ValueError:\n        ...     print('ValueError')\n     \
+      \   ...\n        ValueError\n    \n        \"\"\"\n        a = asarray(a, dtype=dtype,\
+      \ order=order)\n        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():\n\
+      >           raise ValueError(\n                \"array must not contain infs\
+      \ or NaNs\")\nE           ValueError: array must not contain infs or NaNs\n\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      numpy\\lib\\_function_base_impl.py:649: ValueError\n\nDuring handling of the\
+      \ above exception, another exception occurred:\n\n    def test_waltons_kmf_and_cox_integration()\
+      \ -> None:\n        \"\"\"End-to-end integration test combining KMF and CoxPH\
+      \ on Waltons dataset.\"\"\"\n        df = load_waltons()\n        kmf = KaplanMeierFitter()\n\
+      \    \n        for name, group_df in df.groupby(\"group\"):\n            kmf.fit(group_df[\"\
+      T\"], group_df[\"E\"], label=name)\n            sf = kmf.survival_function_\n\
+      \            # Survival function should be non-increasing.\n            values\
+      \ = sf[name].values\n            for i in range(1, len(values)):\n         \
+      \       assert values[i] <= values[i - 1] + 1e-8\n    \n        # Now fit a\
+      \ Cox model on a regression-ready frame.\n        df_reg = _prepare_regression_frame()\n\
+      \        cph = CoxPHFitter()\n>       cph.fit(df_reg, duration_col=\"duration\"\
+      , event_col=\"event\")\n\ntests\\Lifelines\\resource_test.py:53: \n_ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\\
+      Lifelines\\lifelines\\fitters\\coxph_fitter.py:95: in fit\n    final_beta, final_hessian\
+      \ = self._newton_rhapson(X, T, E, initial_beta)\ngeneration\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:56: in _newton_rhapson\n    inv_hessian = linalg.pinv(-hessian)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      scipy\\_lib\\deprecation.py:213: in inner_f\n    return f(*args, **kwargs)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      scipy\\linalg\\_basic.py:1422: in pinv\n    a = _asarray_validated(a, check_finite=check_finite)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      scipy\\_lib\\_util.py:321: in _asarray_validated\n    a = toarray(a)\n_ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      \na = array([[nan]]), dtype = None, order = None\n\n    @set_module('numpy')\n\
+      \    def asarray_chkfinite(a, dtype=None, order=None):\n        \"\"\"Convert\
+      \ the input to an array, checking for NaNs or Infs.\n    \n        Parameters\n\
+      \        ----------\n        a : array_like\n            Input data, in any\
+      \ form that can be converted to an array.  This\n            includes lists,\
+      \ lists of tuples, tuples, tuples of tuples, tuples\n            of lists and\
+      \ ndarrays.  Success requires no NaNs or Infs.\n        dtype : data-type, optional\n\
+      \            By default, the data-type is inferred from the input data.\n  \
+      \      order : {'C', 'F', 'A', 'K'}, optional\n            Memory layout.  'A'\
+      \ and 'K' depend on the order of input array a.\n            'C' row-major (C-style),\n\
+      \            'F' column-major (Fortran-style) memory representation.\n     \
+      \       'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise\n  \
+      \          'K' (keep) preserve input order\n            Defaults to 'C'.\n \
+      \   \n        Returns\n        -------\n        out : ndarray\n            Array\
+      \ interpretation of `a`.  No copy is performed if the input\n            is\
+      \ already an ndarray.  If `a` is a subclass of ndarray, a base\n           \
+      \ class ndarray is returned.\n    \n        Raises\n        ------\n       \
+      \ ValueError\n            Raises ValueError if `a` contains NaN (Not a Number)\
+      \ or Inf (Infinity).\n    \n        See Also\n        --------\n        asarray\
+      \ : Create and array.\n        asanyarray : Similar function which passes through\
+      \ subclasses.\n        ascontiguousarray : Convert input to a contiguous array.\n\
+      \        asfortranarray : Convert input to an ndarray with column-major\n  \
+      \                       memory order.\n        fromiter : Create an array from\
+      \ an iterator.\n        fromfunction : Construct an array by executing a function\
+      \ on grid\n                       positions.\n    \n        Examples\n     \
+      \   --------\n        Convert a list into an array.  If all elements are finite\n\
+      \        ``asarray_chkfinite`` is identical to ``asarray``.\n    \n        >>>\
+      \ a = [1, 2]\n        >>> np.asarray_chkfinite(a, dtype=float)\n        array([1.,\
+      \ 2.])\n    \n        Raises ValueError if array_like contains Nans or Infs.\n\
+      \    \n        >>> a = [1, 2, np.inf]\n        >>> try:\n        ...     np.asarray_chkfinite(a)\n\
+      \        ... except ValueError:\n        ...     print('ValueError')\n     \
+      \   ...\n        ValueError\n    \n        \"\"\"\n        a = asarray(a, dtype=dtype,\
+      \ order=order)\n        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():\n\
+      >           raise ValueError(\n                \"array must not contain infs\
+      \ or NaNs\")\nE           ValueError: array must not contain infs or NaNs\n\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      numpy\\lib\\_function_base_impl.py:649: ValueError\n==============================\
+      \ warnings summary ===============================\ntests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:23: RuntimeWarning: overflow encountered in exp\n \
+      \   risk_scores = np.exp(X @ beta)\n\ntests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:49: RuntimeWarning: invalid value encountered in divide\n\
+      \    gradient += event_X_sum - d_i * (S1 / S0)\n\ntests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Lifelines\\lifelines\\\
+      fitters\\coxph_fitter.py:50: RuntimeWarning: invalid value encountered in divide\n\
+      \    hessian -= d_i * ((S2 / S0) - np.outer(S1, S1) / (S0 ** 2))\n\n-- Docs:\
+      \ https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration\n\
+      1 failed, 3 warnings in 2.36s\n"
+    elapsed_time_s: 3.708603
+    avg_memory_mb: 88.95
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 120.76
+    score_inputs_baseline_cpu_pct: 99.35
+    score_inputs_actual_mem_mb: 88.95
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 1.58s
+
+      '
+    elapsed_time_s: 3.159889
+    avg_memory_mb: 41.17
+    avg_cpu_percent: 47.6
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=264.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.324219
+    avg_memory_mb: 31.61
+    avg_cpu_percent: 96.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 264.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=26.1134 files_scanned=6.0 total_loc=264.0 max_cc=8.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.437551
+    avg_memory_mb: 31.27
+    avg_cpu_percent: 97.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 26.1134
+      files_scanned: 6.0
+      total_loc: 264.0
+      max_cc: 8.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 26.1134
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 4.479736
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 4.442984
+    resource_tests_total: 1
+    avg_memory_mb: 120.76
+    avg_cpu_percent: 99.35
+  functional:
+    functional_suite_time_s: 6.121189
+    functional_tests_total: 15
+  robustness:
+    robustness_suite_time_s: 4.315143
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.664574
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 39.0
+      total_loc: 14070.0
+  maintainability:
+    maintainability_suite_time_s: 3.936326
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 47.0
+      total_loc: 20752.0
+      max_cc: 31.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Lifelines\pytest_logs

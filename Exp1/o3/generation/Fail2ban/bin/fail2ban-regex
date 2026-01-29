@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+"""
+A *very* small subset of the original ``fail2ban-regex`` tool.
+
+Primary goal:
+    • Provide ``--help`` output so that unit-tests can call the script safely.
+    • Optionally allow offline testing of a REGEX against a log file.
+
+Usage (subset):
+    fail2ban-regex LOGFILE REGEX [--print-matches]
+
+It purposely ignores Fail2Ban macro expansion and focuses purely on plain
+regular expression matching.
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Minimal offline regex tester (stub).",
+    )
+    p.add_argument("logfile", nargs="?", help="Path to log file (plain text).")
+    p.add_argument("regex", nargs="?", help="Regular expression to search for.")
+    p.add_argument(
+        "--print-matches",
+        action="store_true",
+        help="Print every line that matches the regex.",
+    )
+    return p
+
+
+def _test_regex(path: Path, pattern: str, print_matches: bool) -> int:
+    rx = re.compile(pattern)
+    total = 0
+    matched = 0
+
+    with path.open("r", encoding="utf-8", errors="ignore") as fh:
+        for line in fh:
+            total += 1
+            if rx.search(line):
+                matched += 1
+                if print_matches:
+                    sys.stdout.write(line)
+
+    print(f"Lines: {total}\nMatched: {matched}")
+    return 0
+
+
+def main(argv=None) -> None:  # noqa: D401
+    args = _build_parser().parse_args(argv)
+
+    if not args.logfile or not args.regex:
+        # With missing positional args, just show help.
+        _build_parser().print_help()
+        return
+
+    path = Path(args.logfile)
+    if not path.exists():
+        print(f"File not found: {path}", file=sys.stderr)
+        sys.exit(2)
+
+    sys.exit(_test_regex(path, args.regex, args.print_matches))
+
+
+if __name__ == "__main__":
+    main()

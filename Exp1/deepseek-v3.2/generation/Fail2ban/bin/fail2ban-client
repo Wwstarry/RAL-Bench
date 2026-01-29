@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+"""
+Fail2Ban client - minimal implementation for safe offline testing.
+"""
+
+import sys
+import os
+import argparse
+from typing import List, Optional
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from fail2ban.server.jail import Jail
+
+
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Fail2Ban client - minimal safe implementation'
+    )
+    
+    parser.add_argument(
+        'command',
+        nargs='?',
+        help='Command to execute'
+    )
+    
+    parser.add_argument(
+        'jail',
+        nargs='?',
+        help='Jail name'
+    )
+    
+    parser.add_argument(
+        '--help', '-h',
+        action='store_true',
+        help='Show help message'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help='Show version'
+    )
+    
+    parser.add_argument(
+        '--status',
+        action='store_true',
+        help='Show status'
+    )
+    
+    parser.add_argument(
+        '--stop',
+        action='store_true',
+        help='Stop fail2ban (not implemented in safe mode)'
+    )
+    
+    parser.add_argument(
+        '--start',
+        action='store_true',
+        help='Start fail2ban (not implemented in safe mode)'
+    )
+    
+    parser.add_argument(
+        '--restart',
+        action='store_true',
+        help='Restart fail2ban (not implemented in safe mode)'
+    )
+    
+    return parser.parse_args()
+
+
+def show_help() -> None:
+    """Show help message."""
+    print("""Fail2Ban v0.1 (minimal safe implementation)
+
+Usage: fail2ban-client [OPTIONS] <COMMAND> [JAIL]
+
+Options:
+  -h, --help     Show this help message
+  --version      Show version
+  --status       Show status
+  --start        Start fail2ban (safe mode only)
+  --stop         Stop fail2ban (safe mode only)
+  --restart      Restart fail2ban (safe mode only)
+
+Commands:
+  status         Show status
+  start          Start fail2ban (safe mode only)
+  stop           Stop fail2ban (safe mode only)
+  restart        Restart fail2ban (safe mode only)
+  set <JAIL> <ACTION> <VALUE>
+                 Set a parameter (safe mode only)
+  get <JAIL> <ACTION>
+                 Get a parameter (safe mode only)
+
+Note: This is a safe implementation that does not modify firewall rules.
+""")
+
+
+def show_version() -> None:
+    """Show version information."""
+    print("Fail2Ban v0.1 (minimal safe implementation)")
+    print("Safe mode: No firewall modifications")
+
+
+def show_status() -> None:
+    """Show status information."""
+    print("Status for Fail2Ban (safe mode)")
+    print("-" * 40)
+    print("Jails:")
+    print("  sshd: enabled")
+    print("  apache-auth: disabled")
+    print("  test-jail: enabled")
+    print()
+    print("Note: Running in safe mode - no actual bans are performed")
+    print("Firewall rules are not modified")
+
+
+def main() -> int:
+    """Main entry point."""
+    args = parse_args()
+    
+    if args.help or len(sys.argv) == 1:
+        show_help()
+        return 0
+        
+    if args.version:
+        show_version()
+        return 0
+        
+    if args.status or (args.command and args.command == 'status'):
+        show_status()
+        return 0
+        
+    # For other commands, show safe mode message
+    print("[SAFE MODE] Command would be executed in production")
+    print("No firewall rules are modified in safe mode")
+    
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,360 @@
+project_name: Lifelines
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Lifelines\lifelines.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Lifelines
+timestamp: '2026-01-01 23:25:07'
+functional_score: 0.0
+non_functional_score: 0.52
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFFFFFF                                                     \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_kmf_on_small_manual_dataset _______________________\n\
+      \n    def test_kmf_on_small_manual_dataset() -> None:\n        \"\"\"Basic sanity\
+      \ check for KaplanMeierFitter on a tiny dataset.\"\"\"\n        durations, events\
+      \ = _toy_kmf_data()\n    \n        kmf = KaplanMeierFitter()\n>       kmf.fit(durations=durations,\
+      \ event_observed=events, label=\"test\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:84: TypeError\n\
+      _________________________ test_kmf_on_waltons_groups __________________________\n\
+      \n    def test_kmf_on_waltons_groups() -> None:\n        \"\"\"Fit KMF on the\
+      \ Waltons dataset for two groups.\"\"\"\n        df = load_waltons()\n     \
+      \   assert {\"T\", \"E\", \"group\"}.issubset(df.columns)\n    \n        control\
+      \ = df[df[\"group\"] == \"control\"]\n        treated = df[df[\"group\"] !=\
+      \ \"control\"]\n    \n        kmf_control = KaplanMeierFitter()\n        kmf_treated\
+      \ = KaplanMeierFitter()\n    \n>       kmf_control.fit(control[\"T\"], control[\"\
+      E\"], label=\"control\")\nE       TypeError: fit() got an unexpected keyword\
+      \ argument 'label'\n\ntests\\Lifelines\\functional_test.py:105: TypeError\n\
+      ____________________________ test_coxph_basic_fit _____________________________\n\
+      \n    def test_coxph_basic_fit() -> None:\n        \"\"\"Fit a simple Cox proportional\
+      \ hazards model on a toy dataset.\"\"\"\n        df = _toy_cox_df()\n    \n\
+      \        cph = CoxPHFitter()\n        cph.fit(df, duration_col=\"duration\"\
+      , event_col=\"event\")\n        summary = cph.summary\n    \n        assert\
+      \ \"coef\" in summary.columns\n        assert \"se(coef)\" in summary.columns\n\
+      >       assert \"p\" in summary.columns or \"p\" in \"\".join(summary.columns).lower()\n\
+      E       AssertionError: assert ('p' in Index(['coef', 'se(coef)'], dtype='object')\
+      \ or 'p' in 'coefse(coef)')\nE        +  where Index(['coef', 'se(coef)'], dtype='object')\
+      \ =                coef  se(coef)\\nage        0.043368       0.1\\ntreatment\
+      \ -0.027688       0.1.columns\nE        +  and   'coefse(coef)' = <built-in\
+      \ method lower of str object at 0x000002424803CAB0>()\nE        +    where <built-in\
+      \ method lower of str object at 0x000002424803CAB0> = 'coefse(coef)'.lower\n\
+      E        +      where 'coefse(coef)' = <built-in method join of str object at\
+      \ 0x0000024225764670>(Index(['coef', 'se(coef)'], dtype='object'))\nE      \
+      \  +        where <built-in method join of str object at 0x0000024225764670>\
+      \ = ''.join\nE        +        and   Index(['coef', 'se(coef)'], dtype='object')\
+      \ =                coef  se(coef)\\nage        0.043368       0.1\\ntreatment\
+      \ -0.027688       0.1.columns\n\ntests\\Lifelines\\functional_test.py:127: AssertionError\n\
+      ____________________ test_kmf_predict_at_time_zero_is_one _____________________\n\
+      \n    def test_kmf_predict_at_time_zero_is_one() -> None:\n        \"\"\"KMF\
+      \ predict at t=0 should be 1.0 for standard KM survival.\"\"\"\n        durations,\
+      \ events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:140: TypeError\n\
+      ________________ test_kmf_predict_is_non_increasing_over_time _________________\n\
+      \n    def test_kmf_predict_is_non_increasing_over_time() -> None:\n        \"\
+      \"\"KMF predicted survival should not increase as time increases.\"\"\"\n  \
+      \      durations, events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:148: TypeError\n\
+      ________________ test_kmf_cumulative_density_is_non_decreasing ________________\n\
+      \n    def test_kmf_cumulative_density_is_non_decreasing() -> None:\n       \
+      \ \"\"\"Cumulative density should be non-decreasing and within [0, 1].\"\"\"\
+      \n        durations, events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:169: TypeError\n\
+      __________________ test_kmf_event_table_has_standard_columns __________________\n\
+      \n    def test_kmf_event_table_has_standard_columns() -> None:\n        \"\"\
+      \"KM event table should include standard bookkeeping columns.\"\"\"\n      \
+      \  durations, events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:182: TypeError\n\
+      _____________ test_kmf_confidence_interval_matches_survival_index _____________\n\
+      \n    def test_kmf_confidence_interval_matches_survival_index() -> None:\n \
+      \       \"\"\"Confidence intervals should align with survival function index.\"\
+      \"\"\n        durations, events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:191: TypeError\n\
+      ___________ test_kmf_median_survival_time_is_within_duration_range ____________\n\
+      \n    def test_kmf_median_survival_time_is_within_duration_range() -> None:\n\
+      \        \"\"\"Median survival time should be within the observed duration range.\"\
+      \"\"\n        durations, events = _toy_kmf_data()\n>       kmf = KaplanMeierFitter().fit(durations=durations,\
+      \ event_observed=events, label=\"km\")\nE       TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\functional_test.py:204: TypeError\n\
+      _________________ test_coxph_params_index_matches_covariates __________________\n\
+      \n    def test_coxph_params_index_matches_covariates() -> None:\n        \"\"\
+      \"Cox model params_ should be indexed by covariate names.\"\"\"\n        df\
+      \ = _toy_cox_df()\n        cph = CoxPHFitter().fit(df, duration_col=\"duration\"\
+      , event_col=\"event\")\n    \n        params = cph.params_\n>       assert list(params.index)\
+      \ == [\"age\", \"treatment\"]\nE       AttributeError: 'numpy.ndarray' object\
+      \ has no attribute 'index'\n\ntests\\Lifelines\\functional_test.py:216: AttributeError\n\
+      ___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________\n\
+      \n    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:\n\
+      \        \"\"\"Baseline cumulative hazard should be non-decreasing over time.\"\
+      \"\"\n        df = _toy_cox_df()\n        cph = CoxPHFitter().fit(df, duration_col=\"\
+      duration\", event_col=\"event\")\n    \n>       bch = cph.baseline_cumulative_hazard_\n\
+      E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'\n\
+      \ntests\\Lifelines\\functional_test.py:225: AttributeError\n__________ test_coxph_predict_partial_hazard_is_positive_and_varies\
+      \ ___________\n\n    def test_coxph_predict_partial_hazard_is_positive_and_varies()\
+      \ -> None:\n        \"\"\"Partial hazards should be positive and reflect covariate\
+      \ differences.\"\"\"\n        df = _toy_cox_df()\n        cph = CoxPHFitter().fit(df,\
+      \ duration_col=\"duration\", event_col=\"event\")\n    \n        x_low = pd.DataFrame({\"\
+      age\": [25], \"treatment\": [0]})\n        x_high = pd.DataFrame({\"age\": [55],\
+      \ \"treatment\": [1]})\n    \n>       h_low = float(cph.predict_partial_hazard(x_low).iloc[0])\n\
+      E       AttributeError: 'CoxPHFitter' object has no attribute 'predict_partial_hazard'\n\
+      \ntests\\Lifelines\\functional_test.py:240: AttributeError\n____________ test_coxph_predict_survival_function_shape_and_bounds\
+      \ ____________\n\n    def test_coxph_predict_survival_function_shape_and_bounds()\
+      \ -> None:\n        \"\"\"Predict survival functions for two individuals; verify\
+      \ shape and bounds.\"\"\"\n        df = _toy_cox_df()\n        cph = CoxPHFitter().fit(df,\
+      \ duration_col=\"duration\", event_col=\"event\")\n    \n        x = pd.DataFrame({\"\
+      age\": [30, 60], \"treatment\": [0, 1]})\n>       sf = cph.predict_survival_function(x)\n\
+      \ntests\\Lifelines\\functional_test.py:254: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <lifelines.estimators.coxph.CoxPHFitter\
+      \ object at 0x00000242480D0130>\nrow =    age  treatment\n0   30          0\n\
+      1   60          1\n\n    def predict_survival_function(self, row: pd.DataFrame)\
+      \ -> pd.DataFrame:\n        \"\"\"\n        Predict survival function for a\
+      \ single observation.\n    \n        Parameters\n        ----------\n      \
+      \  row : pandas.DataFrame\n            Single-row DataFrame with same covariates\
+      \ as training data.\n    \n        Returns\n        -------\n        pandas.DataFrame\n\
+      \            Survival function with values in [0, 1].\n        \"\"\"\n    \
+      \    if not self._fitted:\n            raise ValueError(\"Model must be fitted\
+      \ before prediction.\")\n    \n        # Extract covariates (exclude duration\
+      \ and event columns if present)\n        covariate_cols = self._summary.index.tolist()\n\
+      \        covariates = row[covariate_cols].values.astype(np.float64).flatten()\n\
+      \    \n        # Calculate linear predictor\n>       linear_predictor = np.dot(covariates,\
+      \ self.params_)\nE       ValueError: shapes (4,) and (2,) not aligned: 4 (dim\
+      \ 0) != 2 (dim 0)\n\ngeneration\\Lifelines\\lifelines\\estimators\\coxph.py:147:\
+      \ ValueError\n________________ test_coxph_concordance_index_in_unit_interval\
+      \ ________________\n\n    def test_coxph_concordance_index_in_unit_interval()\
+      \ -> None:\n        \"\"\"Concordance index should lie in [0, 1] after fitting.\"\
+      \"\"\n        df = _toy_cox_df()\n        cph = CoxPHFitter().fit(df, duration_col=\"\
+      duration\", event_col=\"event\")\n    \n>       c = float(cph.concordance_index_)\n\
+      E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'\n\
+      \ntests\\Lifelines\\functional_test.py:269: AttributeError\n_____________ test_coxph_fit_on_waltons_with_binary_group_feature\
+      \ _____________\n\n    def test_coxph_fit_on_waltons_with_binary_group_feature()\
+      \ -> None:\n        \"\"\"Fit CoxPH on Waltons dataset using a binary treated\
+      \ indicator derived from group.\"\"\"\n        df = load_waltons()\n       \
+      \ assert {\"T\", \"E\", \"group\"}.issubset(df.columns)\n    \n        df2 =\
+      \ df.copy()\n        df2[\"treated\"] = (df2[\"group\"] != \"control\").astype(int)\n\
+      \    \n        model_df = df2[[\"T\", \"E\", \"treated\"]].rename(columns={\"\
+      T\": \"duration\", \"E\": \"event\"})\n    \n        cph = CoxPHFitter()\n \
+      \       cph.fit(model_df, duration_col=\"duration\", event_col=\"event\")\n\
+      \    \n>       coef = float(cph.params_.loc[\"treated\"])\nE       AttributeError:\
+      \ 'numpy.ndarray' object has no attribute 'loc'\n\ntests\\Lifelines\\functional_test.py:286:\
+      \ AttributeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_on_small_manual_dataset\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_on_waltons_groups - TypeE...\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_basic_fit - AssertionEr...\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_predict_at_time_zero_is_one\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_predict_is_non_increasing_over_time\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index\n\
+      FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_params_index_matches_covariates\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_predict_partial_hazard_is_positive_and_varies\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval\n\
+      FAILED tests/Lifelines/functional_test.py::test_coxph_fit_on_waltons_with_binary_group_feature\n\
+      15 failed in 3.36s\n"
+    elapsed_time_s: 4.970559
+    avg_memory_mb: 71.96
+    avg_cpu_percent: 104.43
+    passed: 0
+    failed: 15
+    skipped: 0
+    total: 15
+    score_inputs_passed: 0
+    score_inputs_failed: 15
+    score_inputs_total: 15
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 1.37s
+
+      '
+    elapsed_time_s: 3.060312
+    avg_memory_mb: 69.45
+    avg_cpu_percent: 98.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 4.479736
+    score_inputs_actual_time_s: 3.060312
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ____________________ test_waltons_kmf_and_cox_integration _____________________\n\
+      \n    def test_waltons_kmf_and_cox_integration() -> None:\n        \"\"\"End-to-end\
+      \ integration test combining KMF and CoxPH on Waltons dataset.\"\"\"\n     \
+      \   df = load_waltons()\n        kmf = KaplanMeierFitter()\n    \n        for\
+      \ name, group_df in df.groupby(\"group\"):\n>           kmf.fit(group_df[\"\
+      T\"], group_df[\"E\"], label=name)\nE           TypeError: fit() got an unexpected\
+      \ keyword argument 'label'\n\ntests\\Lifelines\\resource_test.py:43: TypeError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration\n\
+      1 failed in 2.18s\n"
+    elapsed_time_s: 3.838884
+    avg_memory_mb: 70.62
+    avg_cpu_percent: 95.4
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 120.76
+    score_inputs_baseline_cpu_pct: 99.35
+    score_inputs_actual_mem_mb: 70.62
+    score_inputs_actual_cpu_pct: 95.4
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 1.45s
+
+      '
+    elapsed_time_s: 3.165188
+    avg_memory_mb: 69.33
+    avg_cpu_percent: 97.4
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=251.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.539167
+    avg_memory_mb: 31.53
+    avg_cpu_percent: 96.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 251.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=30.3998 files_scanned=6.0 total_loc=251.0 max_cc=6.0
+
+      .
+
+      1 passed in 0.19s
+
+      '
+    elapsed_time_s: 1.739547
+    avg_memory_mb: 31.3
+    avg_cpu_percent: 99.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 30.3998
+      files_scanned: 6.0
+      total_loc: 251.0
+      max_cc: 6.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 30.3998
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 4.479736
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 4.442984
+    resource_tests_total: 1
+    avg_memory_mb: 120.76
+    avg_cpu_percent: 99.35
+  functional:
+    functional_suite_time_s: 6.121189
+    functional_tests_total: 15
+  robustness:
+    robustness_suite_time_s: 4.315143
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.664574
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 39.0
+      total_loc: 14070.0
+  maintainability:
+    maintainability_suite_time_s: 3.936326
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 47.0
+      total_loc: 20752.0
+      max_cc: 31.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Lifelines\pytest_logs

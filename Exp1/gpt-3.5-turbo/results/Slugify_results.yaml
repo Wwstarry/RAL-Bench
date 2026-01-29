@@ -1,0 +1,369 @@
+project_name: Slugify
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Slugify\slugify.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Slugify
+timestamp: '2025-12-31 21:15:55'
+functional_score: 0.75
+non_functional_score: 0.6926
+non_functional_subscores:
+  maintainability: 0.5105
+  security: 1.0
+  robustness: 1.0
+  performance: 0.9066
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "...F...F..F.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________ test_allow_unicode_true_preserves_non_ascii _________________\n\
+      \n    def test_allow_unicode_true_preserves_non_ascii() -> None:\n        \"\
+      \"\"When allow_unicode is True, unicode characters can be preserved.\"\"\"\n\
+      \        text = \"影師嗎\"\n>       result = slugify(text, allow_unicode=True)\n\
+      \ntests\\Slugify\\functional_test.py:135: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Slugify\\slugify\\\
+      slugify.py:69: in slugify\n    pattern = re.compile(r'[^\\w\\s\\p{L}\\p{N}\\\
+      p{M}\\p{Pc}\\p{Pd}]', re.UNICODE)\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\re.py:252: in compile\n    return _compile(pattern, flags)\n\
+      C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py:304:\
+      \ in _compile\n    p = sre_compile.compile(pattern, flags)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_compile.py:764: in compile\n\
+      \    p = sre_parse.parse(p, flags)\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\sre_parse.py:948: in parse\n    p = _parse_sub(source,\
+      \ state, flags & SRE_FLAG_VERBOSE, 0)\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\sre_parse.py:443: in _parse_sub\n    itemsappend(_parse(source,\
+      \ state, verbose, nested + 1,\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\sre_parse.py:554: in _parse\n    code1 = _class_escape(source,\
+      \ this)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _\n\nsource = <sre_parse.Tokenizer object at 0x00000238DC5371C0>,\
+      \ escape = '\\\\p'\n\n    def _class_escape(source, escape):\n        # handle\
+      \ escape code inside character class\n        code = ESCAPES.get(escape)\n \
+      \       if code:\n            return code\n        code = CATEGORIES.get(escape)\n\
+      \        if code and code[0] is IN:\n            return code\n        try:\n\
+      \            c = escape[1:2]\n            if c == \"x\":\n                #\
+      \ hexadecimal escape (exactly two digits)\n                escape += source.getwhile(2,\
+      \ HEXDIGITS)\n                if len(escape) != 4:\n                    raise\
+      \ source.error(\"incomplete escape %s\" % escape, len(escape))\n           \
+      \     return LITERAL, int(escape[2:], 16)\n            elif c == \"u\" and source.istext:\n\
+      \                # unicode escape (exactly four digits)\n                escape\
+      \ += source.getwhile(4, HEXDIGITS)\n                if len(escape) != 6:\n \
+      \                   raise source.error(\"incomplete escape %s\" % escape, len(escape))\n\
+      \                return LITERAL, int(escape[2:], 16)\n            elif c ==\
+      \ \"U\" and source.istext:\n                # unicode escape (exactly eight\
+      \ digits)\n                escape += source.getwhile(8, HEXDIGITS)\n       \
+      \         if len(escape) != 10:\n                    raise source.error(\"incomplete\
+      \ escape %s\" % escape, len(escape))\n                c = int(escape[2:], 16)\n\
+      \                chr(c) # raise ValueError for invalid code\n              \
+      \  return LITERAL, c\n            elif c == \"N\" and source.istext:\n     \
+      \           import unicodedata\n                # named unicode escape e.g.\
+      \ \\N{EM DASH}\n                if not source.match('{'):\n                \
+      \    raise source.error(\"missing {\")\n                charname = source.getuntil('}',\
+      \ 'character name')\n                try:\n                    c = ord(unicodedata.lookup(charname))\n\
+      \                except KeyError:\n                    raise source.error(\"\
+      undefined character name %r\" % charname,\n                                \
+      \       len(charname) + len(r'\\N{}'))\n                return LITERAL, c\n\
+      \            elif c in OCTDIGITS:\n                # octal escape (up to three\
+      \ digits)\n                escape += source.getwhile(2, OCTDIGITS)\n       \
+      \         c = int(escape[1:], 8)\n                if c > 0o377:\n          \
+      \          raise source.error('octal escape value %s outside of '\n        \
+      \                               'range 0-0o377' % escape, len(escape))\n   \
+      \             return LITERAL, c\n            elif c in DIGITS:\n           \
+      \     raise ValueError\n            if len(escape) == 2:\n                if\
+      \ c in ASCIILETTERS:\n>                   raise source.error('bad escape %s'\
+      \ % escape, len(escape))\nE                   re.error: bad escape \\p at position\
+      \ 6\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_parse.py:349:\
+      \ error\n________________ test_regex_pattern_allows_underscore_prefixes ________________\n\
+      \n    def test_regex_pattern_allows_underscore_prefixes() -> None:\n       \
+      \ \"\"\"Custom regex_pattern can allow underscores to remain.\"\"\"\n      \
+      \  text = \"___This is a test___\"\n        regex_pattern = r\"[^-a-z0-9_]+\"\
+      \n    \n        result_default_sep = slugify(text, regex_pattern=regex_pattern)\n\
+      >       assert result_default_sep.startswith(\"___\")\nE       AssertionError:\
+      \ assert False\nE        +  where False = <built-in method startswith of str\
+      \ object at 0x00000238D9704670>('___')\nE        +    where <built-in method\
+      \ startswith of str object at 0x00000238D9704670> = ''.startswith\n\ntests\\\
+      Slugify\\functional_test.py:173: AssertionError\n___________________ test_replacements_apply_before_slugging\
+      \ ___________________\n\n    def test_replacements_apply_before_slugging() ->\
+      \ None:\n        \"\"\"replacements should transform substrings before final\
+      \ slug is produced.\"\"\"\n        text = \"C# is not C++\"\n>       result\
+      \ = slugify(text, replacements=[[\"C#\", \"Csharp\"], [\"C++\", \"Cpp\"]])\n\
+      \ntests\\Slugify\\functional_test.py:208: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = 'C# is not C++',\
+      \ allow_unicode = False, max_length = None\nword_boundary = False, separator\
+      \ = '-', regex_pattern = None, stopwords = None\nlowercase = True, replacements\
+      \ = [['C#', 'Csharp'], ['C++', 'Cpp']], kwargs = {}\n\n    def slugify(\n  \
+      \      text,\n        allow_unicode=False,\n        max_length=None,\n     \
+      \   word_boundary=False,\n        separator='-',\n        regex_pattern=None,\n\
+      \        stopwords=None,\n        lowercase=True,\n        replacements=None,\n\
+      \        **kwargs\n    ):\n        \"\"\"\n        Generate an ASCII-only slug\
+      \ or a unicode slug from the given text.\n    \n        Parameters\n       \
+      \ ----------\n        text : str\n            Text to slugify.\n        allow_unicode\
+      \ : bool, optional\n            Whether to allow unicode characters in the slug.\
+      \ Defaults to False.\n        max_length : int or None, optional\n         \
+      \   Maximum length of the slug. If set, slug will be truncated.\n        word_boundary\
+      \ : bool, optional\n            If True and max_length is set, truncate at the\
+      \ last separator before max_length.\n        separator : str, optional\n   \
+      \         Separator character to use in the slug. Defaults to '-'.\n       \
+      \ regex_pattern : str or None, optional\n            Custom regex pattern to\
+      \ filter characters. Defaults to None.\n        stopwords : iterable or None,\
+      \ optional\n            Words to exclude from the slug. Defaults to None.\n\
+      \        lowercase : bool, optional\n            Whether to lowercase the slug.\
+      \ Defaults to True.\n        replacements : dict or None, optional\n       \
+      \     Custom replacements to apply before slugification. Defaults to None.\n\
+      \        **kwargs\n            Additional keyword arguments (ignored).\n   \
+      \ \n        Returns\n        -------\n        str\n            The slugified\
+      \ string.\n        \"\"\"\n        if not isinstance(text, str):\n         \
+      \   text = str(text)\n    \n        # Apply custom replacements first\n    \
+      \    if replacements:\n>           for search, replace in replacements.items():\n\
+      E           AttributeError: 'list' object has no attribute 'items'\n\ngeneration\\\
+      Slugify\\slugify\\slugify.py:52: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Slugify/functional_test.py::test_allow_unicode_true_preserves_non_ascii\n\
+      FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes\n\
+      FAILED tests/Slugify/functional_test.py::test_replacements_apply_before_slugging\n\
+      3 failed, 9 passed in 0.59s\n"
+    elapsed_time_s: 1.957698
+    avg_memory_mb: 34.77
+    avg_cpu_percent: 97.4
+    passed: 9
+    failed: 3
+    skipped: 0
+    total: 12
+    score_inputs_passed: 9
+    score_inputs_failed: 3
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.339165
+    avg_memory_mb: 30.88
+    avg_cpu_percent: 98.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.214036
+    score_inputs_actual_time_s: 1.339165
+  resource:
+    returncode: 1
+    stdout: ".F                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_slug_index_allow_unicode ________________________\n\
+      \n    def test_slug_index_allow_unicode() -> None:\n        \"\"\"When allow_unicode\
+      \ is True, non-ASCII characters may be preserved.\"\"\"\n        texts = [\n\
+      \            \"影師嗎\",\n            \"i love 影師嗎\",\n            \"ナルト 疾風伝\"\
+      ,\n            \"Компьютер\",\n        ]\n    \n>       index = _build_slug_index(texts,\
+      \ allow_unicode=True)\n\ntests\\Slugify\\resource_test.py:100: \n_ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\\
+      Slugify\\resource_test.py:50: in _build_slug_index\n    s = slugify(name, allow_unicode=allow_unicode)\n\
+      generation\\Slugify\\slugify\\slugify.py:69: in slugify\n    pattern = re.compile(r'[^\\\
+      w\\s\\p{L}\\p{N}\\p{M}\\p{Pc}\\p{Pd}]', re.UNICODE)\nC:\\Users\\86152\\AppData\\\
+      Local\\Programs\\Python\\Python39\\lib\\re.py:252: in compile\n    return _compile(pattern,\
+      \ flags)\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\\
+      re.py:304: in _compile\n    p = sre_compile.compile(pattern, flags)\nC:\\Users\\\
+      86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_compile.py:764:\
+      \ in compile\n    p = sre_parse.parse(p, flags)\nC:\\Users\\86152\\AppData\\\
+      Local\\Programs\\Python\\Python39\\lib\\sre_parse.py:948: in parse\n    p =\
+      \ _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_parse.py:443: in _parse_sub\n\
+      \    itemsappend(_parse(source, state, verbose, nested + 1,\nC:\\Users\\86152\\\
+      AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_parse.py:554: in _parse\n\
+      \    code1 = _class_escape(source, this)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nsource = <sre_parse.Tokenizer\
+      \ object at 0x00000217433EE400>, escape = '\\\\p'\n\n    def _class_escape(source,\
+      \ escape):\n        # handle escape code inside character class\n        code\
+      \ = ESCAPES.get(escape)\n        if code:\n            return code\n       \
+      \ code = CATEGORIES.get(escape)\n        if code and code[0] is IN:\n      \
+      \      return code\n        try:\n            c = escape[1:2]\n            if\
+      \ c == \"x\":\n                # hexadecimal escape (exactly two digits)\n \
+      \               escape += source.getwhile(2, HEXDIGITS)\n                if\
+      \ len(escape) != 4:\n                    raise source.error(\"incomplete escape\
+      \ %s\" % escape, len(escape))\n                return LITERAL, int(escape[2:],\
+      \ 16)\n            elif c == \"u\" and source.istext:\n                # unicode\
+      \ escape (exactly four digits)\n                escape += source.getwhile(4,\
+      \ HEXDIGITS)\n                if len(escape) != 6:\n                    raise\
+      \ source.error(\"incomplete escape %s\" % escape, len(escape))\n           \
+      \     return LITERAL, int(escape[2:], 16)\n            elif c == \"U\" and source.istext:\n\
+      \                # unicode escape (exactly eight digits)\n                escape\
+      \ += source.getwhile(8, HEXDIGITS)\n                if len(escape) != 10:\n\
+      \                    raise source.error(\"incomplete escape %s\" % escape, len(escape))\n\
+      \                c = int(escape[2:], 16)\n                chr(c) # raise ValueError\
+      \ for invalid code\n                return LITERAL, c\n            elif c ==\
+      \ \"N\" and source.istext:\n                import unicodedata\n           \
+      \     # named unicode escape e.g. \\N{EM DASH}\n                if not source.match('{'):\n\
+      \                    raise source.error(\"missing {\")\n                charname\
+      \ = source.getuntil('}', 'character name')\n                try:\n         \
+      \           c = ord(unicodedata.lookup(charname))\n                except KeyError:\n\
+      \                    raise source.error(\"undefined character name %r\" % charname,\n\
+      \                                       len(charname) + len(r'\\N{}'))\n   \
+      \             return LITERAL, c\n            elif c in OCTDIGITS:\n        \
+      \        # octal escape (up to three digits)\n                escape += source.getwhile(2,\
+      \ OCTDIGITS)\n                c = int(escape[1:], 8)\n                if c >\
+      \ 0o377:\n                    raise source.error('octal escape value %s outside\
+      \ of '\n                                       'range 0-0o377' % escape, len(escape))\n\
+      \                return LITERAL, c\n            elif c in DIGITS:\n        \
+      \        raise ValueError\n            if len(escape) == 2:\n              \
+      \  if c in ASCIILETTERS:\n>                   raise source.error('bad escape\
+      \ %s' % escape, len(escape))\nE                   re.error: bad escape \\p at\
+      \ position 6\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\\
+      lib\\sre_parse.py:349: error\n=========================== short test summary\
+      \ info ===========================\nFAILED tests/Slugify/resource_test.py::test_slug_index_allow_unicode\
+      \ - re.err...\n1 failed, 1 passed in 0.54s\n"
+    elapsed_time_s: 1.891216
+    avg_memory_mb: 34.01
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 1
+    skipped: 0
+    total: 2
+    score_inputs_passed: 1
+    score_inputs_failed: 1
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.25
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 34.01
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.462426
+    avg_memory_mb: 31.12
+    avg_cpu_percent: 97.7
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=126.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.572552
+    avg_memory_mb: 27.26
+    avg_cpu_percent: 84.05
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 126.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=26.7331 files_scanned=2.0 total_loc=126.0 max_cc=30.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.386145
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 97.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 26.7331
+      files_scanned: 2.0
+      total_loc: 126.0
+      max_cc: 30.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 25.6286
+    score_inputs_generated_mi_min: 26.7331
+    score_inputs_ratio_g_over_b: 1.0430963845079326
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.214036
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.191233
+    resource_tests_total: 2
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.215999
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.276187
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416456
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 278.0
+  maintainability:
+    maintainability_suite_time_s: 1.253803
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.6286
+      files_scanned: 5.0
+      total_loc: 278.0
+      max_cc: 27.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Slugify\pytest_logs

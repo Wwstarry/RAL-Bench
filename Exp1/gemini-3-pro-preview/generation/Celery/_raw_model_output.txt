@@ -1,0 +1,265 @@
+<file:celery/__init__.py>
+from .app import Celery
+from .exceptions import TimeoutError
+</file>
+
+<file:celery/exceptions.py>
+class CeleryError(Exception):
+    """Base class for all Celery errors."""
+    pass
+
+class TimeoutError(CeleryError):
+    """The operation timed out."""
+    pass
+</file>
+
+<file:celery/result.py>
+import time
+from .exceptions import TimeoutError
+
+class AsyncResult:
+    def __init__(self, id, backend=None, task_name=None, app=None):
+        self.id = id
+        self.backend = backend
+        self.task_name = task_name
+        self._app = app
+
+    @property
+    def state(self):
+        return self.backend.get_status(self.id)
+
+    @property
+    def status(self):
+        return self.state
+
+    @property
+    def result(self):
+        return self.backend.get_result(self.id)
+    
+    @property
+    def traceback(self):
+        return self.backend.get_traceback(self.id)
+
+    def get(self, timeout=None, propagate=True, **kwargs):
+        return self.backend.wait_for(self.id, timeout=timeout, propagate=propagate)
+
+    def successful(self):
+        return self.state == 'SUCCESS'
+
+    def failed(self):
+        return self.state == 'FAILURE'
+
+    def ready(self):
+        return self.state in ['SUCCESS', 'FAILURE', 'REVOKED']
+        
+    def forget(self):
+        pass
+</file>
+
+<file:celery/backends/__init__.py>
+# Package for backends
+</file>
+
+<file:celery/backends/base.py>
+import threading
+import time
+from ..exceptions import TimeoutError
+
+class Backend:
+    def __init__(self, app):
+        self.app = app
+        self._results = {} 
+        self._events = {}
+        self._lock = threading.Lock()
+
+    def store_result(self, task_id, result, status, traceback=None):
+        with self._lock:
+            self._results[task_id] = {'status': status, 'result': result, 'traceback': traceback}
+            if task_id in self._events:
+                self._events[task_id].set()
+
+    def get_status(self, task_id):
+        with self._lock:
+            return self._results.get(task_id, {}).get('status', 'PENDING')
+
+    def get_result(self, task_id):
+        with self._lock:
+            return self._results.get(task_id, {}).get('result')
+
+    def get_traceback(self, task_id):
+        with self._lock:
+            return self._results.get(task_id, {}).get('traceback')
+
+    def wait_for(self, task_id, timeout=None, propagate=True):
+        event = None
+        with self._lock:
+            if task_id in self._results:
+                # Result already available
+                pass
+            else:
+                if task_id not in self._events:
+                    self._events[task_id] = threading.Event()
+                event = self._events[task_id]
+        
+        if event:
+            if not event.wait(timeout=timeout):
+                raise TimeoutError("The operation timed out.")
+        
+        with self._lock:
+            data = self._results[task_id]
+        
+        if propagate and data['status'] == 'FAILURE':
+            if isinstance(data['result'], Exception):
+                raise data['result']
+            raise Exception(data['result'])
+        return data['result']
+</file>
+
+<file:celery/app/__init__.py>
+from .base import Celery
+</file>
+
+<file:celery/app/task.py>
+import uuid
+import threading
+from ..result import AsyncResult
+
+class Task:
+    name = None
+    ignore_result = False
+    
+    def __init__(self, app, name=None, bind=False, run=None, **opts):
+        self.app = app
+        self.name = name or self.__class__.__name__
+        self.bind = bind
+        if run:
+            self.run = run
+        for k, v in opts.items():
+            setattr(self, k, v)
+
+    def __call__(self, *args, **kwargs):
+        if self.bind:
+            return self.run(self, *args, **kwargs)
+        return self.run(*args, **kwargs)
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError("Tasks must define the run method.")
+
+    def delay(self, *args, **kwargs):
+        return self.apply_async(args, kwargs)
+
+    def apply_async(self, args=None, kwargs=None, task_id=None, **options):
+        args = args or ()
+        kwargs = kwargs or {}
+        task_id = task_id or str(uuid.uuid4())
+        
+        # Check for eager execution
+        if self.app.conf.get('task_always_eager', False):
+            return self.apply(args, kwargs, task_id=task_id, **options)
+        
+        # Simulate distributed execution via thread
+        def worker():
+            try:
+                if self.bind:
+                    res = self.run(self, *args, **kwargs)
+                else:
+                    res = self.run(*args, **kwargs)
+                self.app.backend.store_result(task_id, res, 'SUCCESS')
+            except Exception as e:
+                self.app.backend.store_result(task_id, e, 'FAILURE')
+
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        
+        return AsyncResult(task_id, backend=self.app.backend, task_name=self.name, app=self.app)
+
+    def apply(self, args=None, kwargs=None, task_id=None, **options):
+        args = args or ()
+        kwargs = kwargs or {}
+        task_id = task_id or str(uuid.uuid4())
+        
+        try:
+            if self.bind:
+                res = self.run(self, *args, **kwargs)
+            else:
+                res = self.run(*args, **kwargs)
+            status = 'SUCCESS'
+            self.app.backend.store_result(task_id, res, status)
+        except Exception as e:
+            res = e
+            status = 'FAILURE'
+            self.app.backend.store_result(task_id, res, status)
+            
+        return AsyncResult(task_id, backend=self.app.backend, task_name=self.name, app=self.app)
+</file>
+
+<file:celery/app/base.py>
+from .task import Task
+from ..backends.base import Backend
+
+class Configuration(dict):
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+    def __setattr__(self, key, value):
+        self[key] = value
+    def update(self, *args, **kwargs):
+        super().update(*args, **kwargs)
+
+class Control:
+    def purge(self):
+        return 0
+    def inspect(self):
+        return None
+
+class Celery:
+    def __init__(self, main=None, broker=None, backend=None, **kwargs):
+        self.main = main
+        self.conf = Configuration(**kwargs)
+        if broker:
+            self.conf['broker_url'] = broker
+        if backend:
+            self.conf['result_backend'] = backend
+            
+        self._tasks = {}
+        self.backend = Backend(self)
+        self.control = Control()
+
+    def task(self, *args, **kwargs):
+        def inner(func):
+            name = kwargs.get('name') or f"{func.__module__}.{func.__name__}"
+            bind = kwargs.get('bind', False)
+            
+            # Create a subclass of Task dynamically
+            class BoundTask(Task):
+                def run(self, *a, **kw):
+                    return func(*a, **kw)
+            
+            BoundTask.__name__ = func.__name__
+            BoundTask.__module__ = func.__module__
+            
+            task_instance = BoundTask(self, name=name, bind=bind, **kwargs)
+            self._tasks[name] = task_instance
+            return task_instance
+            
+        if len(args) == 1 and callable(args[0]):
+            return inner(args[0])
+        return inner
+
+    def send_task(self, name, args=None, kwargs=None, **options):
+        if name not in self._tasks:
+            raise ValueError(f"Task {name} not registered in this mock environment.")
+        
+        task = self._tasks[name]
+        return task.apply_async(args, kwargs, **options)
+
+    def config_from_object(self, obj):
+        if isinstance(obj, str):
+            pass 
+        else:
+            for key in dir(obj):
+                if key.isupper():
+                    self.conf[key] = getattr(obj, key)
+</file>

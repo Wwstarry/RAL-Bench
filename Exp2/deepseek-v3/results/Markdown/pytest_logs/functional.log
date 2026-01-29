@@ -1,0 +1,24 @@
+......F...sssssssss                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<p>``` literal &lt;b&gt; tag in code block ```</p>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+1 failed, 9 passed, 9 skipped in 0.61s

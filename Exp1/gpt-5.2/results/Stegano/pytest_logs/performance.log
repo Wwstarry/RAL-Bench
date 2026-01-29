@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________________ test_lsb_performance_smoke __________________________
+
+    def test_lsb_performance_smoke() -> None:
+        """Simple performance sanity check for LSB hide/reveal."""
+>       avg_hide, avg_reveal = _measure_hide_reveal(iterations=5)
+
+tests\Stegano\performance_test.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Stegano\performance_test.py:53: in _measure_hide_reveal
+    _ = lsb.reveal(str(output_img))
+generation\Stegano\stegano\lsb\lsb.py:158: in reveal
+    msg_bits_list = _reveal_bits_from_channels(channels, msg_bits, pos_it)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+channels = [226, 136, 124, 226, 136, 124, ...], nbits = 984
+positions = <generator object _positions_sequential at 0x000002AF47430CF0>
+
+    def _reveal_bits_from_channels(channels: list[int], nbits: int, positions: Iterator[int]) -> list[int]:
+        out_bits: list[int] = []
+        for _ in range(nbits):
+>           pos = next(positions)
+E           StopIteration
+
+generation\Stegano\stegano\lsb\lsb.py:55: StopIteration
+=========================== short test summary info ===========================
+FAILED tests/Stegano/performance_test.py::test_lsb_performance_smoke - StopIt...
+1 failed in 1.08s

@@ -1,0 +1,285 @@
+FF..FFFFF.F.FF.                                                          [100%]
+================================== FAILURES ===================================
+______________________ test_kmf_on_small_manual_dataset _______________________
+
+self = Index(['KM_estimate'], dtype='object'), key = 'test'
+
+    def get_loc(self, key):
+        """
+        Get integer location, slice or boolean mask for requested label.
+    
+        Parameters
+        ----------
+        key : label
+    
+        Returns
+        -------
+        int if unique index, slice if monotonic index, else mask
+    
+        Examples
+        --------
+        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+    
+        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+    
+        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True])
+        """
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+>           return self._engine.get_loc(casted_key)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\indexes\base.py:3805: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+index.pyx:167: in pandas._libs.index.IndexEngine.get_loc
+    ???
+index.pyx:196: in pandas._libs.index.IndexEngine.get_loc
+    ???
+pandas\\_libs\\hashtable_class_helper.pxi:7081: in pandas._libs.hashtable.PyObjectHashTable.get_item
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   KeyError: 'test'
+
+pandas\\_libs\\hashtable_class_helper.pxi:7089: KeyError
+
+The above exception was the direct cause of the following exception:
+
+    def test_kmf_on_small_manual_dataset() -> None:
+        """Basic sanity check for KaplanMeierFitter on a tiny dataset."""
+        durations, events = _toy_kmf_data()
+    
+        kmf = KaplanMeierFitter()
+        kmf.fit(durations=durations, event_observed=events, label="test")
+        sf = kmf.survival_function_
+    
+>       values = sf["test"].values
+
+tests\Lifelines\functional_test.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\frame.py:4102: in __getitem__
+    indexer = self.columns.get_loc(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Index(['KM_estimate'], dtype='object'), key = 'test'
+
+    def get_loc(self, key):
+        """
+        Get integer location, slice or boolean mask for requested label.
+    
+        Parameters
+        ----------
+        key : label
+    
+        Returns
+        -------
+        int if unique index, slice if monotonic index, else mask
+    
+        Examples
+        --------
+        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+    
+        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+    
+        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True])
+        """
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+            return self._engine.get_loc(casted_key)
+        except KeyError as err:
+            if isinstance(casted_key, slice) or (
+                isinstance(casted_key, abc.Iterable)
+                and any(isinstance(x, slice) for x in casted_key)
+            ):
+                raise InvalidIndexError(key)
+>           raise KeyError(key) from err
+E           KeyError: 'test'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\indexes\base.py:3812: KeyError
+_________________________ test_kmf_on_waltons_groups __________________________
+
+    def test_kmf_on_waltons_groups() -> None:
+        """Fit KMF on the Waltons dataset for two groups."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        control = df[df["group"] == "control"]
+        treated = df[df["group"] != "control"]
+    
+        kmf_control = KaplanMeierFitter()
+        kmf_treated = KaplanMeierFitter()
+    
+        kmf_control.fit(control["T"], control["E"], label="control")
+        kmf_treated.fit(treated["T"], treated["E"], label="treated")
+    
+        t = 10.0
+        s_control = float(kmf_control.predict(t))
+        s_treated = float(kmf_treated.predict(t))
+    
+        assert 0.0 <= s_control <= 1.0
+        assert 0.0 <= s_treated <= 1.0
+>       assert abs(s_control - s_treated) > 1e-3
+E       assert 0.0 > 0.001
+E        +  where 0.0 = abs((1.0 - 1.0))
+
+tests\Lifelines\functional_test.py:114: AssertionError
+________________ test_kmf_predict_is_non_increasing_over_time _________________
+
+    def test_kmf_predict_is_non_increasing_over_time() -> None:
+        """KMF predicted survival should not increase as time increases."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+        s1 = float(kmf.predict(1.0))
+        s3 = float(kmf.predict(3.0))
+        s10 = float(kmf.predict(10.0))
+    
+        eps = 1e-8
+    
+        # Bounds (avoid chaining eps into the hard upper bound 1.0)
+        assert 0.0 <= s1 <= 1.0
+        assert 0.0 <= s3 <= 1.0
+        assert 0.0 <= s10 <= 1.0
+    
+        # Monotonic non-increasing (allow tiny numerical wiggle)
+        assert s3 <= s1 + eps
+>       assert s10 <= s3 + eps
+E       assert 0.19999999999999996 <= (0.0 + 1e-08)
+
+tests\Lifelines\functional_test.py:163: AssertionError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       et = kmf.event_table
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'event_table'
+
+tests\Lifelines\functional_test.py:183: AttributeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       bch = cph.baseline_cumulative_hazard_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'
+
+tests\Lifelines\functional_test.py:225: AttributeError
+____________ test_coxph_predict_survival_function_shape_and_bounds ____________
+
+    def test_coxph_predict_survival_function_shape_and_bounds() -> None:
+        """Predict survival functions for two individuals; verify shape and bounds."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x = pd.DataFrame({"age": [30, 60], "treatment": [0, 1]})
+>       sf = cph.predict_survival_function(x)
+
+tests\Lifelines\functional_test.py:254: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x000001D1B688D5E0>
+row =    age  treatment
+0   30          0
+1   60          1
+
+    def predict_survival_function(self, row: pd.DataFrame) -> pd.DataFrame:
+        """
+        Predict survival function for a single observation.
+    
+        Parameters
+        ----------
+        row : DataFrame
+            Single-row DataFrame with same covariates as training data.
+    
+        Returns
+        -------
+        DataFrame
+            Survival function over time.
+        """
+        if not self._fitted:
+            raise ValueError("Model must be fitted before prediction.")
+    
+        if self._baseline_cumulative_hazard is None:
+            raise ValueError("Baseline hazard not calculated.")
+    
+        # Get linear predictor for this row
+        covariate_cols = self.params_.index.tolist()
+        missing_cols = [col for col in covariate_cols if col not in row.columns]
+        if missing_cols:
+            raise ValueError(f"Missing columns in row: {missing_cols}")
+    
+        X_row = row[covariate_cols].values.astype(float).flatten()
+>       linear_predictor = np.dot(X_row, self.params_.values)
+E       ValueError: shapes (4,) and (2,) not aligned: 4 (dim 0) != 2 (dim 0)
+
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:171: ValueError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_small_manual_dataset
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_waltons_groups - asser...
+FAILED tests/Lifelines/functional_test.py::test_kmf_predict_is_non_increasing_over_time
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+10 failed, 5 passed in 3.14s

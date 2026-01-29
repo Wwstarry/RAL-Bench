@@ -1,0 +1,487 @@
+FF.FFF..F.F.                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_lsb_hide_and_reveal_text0\\lsb_lenna.png'
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\lsb\lsb.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 0, 1, 0, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+        encoded_img = lsb.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = lsb.reveal(str(output))
+
+tests\Stegano\functional_test.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_lsb_hide_and_reveal_text0\\lsb_lenna.png'
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+            message_bytes = utils.bits_to_bytes(message_bits)
+            return message_bytes.decode(encoding)
+        except UnicodeDecodeError as e:
+            raise ValueError("Failed to decode message. The encoding might be incorrect.") from e
+        except ValueError as e:
+            # This can happen if bits_to_bytes gets a non-multiple of 8 length
+>           raise ValueError("Failed to reconstruct message from bits. Data may be corrupt.") from e
+E           ValueError: Failed to reconstruct message from bits. Data may be corrupt.
+
+generation\Stegano\stegano\lsb\lsb.py:117: ValueError
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hides a message in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode != 'RGB' and auto_convert_rgb:
+            img = img.convert('RGB')
+        elif img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        new_img = img.copy()
+        pixels = new_img.load()
+    
+        message_bits = utils.get_bit_generator(message, encoding)
+        pixel_gen = _get_pixel_generator(new_img, generator, shift)
+    
+        try:
+>           for x, y in pixel_gen:
+
+generation\Stegano\stegano\lsb\lsb.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+img = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F417CB310>
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+
+    def _get_pixel_generator(img, generator=None, shift=0):
+        """
+        Returns a generator for pixel coordinates (x, y).
+        If a generator is provided, it yields indices which are then converted to (x, y).
+        Otherwise, it yields sequential (x, y) coordinates.
+        """
+        width, height = img.size
+        max_pixels = width * height
+    
+        if generator:
+            # Use the provided prime number generator
+            # Skip 'shift' number of primes
+>           gen = itertools.islice(generator(), shift, None)
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:19: TypeError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hides a message in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode != 'RGB' and auto_convert_rgb:
+            img = img.convert('RGB')
+        elif img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        new_img = img.copy()
+        pixels = new_img.load()
+    
+        message_bits = utils.get_bit_generator(message, encoding)
+        pixel_gen = _get_pixel_generator(new_img, generator, shift)
+    
+        try:
+            for x, y in pixel_gen:
+                pixel = list(pixels[x, y])
+                for i in range(3): # R, G, B channels
+                    try:
+                        bit = next(message_bits)
+                        pixel[i] = (pixel[i] & 0xFE) | bit
+                    except StopIteration:
+                        # No more bits to hide
+                        pixels[x, y] = tuple(pixel)
+                        return new_img
+                pixels[x, y] = tuple(pixel)
+        except Exception as e:
+>           raise ValueError("The message is too long to be hidden in the image.") from e
+E           ValueError: The message is too long to be hidden in the image.
+
+generation\Stegano\stegano\lsb\lsb.py:67: ValueError
+______________________ test_lsb_reveal_from_image_object ______________________
+
+image = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F41237A60>
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\lsb\lsb.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 0, 1, 1, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+        img_obj = lsb.hide(str(LENNA_PNG), secret)
+>       revealed = lsb.reveal(img_obj)
+
+tests\Stegano\functional_test.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F41237A60>
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+            message_bytes = utils.bits_to_bytes(message_bits)
+            return message_bytes.decode(encoding)
+        except UnicodeDecodeError as e:
+            raise ValueError("Failed to decode message. The encoding might be incorrect.") from e
+        except ValueError as e:
+            # This can happen if bits_to_bytes gets a non-multiple of 8 length
+>           raise ValueError("Failed to reconstruct message from bits. Data may be corrupt.") from e
+E           ValueError: Failed to reconstruct message from bits. Data may be corrupt.
+
+generation\Stegano\stegano\lsb\lsb.py:117: ValueError
+________________________ test_red_hide_and_reveal_text ________________________
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_red_hide_and_reveal_text0\\red_lenna.png'
+
+    def reveal(image):
+        """
+        Reveals a message hidden in the LSB of the red channel of an image.
+        """
+        encoding = "UTF-8" # Default encoding
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        width, height = img.size
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for y in range(height):
+            for x in range(width):
+                pixel = pixels[x, y]
+                extracted_bits.append(pixel[0] & 1)
+    
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\red\red.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 1, 0, 0, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_red_hide_and_reveal_text0')
+
+    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:
+        """red.hide(..., str) then red.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "red secret"
+        output = tmp_path / "red_lenna.png"
+    
+        encoded_img = red.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = red.reveal(str(output))
+
+tests\Stegano\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_red_hide_and_reveal_text0\\red_lenna.png'
+
+    def reveal(image):
+        """
+        Reveals a message hidden in the LSB of the red channel of an image.
+        """
+        encoding = "UTF-8" # Default encoding
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        width, height = img.size
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for y in range(height):
+            for x in range(width):
+                pixel = pixels[x, y]
+                extracted_bits.append(pixel[0] & 1)
+    
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        message_bits = extracted_bits[:-8]
+    

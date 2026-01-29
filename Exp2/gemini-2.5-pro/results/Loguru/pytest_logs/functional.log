@@ -1,0 +1,128 @@
+..F.F.FFF.F                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_log_method_with_level_name _______________________
+
+    def test_log_method_with_level_name() -> None:
+        log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+    
+>       log.log("INFO", "hello-info")
+E       AttributeError: 'Logger' object has no attribute 'log'
+
+tests\Loguru\functional_test.py:125: AttributeError
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+        log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+    
+>       with log.contextualize(user="bob"):
+E       AttributeError: 'Logger' object has no attribute 'contextualize'
+
+tests\Loguru\functional_test.py:149: AttributeError
+_______________________ test_add_file_sink_writes_lines _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-386/test_add_file_sink_writes_line0')
+
+    def test_add_file_sink_writes_lines(tmp_path: Path) -> None:
+        log_path = tmp_path / "loguru_test.log"
+    
+        logger.remove()
+>       logger.add(log_path, format="{level}:{message}", level="INFO")
+
+tests\Loguru\functional_test.py:179: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <loguru._logger.Logger object at 0x00000252BFF1EFD0>
+sink = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-386/test_add_file_sink_writes_line0/loguru_test.log')
+level = 'INFO', format = '{level}:{message}', filter = None, kwargs = {}
+level_no = 20, writer = None
+
+    def add(self, sink, *, level="DEBUG", format="{message}\n", filter=None, **kwargs):
+        level_no = self._level_name_to_no[level].no if isinstance(level, str) else level
+    
+        writer = None
+        if isinstance(sink, str):
+            writer = open(sink, "a", encoding="utf-8")
+        elif hasattr(sink, 'write'):
+            writer = sink
+        elif callable(sink):
+            # For callable sinks, the writer is a wrapper
+            writer = lambda msg: sink(msg)
+    
+        if writer is None:
+>           raise ValueError("Invalid sink specified")
+E           ValueError: Invalid sink specified
+
+generation\Loguru\loguru\_logger.py:168: ValueError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+        log, buf = make_buffer_logger(level="INFO", serialize=True)
+    
+        log.info("json-msg")
+    
+        raw_lines = _lines(buf)
+        assert len(raw_lines) >= 1
+    
+>       record = json.loads(raw_lines[-1])
+
+tests\Loguru\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x00000252BDD4BCD0>
+s = 'INFO:json-msg', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:355: JSONDecodeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+        log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+    
+>       patched = log.patch(lambda r: r["extra"].update({"patched": "yes"}))
+E       AttributeError: 'Logger' object has no attribute 'patch'
+
+tests\Loguru\functional_test.py:211: AttributeError
+____________________ test_time_and_level_in_default_format ____________________
+
+    def test_time_and_level_in_default_format() -> None:
+        # Default format should include some timestamp-like content, level, and message.
+        buf = io.StringIO()
+        logger.remove()
+        logger.add(buf)
+    
+        logger.info("default-format-test")
+    
+        output = buf.getvalue()
+>       assert "INFO" in output
+E       AssertionError: assert 'INFO' in 'default-format-test\n'
+
+tests\Loguru\functional_test.py:243: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_log_method_with_level_name - Att...
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_add_file_sink_writes_lines - Val...
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+FAILED tests/Loguru/functional_test.py::test_time_and_level_in_default_format
+6 failed, 5 passed in 0.56s

@@ -1,0 +1,128 @@
+.F.FF...FF.                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tablib\tablib\core.py:154: in export
+    exporter, _ = _get_dataset_format_handlers(fmt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = 'tsv'
+
+    def _get_dataset_format_handlers(fmt: str):
+        """Lazily import dataset format handlers."""
+        if fmt == "csv":
+            from .formats import _csv as mod
+        elif fmt == "json":
+            from .formats import _json as mod
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:12: ValueError
+_______________ test_dataset_row_column_operations_and_slicing ________________
+
+    def test_dataset_row_column_operations_and_slicing() -> None:
+        """Validate row appending, column appending, and slicing semantics."""
+        data = tablib.Dataset()
+        data.headers = ("city", "country")
+        data.append(("Berlin", "DE"))
+        data.append(("Paris", "FR"))
+        data.append(("Tokyo", "JP"))
+    
+        populations = (3_500_000, 2_100_000, 13_900_000)
+        data.append_col(populations, header="population")
+    
+        assert data.height == 3
+>       assert data.width == 3
+E       assert 2 == 3
+E        +  where 2 = <tablib.core.Dataset object at 0x00000195E4A47DC0>.width
+
+tests\Tablib\functional_test.py:210: AssertionError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tablib\tablib\core.py:154: in export
+    exporter, _ = _get_dataset_format_handlers(fmt)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = 'html'
+
+    def _get_dataset_format_handlers(fmt: str):
+        """Lazily import dataset format handlers."""
+        if fmt == "csv":
+            from .formats import _csv as mod
+        elif fmt == "json":
+            from .formats import _json as mod
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:12: ValueError
+__________________ test_databook_multi_sheet_json_roundtrip ___________________
+
+    def test_databook_multi_sheet_json_roundtrip() -> None:
+        """Databook should preserve sheet structure when exported/imported as JSON."""
+        sheet1 = tablib.Dataset(
+            (1, "a"),
+            (2, "b"),
+            headers=("id", "value"),
+        )
+        sheet1.title = "First"
+    
+        sheet2 = tablib.Dataset(
+            (3, "c"),
+            (4, "d"),
+            headers=("id", "value"),
+        )
+        sheet2.title = "Second"
+    
+        book = tablib.Databook([sheet1, sheet2])
+    
+        json_text = book.export("json")
+        assert isinstance(json_text, str)
+    
+        parsed = json.loads(json_text)
+>       assert isinstance(parsed, list)
+E       AssertionError: assert False
+E        +  where False = isinstance({'sheets': [{'data': [[1, 'a'], [2, 'b']], 'headers': ['id', 'value'], 'title': 'First'}, {'data': [[3, 'c'], [4, 'd']], 'headers': ['id', 'value'], 'title': 'Second'}]}, list)
+
+tests\Tablib\functional_test.py:324: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_row_column_operations_and_slicing
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_multi_sheet_json_roundtrip
+5 failed, 6 passed in 0.70s

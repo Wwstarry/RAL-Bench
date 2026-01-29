@@ -1,0 +1,332 @@
+project_name: PyPDF
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\PyPDF\pypdf.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF
+timestamp: '2025-12-31 13:51:25'
+functional_score: 0.0833
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFF.FFFsF                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_create_and_read_blank_pdf ________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_create_and_read_blank_pdf0')\n\
+      \n    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:\n        pdf_path\
+      \ = tmp_path / \"simple.pdf\"\n        _create_simple_pdf(pdf_path, num_pages=3)\n\
+      \    \n        reader = PdfReader(str(pdf_path))\n>       assert len(reader.pages)\
+      \ == 3\nE       assert 0 == 3\nE        +  where 0 = len([])\nE        +   \
+      \ where [] = <pypdf.reader.PdfReader object at 0x000001EE665A10D0>.pages\n\n\
+      tests\\PyPDF\\functional_test.py:137: AssertionError\n______________________\
+      \ test_blank_page_has_expected_size ______________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_blank_page_has_expected_s0')\n\
+      \n    def test_blank_page_has_expected_size(tmp_path: Path) -> None:\n     \
+      \   \"\"\"The first blank page should have the width/height we set.\"\"\"\n\
+      \        pdf_path = tmp_path / \"size.pdf\"\n        _create_simple_pdf(pdf_path,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(pdf_path))\n>       page\
+      \ = reader.pages[0]\nE       IndexError: list index out of range\n\ntests\\\
+      PyPDF\\functional_test.py:146: IndexError\n_____________________________ test_merge_two_pdfs\
+      \ _____________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_merge_two_pdfs0')\n\
+      \n    def test_merge_two_pdfs(tmp_path: Path) -> None:\n        pdf1 = tmp_path\
+      \ / \"p1.pdf\"\n        pdf2 = tmp_path / \"p2.pdf\"\n        merged = tmp_path\
+      \ / \"merged.pdf\"\n    \n        _create_simple_pdf(pdf1, num_pages=1)\n  \
+      \      _create_simple_pdf(pdf2, num_pages=2)\n    \n        _write_pdf_with_pages([pdf1,\
+      \ pdf2], merged)\n    \n        merged_reader = PdfReader(str(merged))\n>  \
+      \     assert len(merged_reader.pages) == 3\nE       assert 0 == 3\nE       \
+      \ +  where 0 = len([])\nE        +    where [] = <pypdf.reader.PdfReader object\
+      \ at 0x000001EE666258B0>.pages\n\ntests\\PyPDF\\functional_test.py:165: AssertionError\n\
+      __________________ test_writer_add_page_preserves_page_count __________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_writer_add_page_preserves0')\n\
+      \n    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:\n\
+      \        \"\"\"Add pages from a reader into a writer and verify count is preserved.\"\
+      \"\"\n        src = tmp_path / \"src.pdf\"\n        dst = tmp_path / \"dst.pdf\"\
+      \n        _create_simple_pdf(src, num_pages=4)\n    \n        reader = PdfReader(str(src))\n\
+      \        writer = PdfWriter()\n        for page in reader.pages:\n         \
+      \   writer.add_page(page)\n    \n        with dst.open(\"wb\") as fp:\n    \
+      \        writer.write(fp)\n    \n        reader2 = PdfReader(str(dst))\n>  \
+      \     assert len(reader2.pages) == 4\nE       assert 0 == 4\nE        +  where\
+      \ 0 = len([])\nE        +    where [] = <pypdf.reader.PdfReader object at 0x000001EE665B57F0>.pages\n\
+      \ntests\\PyPDF\\functional_test.py:183: AssertionError\n______________________________\
+      \ test_rotate_page _______________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_rotate_page0')\n\
+      \n    def test_rotate_page(tmp_path: Path) -> None:\n        src = tmp_path\
+      \ / \"src.pdf\"\n        rotated = tmp_path / \"rotated.pdf\"\n        _create_simple_pdf(src,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(src))\n>       page = reader.pages[0]\n\
+      E       IndexError: list index out of range\n\ntests\\PyPDF\\functional_test.py:192:\
+      \ IndexError\n_______________________ test_rotate_preserves_page_size _______________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_rotate_preserves_page_siz0')\n\
+      \n    def test_rotate_preserves_page_size(tmp_path: Path) -> None:\n       \
+      \ \"\"\"Rotating a blank page should keep a valid mediabox size.\"\"\"\n   \
+      \     src = tmp_path / \"src_size.pdf\"\n        rotated = tmp_path / \"rot_size.pdf\"\
+      \n        _create_simple_pdf(src, num_pages=1)\n    \n        reader = PdfReader(str(src))\n\
+      >       page = reader.pages[0]\nE       IndexError: list index out of range\n\
+      \ntests\\PyPDF\\functional_test.py:213: IndexError\n_____________ test_encrypted_pdf_allows_page_access_after_decrypt\
+      \ _____________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_encrypted_pdf_allows_page0')\n\
+      \n    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path)\
+      \ -> None:\n        \"\"\"After decrypting, basic page access should succeed\
+      \ and page size is valid.\"\"\"\n        src = tmp_path / \"plain2.pdf\"\n \
+      \       enc = tmp_path / \"encrypted2.pdf\"\n        _create_simple_pdf(src,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(src))\n        writer =\
+      \ PdfWriter()\n>       writer.add_page(reader.pages[0])\nE       IndexError:\
+      \ list index out of range\n\ntests\\PyPDF\\functional_test.py:260: IndexError\n\
+      ___________________________ test_metadata_roundtrip ___________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_metadata_roundtrip0')\n\
+      \n    def test_metadata_roundtrip(tmp_path: Path) -> None:\n        src = tmp_path\
+      \ / \"src.pdf\"\n        dst = tmp_path / \"meta.pdf\"\n        _create_simple_pdf(src,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(src))\n        writer =\
+      \ PdfWriter()\n        for page in reader.pages:\n            writer.add_page(page)\n\
+      \    \n        writer.add_metadata(\n            {\n                \"/Title\"\
+      : \"PyPDF Benchmark Document\",\n                \"/Author\": \"RealAppCodeBench\"\
+      ,\n            }\n        )\n    \n        with dst.open(\"wb\") as fp:\n  \
+      \          writer.write(fp)\n    \n        reader2 = PdfReader(str(dst))\n>\
+      \       meta = reader2.metadata\n\ntests\\PyPDF\\functional_test.py:296: \n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nself = <pypdf.reader.PdfReader object at 0x000001EE666255B0>\n\n  \
+      \  @property\n    def metadata(self) -> Dict[str, Any]:\n        \"\"\"Get document\
+      \ metadata.\"\"\"\n        if b'/Info' in self._trailer:\n            info_ref\
+      \ = self._trailer[b'/Info']\n            info_dict = self._resolve_object(info_ref)\n\
+      \    \n            # Convert to string keys\n            result = {}\n>    \
+      \       for key, value in info_dict.items():\nE           AttributeError: 'bytes'\
+      \ object has no attribute 'items'\n\ngeneration\\PyPDF\\pypdf\\reader.py:324:\
+      \ AttributeError\n___________________ test_metadata_multiple_fields_roundtrip\
+      \ ___________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_metadata_multiple_fields_0')\n\
+      \n    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:\n\
+      \        \"\"\"Add several info dict fields and ensure they can be read back.\"\
+      \"\"\n        src = tmp_path / \"src_info.pdf\"\n        dst = tmp_path / \"\
+      info.pdf\"\n        _create_simple_pdf(src, num_pages=1)\n    \n        reader\
+      \ = PdfReader(str(src))\n        writer = PdfWriter()\n>       writer.add_page(reader.pages[0])\n\
+      E       IndexError: list index out of range\n\ntests\\PyPDF\\functional_test.py:310:\
+      \ IndexError\n_________________ test_clone_document_by_writing_reader_pages\
+      \ _________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_clone_document_by_writing0')\n\
+      \n    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:\n\
+      \        \"\"\"Clone a document by copying pages and verify page count matches.\"\
+      \"\"\n        src = tmp_path / \"orig.pdf\"\n        dst = tmp_path / \"clone.pdf\"\
+      \n        _create_simple_pdf(src, num_pages=3)\n    \n        reader = PdfReader(str(src))\n\
+      \        writer = PdfWriter()\n        for p in reader.pages:\n            writer.add_page(p)\n\
+      \    \n        with dst.open(\"wb\") as fp:\n            writer.write(fp)\n\
+      \    \n        reader2 = PdfReader(str(dst))\n>       assert len(reader2.pages)\
+      \ == 3\nE       assert 0 == 3\nE        +  where 0 = len([])\nE        +   \
+      \ where [] = <pypdf.reader.PdfReader object at 0x000001EE665BF040>.pages\n\n\
+      tests\\PyPDF\\functional_test.py:372: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf\
+      \ - asser...\nFAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size\
+      \ - In...\nFAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - assert\
+      \ 0 == 3\nFAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count\n\
+      FAILED tests/PyPDF/functional_test.py::test_rotate_page - IndexError: list in...\n\
+      FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Inde...\n\
+      FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt\n\
+      FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AttributeErr...\n\
+      FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip\n\
+      FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages\n\
+      10 failed, 1 passed, 1 skipped in 0.87s\n"
+    elapsed_time_s: 2.388773
+    avg_memory_mb: 16.55
+    avg_cpu_percent: 50.0
+    passed: 1
+    failed: 10
+    skipped: 1
+    total: 12
+    score_inputs_passed: 1
+    score_inputs_failed: 10
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_pypdf_performance_smoke _________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-287/test_pypdf_performance_smoke0')\n\
+      \n    def test_pypdf_performance_smoke(tmp_path: Path) -> None:\n        \"\"\
+      \"Smoke test to ensure that the performance benchmark runs successfully.\"\"\
+      \"\n        metrics = run_pypdf_performance_benchmark(tmp_path)\n        assert\
+      \ metrics[\"num_documents\"] > 0\n>       assert metrics[\"total_pages\"] >\
+      \ 0\nE       assert 0.0 > 0\n\ntests\\PyPDF\\performance_test.py:81: AssertionError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/PyPDF/performance_test.py::test_pypdf_performance_smoke - assert...\n\
+      1 failed in 0.49s\n"
+    elapsed_time_s: 2.040409
+    avg_memory_mb: 31.8
+    avg_cpu_percent: 96.7
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.841743
+    score_inputs_actual_time_s: 2.040409
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_large_document_split_and_merge _____________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-288/test_large_document_split_and_0')\n\
+      \n    def test_large_document_split_and_merge(tmp_path: Path) -> None:\n   \
+      \     \"\"\"Integration test that splits and merges a larger PDF document.\"\
+      \"\"\n        src = tmp_path / \"large.pdf\"\n        part1 = tmp_path / \"\
+      part1.pdf\"\n        part2 = tmp_path / \"part2.pdf\"\n        merged = tmp_path\
+      \ / \"merged.pdf\"\n    \n        _create_large_pdf(src, num_pages=30)\n   \
+      \ \n        reader = PdfReader(str(src))\n>       assert len(reader.pages) ==\
+      \ 30\nE       assert 0 == 30\nE        +  where 0 = len([])\nE        +    where\
+      \ [] = <pypdf.reader.PdfReader object at 0x0000026D945D2760>.pages\n\ntests\\\
+      PyPDF\\resource_test.py:46: AssertionError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/PyPDF/resource_test.py::test_large_document_split_and_merge\
+      \ - as...\n1 failed in 0.48s\n"
+    elapsed_time_s: 2.028191
+    avg_memory_mb: 31.83
+    avg_cpu_percent: 99.2
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.95
+    score_inputs_baseline_cpu_pct: 58.64
+    score_inputs_actual_mem_mb: 31.83
+    score_inputs_actual_cpu_pct: 99.2
+  robustness:
+    returncode: 0
+    stdout: "....                                                                \
+      \     [100%]\n============================== warnings summary ===============================\n\
+      tests/PyPDF/robustness_test.py::test_robustness_import_and_introspection\n \
+      \ C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      PyPDF2\\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move\
+      \ to the pypdf library instead.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      4 passed, 1 warning in 0.30s\n"
+    elapsed_time_s: 1.78669
+    avg_memory_mb: 36.35
+    avg_cpu_percent: 99.1
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=516.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.623181
+    avg_memory_mb: 31.89
+    avg_cpu_percent: 98.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 516.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=17.6199 files_scanned=4.0 total_loc=516.0 max_cc=34.0
+
+      .
+
+      1 passed in 0.20s
+
+      '
+    elapsed_time_s: 1.620105
+    avg_memory_mb: 32.22
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 17.6199
+      files_scanned: 4.0
+      total_loc: 516.0
+      max_cc: 34.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 17.6199
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.841743
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.962762
+    resource_tests_total: 1
+    avg_memory_mb: 33.95
+    avg_cpu_percent: 58.64
+  functional:
+    functional_suite_time_s: 1.987759
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.353217
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.862179
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 56.0
+      total_loc: 37260.0
+  maintainability:
+    maintainability_suite_time_s: 3.494968
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 56.0
+      total_loc: 37260.0
+      max_cc: 47.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\PyPDF\pytest_logs

@@ -1,0 +1,215 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:70: AttributeError
+_____________________ test_todo_list_empty_shows_no_tasks _____________________
+
+    def test_todo_list_empty_shows_no_tasks() -> None:
+        app = _create_todo_app()
+        r = runner.invoke(app, ["list"])
+        assert r.exit_code == 0
+>       assert "No tasks." in r.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:224: AttributeError
+___________________________ test_todo_add_and_list ____________________________
+
+    def test_todo_add_and_list() -> None:
+        app = _create_todo_app()
+    
+        r1 = runner.invoke(app, ["add", "Write tests"])
+        r2 = runner.invoke(app, ["add", "Review PRs"])
+    
+        assert r1.exit_code == 0
+>       assert "Added: Write tests" in r1.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:234: AttributeError
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x0000014EA7172E20>.exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_____________________ test_help_output_includes_commands ______________________
+
+    def test_help_output_includes_commands() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+>       out = result.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:265: AttributeError
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["add", "--help"])
+        assert result.exit_code == 0
+>       out = result.stdout
+E       AttributeError: 'Result' object has no attribute 'stdout'
+
+tests\Typer\functional_test.py:275: AttributeError
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+>       app = _create_prompt_app()
+
+tests\Typer\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_prompt_app() -> typer.Typer:
+        """
+        Multi-command app to avoid Typer's single-command "collapse" behavior in
+        some versions. This guarantees that "greet" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+        def greet(
+>           name: str = typer.Option(
+                None,
+                "--name",
+                prompt=True,
+                help="Name to greet (prompted when missing).",
+            )
+        ) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'prompt'
+
+tests\Typer\functional_test.py:121: TypeError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000014EA71D16D0>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+>       app = _create_env_app()
+
+tests\Typer\functional_test.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_env_app() -> typer.Typer:
+        """
+        Multi-command app to guarantee that "show" exists as a subcommand.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+>       def show(token: str = typer.Option(..., "--token", envvar="APP_TOKEN")) -> None:
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+tests\Typer\functional_test.py:144: TypeError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+>       app = _create_callback_app()
+
+tests\Typer\functional_test.py:297: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_callback_app() -> typer.Typer:
+        """App with a callback global option that influences command output."""
+        app = typer.Typer()
+        state: Dict[str, bool] = {"verbose": False}
+    
+>       @app.callback()
+E       AttributeError: 'Typer' object has no attribute 'callback'
+
+tests\Typer\functional_test.py:159: AttributeError
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+>       app = _create_types_app()
+
+tests\Typer\functional_test.py:310: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_types_app() -> typer.Typer:
+        """
+        Multi-command app to guarantee that "calc" exists as a subcommand.
+        Covers typed arguments and a float option.
+        """
+        app = typer.Typer()
+    
+        @app.command()
+>       def calc(x: int, y: int, scale: float = typer.Option(1.0, "--scale")) -> None:
+E       TypeError: __init__() takes from 1 to 2 positional arguments but 3 were given
+
+tests\Typer\functional_test.py:181: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - AttributeE...
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - At...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_list_empty_shows_no_tasks - ...
+FAILED tests/Typer/functional_test.py::test_todo_add_and_list - AttributeErro...
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - a...
+FAILED tests/Typer/functional_test.py::test_help_output_includes_commands - A...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+12 failed in 0.62s

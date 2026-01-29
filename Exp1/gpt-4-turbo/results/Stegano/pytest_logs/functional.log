@@ -1,0 +1,44 @@
+.F..........                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-428/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = <PIL.PngImagePlugin.PngImageFile image mode=RGB size=512x512 at 0x2344FFFEAC0>
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x000002344FE06890>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        if isinstance(image, str):
+            image = Image.open(image)
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+        elif image.mode not in ("RGB", "RGBA"):
+            image = image.convert("RGB")
+        pixels = image.load()
+        width, height = image.size
+        bits = list(_message_to_bits(message, encoding))
+        if generator is None:
+            positions = ((x, y) for y in range(height) for x in range(width))
+        else:
+>           gen = generator()
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:44: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+1 failed, 11 passed in 2.23s

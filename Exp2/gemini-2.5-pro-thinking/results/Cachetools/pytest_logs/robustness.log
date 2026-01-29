@@ -1,0 +1,62 @@
+F..FF......                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+        cachetools = _import_cachetools()
+    
+>       c = cachetools.Cache(-1)
+
+tests\Cachetools\robustness_test.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError("'Cache' object has no attribute '_data'") raised in repr()] Cache object at 0x239bbc09e50>
+maxsize = -1, getsizeof = None
+
+    def __init__(self, maxsize, getsizeof=None):
+        if maxsize is not None and not isinstance(maxsize, int):
+            raise TypeError('maxsize must be an integer or None')
+        if maxsize is not None and maxsize < 0:
+>           raise ValueError('maxsize must be a non-negative integer or None')
+E           ValueError: maxsize must be a non-negative integer or None
+
+generation\Cachetools\cachetools\cache.py:15: ValueError
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'FIFOCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'LFUCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+============================== warnings summary ===============================
+tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Cachetools\cachetools\cache.py:8: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working
+    class Cache(collections.MutableMapping):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+3 failed, 8 passed, 1 warning in 0.38s

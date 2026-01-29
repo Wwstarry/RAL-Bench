@@ -1,0 +1,42 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\performance_test.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x000002508F35C700>
+labels = [[1], [2], [3]], data = ['A', 'B', 'C']
+
+    def __init__(self, labels: List[str], data: List[List[Union[int, float]]]):
+        """
+        Initialize Data object.
+    
+        Args:
+            labels: List of label strings
+            data: List of data series, each series is a list of numeric values
+        """
+        self.labels = labels
+        self.data = data
+    
+        # Validate data dimensions
+        if len(data) > 0:
+            series_length = len(data[0])
+            for series in data:
+                if len(series) != series_length:
+                    raise ValueError("All data series must have the same length")
+                if len(series) != len(labels):
+>                   raise ValueError("Number of data points must match number of labels")
+E                   ValueError: Number of data points must match number of labels
+
+generation\Termgraph\termgraph\data.py:31: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.32s

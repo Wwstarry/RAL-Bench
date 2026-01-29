@@ -1,0 +1,45 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_________________________ test_lsb_performance_smoke __________________________
+
+    def test_lsb_performance_smoke() -> None:
+        """Simple performance sanity check for LSB hide/reveal."""
+>       avg_hide, avg_reveal = _measure_hide_reveal(iterations=5)
+
+tests\Stegano\performance_test.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Stegano\performance_test.py:48: in _measure_hide_reveal
+    secret_img = lsb.hide(str(LENNA_PNG), message)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'Performance benchmark message for SteganoPerformance benchmark message for SteganoPerformance benchmark message for Stegano'
+generator = None, shift = 0, encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(
+        image: Image.Image,
+        message: str,
+        generator: Optional[Iterator[int]] = None,
+        shift: int = 0,
+        encoding: str = "UTF-8",
+        auto_convert_rgb: bool = False
+    ) -> Image.Image:
+        """
+        Hide a text message in the image using LSB steganography.
+        :param image: PIL Image to use as cover.
+        :param message: The text message to hide.
+        :param generator: Iterator of pixel indices to use for hiding bits (default: consecutive).
+        :param shift: Number of LSB positions to skip from the start (default 0).
+        :param encoding: Text encoding for the message (default: UTF-8).
+        :param auto_convert_rgb: If True and image is not 'RGB', convert it.
+        :return: A new PIL Image with the hidden message.
+        """
+        if auto_convert_rgb and image.mode != "RGB":
+            image = image.convert("RGB")
+>       elif image.mode not in ("RGB", "RGBA"):
+E       AttributeError: 'str' object has no attribute 'mode'
+
+generation\Stegano\stegano\lsb\lsb.py:33: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/performance_test.py::test_lsb_performance_smoke - Attrib...
+1 failed in 0.40s

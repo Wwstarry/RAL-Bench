@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import sys
+import re
+
+def print_help():
+    print("fail2ban-regex (safe subset)")
+    print("Usage: fail2ban-regex LOGFILE REGEX")
+    print("Options:")
+    print("  --help        Show this help message and exit")
+    print("Example:")
+    print("  fail2ban-regex /tmp/test.log 'Failed password for .* from <HOST>'")
+
+def main():
+    if '--help' in sys.argv or len(sys.argv) == 1:
+        print_help()
+        sys.exit(0)
+    if len(sys.argv) < 3:
+        print("Error: Missing arguments. Use --help for usage.")
+        sys.exit(1)
+    logfile = sys.argv[1]
+    regex = sys.argv[2]
+    try:
+        pattern = re.compile(regex)
+    except Exception as e:
+        print(f"Error: Invalid regex: {e}")
+        sys.exit(1)
+    try:
+        with open(logfile, 'r') as f:
+            lines = f.readlines()
+    except Exception as e:
+        print(f"Error: Cannot read logfile: {e}")
+        sys.exit(1)
+    matches = 0
+    for line in lines:
+        if pattern.search(line):
+            print(line.strip())
+            matches += 1
+    print(f"Total matches: {matches}")
+
+if __name__ == '__main__':
+    main()

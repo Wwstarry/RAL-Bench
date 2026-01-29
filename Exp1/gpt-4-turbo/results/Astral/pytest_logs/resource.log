@@ -1,0 +1,74 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__________________________ test_resource_usage_smoke __________________________
+
+    def test_resource_usage_smoke() -> None:
+        """
+        Smoke test: run a representative batch workload and verify
+        we can observe process resource info without crashing.
+    
+        Note: The benchmark runner measures subprocess resources.
+        This test is correctness-oriented only.
+        """
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+    
+        loc = _london_location()
+        base_date = dt.date(2020, 1, 1)
+    
+        for offset in range(60):
+            d = base_date + dt.timedelta(days=offset)
+>           _ = sun(loc.observer, date=d, tzinfo=loc.timezone)
+
+tests\Astral\resource_test.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Astral\astral\sun.py:177: in sun
+    events["dawn"] = _sun_event_time(observer, date, -6.0, tz, "dawn")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = Observer(latitude=51.5074, longitude=-0.1278, elevation=0.0)
+date_ = datetime.date(2020, 1, 1), angle = -6.0, tzinfo = 'Europe/London'
+event = 'dawn'
+
+    def _sun_event_time(
+        observer: Observer,
+        date_: date,
+        angle: float,
+        tzinfo: Optional[Any],
+        event: str
+    ) -> Optional[datetime]:
+        """Compute the time of a sun event (rise/set/dawn/dusk) for the observer."""
+        # Algorithm based on NOAA Solar Calculator
+        # https://gml.noaa.gov/grad/solcalc/solareqns.PDF
+        # All angles in degrees
+        lw = -observer.longitude
+        phi = radians(observer.latitude)
+        n = _julian_cycle(_to_julian_day(datetime(date_.year, date_.month, date_.day, 12)), lw)
+        ds = _mean_solar_noon(_to_julian_day(datetime(date_.year, date_.month, date_.day, 12)), lw)
+        M = (357.5291 + 0.98560028 * (ds - J2000))
+        L = _ecliptic_longitude(M)
+        dec = _sun_declination(L)
+        Jnoon = _solar_transit_j(ds, M, L)
+        # Correct for observer elevation
+        h0 = angle + _observer_elevation_correction(observer.elevation)
+        try:
+            H = _hour_angle(radians(h0), phi, dec)
+        except ValueError:
+            # Sun does not rise/set on this day
+            return None
+        if event in ("sunrise", "dawn"):
+            Jrise = Jnoon - degrees(H) / 360.0
+            dt = _from_julian_day(Jrise)
+        elif event in ("sunset", "dusk"):
+            Jset = Jnoon + degrees(H) / 360.0
+            dt = _from_julian_day(Jset)
+        else:
+            raise ValueError("Invalid event type")
+        if tzinfo is not None:
+>           dt = dt.astimezone(tzinfo)
+E           TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'str'
+
+generation\Astral\astral\sun.py:156: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Astral/resource_test.py::test_resource_usage_smoke - TypeError: ...
+1 failed in 0.35s

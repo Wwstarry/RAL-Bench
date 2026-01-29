@@ -1,0 +1,58 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_generate_recurring_schedule_and_group_by_day ______________
+
+    def test_generate_recurring_schedule_and_group_by_day() -> None:
+        """
+        Integration-style test: build a recurring schedule, convert to another
+        timezone, and group events by local calendar day.
+        """
+        # Start from a fixed UTC anchor.
+        start = pendulum.datetime(2022, 1, 1, 8, 0, 0, tz="UTC")
+    
+        # Create a small weekly schedule with three "meetings" per day.
+        meetings_utc = []
+        for day in range(7):
+            for hour in (9, 13, 17):
+>               meetings_utc.append(start.add(days=day, hours=hour))
+
+tests\Pendulum\resource_test.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = DateTime(2022, 1, 1, 8, 0, tzinfo=Timezone('UTC')), years = 0, months = 0
+weeks = 0, days = 0, hours = 9, minutes = 0, seconds = 0, microseconds = 0
+
+    def add(
+        self,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+        microseconds: int = 0,
+    ) -> DateTime:
+        """
+        Adds a duration to the datetime.
+        """
+        dt = self
+        if years:
+            dt = _add_months(dt, years * MONTHS_PER_YEAR)
+        if months:
+            dt = _add_months(dt, months)
+    
+>       duration = dt.timedelta(
+            weeks=weeks,
+            days=days,
+            hours=hours,
+            minutes=minutes,
+            seconds=seconds,
+            microseconds=microseconds,
+        )
+E       AttributeError: 'DateTime' object has no attribute 'timedelta'
+
+generation\Pendulum\pendulum\datetime.py:80: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day
+1 failed in 0.43s

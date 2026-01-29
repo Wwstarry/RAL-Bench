@@ -1,0 +1,496 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_parse_simple_element __________________________
+
+    def test_parse_simple_element() -> None:
+        """Parsing a simple XML element should produce the expected dict."""
+        xml = "<root><message>Hello</message></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'root' at 0x0000027F5928F130>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+____________________ test_parse_repeated_elements_as_list _____________________
+
+    def test_parse_repeated_elements_as_list() -> None:
+        """Repeated child elements should be represented as a list."""
+        xml = "<root><item>1</item><item>2</item><item>3</item></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'root' at 0x0000027F591ECD60>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+_______________________ test_parse_attributes_and_text ________________________
+
+    def test_parse_attributes_and_text() -> None:
+        """Attributes and text content should be exposed using @attr and #text keys."""
+        xml = '<user id="123">Alice</user>'
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'user' at 0x0000027F59315040>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+___________________ test_unparse_roundtrip_basic_structure ____________________
+
+    def test_unparse_roundtrip_basic_structure() -> None:
+        """unparse() followed by parse() should preserve the logical structure."""
+        original = {
+            "root": {
+                "item": [
+                    {"@id": "1", "#text": "A"},
+                    {"@id": "2", "#text": "B"},
+                ]
+            }
+        }
+    
+        xml = _unparse(original)
+>       round_tripped = _parse(xml)
+
+tests\Xmltodict\functional_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'item' at 0x0000027F591ECB30>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'root' at 0x0000027F59209770>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+_________________________ test_parse_nested_structure _________________________
+
+    def test_parse_nested_structure() -> None:
+        """Nested XML elements should map to nested dict structures."""
+        xml = """
+        <root>
+            <user>
+                <name>Ada</name>
+                <address>
+                    <city>London</city>
+                    <country>UK</country>
+                </address>
+            </user>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'address' at 0x0000027F592BBD60>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+__________________ test_force_list_option_for_single_element __________________
+
+    def test_force_list_option_for_single_element() -> None:
+        """force_list should allow representing a single child as a list when supported."""
+        xml = "<root><item>1</item></root>"
+    
+        # Prefer a targeted force_list that is common in xmltodict.
+>       data = _parse(xml, force_list=("item",))
+
+tests\Xmltodict\functional_test.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'root' at 0x0000027F59277E00>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+_____________ test_custom_attr_prefix_and_cdata_key_if_supported ______________
+
+    def test_custom_attr_prefix_and_cdata_key_if_supported() -> None:
+        """attr_prefix / cdata_key customization should reflect in output when supported."""
+        xml = '<user id="7">Bob</user>'
+    
+>       data = _parse(xml, attr_prefix="$", cdata_key="text")
+
+tests\Xmltodict\functional_test.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'user' at 0x0000027F591ECF40>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+____________ test_xml_attribs_false_drops_attributes_if_supported _____________
+
+    def test_xml_attribs_false_drops_attributes_if_supported() -> None:
+        """xml_attribs=False should omit attribute keys when supported."""
+        xml = '<user id="9"><name>Alice</name></user>'
+    
+>       data = _parse(xml, xml_attribs=False)
+
+tests\Xmltodict\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'user' at 0x0000027F5928FC20>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.

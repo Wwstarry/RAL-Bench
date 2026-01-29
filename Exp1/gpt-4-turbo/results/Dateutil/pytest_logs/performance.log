@@ -1,0 +1,83 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_dateutil_performance_smoke _______________________
+
+    def test_dateutil_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)
+
+tests\Dateutil\performance_test.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\performance_test.py:56: in run_dateutil_performance_benchmark
+    dt_obj = parser.parse(s)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+timestr = 'April 5, 2021 7:15 pm UTC', default = None, ignoretz = False
+tzinfos = None, kwargs = {}, m = None
+
+    def parse(timestr, default=None, ignoretz=False, tzinfos=None, **kwargs):
+        """
+        Parse a string into a datetime object.
+        Supports ISO-8601 and common human-friendly formats.
+        """
+        timestr = timestr.strip()
+        m = _ISO_REGEX.match(timestr)
+        if m:
+            gd = m.groupdict()
+            year = int(gd.get("year"))
+            month = int(gd.get("month") or 1)
+            day = int(gd.get("day") or 1)
+            hour = int(gd.get("hour") or 0)
+            minute = int(gd.get("minute") or 0)
+            second = int(gd.get("second") or 0)
+            microsecond = int((gd.get("microsecond") or "0").ljust(6, "0"))
+            tzinfo = None if ignoretz else _parse_tzinfo(gd.get("tzinfo"))
+            return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+        # Try common formats
+        for regex in _COMMON_FORMATS:
+            m = regex.match(timestr)
+            if m:
+                gd = m.groupdict()
+                year = int(gd.get("year"))
+                if gd.get("month"):
+                    month = int(gd.get("month"))
+                elif gd.get("month_name"):
+                    month = _MONTHS[gd.get("month_name").lower()[:3]]
+                else:
+                    month = 1
+                day = int(gd.get("day") or 1)
+                hour = int(gd.get("hour") or 0)
+                minute = int(gd.get("minute") or 0)
+                second = int(gd.get("second") or 0)
+                tzinfo = None if ignoretz else _parse_tzinfo(gd.get("tzinfo"))
+                return datetime(year, month, day, hour, minute, second, tzinfo=tzinfo)
+        # Fallback: try to parse RFC 2822 (e.g. "Mon, 21 Jun 2021 10:00:00 +0000")
+        m = re.match(
+            r"^(?:[A-Za-z]{3}, )?(?P<day>\d{1,2}) (?P<month_name>[A-Za-z]+) (?P<year>\d{4}) (?P<hour>\d{2}):(?P<minute>\d{2})(:(?P<second>\d{2}))? (?P<tzinfo>Z|[+-]\d{2}:?\d{2})?$",
+            timestr,
+        )
+        if m:
+            gd = m.groupdict()
+            year = int(gd.get("year"))
+            month = _MONTHS[gd.get("month_name").lower()[:3]]
+            day = int(gd.get("day"))
+            hour = int(gd.get("hour") or 0)
+            minute = int(gd.get("minute") or 0)
+            second = int(gd.get("second") or 0)
+            tzinfo = None if ignoretz else _parse_tzinfo(gd.get("tzinfo"))
+            return datetime(year, month, day, hour, minute, second, tzinfo=tzinfo)
+        # Fallback: try datetime.fromisoformat (Python 3.7+)
+        try:
+            dt = datetime.fromisoformat(timestr)
+            if ignoretz:
+                return dt.replace(tzinfo=None)
+            return dt
+        except Exception:
+            pass
+>       raise ValueError(f"Unknown datetime format: {timestr}")
+E       ValueError: Unknown datetime format: April 5, 2021 7:15 pm UTC
+
+generation\Dateutil\dateutil\parser\_parser.py:128: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/performance_test.py::test_dateutil_performance_smoke - ...
+1 failed in 0.34s

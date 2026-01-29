@@ -1,0 +1,297 @@
+project_name: Schedule
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Schedule\schedule.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Schedule
+timestamp: '2026-01-01 21:55:15'
+functional_score: 0.4167
+non_functional_score: 0.8779
+non_functional_subscores:
+  maintainability: 0.7113
+  security: 1.0
+  robustness: 1.0
+  performance: 0.8912
+  resource: 0.9573
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFF....FFF.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_basic_every_and_run_all _________________________\n\
+      \n    def test_basic_every_and_run_all() -> None:\n        \"\"\"every(...).seconds/minutes\
+      \ + run_all execute jobs.\"\"\"\n        _clear()\n        calls: List[str]\
+      \ = []\n    \n        def job1() -> None:\n            calls.append(\"job1\"\
+      )\n    \n        def job2() -> None:\n            calls.append(\"job2\")\n \
+      \   \n        schedule.every(5).seconds.do(job1).tag(\"sec\", \"common\")\n\
+      \        schedule.every().minutes.do(job2).tag(\"min\", \"common\")\n    \n\
+      >       jobs = schedule.get_jobs()\n\ntests\\Schedule\\functional_test.py:100:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\nname = 'get_jobs'\n\n    def __getattr__(name: str) -> Any:  #\
+      \ noqa: D401\n        if name == \"datetime\":\n            return _datetime_module\n\
+      \        if name == \"time\":\n            return _time_module\n>       raise\
+      \ AttributeError(name)\nE       AttributeError: get_jobs\n\ngeneration\\Schedule\\\
+      schedule\\__init__.py:463: AttributeError\n_________________________ test_tags_and_clear_by_tag\
+      \ __________________________\n\n    def test_tags_and_clear_by_tag() -> None:\n\
+      \        \"\"\"Jobs can be tagged, selected by tag, and cleared by tag.\"\"\"\
+      \n        _clear()\n        calls: List[str] = []\n    \n        def job_keep()\
+      \ -> None:\n            calls.append(\"keep\")\n    \n        def job_drop()\
+      \ -> None:\n            calls.append(\"drop\")\n    \n        schedule.every().hour.do(job_keep).tag(\"\
+      keep\", \"group\")\n        schedule.every().hour.do(job_drop).tag(\"drop\"\
+      , \"group\")\n    \n>       drop_jobs = schedule.get_jobs(\"drop\")\n\ntests\\\
+      Schedule\\functional_test.py:124: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nname = 'get_jobs'\n\n    def __getattr__(name:\
+      \ str) -> Any:  # noqa: D401\n        if name == \"datetime\":\n           \
+      \ return _datetime_module\n        if name == \"time\":\n            return\
+      \ _time_module\n>       raise AttributeError(name)\nE       AttributeError:\
+      \ get_jobs\n\ngeneration\\Schedule\\schedule\\__init__.py:463: AttributeError\n\
+      _____________________ test_cancel_job_removes_single_job ______________________\n\
+      \n    def test_cancel_job_removes_single_job() -> None:\n        \"\"\"cancel_job\
+      \ removes a single job from the scheduler.\"\"\"\n        _clear()\n       \
+      \ calls: List[str] = []\n    \n        def job1() -> None:\n            calls.append(\"\
+      job1\")\n    \n        def job2() -> None:\n            calls.append(\"job2\"\
+      )\n    \n        j1 = schedule.every().day.do(job1)\n        j2 = schedule.every().day.at(\"\
+      10:30\").do(job2)\n    \n        schedule.cancel_job(j2)\n    \n        schedule.run_all()\n\
+      \        assert calls == [\"job1\"]\n>       assert j1 in schedule.get_jobs()\n\
+      \ntests\\Schedule\\functional_test.py:155: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nname = 'get_jobs'\n\n \
+      \   def __getattr__(name: str) -> Any:  # noqa: D401\n        if name == \"\
+      datetime\":\n            return _datetime_module\n        if name == \"time\"\
+      :\n            return _time_module\n>       raise AttributeError(name)\nE  \
+      \     AttributeError: get_jobs\n\ngeneration\\Schedule\\schedule\\__init__.py:463:\
+      \ AttributeError\n__________________ test_repeat_decorator_registers_and_runs\
+      \ ___________________\n\n    def test_repeat_decorator_registers_and_runs()\
+      \ -> None:\n        \"\"\"@repeat(every(...)) schedules a function correctly\
+      \ and run_all triggers it.\"\"\"\n        _clear()\n        call_count = 0\n\
+      \    \n>       @schedule.repeat(schedule.every().seconds)\n\ntests\\Schedule\\\
+      functional_test.py:164: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nname = 'repeat'\n\n    def __getattr__(name:\
+      \ str) -> Any:  # noqa: D401\n        if name == \"datetime\":\n           \
+      \ return _datetime_module\n        if name == \"time\":\n            return\
+      \ _time_module\n>       raise AttributeError(name)\nE       AttributeError:\
+      \ repeat\n\ngeneration\\Schedule\\schedule\\__init__.py:463: AttributeError\n\
+      ________________ test_every_to_creates_job_with_interval_range ________________\n\
+      \n    def test_every_to_creates_job_with_interval_range() -> None:\n       \
+      \ \"\"\"every(A).to(B).seconds should create a job and be runnable via run_all.\"\
+      \"\"\n        _clear()\n        calls: List[str] = []\n    \n        def job()\
+      \ -> None:\n            calls.append(\"x\")\n    \n>       j = schedule.every(2).to(5).seconds.do(job)\n\
+      E       AttributeError: 'Job' object has no attribute 'to'\n\ntests\\Schedule\\\
+      functional_test.py:239: AttributeError\n______________________ test_idle_seconds_returns_number\
+      \ _______________________\n\n    def test_idle_seconds_returns_number() -> None:\n\
+      \        \"\"\"idle_seconds should return a numeric value when jobs exist.\"\
+      \"\"\n        _clear()\n    \n        def job() -> None:\n            return\
+      \ None\n    \n        schedule.every().hour.do(job)\n>       idle = schedule.idle_seconds()\n\
+      \ntests\\Schedule\\functional_test.py:254: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nname = 'idle_seconds'\n\
+      \n    def __getattr__(name: str) -> Any:  # noqa: D401\n        if name == \"\
+      datetime\":\n            return _datetime_module\n        if name == \"time\"\
+      :\n            return _time_module\n>       raise AttributeError(name)\nE  \
+      \     AttributeError: idle_seconds\n\ngeneration\\Schedule\\schedule\\__init__.py:463:\
+      \ AttributeError\n_____________________ test_get_jobs_by_tag_filters_subset\
+      \ _____________________\n\n    def test_get_jobs_by_tag_filters_subset() ->\
+      \ None:\n        \"\"\"get_jobs(tag) should return only jobs with that tag.\"\
+      \"\"\n        _clear()\n    \n        def a() -> None:\n            return None\n\
+      \    \n        def b() -> None:\n            return None\n    \n        schedule.every().minute.do(a).tag(\"\
+      alpha\")\n        schedule.every().minute.do(b).tag(\"beta\")\n    \n>     \
+      \  alpha_jobs = schedule.get_jobs(\"alpha\")\n\ntests\\Schedule\\functional_test.py:272:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\nname = 'get_jobs'\n\n    def __getattr__(name: str) -> Any:  #\
+      \ noqa: D401\n        if name == \"datetime\":\n            return _datetime_module\n\
+      \        if name == \"time\":\n            return _time_module\n>       raise\
+      \ AttributeError(name)\nE       AttributeError: get_jobs\n\ngeneration\\Schedule\\\
+      schedule\\__init__.py:463: AttributeError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all\
+      \ - Attr...\nFAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag\
+      \ - Attrib...\nFAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job\n\
+      FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs\n\
+      FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range\n\
+      FAILED tests/Schedule/functional_test.py::test_idle_seconds_returns_number -\
+      \ ...\nFAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset\n\
+      7 failed, 5 passed in 0.56s\n"
+    elapsed_time_s: 1.99909
+    avg_memory_mb: 32.45
+    avg_cpu_percent: 98.4
+    passed: 5
+    failed: 7
+    skipped: 0
+    total: 12
+    score_inputs_passed: 5
+    score_inputs_failed: 7
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.412366
+    avg_memory_mb: 31.91
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.258654
+    score_inputs_actual_time_s: 1.412366
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.48s
+
+      '
+    elapsed_time_s: 1.887257
+    avg_memory_mb: 32.98
+    avg_cpu_percent: 83.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.42
+    score_inputs_baseline_cpu_pct: 76.1
+    score_inputs_actual_mem_mb: 32.98
+    score_inputs_actual_cpu_pct: 83.2
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.31s
+
+      '
+    elapsed_time_s: 1.740933
+    avg_memory_mb: 31.16
+    avg_cpu_percent: 89.4
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=1.0 total_loc=328.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.538959
+    avg_memory_mb: 31.71
+    avg_cpu_percent: 102.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 328.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=15.8802 files_scanned=1.0 total_loc=328.0 max_cc=20.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.454539
+    avg_memory_mb: 31.83
+    avg_cpu_percent: 103.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 15.8802
+      files_scanned: 1.0
+      total_loc: 328.0
+      max_cc: 20.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 6.4469
+    score_inputs_generated_mi_min: 15.8802
+    score_inputs_ratio_g_over_b: 2.4632303897997487
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.258654
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.544915
+    resource_tests_total: 1
+    avg_memory_mb: 33.42
+    avg_cpu_percent: 76.1
+  functional:
+    functional_suite_time_s: 1.306884
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.417332
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.182637
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 732.0
+  maintainability:
+    maintainability_suite_time_s: 1.319653
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 6.4469
+      files_scanned: 1.0
+      total_loc: 732.0
+      max_cc: 25.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Schedule\pytest_logs

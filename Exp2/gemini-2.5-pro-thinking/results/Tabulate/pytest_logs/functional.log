@@ -1,0 +1,228 @@
+..FFF.F...F.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:210: in tabulate
+    headers, data = _normalize_tabular_data(tabular_data, headers, showindex)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]]
+headers = 'firstrow', showindex = 'default'
+
+    def _normalize_tabular_data(tabular_data, headers, showindex="default"):
+        """Convert various data formats to a list of lists and headers."""
+        if isinstance(tabular_data, Mapping):
+            # It's a dict of iterables
+            keys = list(tabular_data.keys())
+            if not headers:
+                headers = keys
+    
+            vals = [list(v) if isinstance(v, Iterable) and not isinstance(v, str) else [v] for v in tabular_data.values()]
+            max_len = max(len(v) for v in vals) if vals else 0
+            data = [[(v[i] if i < len(v) else None) for v in vals] for i in range(max_len)]
+    
+        elif isinstance(tabular_data, Iterable) and not isinstance(tabular_data, str):
+            rows = list(tabular_data)
+            if rows and all(isinstance(row, Mapping) for row in rows):
+                # It's a list of dicts
+                if not headers:
+                    # Use keys from the first dict as headers, preserving order
+                    unique_headers = set()
+                    ordered_headers = []
+                    for row in rows:
+                        for key in row.keys():
+                            if key not in unique_headers:
+                                unique_headers.add(key)
+                                ordered_headers.append(key)
+                    headers = ordered_headers
+    
+                data = [[row.get(h) for h in headers] for row in rows]
+            else:
+                # Assume it's a list of lists or other iterable of iterables
+                data = [list(row) for row in rows]
+        else:
+            data = [[tabular_data]]
+    
+        # Handle showindex
+        if showindex == "always" or (showindex == "default" and headers):
+            if not headers:
+                num_cols = len(data[0]) if data else 0
+                headers = [""] * num_cols
+>           headers.insert(0, "")
+E           AttributeError: 'str' object has no attribute 'insert'
+
+generation\Tabulate\tabulate\core.py:89: AttributeError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+>       output = tabulate(table, headers="keys")
+
+tests\Tabulate\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:210: in tabulate
+    headers, data = _normalize_tabular_data(tabular_data, headers, showindex)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = {'Age': [24, 19], 'Name': ['Alice', 'Bob']}, headers = 'keys'
+showindex = 'default'
+
+    def _normalize_tabular_data(tabular_data, headers, showindex="default"):
+        """Convert various data formats to a list of lists and headers."""
+        if isinstance(tabular_data, Mapping):
+            # It's a dict of iterables
+            keys = list(tabular_data.keys())
+            if not headers:
+                headers = keys
+    
+            vals = [list(v) if isinstance(v, Iterable) and not isinstance(v, str) else [v] for v in tabular_data.values()]
+            max_len = max(len(v) for v in vals) if vals else 0
+            data = [[(v[i] if i < len(v) else None) for v in vals] for i in range(max_len)]
+    
+        elif isinstance(tabular_data, Iterable) and not isinstance(tabular_data, str):
+            rows = list(tabular_data)
+            if rows and all(isinstance(row, Mapping) for row in rows):
+                # It's a list of dicts
+                if not headers:
+                    # Use keys from the first dict as headers, preserving order
+                    unique_headers = set()
+                    ordered_headers = []
+                    for row in rows:
+                        for key in row.keys():
+                            if key not in unique_headers:
+                                unique_headers.add(key)
+                                ordered_headers.append(key)
+                    headers = ordered_headers
+    
+                data = [[row.get(h) for h in headers] for row in rows]
+            else:
+                # Assume it's a list of lists or other iterable of iterables
+                data = [list(row) for row in rows]
+        else:
+            data = [[tabular_data]]
+    
+        # Handle showindex
+        if showindex == "always" or (showindex == "default" and headers):
+            if not headers:
+                num_cols = len(data[0]) if data else 0
+                headers = [""] * num_cols
+>           headers.insert(0, "")
+E           AttributeError: 'str' object has no attribute 'insert'
+
+generation\Tabulate\tabulate\core.py:89: AttributeError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+        out_true = tabulate(table, showindex=True)
+        lines_true = _lines(out_true)
+>       assert any(line.lstrip().startswith("0") for line in lines_true)
+E       assert False
+E        +  where False = any(<generator object test_showindex_variants.<locals>.<genexpr> at 0x0000014784DD8AC0>)
+
+tests\Tabulate\functional_test.py:153: AssertionError
+____________________ test_list_of_dicts_headers_keys_plain ____________________
+
+    def test_list_of_dicts_headers_keys_plain() -> None:
+        rows = [
+            {"name": "Alice", "score": 10},
+            {"name": "Bob", "score": 12},
+        ]
+>       output = tabulate(rows, headers="keys", tablefmt="plain")
+
+tests\Tabulate\functional_test.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:210: in tabulate
+    headers, data = _normalize_tabular_data(tabular_data, headers, showindex)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = [{'name': 'Alice', 'score': 10}, {'name': 'Bob', 'score': 12}]
+headers = 'keys', showindex = 'default'
+
+    def _normalize_tabular_data(tabular_data, headers, showindex="default"):
+        """Convert various data formats to a list of lists and headers."""
+        if isinstance(tabular_data, Mapping):
+            # It's a dict of iterables
+            keys = list(tabular_data.keys())
+            if not headers:
+                headers = keys
+    
+            vals = [list(v) if isinstance(v, Iterable) and not isinstance(v, str) else [v] for v in tabular_data.values()]
+            max_len = max(len(v) for v in vals) if vals else 0
+            data = [[(v[i] if i < len(v) else None) for v in vals] for i in range(max_len)]
+    
+        elif isinstance(tabular_data, Iterable) and not isinstance(tabular_data, str):
+            rows = list(tabular_data)
+            if rows and all(isinstance(row, Mapping) for row in rows):
+                # It's a list of dicts
+                if not headers:
+                    # Use keys from the first dict as headers, preserving order
+                    unique_headers = set()
+                    ordered_headers = []
+                    for row in rows:
+                        for key in row.keys():
+                            if key not in unique_headers:
+                                unique_headers.add(key)
+                                ordered_headers.append(key)
+                    headers = ordered_headers
+    
+                data = [[row.get(h) for h in headers] for row in rows]
+            else:
+                # Assume it's a list of lists or other iterable of iterables
+                data = [list(row) for row in rows]
+        else:
+            data = [[tabular_data]]
+    
+        # Handle showindex
+        if showindex == "always" or (showindex == "default" and headers):
+            if not headers:
+                num_cols = len(data[0]) if data else 0
+                headers = [""] * num_cols
+>           headers.insert(0, "")
+E           AttributeError: 'str' object has no attribute 'insert'
+
+generation\Tabulate\tabulate\core.py:89: AttributeError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - assert False
+FAILED tests/Tabulate/functional_test.py::test_list_of_dicts_headers_keys_plain
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+5 failed, 7 passed in 0.56s

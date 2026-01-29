@@ -1,0 +1,47 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(width=20)
+    
+        start = time.perf_counter()
+        for _ in range(200):
+            chart = BarChart(data, args)
+>           chart.draw()
+
+tests\Termgraph\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001EE1911D460>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+[1]: 
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.31s

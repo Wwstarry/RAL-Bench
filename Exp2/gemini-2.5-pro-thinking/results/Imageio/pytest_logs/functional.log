@@ -1,0 +1,293 @@
+.F.F..FFFF                                                               [100%]
+================================== FAILURES ===================================
+__________________ test_gif_multiframe_roundtrip_with_imiter __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_multiframe_roundtrip_0')
+
+    def test_gif_multiframe_roundtrip_with_imiter(tmp_path: Path) -> None:
+        """Write a small animated GIF and iterate frames using imiter."""
+        frames = _make_grayscale_frames(num_frames=6, height=24, width=24)
+        path = tmp_path / "anim.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:64: in imwrite
+    _gif_write(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_multiframe_roundtrip_0/anim.gif')
+images = array([[[175,  48,   5, ..., 108, 239,  95],
+        [239,  95,  27, ..., 228,  72, 250],
+        [155, 220,  51, ...,...99, 236, 251],
+        [120, 166, 247, ..., 100, 131,  54],
+        [ 79, 139,  45, ..., 112, 215,  45]]], dtype=uint8)
+
+    def _gif_write(path: pathlib.Path, images: np.ndarray):
+        # images shape: (N, H, W) or (N, H, W, 1) or (N, H, W, 3)
+        n, h, w = images.shape[:3]
+    
+        is_grayscale = images.ndim == 3 or (images.ndim == 4 and images.shape[3] == 1)
+    
+        with open(path, "wb") as f:
+            # Header
+            f.write(b"GIF89a")
+    
+            # Logical Screen Descriptor
+            palette: Optional[np.ndarray] = None
+            if is_grayscale:
+                palette = np.arange(256, dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)
+            else: # RGB
+                # Simple palette generation from first frame
+                pixels = images[0].reshape(-1, 3)
+                unique_colors, inverse = np.unique(pixels, axis=0, return_inverse=True)
+                if len(unique_colors) > 256:
+                    raise ValueError("GIF supports a maximum of 256 colors per frame.")
+                palette = np.zeros((256, 3), dtype=np.uint8)
+                palette[:len(unique_colors)] = unique_colors
+    
+            palette_size_log2 = (len(palette) - 1).bit_length() - 1
+            packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size
+>           f.write(struct.pack("<HHB_B", w, h, packed, 0))
+E           struct.error: bad char in struct format
+
+generation\Imageio\imageio\v3.py:526: error
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+
+tests\Imageio\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+uri = '<bytes>'
+image = array([[[157, 193, 255],
+        [178, 141, 177],
+        [ 50,  58, 222],
+        ...,
+        [249,   7, 141],
+     ...[  9, 234,  27],
+        ...,
+        [219, 110, 131],
+        [255, 135, 132],
+        [203,  36, 116]]], dtype=uint8)
+kwargs = {'extension': '.png'}, path = WindowsPath('<bytes>'), ext = ''
+
+    def imwrite(uri: Union[str, pathlib.Path], image: np.ndarray, **kwargs):
+        """
+        Writes an image to the given path.
+        """
+        path = pathlib.Path(uri)
+        image = np.asarray(image)
+        ext = path.suffix.lower()
+    
+        if image.dtype != np.uint8:
+            raise TypeError("Only uint8 images are supported.")
+    
+        if ext == ".png":
+            is_sequence = (image.ndim == 3 and image.shape[2] not in (1, 3, 4)) or image.ndim >= 4
+            if is_sequence:
+                raise ValueError("PNG format does not support image sequences.")
+            _png_write(path, image)
+        elif ext == ".gif":
+            is_single_frame = (image.ndim == 2) or (image.ndim == 3 and image.shape[2] in (1, 3, 4))
+            if is_single_frame:
+                image = image[np.newaxis, ...]
+            _gif_write(path, image)
+        else:
+>           raise ValueError(f"Unsupported file extension for writing: {ext}")
+E           ValueError: Unsupported file extension for writing:
+
+generation\Imageio\imageio\v3.py:66: ValueError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:64: in imwrite
+    _gif_write(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_returns_stack_0/stack.gif')
+images = array([[[175,  48,   5, ..., 173,  66,  93],
+        [108, 239,  95, ...,  84,  50,  73],
+        [  3,  59, 140, ...,...18,  26, 217],
+        [255, 220, 204, ...,  46,  65,  79],
+        [235, 162, 251, ..., 155,  10, 108]]], dtype=uint8)
+
+    def _gif_write(path: pathlib.Path, images: np.ndarray):
+        # images shape: (N, H, W) or (N, H, W, 1) or (N, H, W, 3)
+        n, h, w = images.shape[:3]
+    
+        is_grayscale = images.ndim == 3 or (images.ndim == 4 and images.shape[3] == 1)
+    
+        with open(path, "wb") as f:
+            # Header
+            f.write(b"GIF89a")
+    
+            # Logical Screen Descriptor
+            palette: Optional[np.ndarray] = None
+            if is_grayscale:
+                palette = np.arange(256, dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)
+            else: # RGB
+                # Simple palette generation from first frame
+                pixels = images[0].reshape(-1, 3)
+                unique_colors, inverse = np.unique(pixels, axis=0, return_inverse=True)
+                if len(unique_colors) > 256:
+                    raise ValueError("GIF supports a maximum of 256 colors per frame.")
+                palette = np.zeros((256, 3), dtype=np.uint8)
+                palette[:len(unique_colors)] = unique_colors
+    
+            palette_size_log2 = (len(palette) - 1).bit_length() - 1
+            packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size
+>           f.write(struct.pack("<HHB_B", w, h, packed, 0))
+E           struct.error: bad char in struct format
+
+generation\Imageio\imageio\v3.py:526: error
+___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_index0_matches0')
+
+    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path: Path) -> None:
+        """Read first GIF frame using both index=0 and imiter; verify consistent spatial shape."""
+        frames = _make_grayscale_frames(num_frames=4, height=19, width=23)
+        path = tmp_path / "index0.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:64: in imwrite
+    _gif_write(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_gif_imread_index0_matches0/index0.gif')
+images = array([[[175,  48,   5, ...,  93, 108, 239],
+        [ 95, 239,  95, ...,  59, 140, 228],
+        [ 72, 250, 155, ...,...57, 165, 255],
+        [ 18,  28,  29, ..., 155, 216, 213],
+        [219, 124,  59, ..., 250, 200, 138]]], dtype=uint8)
+
+    def _gif_write(path: pathlib.Path, images: np.ndarray):
+        # images shape: (N, H, W) or (N, H, W, 1) or (N, H, W, 3)
+        n, h, w = images.shape[:3]
+    
+        is_grayscale = images.ndim == 3 or (images.ndim == 4 and images.shape[3] == 1)
+    
+        with open(path, "wb") as f:
+            # Header
+            f.write(b"GIF89a")
+    
+            # Logical Screen Descriptor
+            palette: Optional[np.ndarray] = None
+            if is_grayscale:
+                palette = np.arange(256, dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)
+            else: # RGB
+                # Simple palette generation from first frame
+                pixels = images[0].reshape(-1, 3)
+                unique_colors, inverse = np.unique(pixels, axis=0, return_inverse=True)
+                if len(unique_colors) > 256:
+                    raise ValueError("GIF supports a maximum of 256 colors per frame.")
+                palette = np.zeros((256, 3), dtype=np.uint8)
+                palette[:len(unique_colors)] = unique_colors
+    
+            palette_size_log2 = (len(palette) - 1).bit_length() - 1
+            packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size
+>           f.write(struct.pack("<HHB_B", w, h, packed, 0))
+E           struct.error: bad char in struct format
+
+generation\Imageio\imageio\v3.py:526: error
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+____________ test_improps_for_gif_has_expected_spatial_dimensions _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_improps_for_gif_has_expec0')
+
+    def test_improps_for_gif_has_expected_spatial_dimensions(tmp_path: Path) -> None:
+        """improps on a GIF should include the written frame height/width in its reported shape.
+    
+        In practice, different plugins/paths can report shapes like:
+          - (T, H, W)
+          - (T, H, W, C)
+          - (H, W, C)
+          - (W, H, C)
+        Therefore we validate that the expected H and W appear somewhere in props.shape,
+        without assuming their exact positions.
+        """
+        frames = _make_grayscale_frames(num_frames=3, height=17, width=19)
+        path = tmp_path / "props.gif"
+    
+>       iio.imwrite(path, frames)
+
+tests\Imageio\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:64: in imwrite
+    _gif_write(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-451/test_improps_for_gif_has_expec0/props.gif')
+images = array([[[175,  48,   5,  97, 162,  98,  32, 180, 237, 234,  27, 119,
+         129, 130, 192, 109,  49,  37, 173],
+    ...193, 108,  94, 224, 102,  31,  61, 217, 175, 231, 194, 199,
+          97, 107,  97,  61, 152,  69, 111]]], dtype=uint8)
+
+    def _gif_write(path: pathlib.Path, images: np.ndarray):
+        # images shape: (N, H, W) or (N, H, W, 1) or (N, H, W, 3)
+        n, h, w = images.shape[:3]
+    
+        is_grayscale = images.ndim == 3 or (images.ndim == 4 and images.shape[3] == 1)
+    
+        with open(path, "wb") as f:
+            # Header
+            f.write(b"GIF89a")
+    
+            # Logical Screen Descriptor
+            palette: Optional[np.ndarray] = None
+            if is_grayscale:
+                palette = np.arange(256, dtype=np.uint8)[:, np.newaxis].repeat(3, axis=1)
+            else: # RGB
+                # Simple palette generation from first frame
+                pixels = images[0].reshape(-1, 3)
+                unique_colors, inverse = np.unique(pixels, axis=0, return_inverse=True)
+                if len(unique_colors) > 256:
+                    raise ValueError("GIF supports a maximum of 256 colors per frame.")
+                palette = np.zeros((256, 3), dtype=np.uint8)
+                palette[:len(unique_colors)] = unique_colors
+    
+            palette_size_log2 = (len(palette) - 1).bit_length() - 1
+            packed = 0x80 | 0x70 | palette_size_log2 # GCT, 8-bit color, sorted, size
+>           f.write(struct.pack("<HHB_B", w, h, packed, 0))
+E           struct.error: bad char in struct format
+
+generation\Imageio\imageio\v3.py:526: error
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_gif_multiframe_roundtrip_with_imiter
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+FAILED tests/Imageio/functional_test.py::test_improps_for_gif_has_expected_spatial_dimensions
+6 failed, 4 passed in 1.08s

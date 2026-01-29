@@ -1,0 +1,134 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+_________________ test_001_empty_args_and_kwargs_do_not_crash _________________
+
+    def test_001_empty_args_and_kwargs_do_not_crash() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_robust.const")
+>       def const() -> int:
+
+tests\Celery\robustness_test.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_001_empty_args_and_kwargs_do_not_crash.<locals>.const at 0x000001A108688AF0>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+_____________ test_002_unknown_task_name_signature_errors_cleanly _____________
+
+    def test_002_unknown_task_name_signature_errors_cleanly() -> None:
+        app = _make_app()
+>       from celery import signature
+E       ImportError: cannot import name 'signature' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\robustness_test.py:59: ImportError
+____________ test_003_large_payload_does_not_crash_eager_execution ____________
+
+    def test_003_large_payload_does_not_crash_eager_execution() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_robust.echo_len")
+>       def echo_len(s: str) -> int:
+
+tests\Celery\robustness_test.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_003_large_payload_does_not_crash_eager_execution.<locals>.echo_len at 0x000001A108735040>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+_____________ test_004_chord_with_empty_header_behaves_reasonably _____________
+
+    def test_004_chord_with_empty_header_behaves_reasonably() -> None:
+        app = _make_app()
+>       from celery import chord, group
+E       ImportError: cannot import name 'chord' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\robustness_test.py:80: ImportError
+___________________ test_005_task_can_return_dict_and_list ____________________
+
+    def test_005_task_can_return_dict_and_list() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_robust.make_obj")
+>       def make_obj() -> Dict[str, Any]:
+
+tests\Celery\robustness_test.py:95: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_005_task_can_return_dict_and_list.<locals>.make_obj at 0x000001A108735280>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+__________________ test_006_propagation_toggle_is_respected ___________________
+
+    def test_006_propagation_toggle_is_respected() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_robust.fail")
+>       def fail() -> None:
+
+tests\Celery\robustness_test.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_006_propagation_toggle_is_respected.<locals>.fail at 0x000001A108735160>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Celery/robustness_test.py::test_001_empty_args_and_kwargs_do_not_crash
+FAILED tests/Celery/robustness_test.py::test_002_unknown_task_name_signature_errors_cleanly
+FAILED tests/Celery/robustness_test.py::test_003_large_payload_does_not_crash_eager_execution
+FAILED tests/Celery/robustness_test.py::test_004_chord_with_empty_header_behaves_reasonably
+FAILED tests/Celery/robustness_test.py::test_005_task_can_return_dict_and_list
+FAILED tests/Celery/robustness_test.py::test_006_propagation_toggle_is_respected
+6 failed in 0.55s

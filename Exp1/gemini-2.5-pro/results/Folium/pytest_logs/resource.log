@@ -1,0 +1,40 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_resource_build_medium_map_rss_cpu ____________________
+
+    def test_resource_build_medium_map_rss_cpu():
+        sys.path.insert(0, str(_resolve_repo_root()))
+        import folium
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+        _ = proc.cpu_percent(interval=None)
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\resource_test.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x0000017DF43C7820>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+=========================== short test summary info ===========================
+FAILED tests/Folium/resource_test.py::test_resource_build_medium_map_rss_cpu
+1 failed in 0.45s

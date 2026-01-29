@@ -1,0 +1,114 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_waltons_kmf_and_cox_integration _____________________
+
+self = Index(['KM_estimate'], dtype='object'), key = 'control'
+
+    def get_loc(self, key):
+        """
+        Get integer location, slice or boolean mask for requested label.
+    
+        Parameters
+        ----------
+        key : label
+    
+        Returns
+        -------
+        int if unique index, slice if monotonic index, else mask
+    
+        Examples
+        --------
+        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+    
+        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+    
+        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True])
+        """
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+>           return self._engine.get_loc(casted_key)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\indexes\base.py:3805: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+index.pyx:167: in pandas._libs.index.IndexEngine.get_loc
+    ???
+index.pyx:196: in pandas._libs.index.IndexEngine.get_loc
+    ???
+pandas\\_libs\\hashtable_class_helper.pxi:7081: in pandas._libs.hashtable.PyObjectHashTable.get_item
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   KeyError: 'control'
+
+pandas\\_libs\\hashtable_class_helper.pxi:7089: KeyError
+
+The above exception was the direct cause of the following exception:
+
+    def test_waltons_kmf_and_cox_integration() -> None:
+        """End-to-end integration test combining KMF and CoxPH on Waltons dataset."""
+        df = load_waltons()
+        kmf = KaplanMeierFitter()
+    
+        for name, group_df in df.groupby("group"):
+            kmf.fit(group_df["T"], group_df["E"], label=name)
+            sf = kmf.survival_function_
+            # Survival function should be non-increasing.
+>           values = sf[name].values
+
+tests\Lifelines\resource_test.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\frame.py:4102: in __getitem__
+    indexer = self.columns.get_loc(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Index(['KM_estimate'], dtype='object'), key = 'control'
+
+    def get_loc(self, key):
+        """
+        Get integer location, slice or boolean mask for requested label.
+    
+        Parameters
+        ----------
+        key : label
+    
+        Returns
+        -------
+        int if unique index, slice if monotonic index, else mask
+    
+        Examples
+        --------
+        >>> unique_index = pd.Index(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+    
+        >>> monotonic_index = pd.Index(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+    
+        >>> non_monotonic_index = pd.Index(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True])
+        """
+        casted_key = self._maybe_cast_indexer(key)
+        try:
+            return self._engine.get_loc(casted_key)
+        except KeyError as err:
+            if isinstance(casted_key, slice) or (
+                isinstance(casted_key, abc.Iterable)
+                and any(isinstance(x, slice) for x in casted_key)
+            ):
+                raise InvalidIndexError(key)
+>           raise KeyError(key) from err
+E           KeyError: 'control'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\indexes\base.py:3812: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+1 failed in 2.15s

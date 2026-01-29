@@ -1,0 +1,115 @@
+.FF                                                                      [100%]
+================================== FAILURES ===================================
+___________ test_cmd2_robustness_minimal_instantiation_if_possible ____________
+
+    @pytest.mark.timeout(10)
+    def test_cmd2_robustness_minimal_instantiation_if_possible():
+        """
+        Robustness 2:
+          If import works, minimal app instantiation should not hang or hard-crash.
+          If import is impossible due to python version incompatibility, PASS.
+        """
+        mod, reason = _try_import_cmd2()
+        if mod is None:
+            print(f"ROBUSTNESS_NOTE {reason}")
+            assert True
+            return
+    
+>       app = _try_make_app(mod)
+
+tests\Cmd2\robustness_test.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cmd2\robustness_test.py:122: in _try_make_app
+    return Cmd(**kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmd2.cmd2.Cmd2 object at 0x0000025C8E6B79D0>
+
+    def __init__(
+        self,
+        *,
+        use_readline: bool = True,
+        completekey: str = "tab",
+        stdin=None,
+        stdout=None,
+    ):
+        # The base ``cmd.Cmd`` accepts (completekey, stdin, stdout)
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
+        self.use_rawinput: bool = stdin is None  # `cmd`'s own default
+        self.use_readline: bool = use_readline
+        self.prompt: str = "cmd2> "
+        self.intro: Optional[str] = None
+    
+        # Expose the capture-output context manager on the instance so
+        # that existing patterns such as `self.capture_output()` work.
+        # (We just curry the generic utility so that `self` is bound.)
+>       self.capture_output = contextlib.partial(capture_output, self)
+E       AttributeError: module 'contextlib' has no attribute 'partial'
+
+generation\cmd2\cmd2\cmd2.py:75: AttributeError
+__________ test_cmd2_robustness_basic_command_execution_if_possible ___________
+
+    @pytest.mark.timeout(10)
+    def test_cmd2_robustness_basic_command_execution_if_possible():
+        """
+        Robustness 3:
+          If import works, running a simple command should not hang.
+          Exceptions are allowed (version differences), but no hard crash/hang.
+          If import is impossible due to python version incompatibility, PASS.
+        """
+        mod, reason = _try_import_cmd2()
+        if mod is None:
+            print(f"ROBUSTNESS_NOTE {reason}")
+            assert True
+            return
+    
+>       app = _try_make_app(mod)
+
+tests\Cmd2\robustness_test.py:179: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cmd2\robustness_test.py:122: in _try_make_app
+    return Cmd(**kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <cmd2.cmd2.Cmd2 object at 0x0000025C8E70F940>
+
+    def __init__(
+        self,
+        *,
+        use_readline: bool = True,
+        completekey: str = "tab",
+        stdin=None,
+        stdout=None,
+    ):
+        # The base ``cmd.Cmd`` accepts (completekey, stdin, stdout)
+        super().__init__(completekey=completekey, stdin=stdin, stdout=stdout)
+        self.use_rawinput: bool = stdin is None  # `cmd`'s own default
+        self.use_readline: bool = use_readline
+        self.prompt: str = "cmd2> "
+        self.intro: Optional[str] = None
+    
+        # Expose the capture-output context manager on the instance so
+        # that existing patterns such as `self.capture_output()` work.
+        # (We just curry the generic utility so that `self` is bound.)
+>       self.capture_output = contextlib.partial(capture_output, self)
+E       AttributeError: module 'contextlib' has no attribute 'partial'
+
+generation\cmd2\cmd2\cmd2.py:75: AttributeError
+============================== warnings summary ===============================
+tests\Cmd2\robustness_test.py:129
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:129: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+tests\Cmd2\robustness_test.py:148
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:148: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+tests\Cmd2\robustness_test.py:165
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:165: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/robustness_test.py::test_cmd2_robustness_minimal_instantiation_if_possible
+FAILED tests/Cmd2/robustness_test.py::test_cmd2_robustness_basic_command_execution_if_possible
+2 failed, 1 passed, 3 warnings in 0.36s

@@ -1,0 +1,334 @@
+project_name: Dateutil
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Dateutil\dateutil.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Dateutil
+timestamp: '2025-12-31 13:31:45'
+functional_score: 0.0
+non_functional_score: 0.3733
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.8333
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    error: 'Test file not found: D:\桌面\RealAppCodeBench_generic_eval\tests\Dateutil\functional_test.py'']'
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    elapsed_time_s: 0.0
+    avg_memory_mb: 0.0
+    avg_cpu_percent: 0.0
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_dateutil_performance_smoke _______________________\n\
+      \n    def test_dateutil_performance_smoke() -> None:\n        \"\"\"Smoke test\
+      \ to ensure the performance benchmark runs successfully.\"\"\"\n>       metrics\
+      \ = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)\n\n\
+      tests\\Dateutil\\performance_test.py:83: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ntests\\Dateutil\\performance_test.py:56:\
+      \ in run_dateutil_performance_benchmark\n    dt_obj = parser.parse(s)\n_ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      \ntimestr = '2020-03-15 08:30:45+02:00'\ndefault = datetime.datetime(1, 1, 1,\
+      \ 0, 0), ignoretz = False, tzinfos = None\nkwargs = {}\niso_tz_pattern = '^(\\\
+      \\d{4})-(\\\\d{2})-(\\\\d{2})T(\\\\d{2}):(\\\\d{2}):(\\\\d{2})(?:\\\\.(\\\\\
+      d+))?(Z|[+-]\\\\d{2}:\\\\d{2})$'\nmatch = None\n\n    def parse(timestr, default=None,\
+      \ ignoretz=False, tzinfos=None, **kwargs):\n        \"\"\"\n        Parse a\
+      \ string in one of the supported formats to a datetime object.\n    \n     \
+      \   Args:\n            timestr: String to parse\n            default: Default\
+      \ datetime to use for missing components\n            ignoretz: If True, ignore\
+      \ timezone information\n            tzinfos: Additional timezone information\n\
+      \    \n        Returns:\n            datetime object\n        \"\"\"\n     \
+      \   if default is None:\n            default = datetime(1, 1, 1, 0, 0, 0)\n\
+      \    \n        if not timestr or not isinstance(timestr, str):\n           \
+      \ raise ParserError(\"Invalid date string\")\n    \n        timestr = timestr.strip()\n\
+      \    \n        # Try ISO 8601 format with timezone\n        # Format: YYYY-MM-DDTHH:MM:SS+HH:MM\
+      \ or YYYY-MM-DDTHH:MM:SSZ\n        iso_tz_pattern = r'^(\\d{4})-(\\d{2})-(\\\
+      d{2})T(\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d+))?(Z|[+-]\\d{2}:\\d{2})$'\n    \
+      \    match = re.match(iso_tz_pattern, timestr)\n        if match:\n        \
+      \    year, month, day, hour, minute, second, microsecond, tzstr = match.groups()\n\
+      \            year, month, day = int(year), int(month), int(day)\n          \
+      \  hour, minute, second = int(hour), int(minute), int(second)\n    \n      \
+      \      if microsecond:\n                # Pad or truncate to 6 digits\n    \
+      \            microsecond = microsecond.ljust(6, '0')[:6]\n                microsecond\
+      \ = int(microsecond)\n            else:\n                microsecond = 0\n \
+      \   \n            if ignoretz:\n                tzinfo = None\n            elif\
+      \ tzstr == 'Z':\n                tzinfo = tzmodule.UTC\n            else:\n\
+      \                # Parse offset like +05:30 or -08:00\n                sign\
+      \ = 1 if tzstr[0] == '+' else -1\n                tz_hours = int(tzstr[1:3])\n\
+      \                tz_minutes = int(tzstr[4:6])\n                offset = timedelta(hours=sign\
+      \ * tz_hours, minutes=sign * tz_minutes)\n                tzinfo = tzmodule.tzoffset(None,\
+      \ offset)\n    \n            return datetime(year, month, day, hour, minute,\
+      \ second, microsecond, tzinfo=tzinfo)\n    \n        # Try ISO 8601 format without\
+      \ timezone\n        iso_pattern = r'^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\\
+      d{2}):(\\d{2})(?:\\.(\\d+))?$'\n        match = re.match(iso_pattern, timestr)\n\
+      \        if match:\n            year, month, day, hour, minute, second, microsecond\
+      \ = match.groups()\n            year, month, day = int(year), int(month), int(day)\n\
+      \            hour, minute, second = int(hour), int(minute), int(second)\n  \
+      \  \n            if microsecond:\n                microsecond = microsecond.ljust(6,\
+      \ '0')[:6]\n                microsecond = int(microsecond)\n            else:\n\
+      \                microsecond = 0\n    \n            return datetime(year, month,\
+      \ day, hour, minute, second, microsecond)\n    \n        # Try simple date format\
+      \ YYYY-MM-DD\n        date_pattern = r'^(\\d{4})-(\\d{2})-(\\d{2})$'\n     \
+      \   match = re.match(date_pattern, timestr)\n        if match:\n           \
+      \ year, month, day = match.groups()\n            year, month, day = int(year),\
+      \ int(month), int(day)\n            return datetime(year, month, day, default.hour,\
+      \ default.minute, default.second, default.microsecond)\n    \n        # Try\
+      \ format with timezone name: YYYY-MM-DD HH:MM:SS TIMEZONE\n        tz_name_pattern\
+      \ = r'^(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{2}):(\\d{2}):(\\d{2})\\s+([A-Z]{3,4})$'\n\
+      \        match = re.match(tz_name_pattern, timestr)\n        if match:\n   \
+      \         year, month, day, hour, minute, second, tzname = match.groups()\n\
+      \            year, month, day = int(year), int(month), int(day)\n          \
+      \  hour, minute, second = int(hour), int(minute), int(second)\n    \n      \
+      \      if ignoretz:\n                tzinfo = None\n            else:\n    \
+      \            tzinfo = tzmodule.gettz(tzname)\n                if tzinfo is None:\n\
+      \                    tzinfo = None\n    \n            return datetime(year,\
+      \ month, day, hour, minute, second, tzinfo=tzinfo)\n    \n        # Try datetime\
+      \ without timezone: YYYY-MM-DD HH:MM:SS\n        datetime_pattern = r'^(\\d{4})-(\\\
+      d{2})-(\\d{2})\\s+(\\d{2}):(\\d{2}):(\\d{2})$'\n        match = re.match(datetime_pattern,\
+      \ timestr)\n        if match:\n            year, month, day, hour, minute, second\
+      \ = match.groups()\n            year, month, day = int(year), int(month), int(day)\n\
+      \            hour, minute, second = int(hour), int(minute), int(second)\n  \
+      \          return datetime(year, month, day, hour, minute, second)\n    \n \
+      \       # Try human-friendly formats like \"January 1, 2020\"\n        month_names\
+      \ = {\n            'january': 1, 'february': 2, 'march': 3, 'april': 4,\n  \
+      \          'may': 5, 'june': 6, 'july': 7, 'august': 8,\n            'september':\
+      \ 9, 'october': 10, 'november': 11, 'december': 12,\n            'jan': 1, 'feb':\
+      \ 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,\n            'jul': 7, 'aug': 8,\
+      \ 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12\n        }\n    \n        # Try\
+      \ \"Month Day, Year\" format\n        month_day_year_pattern = r'^([A-Za-z]+)\\\
+      s+(\\d{1,2}),?\\s+(\\d{4})$'\n        match = re.match(month_day_year_pattern,\
+      \ timestr)\n        if match:\n            month_str, day, year = match.groups()\n\
+      \            month = month_names.get(month_str.lower())\n            if month:\n\
+      \                return datetime(int(year), month, int(day))\n    \n       \
+      \ # Try \"Day Month Year\" format\n        day_month_year_pattern = r'^(\\d{1,2})\\\
+      s+([A-Za-z]+)\\s+(\\d{4})$'\n        match = re.match(day_month_year_pattern,\
+      \ timestr)\n        if match:\n            day, month_str, year = match.groups()\n\
+      \            month = month_names.get(month_str.lower())\n            if month:\n\
+      \                return datetime(int(year), month, int(day))\n    \n>      \
+      \ raise ParserError(f\"Unable to parse date string: {timestr}\")\nE       dateutil.parser.ParserError:\
+      \ Unable to parse date string: 2020-03-15 08:30:45+02:00\n\ngeneration\\Dateutil\\\
+      dateutil\\parser.py:143: ParserError\n=========================== short test\
+      \ summary info ===========================\nFAILED tests/Dateutil/performance_test.py::test_dateutil_performance_smoke\
+      \ - ...\n1 failed in 0.51s\n"
+    elapsed_time_s: 2.064666
+    avg_memory_mb: 32.04
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.285375
+    score_inputs_actual_time_s: 2.064666
+  resource:
+    returncode: 1
+    stdout: "FF                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_meeting_schedule_integration ______________________\n\
+      \n    def test_meeting_schedule_integration() -> None:\n        \"\"\"Integration\
+      \ test for building a recurring meeting schedule.\"\"\"\n        start = dt.date(2020,\
+      \ 1, 1)\n        end = dt.date(2020, 2, 29)\n    \n        # Approximate \"\
+      Europe/Berlin\" as UTC+1 for this test.\n        meetings = _generate_meeting_schedule(start,\
+      \ end, offset_hours=1)\n    \n        # There should be a reasonable number\
+      \ of meetings in this range.\n>       assert 10 <= len(meetings) <= 25\nE  \
+      \     assert 10 <= 0\nE        +  where 0 = len([])\n\ntests\\Dateutil\\resource_test.py:78:\
+      \ AssertionError\n_____________ test_duration_between_two_events_with_relativedelta\
+      \ _____________\n\n    def test_duration_between_two_events_with_relativedelta()\
+      \ -> None:\n        \"\"\"Use relativedelta to compute calendar duration between\
+      \ first and last meeting.\"\"\"\n        start = dt.date(2020, 1, 1)\n     \
+      \   end = dt.date(2020, 3, 31)\n    \n        # Approximate \"America/New_York\"\
+      \ as UTC-5 for this test.\n        meetings = _generate_meeting_schedule(start,\
+      \ end, offset_hours=-5)\n>       assert len(meetings) > 0\nE       assert 0\
+      \ > 0\nE        +  where 0 = len([])\n\ntests\\Dateutil\\resource_test.py:107:\
+      \ AssertionError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Dateutil/resource_test.py::test_meeting_schedule_integration -\
+      \ a...\nFAILED tests/Dateutil/resource_test.py::test_duration_between_two_events_with_relativedelta\n\
+      2 failed in 0.51s\n"
+    elapsed_time_s: 2.05655
+    avg_memory_mb: 32.11
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 2
+    skipped: 0
+    total: 2
+    score_inputs_passed: 0
+    score_inputs_failed: 2
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.66
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 32.11
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 1
+    stdout: "F.....                                                              \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________ test_dateutil_importable_and_parser_available ________________\n\
+      \n    @pytest.mark.timeout(10)\n    def test_dateutil_importable_and_parser_available():\n\
+      \        \"\"\"\n        Robustness 1: module should be importable and expose\
+      \ parser.parse.\n        \"\"\"\n        dateutil = _import_dateutil()\n>  \
+      \     assert hasattr(dateutil, \"parser\"), \"dateutil.parser must exist\"\n\
+      E       AssertionError: dateutil.parser must exist\nE       assert False\nE\
+      \        +  where False = hasattr(<module 'dateutil' from 'D:\\\\桌面\\\\RealAppCodeBench_generic_eval\\\
+      \\generation\\\\Dateutil\\\\dateutil\\\\__init__.py'>, 'parser')\n\ntests\\\
+      Dateutil\\robustness_test.py:98: AssertionError\n==============================\
+      \ warnings summary ===============================\ntests\\Dateutil\\robustness_test.py:92\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:92:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\ntests\\Dateutil\\robustness_test.py:103\n \
+      \ D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:103:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\ntests\\Dateutil\\robustness_test.py:123\n \
+      \ D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:123:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\ntests\\Dateutil\\robustness_test.py:138\n \
+      \ D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:138:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\ntests\\Dateutil\\robustness_test.py:152\n \
+      \ D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:152:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\ntests\\Dateutil\\robustness_test.py:173\n \
+      \ D:\\桌面\\RealAppCodeBench_generic_eval\\tests\\Dateutil\\robustness_test.py:173:\
+      \ PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You\
+      \ can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n\
+      \    @pytest.mark.timeout(10)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Dateutil/robustness_test.py::test_dateutil_importable_and_parser_available\n\
+      1 failed, 5 passed, 6 warnings in 0.46s\n"
+    elapsed_time_s: 2.06036
+    avg_memory_mb: 31.75
+    avg_cpu_percent: 97.6
+    passed: 5
+    failed: 1
+    skipped: 0
+    total: 6
+    score_inputs_passed: 5
+    score_inputs_failed: 1
+    score_inputs_total: 6
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=646.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.647762
+    avg_memory_mb: 31.58
+    avg_cpu_percent: 98.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 646.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.2128 files_scanned=5.0 total_loc=646.0 max_cc=20.0
+
+      .
+
+      1 passed in 0.24s
+
+      '
+    elapsed_time_s: 1.735621
+    avg_memory_mb: 32.05
+    avg_cpu_percent: 99.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.2128
+      files_scanned: 5.0
+      total_loc: 646.0
+      max_cc: 20.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 21.2128
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.285375
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.234135
+    resource_tests_total: 2
+    avg_memory_mb: 31.66
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.125135
+    functional_tests_total: 1
+  robustness:
+    robustness_suite_time_s: 1.313908
+    robustness_tests_total: 6
+  security:
+    security_suite_time_s: 1.372555
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 22.0
+      total_loc: 5945.0
+  maintainability:
+    maintainability_suite_time_s: 3.147629
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 37.0
+      total_loc: 14362.0
+      max_cc: 96.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Dateutil\pytest_logs

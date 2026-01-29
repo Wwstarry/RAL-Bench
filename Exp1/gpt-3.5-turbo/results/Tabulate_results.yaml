@@ -1,0 +1,332 @@
+project_name: Tabulate
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Tabulate\tabulate.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Tabulate
+timestamp: '2025-12-31 21:19:52'
+functional_score: 0.25
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "..FFFFFFFFF.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_headers_firstrow_and_simple_format ___________________\n\
+      \n    def test_headers_firstrow_and_simple_format() -> None:\n        table\
+      \ = [\n            [\"Name\", \"Age\"],\n            [\"Alice\", 24],\n    \
+      \        [\"Bob\", 19],\n        ]\n    \n>       output = tabulate(table, headers=\"\
+      firstrow\", tablefmt=\"simple\")\n\ntests\\Tabulate\\functional_test.py:117:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Tabulate\\tabulate\\core.py:414: in tabulate\n    return\
+      \ formatter(tabular_data, headers=headers, colalign=colalign)\ngeneration\\\
+      Tabulate\\tabulate\\core.py:252: in _format_plain\n    widths, colalign = _column_widths(table,\
+      \ headers, colalign)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntable = [['Name', 'Age'], ['Alice', 24], ['Bob',\
+      \ 19]], headers = 'firstrow'\ncolalign = None\n\n    def _column_widths(table,\
+      \ headers, colalign):\n        \"\"\"\n        Calculate max width of each column\
+      \ considering multiline cells.\n        \"\"\"\n        ncols = len(table[0])\
+      \ if table else (len(headers) if headers else 0)\n        widths = [0] * ncols\n\
+      \    \n        # Consider headers\n        if headers:\n            for i, h\
+      \ in enumerate(headers):\n                lines = _split_multiline(_stringify(h))\n\
+      \                maxw = max(len(line) for line in lines)\n>               if\
+      \ maxw > widths[i]:\nE               IndexError: list index out of range\n\n\
+      generation\\Tabulate\\tabulate\\core.py:99: IndexError\n___________________\
+      \ test_headers_keys_on_dict_of_iterables ____________________\n\n    def test_headers_keys_on_dict_of_iterables()\
+      \ -> None:\n        table = {\n            \"Name\": [\"Alice\", \"Bob\"],\n\
+      \            \"Age\": [24, 19],\n        }\n    \n        output = tabulate(table,\
+      \ headers=\"keys\")\n        lines = _lines(output)\n    \n>       assert \"\
+      Name\" in lines[0]\nE       AssertionError: assert 'Name' in 'k e y s'\n\ntests\\\
+      Tabulate\\functional_test.py:137: AssertionError\n___________________________\
+      \ test_showindex_variants ___________________________\n\n    def test_showindex_variants()\
+      \ -> None:\n        table = [\n            [\"F\", 24],\n            [\"M\"\
+      , 19],\n        ]\n    \n>       out_true = tabulate(table, showindex=True)\n\
+      E       TypeError: tabulate() got an unexpected keyword argument 'showindex'\n\
+      \ntests\\Tabulate\\functional_test.py:151: TypeError\n________________________\
+      \ test_github_and_grid_formats _________________________\n\n    def test_github_and_grid_formats()\
+      \ -> None:\n        table = [\n            [\"item\", \"qty\"],\n          \
+      \  [\"spam\", 42],\n            [\"eggs\", 451],\n            [\"bacon\", 0],\n\
+      \        ]\n    \n>       out_github = tabulate(table[1:], headers=table[0],\
+      \ tablefmt=\"github\")\n\ntests\\Tabulate\\functional_test.py:170: \n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n\
+      tabular_data = [['spam', 42], ['eggs', 451], ['bacon', 0]]\nheaders = ['item',\
+      \ 'qty'], tablefmt = 'github', colalign = None\n\n    def tabulate(tabular_data,\
+      \ headers=None, tablefmt=\"simple\", colalign=None):\n        \"\"\"\n     \
+      \   Format tabular data (list of lists, list of dicts, dict) into a string table.\n\
+      \    \n        Parameters:\n        - tabular_data: data to format\n       \
+      \ - headers: list of headers or None\n        - tablefmt: format name or callable\n\
+      \        - colalign: list of alignments per column (\"left\", \"right\", \"\
+      center\")\n    \n        Returns:\n        - formatted string\n        \"\"\"\
+      \n        if callable(tablefmt):\n            return tablefmt(tabular_data,\
+      \ headers=headers, colalign=colalign)\n        fmt = tablefmt.lower()\n    \
+      \    if fmt == \"simple\":\n            fmt = \"plain\"\n        if fmt not\
+      \ in _table_formats:\n>           raise ValueError(f\"Unknown table format:\
+      \ {tablefmt}\")\nE           ValueError: Unknown table format: github\n\ngeneration\\\
+      Tabulate\\tabulate\\core.py:412: ValueError\n____________________ test_list_of_dicts_headers_keys_plain\
+      \ ____________________\n\n    def test_list_of_dicts_headers_keys_plain() ->\
+      \ None:\n        rows = [\n            {\"name\": \"Alice\", \"score\": 10},\n\
+      \            {\"name\": \"Bob\", \"score\": 12},\n        ]\n        output\
+      \ = tabulate(rows, headers=\"keys\", tablefmt=\"plain\")\n        lines = _lines(output)\n\
+      \    \n        header = lines[0]\n>       assert \"name\" in header\nE     \
+      \  AssertionError: assert 'name' in 'k e y s'\n\ntests\\Tabulate\\functional_test.py:194:\
+      \ AssertionError\n_____________________ test_missingval_renders_placeholder\
+      \ _____________________\n\n    def test_missingval_renders_placeholder() ->\
+      \ None:\n        rows = [\n            [\"Alice\", None],\n            [\"Bob\"\
+      , \"ok\"],\n        ]\n>       output = tabulate(rows, headers=[\"name\", \"\
+      status\"], tablefmt=\"plain\", missingval=\"N/A\")\nE       TypeError: tabulate()\
+      \ got an unexpected keyword argument 'missingval'\n\ntests\\Tabulate\\functional_test.py:207:\
+      \ TypeError\n__________________ test_floatfmt_controls_numeric_rendering ___________________\n\
+      \n    def test_floatfmt_controls_numeric_rendering() -> None:\n        rows\
+      \ = [\n            [\"pi\", 3.14159],\n            [\"e\", 2.71828],\n     \
+      \   ]\n>       output = tabulate(rows, headers=[\"name\", \"value\"], tablefmt=\"\
+      plain\", floatfmt=\".2f\")\nE       TypeError: tabulate() got an unexpected\
+      \ keyword argument 'floatfmt'\n\ntests\\Tabulate\\functional_test.py:222: TypeError\n\
+      _______________ test_disable_numparse_preserves_numeric_strings _______________\n\
+      \n    def test_disable_numparse_preserves_numeric_strings() -> None:\n     \
+      \   rows = [\n            [\"code\", \"value\"],\n            [\"A\", \"001\"\
+      ],\n            [\"B\", \"010\"],\n        ]\n>       output = tabulate(rows[1:],\
+      \ headers=rows[0], tablefmt=\"plain\", disable_numparse=True)\nE       TypeError:\
+      \ tabulate() got an unexpected keyword argument 'disable_numparse'\n\ntests\\\
+      Tabulate\\functional_test.py:236: TypeError\n______________________ test_maxcolwidths_wraps_long_text\
+      \ ______________________\n\n    def test_maxcolwidths_wraps_long_text() -> None:\n\
+      \        long_text = \"alpha beta gamma delta epsilon zeta\"\n        rows =\
+      \ [\n            [\"id\", \"note\"],\n            [1, long_text],\n        \
+      \    [2, \"short\"],\n        ]\n>       output = tabulate(\n            rows[1:],\n\
+      \            headers=rows[0],\n            tablefmt=\"simple\",\n          \
+      \  maxcolwidths=[None, 10],\n        )\nE       TypeError: tabulate() got an\
+      \ unexpected keyword argument 'maxcolwidths'\n\ntests\\Tabulate\\functional_test.py:251:\
+      \ TypeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format\n\
+      FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables\n\
+      FAILED tests/Tabulate/functional_test.py::test_showindex_variants - TypeError...\n\
+      FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...\n\
+      FAILED tests/Tabulate/functional_test.py::test_list_of_dicts_headers_keys_plain\n\
+      FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder\n\
+      FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering\n\
+      FAILED tests/Tabulate/functional_test.py::test_disable_numparse_preserves_numeric_strings\n\
+      FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text\n\
+      9 failed, 3 passed in 0.61s\n"
+    elapsed_time_s: 1.973214
+    avg_memory_mb: 33.1
+    avg_cpu_percent: 99.1
+    passed: 3
+    failed: 9
+    skipped: 0
+    total: 12
+    score_inputs_passed: 3
+    score_inputs_failed: 9
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_large_table_formatting_performance ___________________\n\
+      \n    def test_large_table_formatting_performance():\n        # Build a moderately\
+      \ large table to exercise performance.\n        rows = [\n            [f\"row-{i}\"\
+      , i, i * 0.1234, f\"value-{i % 10}\"]\n            for i in range(2000)\n  \
+      \      ]\n        headers = [\"name\", \"index\", \"metric\", \"tag\"]\n   \
+      \ \n        start = time.perf_counter()\n>       text = tabulate(rows, headers=headers,\
+      \ tablefmt=\"grid\", showindex=True)\nE       TypeError: tabulate() got an unexpected\
+      \ keyword argument 'showindex'\n\ntests\\Tabulate\\performance_test.py:30: TypeError\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/Tabulate/performance_test.py::test_large_table_formatting_performance\n\
+      1 failed in 0.44s\n"
+    elapsed_time_s: 1.758032
+    avg_memory_mb: 31.51
+    avg_cpu_percent: 97.1
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.772085
+    score_inputs_actual_time_s: 1.758032
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_memory_usage_for_large_tables ______________________\n\
+      \n    def test_memory_usage_for_large_tables():\n        rows = [\n        \
+      \    [f\"row-{i}\", i, i * 0.1234, f\"value-{i % 10}\"]\n            for i in\
+      \ range(5000)\n        ]\n        headers = [\"name\", \"index\", \"metric\"\
+      , \"tag\"]\n    \n        before = _memory_mb()\n    \n        # Call tabulate\
+      \ several times to exercise allocations.\n        out1 = tabulate(rows, headers=headers,\
+      \ tablefmt=\"simple\")\n>       out2 = tabulate(rows, headers=headers, tablefmt=\"\
+      github\")\n\ntests\\Tabulate\\resource_test.py:38: \n_ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntabular_data =\
+      \ [['row-0', 0, 0.0, 'value-0'], ['row-1', 1, 0.1234, 'value-1'], ['row-2',\
+      \ 2, 0.2468, 'value-2'], ['row-3', 3, 0.3702, 'value-3'], ['row-4', 4, 0.4936,\
+      \ 'value-4'], ['row-5', 5, 0.617, 'value-5'], ...]\nheaders = ['name', 'index',\
+      \ 'metric', 'tag'], tablefmt = 'github'\ncolalign = None\n\n    def tabulate(tabular_data,\
+      \ headers=None, tablefmt=\"simple\", colalign=None):\n        \"\"\"\n     \
+      \   Format tabular data (list of lists, list of dicts, dict) into a string table.\n\
+      \    \n        Parameters:\n        - tabular_data: data to format\n       \
+      \ - headers: list of headers or None\n        - tablefmt: format name or callable\n\
+      \        - colalign: list of alignments per column (\"left\", \"right\", \"\
+      center\")\n    \n        Returns:\n        - formatted string\n        \"\"\"\
+      \n        if callable(tablefmt):\n            return tablefmt(tabular_data,\
+      \ headers=headers, colalign=colalign)\n        fmt = tablefmt.lower()\n    \
+      \    if fmt == \"simple\":\n            fmt = \"plain\"\n        if fmt not\
+      \ in _table_formats:\n>           raise ValueError(f\"Unknown table format:\
+      \ {tablefmt}\")\nE           ValueError: Unknown table format: github\n\ngeneration\\\
+      Tabulate\\tabulate\\core.py:412: ValueError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Tabulate/resource_test.py::test_memory_usage_for_large_tables\
+      \ - ...\n1 failed in 0.54s\n"
+    elapsed_time_s: 1.957089
+    avg_memory_mb: 36.16
+    avg_cpu_percent: 99.1
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 36.26
+    score_inputs_baseline_cpu_pct: 99.0
+    score_inputs_actual_mem_mb: 36.16
+    score_inputs_actual_cpu_pct: 99.1
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.34s
+
+      '
+    elapsed_time_s: 1.748555
+    avg_memory_mb: 31.41
+    avg_cpu_percent: 101.0
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=407.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.540305
+    avg_memory_mb: 31.85
+    avg_cpu_percent: 96.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 407.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=14.4150 files_scanned=4.0 total_loc=407.0 max_cc=22.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.489031
+    avg_memory_mb: 31.93
+    avg_cpu_percent: 96.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 14.415
+      files_scanned: 4.0
+      total_loc: 407.0
+      max_cc: 22.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 14.415
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.772085
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 3.401749
+    resource_tests_total: 1
+    avg_memory_mb: 36.26
+    avg_cpu_percent: 99.0
+  functional:
+    functional_suite_time_s: 1.659825
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 2.291708
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.459004
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 2425.0
+  maintainability:
+    maintainability_suite_time_s: 1.673018
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 1.0
+      total_loc: 2425.0
+      max_cc: 77.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Tabulate\pytest_logs

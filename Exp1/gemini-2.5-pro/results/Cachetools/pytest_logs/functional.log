@@ -1,0 +1,89 @@
+F......F.....                                                            [100%]
+================================== FAILURES ===================================
+________________________ test_basic_lru_cache_eviction ________________________
+
+self = LRUCache(LRUCache([('a', 1), ('c', 3)]), maxsize=2, currsize=3)
+key = 'b'
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+>           self.move_to_end(key)
+E           KeyError: 'b'
+
+generation\Cachetools\cachetools\cache.py:47: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_basic_lru_cache_eviction():
+        cache = LRUCache(maxsize=2)
+    
+        cache["a"] = 1
+        cache["b"] = 2
+    
+        # Touch "a" so it becomes most recently used
+        _ = cache["a"]
+    
+        # Adding "c" should evict the least recently used entry ("b")
+>       cache["c"] = 3
+
+tests\Cachetools\functional_test.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\cache.py:55: in __setitem__
+    self.popitem(last=False)
+generation\Cachetools\cachetools\cache.py:50: in __getitem__
+    return self.__missing__(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache(LRUCache([('a', 1), ('c', 3)]), maxsize=2, currsize=3)
+key = 'b'
+
+    def __missing__(self, key):
+        """Called by __getitem__ when a key is not in the cache."""
+>       raise KeyError(key)
+E       KeyError: 'b'
+
+generation\Cachetools\cachetools\cache.py:30: KeyError
+__________________ test_lru_cache_popitem_removes_one_entry ___________________
+
+self = LRUCache(LRUCache([('a', 1), ('b', 2)]), maxsize=3, currsize=3)
+key = 'c'
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+>           self.move_to_end(key)
+E           KeyError: 'c'
+
+generation\Cachetools\cachetools\cache.py:47: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_lru_cache_popitem_removes_one_entry():
+        cache = LRUCache(maxsize=3)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+        assert len(cache) == 3
+    
+>       k, v = cache.popitem()
+
+tests\Cachetools\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\cache.py:50: in __getitem__
+    return self.__missing__(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache(LRUCache([('a', 1), ('b', 2)]), maxsize=3, currsize=3)
+key = 'c'
+
+    def __missing__(self, key):
+        """Called by __getitem__ when a key is not in the cache."""
+>       raise KeyError(key)
+E       KeyError: 'c'
+
+generation\Cachetools\cachetools\cache.py:30: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_basic_lru_cache_eviction - K...
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_popitem_removes_one_entry
+2 failed, 11 passed in 2.01s

@@ -1,0 +1,187 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_basic_every_and_run_all _________________________
+
+    def test_basic_every_and_run_all() -> None:
+        """every(...).seconds/minutes + run_all execute jobs."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+>       schedule.every(5).seconds.do(job1).tag("sec", "common")
+E       AttributeError: 'function' object has no attribute 'do'
+
+tests\Schedule\functional_test.py:97: AttributeError
+_________________________ test_tags_and_clear_by_tag __________________________
+
+    def test_tags_and_clear_by_tag() -> None:
+        """Jobs can be tagged, selected by tag, and cleared by tag."""
+        _clear()
+        calls: List[str] = []
+    
+        def job_keep() -> None:
+            calls.append("keep")
+    
+        def job_drop() -> None:
+            calls.append("drop")
+    
+>       schedule.every().hour.do(job_keep).tag("keep", "group")
+E       AttributeError: 'Job' object has no attribute 'hour'
+
+tests\Schedule\functional_test.py:121: AttributeError
+_____________________ test_cancel_job_removes_single_job ______________________
+
+    def test_cancel_job_removes_single_job() -> None:
+        """cancel_job removes a single job from the scheduler."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+>       j1 = schedule.every().day.do(job1)
+E       AttributeError: 'Job' object has no attribute 'day'
+
+tests\Schedule\functional_test.py:148: AttributeError
+__________________ test_repeat_decorator_registers_and_runs ___________________
+
+    def test_repeat_decorator_registers_and_runs() -> None:
+        """@repeat(every(...)) schedules a function correctly and run_all triggers it."""
+        _clear()
+        call_count = 0
+    
+>       @schedule.repeat(schedule.every().seconds)
+E       AttributeError: module 'schedule' has no attribute 'repeat'
+
+tests\Schedule\functional_test.py:164: AttributeError
+_______________ test_run_pending_executes_due_job_without_sleep _______________
+
+    def test_run_pending_executes_due_job_without_sleep() -> None:
+        """run_pending executes jobs that are due, without relying on real time waiting."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("ran")
+    
+>       j = schedule.every(10).seconds.do(job)
+E       AttributeError: 'function' object has no attribute 'do'
+
+tests\Schedule\functional_test.py:184: AttributeError
+_______________ test_job_next_run_is_datetime_after_scheduling ________________
+
+    def test_job_next_run_is_datetime_after_scheduling() -> None:
+        """A newly scheduled job should have a next_run datetime set."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:198: AttributeError
+______________ test_every_day_at_sets_time_component_in_next_run ______________
+
+    def test_every_day_at_sets_time_component_in_next_run() -> None:
+        """Scheduling with .day.at('HH:MM') should include that time in the next_run."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().day.at("10:30").do(job)
+E       AttributeError: 'Job' object has no attribute 'day'
+
+tests\Schedule\functional_test.py:210: AttributeError
+______________ test_weekday_scheduling_creates_job_and_next_run _______________
+
+    def test_weekday_scheduling_creates_job_and_next_run() -> None:
+        """Weekday scheduling (e.g., monday) should create a job with next_run."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().monday.at("09:00").do(job)
+E       AttributeError: 'function' object has no attribute 'at'
+
+tests\Schedule\functional_test.py:224: AttributeError
+________________ test_every_to_creates_job_with_interval_range ________________
+
+    def test_every_to_creates_job_with_interval_range() -> None:
+        """every(A).to(B).seconds should create a job and be runnable via run_all."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("x")
+    
+>       j = schedule.every(2).to(5).seconds.do(job)
+E       AttributeError: 'Job' object has no attribute 'to'
+
+tests\Schedule\functional_test.py:239: AttributeError
+______________________ test_idle_seconds_returns_number _______________________
+
+    def test_idle_seconds_returns_number() -> None:
+        """idle_seconds should return a numeric value when jobs exist."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       schedule.every().hour.do(job)
+E       AttributeError: 'Job' object has no attribute 'hour'
+
+tests\Schedule\functional_test.py:253: AttributeError
+_____________________ test_get_jobs_by_tag_filters_subset _____________________
+
+    def test_get_jobs_by_tag_filters_subset() -> None:
+        """get_jobs(tag) should return only jobs with that tag."""
+        _clear()
+    
+        def a() -> None:
+            return None
+    
+        def b() -> None:
+            return None
+    
+>       schedule.every().minute.do(a).tag("alpha")
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:269: AttributeError
+______________________ test_run_all_sets_last_run_on_job ______________________
+
+    def test_run_all_sets_last_run_on_job() -> None:
+        """After running, last_run should be populated on the job in typical implementations."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:290: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all - Attr...
+FAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag - Attrib...
+FAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job
+FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs
+FAILED tests/Schedule/functional_test.py::test_run_pending_executes_due_job_without_sleep
+FAILED tests/Schedule/functional_test.py::test_job_next_run_is_datetime_after_scheduling
+FAILED tests/Schedule/functional_test.py::test_every_day_at_sets_time_component_in_next_run
+FAILED tests/Schedule/functional_test.py::test_weekday_scheduling_creates_job_and_next_run
+FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range
+FAILED tests/Schedule/functional_test.py::test_idle_seconds_returns_number - ...
+FAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset
+FAILED tests/Schedule/functional_test.py::test_run_all_sets_last_run_on_job
+12 failed in 0.58s

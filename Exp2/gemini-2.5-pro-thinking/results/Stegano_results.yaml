@@ -1,0 +1,299 @@
+project_name: Stegano
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Stegano\stegano.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Stegano
+timestamp: '2026-01-01 20:59:23'
+functional_score: 0.4167
+non_functional_score: 0.8349
+non_functional_subscores:
+  maintainability: 0.5491
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.9772
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FF.FFF..F.F.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_lsb_hide_and_reveal_text ________________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_lsb_hide_and_reveal_text0')\n\
+      \n    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:\n        \"\
+      \"\"lsb.hide(..., str) then lsb.reveal(...) returns the same string.\"\"\"\n\
+      \        _ensure_image_samples_exist()\n    \n        secret = \"hello world\"\
+      \n        output = tmp_path / \"lsb_lenna.png\"\n    \n        encoded_img =\
+      \ lsb.hide(str(LENNA_PNG), secret)\n        encoded_img.save(str(output))\n\
+      \    \n        revealed = lsb.reveal(str(output))\n>       assert revealed ==\
+      \ secret\nE       AssertionError: assert 'hello worl' == 'hello world'\nE  \
+      \       \nE         - hello world\nE         ?           -\nE         + hello\
+      \ worl\n\ntests\\Stegano\\functional_test.py:94: AssertionError\n___________________\
+      \ test_lsb_hide_and_reveal_with_generator ___________________\n\ntmp_path =\
+      \ WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_lsb_hide_and_reveal_with_0')\n\
+      \n    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:\n\
+      \        \"\"\"lsb hide/reveal with a deterministic generator.\"\"\"\n     \
+      \   _ensure_image_samples_exist()\n    \n        secret = \"generator secret\"\
+      \n        output = tmp_path / \"lsb_generator.png\"\n    \n        gen = generators.eratosthenes()\n\
+      >       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)\n\ntests\\\
+      Stegano\\functional_test.py:105: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Stegano\\stegano\\lsb\\\
+      lsb.py:86: in hide\n    x, y, channel_index = next(coord_generator)\n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n\
+      img = <PIL.Image.Image image mode=RGB size=512x512 at 0x152E7A3FC10>\ngenerator\
+      \ = <generator object eratosthenes at 0x00000152E7C8A740>, shift = 0\n\n   \
+      \ def _get_coords(img, generator=None, shift=0):\n        \"\"\"\n        Generates\
+      \ pixel coordinates (x, y, channel_index) for embedding data.\n        \"\"\"\
+      \n        width, height = img.size\n    \n        if img.mode == 'RGB':\n  \
+      \          num_channels = 3\n        elif img.mode == 'RGBA':\n            num_channels\
+      \ = 4\n        elif img.mode == 'L':\n            num_channels = 1\n       \
+      \ else:\n            raise ValueError(f\"Unsupported image mode: {img.mode}\"\
+      )\n    \n        total_positions = width * height * num_channels\n    \n   \
+      \     if generator:\n>           indices = itertools.islice(generator(), shift,\
+      \ None)\nE           TypeError: 'generator' object is not callable\n\ngeneration\\\
+      Stegano\\stegano\\lsb\\lsb.py:23: TypeError\n______________________ test_lsb_reveal_from_image_object\
+      \ ______________________\n\n    def test_lsb_reveal_from_image_object() -> None:\n\
+      \        \"\"\"lsb.reveal should work when passed a PIL.Image object (common\
+      \ API usage).\"\"\"\n        _ensure_image_samples_exist()\n    \n        secret\
+      \ = \"object input\"\n        img_obj = lsb.hide(str(LENNA_PNG), secret)\n \
+      \       revealed = lsb.reveal(img_obj)\n>       assert revealed == secret\n\
+      E       AssertionError: assert 'object inpu' == 'object input'\nE         \n\
+      E         - object input\nE         ?            -\nE         + object inpu\n\
+      \ntests\\Stegano\\functional_test.py:134: AssertionError\n________________________\
+      \ test_red_hide_and_reveal_text ________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_red_hide_and_reveal_text0')\n\
+      \n    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:\n        \"\
+      \"\"red.hide(..., str) then red.reveal(...) returns the same string.\"\"\"\n\
+      \        _ensure_image_samples_exist()\n    \n        secret = \"red secret\"\
+      \n        output = tmp_path / \"red_lenna.png\"\n    \n        encoded_img =\
+      \ red.hide(str(LENNA_PNG), secret)\n        encoded_img.save(str(output))\n\
+      \    \n        revealed = red.reveal(str(output))\n>       assert revealed ==\
+      \ secret\nE       AssertionError: assert 'red secre' == 'red secret'\nE    \
+      \     \nE         - red secret\nE         ?          -\nE         + red secre\n\
+      \ntests\\Stegano\\functional_test.py:152: AssertionError\n________________ test_red_hide_and_reveal_extended_latin_text\
+      \ _________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_red_hide_and_reveal_exten0')\n\
+      \n    def test_red_hide_and_reveal_extended_latin_text(tmp_path: Path) -> None:\n\
+      \        \"\"\"Red backend stores per-char ord() into a byte channel; Latin-1\
+      \ chars like 'é' are valid.\"\"\"\n        _ensure_image_samples_exist()\n \
+      \   \n        secret = \"Café au lait\"\n        output = tmp_path / \"red_latin.png\"\
+      \n    \n        encoded_img = red.hide(str(LENNA_PNG), secret)\n        encoded_img.save(str(output))\n\
+      \    \n        revealed = red.reveal(str(output))\n>       assert revealed ==\
+      \ secret\nE       AssertionError: assert 'Café au lai' == 'Café au lait'\nE\
+      \         \nE         - Café au lait\nE         ?            -\nE         +\
+      \ Café au lai\n\ntests\\Stegano\\functional_test.py:166: AssertionError\n________________________\
+      \ test_wav_hide_and_reveal_text ________________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_wav_hide_and_reveal_text0')\n\
+      \n    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:\n        \"\
+      \"\"wav.hide writes output WAV; wav.reveal returns the same string.\"\"\"\n\
+      \        wav_in = _pick_sample_wav()\n    \n        secret = \"wav secret\"\n\
+      \        output = tmp_path / \"out.wav\"\n    \n        wav.hide(str(wav_in),\
+      \ secret, str(output))\n        assert output.exists()\n        assert output.stat().st_size\
+      \ > 0\n    \n        revealed = wav.reveal(str(output))\n>       assert revealed\
+      \ == secret\nE       AssertionError: assert 'wav secre' == 'wav secret'\nE \
+      \        \nE         - wav secret\nE         ?          -\nE         + wav secre\n\
+      \ntests\\Stegano\\functional_test.py:224: AssertionError\n____________________\
+      \ test_wav_hide_and_reveal_longer_text _____________________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_wav_hide_and_reveal_longe0')\n\
+      \n    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:\n  \
+      \      \"\"\"Roundtrip a longer ASCII message via WAV backend.\"\"\"\n     \
+      \   wav_in = _pick_sample_wav()\n    \n        secret = \"WAV backend long message:\
+      \ 1234567890 abcdefghijklmnopqrstuvwxyz\"\n        output = tmp_path / \"out_long.wav\"\
+      \n    \n        wav.hide(str(wav_in), secret, str(output))\n        assert output.exists()\n\
+      \        assert output.stat().st_size > 0\n    \n        revealed = wav.reveal(str(output))\n\
+      >       assert revealed == secret\nE       AssertionError: assert 'WAV backend\
+      \ ...mnopqrstuvwxy' == 'WAV backend ...nopqrstuvwxyz'\nE         \nE       \
+      \  Skipping 51 identical leading characters in diff, use -v to show\nE     \
+      \    - opqrstuvwxyz\nE         ?            -\nE         + opqrstuvwxy\n\ntests\\\
+      Stegano\\functional_test.py:254: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_text\
+      \ - Asse...\nFAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator\n\
+      FAILED tests/Stegano/functional_test.py::test_lsb_reveal_from_image_object -\
+      \ ...\nFAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_text\
+      \ - Asse...\nFAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_extended_latin_text\n\
+      FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - Asse...\n\
+      FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text\n\
+      7 failed, 5 passed in 1.79s\n"
+    elapsed_time_s: 3.148552
+    avg_memory_mb: 36.8
+    avg_cpu_percent: 98.5
+    passed: 5
+    failed: 7
+    skipped: 0
+    total: 12
+    score_inputs_passed: 5
+    score_inputs_failed: 7
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.72s
+
+      '
+    elapsed_time_s: 2.075296
+    avg_memory_mb: 34.4
+    avg_cpu_percent: 99.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.257945
+    score_inputs_actual_time_s: 2.075296
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.35s
+
+      '
+    elapsed_time_s: 1.722599
+    avg_memory_mb: 36.44
+    avg_cpu_percent: 101.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 50.48
+    score_inputs_baseline_cpu_pct: 96.4
+    score_inputs_actual_mem_mb: 36.44
+    score_inputs_actual_cpu_pct: 101.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.31s
+
+      '
+    elapsed_time_s: 1.74097
+    avg_memory_mb: 34.37
+    avg_cpu_percent: 99.0
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=16.0 total_loc=377.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.503584
+    avg_memory_mb: 31.34
+    avg_cpu_percent: 98.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 16.0
+      total_loc: 377.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=27.3340 files_scanned=13.0 total_loc=377.0 max_cc=16.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.459154
+    avg_memory_mb: 31.72
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 27.334
+      files_scanned: 13.0
+      total_loc: 377.0
+      max_cc: 16.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 22.4495
+    score_inputs_generated_mi_min: 27.334
+    score_inputs_ratio_g_over_b: 1.217577228891512
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 12.134699
+    functional_tests_total: 12
+  performance:
+    performance_suite_time_s: 2.257945
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.861629
+    resource_tests_total: 1
+    avg_memory_mb: 50.48
+    avg_cpu_percent: 96.4
+  robustness:
+    robustness_suite_time_s: 1.749913
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.434441
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 20.0
+      total_loc: 1057.0
+  maintainability:
+    maintainability_suite_time_s: 1.529301
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 22.4495
+      files_scanned: 18.0
+      total_loc: 1057.0
+      max_cc: 20.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Stegano\pytest_logs

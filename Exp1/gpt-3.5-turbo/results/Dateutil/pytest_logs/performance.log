@@ -1,0 +1,155 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_dateutil_performance_smoke _______________________
+
+    def test_dateutil_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)
+
+tests\Dateutil\performance_test.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\performance_test.py:56: in run_dateutil_performance_benchmark
+    dt_obj = parser.parse(s)
+generation\Dateutil\dateutil\parser.py:211: in parse
+    dt = _parse_common(timestr)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = 'April 5, 2021 7:15 pm UTC'
+
+    def _parse_common(text):
+        """
+        Parse common human-friendly date/time strings like:
+        - 'Jan 2 2003 4:05 PM'
+        - '2 Jan 2003 16:05'
+        - '2003-01-02 16:05:00'
+        - '2003/01/02 16:05'
+        - 'Jan 2, 2003'
+        - '2 Jan 2003'
+        - '2003 Jan 2'
+        - '4:05 PM'
+        - '16:05'
+        - 'today', 'now'
+        """
+        text = text.strip()
+        lower = text.lower()
+    
+        if lower in ('now', 'today'):
+            now = datetime.datetime.now(tz.UTC)
+            if lower == 'today':
+                return now.replace(hour=0, minute=0, second=0, microsecond=0)
+            return now
+    
+        # Try to parse ISO8601 first
+        dt = _parse_iso8601(text)
+        if dt:
+            return dt
+    
+        # Try to parse common formats with regex
+        # Patterns:
+        # 1) MonthName Day Year [time]
+        # 2) Day MonthName Year [time]
+        # 3) Year MonthName Day [time]
+        # 4) Date with slashes or dashes
+        # 5) Time only
+        # 6) Date only
+    
+        # Extract time part if present
+        time_part = None
+        date_part = text
+        time_match = re.search(r'(\d{1,2}:\d{2}(:\d{2})?(\.\d+)?\s*(AM|PM|am|pm)?)$', text)
+        if time_match:
+            time_part = time_match.group(1)
+            date_part = text[:time_match.start()].strip()
+    
+        # Parse time
+        hour = 0
+        minute = 0
+        second = 0
+        microsecond = 0
+        if time_part:
+            # Parse time with optional AM/PM
+            time_re = re.compile(r'(\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?\s*(AM|PM|am|pm)?')
+            m = time_re.match(time_part)
+            if m:
+                hour = int(m.group(1))
+                minute = int(m.group(2))
+                if m.group(3):
+                    second = int(m.group(3))
+                if m.group(4):
+                    ms = m.group(4)[:6].ljust(6, '0')
+                    microsecond = int(ms)
+                ampm = m.group(5)
+                if ampm:
+                    ampm = ampm.lower()
+                    if ampm == 'pm' and hour != 12:
+                        hour += 12
+                    elif ampm == 'am' and hour == 12:
+                        hour = 0
+    
+        # Parse date_part
+        # Try MonthName Day Year
+        m = re.match(r'^(?P<month>[A-Za-z]{3,9})[ ,\-\.]+(?P<day>\d{1,2})(?:[ ,\-\.]+(?P<year>\d{4}))?$', date_part)
+        if m:
+            month = _months.get(m.group('month')[:3].lower())
+            day = int(m.group('day'))
+            year = int(m.group('year')) if m.group('year') else datetime.datetime.now().year
+            try:
+                return datetime.datetime(year, month, day, hour, minute, second, microsecond)
+            except ValueError:
+                pass
+    
+        # Try Day MonthName Year
+        m = re.match(r'^(?P<day>\d{1,2})[ ,\-\.]+(?P<month>[A-Za-z]{3,9})(?:[ ,\-\.]+(?P<year>\d{4}))?$', date_part)
+        if m:
+            month = _months.get(m.group('month')[:3].lower())
+            day = int(m.group('day'))
+            year = int(m.group('year')) if m.group('year') else datetime.datetime.now().year
+            try:
+                return datetime.datetime(year, month, day, hour, minute, second, microsecond)
+            except ValueError:
+                pass
+    
+        # Try Year MonthName Day
+        m = re.match(r'^(?P<year>\d{4})[ ,\-\.]+(?P<month>[A-Za-z]{3,9})[ ,\-\.]+(?P<day>\d{1,2})$', date_part)
+        if m:
+            year = int(m.group('year'))
+            month = _months.get(m.group('month')[:3].lower())
+            day = int(m.group('day'))
+            try:
+                return datetime.datetime(year, month, day, hour, minute, second, microsecond)
+            except ValueError:
+                pass
+    
+        # Try numeric date formats: YYYY-MM-DD, YYYY/MM/DD, DD-MM-YYYY, DD/MM/YYYY
+        m = re.match(r'^(?P<y>\d{4})[-/](?P<m>\d{1,2})[-/](?P<d>\d{1,2})$', date_part)
+        if m:
+            try:
+                return datetime.datetime(int(m.group('y')), int(m.group('m')), int(m.group('d')), hour, minute, second, microsecond)
+            except ValueError:
+                pass
+    
+        m = re.match(r'^(?P<d>\d{1,2})[-/](?P<m>\d{1,2})[-/](?P<y>\d{4})$', date_part)
+        if m:
+            try:
+                return datetime.datetime(int(m.group('y')), int(m.group('m')), int(m.group('d')), hour, minute, second, microsecond)
+            except ValueError:
+                pass
+    
+        # Try time only
+        if not date_part and time_part:
+            now = datetime.datetime.now()
+            return datetime.datetime(now.year, now.month, now.day, hour, minute, second, microsecond)
+    
+        # Try date only with no time
+        m = re.match(r'^(?P<year>\d{4})$', date_part)
+        if m:
+            return datetime.datetime(int(m.group('year')), 1, 1)
+    
+        # If all fails, raise ValueError
+>       raise ValueError(f"Unknown string format: {text}")
+E       ValueError: Unknown string format: April 5, 2021 7:15 pm UTC
+
+generation\Dateutil\dateutil\parser.py:201: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/performance_test.py::test_dateutil_performance_smoke - ...
+1 failed in 0.48s

@@ -1,0 +1,76 @@
+.F..F...F..                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Dataset height=3, width=3>, fmt = 'tsv'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            from .formats._csv import export_csv
+            return export_csv(self)
+        elif fmt == 'json':
+            from .formats._json import export_json
+            return export_json(self)
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:167: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Dataset height=3, width=3>, fmt = 'html'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            from .formats._csv import export_csv
+            return export_csv(self)
+        elif fmt == 'json':
+            from .formats._json import export_json
+            return export_json(self)
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:167: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+3 failed, 8 passed in 0.54s

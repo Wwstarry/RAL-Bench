@@ -1,0 +1,263 @@
+<file:name=astral/exceptions.py>
+# astral/exceptions.py
+
+class AstralError(ValueError):
+    """Astral base exception."""
+    pass
+</file:name>
+<file:name=astral/location.py>
+# astral/location.py
+
+class Observer:
+    """
+    Represents an observer on Earth.
+    Latitude and longitude are in degrees, elevation is in meters.
+    """
+    def __init__(self, latitude: float = 51.5, longitude: float = -0.12, elevation: float = 0.0):
+        self.latitude = latitude
+        self.longitude = longitude
+        self.elevation = elevation
+
+    def __repr__(self):
+        return f"Observer(latitude={self.latitude}, longitude={self.longitude}, elevation={self.elevation})"
+
+
+class LocationInfo:
+    """
+    Represents a named location with timezone, latitude, and longitude.
+    """
+    def __init__(self, name="Greenwich", region="England", timezone="Europe/London",
+                 latitude=51.5, longitude=-0.12):
+        self.name = name
+        self.region = region
+        self.timezone = timezone
+        self.latitude = float(latitude)
+        self.longitude = float(longitude)
+
+    @property
+    def observer(self) -> Observer:
+        """Returns an Observer instance for this location."""
+        return Observer(self.latitude, self.longitude)
+
+    def __repr__(self):
+        return f"{self.name}/{self.region}, {self.timezone}, {self.latitude:.02f}N, {self.longitude:.02f}W"
+</file:name>
+<file:name=astral/__init__.py>
+# astral/__init__.py
+
+"""
+Pure Python implementation of astral sun and moon calculations.
+"""
+
+from .exceptions import AstralError
+from .location import LocationInfo
+
+__all__ = ["LocationInfo", "AstralError"]
+__version__ = "3.2"  # Mimic a recent astral version
+</file:name>
+<file:name=astral/moon.py>
+# astral/moon.py
+
+import datetime
+
+# Synodic month (new moon to new moon) in days
+SYNODIC_MONTH = 29.53058867
+# A known new moon: 2000-01-06 18:14 UTC
+# We use just the date for simplicity, as the time component has a small effect.
+_REF_NEW_MOON_DATE = datetime.date(2000, 1, 6)
+
+def phase(date: datetime.date = None) -> float:
+    """
+    Calculates the phase of the moon on the specified date.
+
+    Args:
+        date: The date to calculate the phase for.
+              If not specified then today's date is used.
+
+    Returns:
+        A number from 0 to 27.99... representing the phase.
+        0   = New moon
+        7   = First quarter
+        14  = Full moon
+        21  = Last quarter
+    """
+    if date is None:
+        date = datetime.date.today()
+
+    if isinstance(date, datetime.datetime):
+        date = date.date()
+
+    days_since_ref = (date - _REF_NEW_MOON_DATE).days
+    
+    # Calculate the number of new moons since the reference date
+    cycles = days_since_ref / SYNODIC_MONTH
+    
+    # The fractional part represents the position in the current lunar cycle
+    phase_fraction = cycles - int(cycles)
+    
+    # Scale to the 0-28 range used by astral
+    return phase_fraction * 28.0
+</file:name>
+<file:name=astral/sun.py>
+# astral/sun.py
+
+import datetime
+import math
+from zoneinfo import ZoneInfo
+
+from .exceptions import AstralError
+
+# Solar depression angles in degrees for different events
+_DEPRESSIONS = {
+    "sunrise": -0.833,
+    "sunset": -0.833,
+    "dawn": -6.0,  # Civil dawn
+    "dusk": -6.0,  # Civil dusk
+    "noon": 0.0,
+}
+
+# J2000.0 epoch: 2000-01-01 12:00:00 UTC
+JD_2000 = 2451545.0
+
+def _get_tz(tzinfo):
+    if tzinfo is None:
+        return datetime.timezone.utc
+    if isinstance(tzinfo, datetime.tzinfo):
+        return tzinfo
+    if isinstance(tzinfo, str):
+        return ZoneInfo(tzinfo)
+    raise TypeError("tzinfo must be a string or tzinfo object")
+
+def _get_date(date):
+    if date is None:
+        return datetime.date.today()
+    if isinstance(date, datetime.datetime):
+        return date.date()
+    return date
+
+def _calc_jd(date_obj):
+    """Calculate Julian Day for a given date at 00:00 UTC."""
+    a = (14 - date_obj.month) // 12
+    y = date_obj.year + 4800 - a
+    m = date_obj.month + 12 * a - 3
+    return date_obj.day + ((153 * m + 2) // 5) + 365 * y + (y // 4) - (y // 100) + (y // 400) - 32045
+
+def _solar_position(jd):
+    """Calculate solar ecliptic longitude and declination."""
+    n = jd - JD_2000
+    
+    L = (280.46646 + 0.98564736 * n) % 360.0
+    g = (357.52911 + 0.98560028 * n) % 360.0
+    g_rad = math.radians(g)
+    
+    lambda_ = L + 1.914602 * math.sin(g_rad) + 0.019993 * math.sin(2 * g_rad)
+    lambda_rad = math.radians(lambda_ % 360.0)
+    
+    epsilon = 23.439291 - 0.00000036 * n
+    epsilon_rad = math.radians(epsilon)
+    
+    delta_rad = math.asin(math.sin(epsilon_rad) * math.sin(lambda_rad))
+    
+    return lambda_rad, delta_rad, g_rad
+
+def _solar_transit_jd(jd, longitude, lambda_rad, g_rad):
+    """Calculate the Julian Day of the solar transit (solar noon)."""
+    J_approx = jd + 0.5 - longitude / 360.0
+    J_transit = J_approx + 0.0053 * math.sin(g_rad) - 0.0069 * math.sin(2 * lambda_rad)
+    return J_transit
+
+def _hour_angle(latitude_rad, declination_rad, depression_rad):
+    """Calculate the hour angle."""
+    cos_h = (math.sin(depression_rad) - math.sin(latitude_rad) * math.sin(declination_rad)) / \
+            (math.cos(latitude_rad) * math.cos(declination_rad))
+    
+    if cos_h > 1.0:
+        raise AstralError("Sun is always below the horizon on this day.")
+    if cos_h < -1.0:
+        raise AstralError("Sun is always above the horizon on this day.")
+        
+    return math.acos(cos_h)
+
+def _jd_to_datetime(jd, tz):
+    """Convert a Julian Day to a timezone-aware datetime object."""
+    timestamp = (jd - 2440587.5) * 86400.0
+    dt_utc = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+    return dt_utc.astimezone(tz)
+
+def _calc_event(observer, date, event, tz):
+    """Calculates a single sun event and raises AstralError on failure."""
+    d = _get_date(date)
+    jd = _calc_jd(d)
+    
+    lat_rad = math.radians(observer.latitude)
+    
+    # Use solar position at UTC noon for approximation
+    lambda_rad, declination_rad, g_rad = _solar_position(jd + 0.5)
+    
+    jd_noon = _solar_transit_jd(jd, observer.longitude, lambda_rad, g_rad)
+    
+    if event == "noon":
+        return _jd_to_datetime(jd_noon, tz)
+        
+    depression_rad = math.radians(_DEPRESSIONS[event])
+    
+    hour_angle_rad = _hour_angle(lat_rad, declination_rad, depression_rad)
+    hour_angle_days = math.degrees(hour_angle_rad) / 360.0
+    
+    if event in ["dawn", "sunrise"]:
+        jd_event = jd_noon - hour_angle_days
+    else: # dusk, sunset
+        jd_event = jd_noon + hour_angle_days
+        
+    return _jd_to_datetime(jd_event, tz)
+
+def sun(observer, date=None, tzinfo="UTC"):
+    """
+    Calculates the sun's events for the specified date and location.
+
+    Args:
+        observer: An object with latitude and longitude attributes.
+        date: The date to calculate for. Defaults to today.
+        tzinfo: The timezone for the returned datetimes. Can be a string
+                or a tzinfo object. Defaults to UTC.
+
+    Returns:
+        A dictionary containing the datetimes for dawn, sunrise, noon,
+        sunset, and dusk.
+    """
+    tz = _get_tz(tzinfo)
+    d = _get_date(date)
+    
+    return {
+        "dawn": dawn(observer, d, tz),
+        "sunrise": sunrise(observer, d, tz),
+        "noon": noon(observer, d, tz),
+        "sunset": sunset(observer, d, tz),
+        "dusk": dusk(observer, d, tz),
+    }
+
+def sunrise(observer, date=None, tzinfo="UTC"):
+    """Calculates the sunrise time."""
+    tz = _get_tz(tzinfo)
+    return _calc_event(observer, date, "sunrise", tz)
+
+def sunset(observer, date=None, tzinfo="UTC"):
+    """Calculates the sunset time."""
+    tz = _get_tz(tzinfo)
+    return _calc_event(observer, date, "sunset", tz)
+
+def dawn(observer, date=None, tzinfo="UTC"):
+    """Calculates the dawn time (civil dawn)."""
+    tz = _get_tz(tzinfo)
+    return _calc_event(observer, date, "dawn", tz)
+
+def dusk(observer, date=None, tzinfo="UTC"):
+    """Calculates the dusk time (civil dusk)."""
+    tz = _get_tz(tzinfo)
+    return _calc_event(observer, date, "dusk", tz)
+
+def noon(observer, date=None, tzinfo="UTC"):
+    """Calculates the solar noon time."""
+    tz = _get_tz(tzinfo)
+    return _calc_event(observer, date, "noon", tz)
+</file:name>

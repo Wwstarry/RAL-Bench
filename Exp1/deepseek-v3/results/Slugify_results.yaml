@@ -1,0 +1,378 @@
+project_name: Slugify
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Slugify\slugify.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Slugify
+timestamp: '2025-12-31 15:26:54'
+functional_score: 0.8333
+non_functional_score: 0.8157
+non_functional_subscores:
+  maintainability: 0.5022
+  security: 1.0
+  robustness: 1.0
+  performance: 0.9579
+  resource: 1.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".......F..F.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________ test_regex_pattern_allows_underscore_prefixes ________________\n\
+      \n    def test_regex_pattern_allows_underscore_prefixes() -> None:\n       \
+      \ \"\"\"Custom regex_pattern can allow underscores to remain.\"\"\"\n      \
+      \  text = \"___This is a test___\"\n        regex_pattern = r\"[^-a-z0-9_]+\"\
+      \n    \n>       result_default_sep = slugify(text, regex_pattern=regex_pattern)\n\
+      \ntests\\Slugify\\functional_test.py:172: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\ntext = '___this is a test___',\
+      \ allow_unicode = False, max_length = None\nword_boundary = False, separator\
+      \ = '-', regex_pattern = '[^-a-z0-9_]+'\nstopwords = None, lowercase = True,\
+      \ replacements = None, kwargs = {}\n\n    def slugify(\n        text: str,\n\
+      \        allow_unicode: bool = False,\n        max_length: Optional[int] = None,\n\
+      \        word_boundary: bool = False,\n        separator: str = '-',\n     \
+      \   regex_pattern: Optional[Pattern] = None,\n        stopwords: Optional[List[str]]\
+      \ = None,\n        lowercase: bool = True,\n        replacements: Optional[List[List[str]]]\
+      \ = None,\n        **kwargs\n    ) -> str:\n        \"\"\"\n        Convert\
+      \ text to a URL-friendly slug.\n    \n        Args:\n            text: Input\
+      \ text to slugify\n            allow_unicode: Allow unicode characters in the\
+      \ slug\n            max_length: Maximum length of the slug\n            word_boundary:\
+      \ Truncate at word boundary when max_length is reached\n            separator:\
+      \ Separator character (default: '-')\n            regex_pattern: Custom regex\
+      \ pattern for character filtering\n            stopwords: List of words to remove\
+      \ from the slug\n            lowercase: Convert to lowercase (default: True)\n\
+      \            replacements: List of [pattern, replacement] pairs for custom replacements\n\
+      \            **kwargs: Additional arguments (ignored for compatibility)\n  \
+      \  \n        Returns:\n            Slugified string\n        \"\"\"\n      \
+      \  if text is None:\n            return \"\"\n    \n        # Apply custom replacements\
+      \ first\n        if replacements:\n            for pattern, replacement in replacements:\n\
+      \                text = re.sub(pattern, replacement, text)\n    \n        #\
+      \ Normalize unicode\n        text = unicodedata.normalize('NFKC', str(text))\n\
+      \    \n        # Handle unicode characters\n        if allow_unicode:\n    \
+      \        # Keep unicode characters, remove unwanted ones\n            text =\
+      \ re.sub(r'[^\\w\\s\\-_]', '', text, flags=re.UNICODE)\n        else:\n    \
+      \        # Transliterate unicode characters to ASCII\n            text = _transliterate_unicode(text)\n\
+      \            # Remove non-ASCII characters\n            text = re.sub(r'[^\\\
+      w\\s\\-]', '', text)\n    \n        # Convert to lowercase if requested\n  \
+      \      if lowercase:\n            text = text.lower()\n    \n        # Remove\
+      \ stopwords\n        if stopwords is not None:\n            text = _remove_stopwords(text,\
+      \ stopwords)\n    \n        # Apply custom regex pattern if provided\n     \
+      \   if regex_pattern is not None:\n>           text = regex_pattern.sub('',\
+      \ text)\nE           AttributeError: 'str' object has no attribute 'sub'\n\n\
+      generation\\Slugify\\slugify\\slugify.py:115: AttributeError\n___________________\
+      \ test_replacements_apply_before_slugging ___________________\n\n    def test_replacements_apply_before_slugging()\
+      \ -> None:\n        \"\"\"replacements should transform substrings before final\
+      \ slug is produced.\"\"\"\n        text = \"C# is not C++\"\n>       result\
+      \ = slugify(text, replacements=[[\"C#\", \"Csharp\"], [\"C++\", \"Cpp\"]])\n\
+      \ntests\\Slugify\\functional_test.py:208: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Slugify\\slugify\\\
+      slugify.py:90: in slugify\n    text = re.sub(pattern, replacement, text)\nC:\\\
+      Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py:210: in\
+      \ sub\n    return _compile(pattern, flags).sub(repl, string, count)\nC:\\Users\\\
+      86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py:304: in _compile\n\
+      \    p = sre_compile.compile(pattern, flags)\nC:\\Users\\86152\\AppData\\Local\\\
+      Programs\\Python\\Python39\\lib\\sre_compile.py:764: in compile\n    p = sre_parse.parse(p,\
+      \ flags)\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\\
+      sre_parse.py:948: in parse\n    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE,\
+      \ 0)\nC:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\sre_parse.py:443:\
+      \ in _parse_sub\n    itemsappend(_parse(source, state, verbose, nested + 1,\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nsource = <sre_parse.Tokenizer object at 0x0000028A0F249FD0>\nstate\
+      \ = <sre_parse.State object at 0x0000028A0F249880>, verbose = 0, nested = 1\n\
+      first = True\n\n    def _parse(source, state, verbose, nested, first=False):\n\
+      \        # parse a simple pattern\n        subpattern = SubPattern(state)\n\
+      \    \n        # precompute constants into local variables\n        subpatternappend\
+      \ = subpattern.append\n        sourceget = source.get\n        sourcematch =\
+      \ source.match\n        _len = len\n        _ord = ord\n    \n        while\
+      \ True:\n    \n            this = source.next\n            if this is None:\n\
+      \                break # end of pattern\n            if this in \"|)\":\n  \
+      \              break # end of subpattern\n            sourceget()\n    \n  \
+      \          if verbose:\n                # skip whitespace and comments\n   \
+      \             if this in WHITESPACE:\n                    continue\n       \
+      \         if this == \"#\":\n                    while True:\n             \
+      \           this = sourceget()\n                        if this is None or this\
+      \ == \"\\n\":\n                            break\n                    continue\n\
+      \    \n            if this[0] == \"\\\\\":\n                code = _escape(source,\
+      \ this, state)\n                subpatternappend(code)\n    \n            elif\
+      \ this not in SPECIAL_CHARS:\n                subpatternappend((LITERAL, _ord(this)))\n\
+      \    \n            elif this == \"[\":\n                here = source.tell()\
+      \ - 1\n                # character set\n                set = []\n         \
+      \       setappend = set.append\n    ##          if sourcematch(\":\"):\n   \
+      \ ##              pass # handle character classes\n                if source.next\
+      \ == '[':\n                    import warnings\n                    warnings.warn(\n\
+      \                        'Possible nested set at position %d' % source.tell(),\n\
+      \                        FutureWarning, stacklevel=nested + 6\n            \
+      \        )\n                negate = sourcematch(\"^\")\n                # check\
+      \ remaining characters\n                while True:\n                    this\
+      \ = sourceget()\n                    if this is None:\n                    \
+      \    raise source.error(\"unterminated character set\",\n                  \
+      \                         source.tell() - here)\n                    if this\
+      \ == \"]\" and set:\n                        break\n                    elif\
+      \ this[0] == \"\\\\\":\n                        code1 = _class_escape(source,\
+      \ this)\n                    else:\n                        if set and this\
+      \ in '-&~|' and source.next == this:\n                            import warnings\n\
+      \                            warnings.warn(\n                              \
+      \  'Possible set %s at position %d' % (\n                                  \
+      \  'difference' if this == '-' else\n                                    'intersection'\
+      \ if this == '&' else\n                                    'symmetric difference'\
+      \ if this == '~' else\n                                    'union',\n      \
+      \                              source.tell() - 1),\n                       \
+      \         FutureWarning, stacklevel=nested + 6\n                           \
+      \ )\n                        code1 = LITERAL, _ord(this)\n                 \
+      \   if sourcematch(\"-\"):\n                        # potential range\n    \
+      \                    that = sourceget()\n                        if that is\
+      \ None:\n                            raise source.error(\"unterminated character\
+      \ set\",\n                                               source.tell() - here)\n\
+      \                        if that == \"]\":\n                            if code1[0]\
+      \ is IN:\n                                code1 = code1[1][0]\n            \
+      \                setappend(code1)\n                            setappend((LITERAL,\
+      \ _ord(\"-\")))\n                            break\n                       \
+      \ if that[0] == \"\\\\\":\n                            code2 = _class_escape(source,\
+      \ that)\n                        else:\n                            if that\
+      \ == '-':\n                                import warnings\n               \
+      \                 warnings.warn(\n                                    'Possible\
+      \ set difference at position %d' % (\n                                     \
+      \   source.tell() - 2),\n                                    FutureWarning,\
+      \ stacklevel=nested + 6\n                                )\n               \
+      \             code2 = LITERAL, _ord(that)\n                        if code1[0]\
+      \ != LITERAL or code2[0] != LITERAL:\n                            msg = \"bad\
+      \ character range %s-%s\" % (this, that)\n                            raise\
+      \ source.error(msg, len(this) + 1 + len(that))\n                        lo =\
+      \ code1[1]\n                        hi = code2[1]\n                        if\
+      \ hi < lo:\n                            msg = \"bad character range %s-%s\"\
+      \ % (this, that)\n                            raise source.error(msg, len(this)\
+      \ + 1 + len(that))\n                        setappend((RANGE, (lo, hi)))\n \
+      \                   else:\n                        if code1[0] is IN:\n    \
+      \                        code1 = code1[1][0]\n                        setappend(code1)\n\
+      \    \n                set = _uniq(set)\n                # XXX: <fl> should\
+      \ move set optimization to compiler!\n                if _len(set) == 1 and\
+      \ set[0][0] is LITERAL:\n                    # optimization\n              \
+      \      if negate:\n                        subpatternappend((NOT_LITERAL, set[0][1]))\n\
+      \                    else:\n                        subpatternappend(set[0])\n\
+      \                else:\n                    if negate:\n                   \
+      \     set.insert(0, (NEGATE, None))\n                    # charmap optimization\
+      \ can't be added here because\n                    # global flags still are\
+      \ not known\n                    subpatternappend((IN, set))\n    \n       \
+      \     elif this in REPEAT_CHARS:\n                # repeat previous item\n \
+      \               here = source.tell()\n                if this == \"?\":\n  \
+      \                  min, max = 0, 1\n                elif this == \"*\":\n  \
+      \                  min, max = 0, MAXREPEAT\n    \n                elif this\
+      \ == \"+\":\n                    min, max = 1, MAXREPEAT\n                elif\
+      \ this == \"{\":\n                    if source.next == \"}\":\n           \
+      \             subpatternappend((LITERAL, _ord(this)))\n                    \
+      \    continue\n    \n                    min, max = 0, MAXREPEAT\n         \
+      \           lo = hi = \"\"\n                    while source.next in DIGITS:\n\
+      \                        lo += sourceget()\n                    if sourcematch(\"\
+      ,\"):\n                        while source.next in DIGITS:\n              \
+      \              hi += sourceget()\n                    else:\n              \
+      \          hi = lo\n                    if not sourcematch(\"}\"):\n       \
+      \                 subpatternappend((LITERAL, _ord(this)))\n                \
+      \        source.seek(here)\n                        continue\n    \n       \
+      \             if lo:\n                        min = int(lo)\n              \
+      \          if min >= MAXREPEAT:\n                            raise OverflowError(\"\
+      the repetition number is too large\")\n                    if hi:\n        \
+      \                max = int(hi)\n                        if max >= MAXREPEAT:\n\
+      \                            raise OverflowError(\"the repetition number is\
+      \ too large\")\n                        if max < min:\n                    \
+      \        raise source.error(\"min repeat greater than max repeat\",\n      \
+      \                                         source.tell() - here)\n          \
+      \      else:\n                    raise AssertionError(\"unsupported quantifier\
+      \ %r\" % (char,))\n                # figure out which item to repeat\n     \
+      \           if subpattern:\n                    item = subpattern[-1:]\n   \
+      \             else:\n                    item = None\n                if not\
+      \ item or item[0][0] is AT:\n                    raise source.error(\"nothing\
+      \ to repeat\",\n                                       source.tell() - here\
+      \ + len(this))\n                if item[0][0] in _REPEATCODES:\n>          \
+      \         raise source.error(\"multiple repeat\",\n                        \
+      \               source.tell() - here + len(this))\nE                   re.error:\
+      \ multiple repeat at position 2\n\nC:\\Users\\86152\\AppData\\Local\\Programs\\\
+      Python\\Python39\\lib\\sre_parse.py:671: error\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes\n\
+      FAILED tests/Slugify/functional_test.py::test_replacements_apply_before_slugging\n\
+      2 failed, 10 passed in 0.61s\n"
+    elapsed_time_s: 24.506327
+    avg_memory_mb: 34.71
+    avg_cpu_percent: 0.65
+    passed: 10
+    failed: 2
+    skipped: 0
+    total: 12
+    score_inputs_passed: 10
+    score_inputs_failed: 2
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.267338
+    avg_memory_mb: 31.04
+    avg_cpu_percent: 99.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.214036
+    score_inputs_actual_time_s: 1.267338
+  resource:
+    returncode: 0
+    stdout: '..                                                                       [100%]
+
+      2 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.271657
+    avg_memory_mb: 30.88
+    avg_cpu_percent: 97.3
+    passed: 2
+    failed: 0
+    skipped: 0
+    total: 2
+    score_inputs_passed: 2
+    score_inputs_failed: 0
+    score_inputs_total: 2
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.25
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 30.88
+    score_inputs_actual_cpu_pct: 97.3
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.421571
+    avg_memory_mb: 31.27
+    avg_cpu_percent: 101.2
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=131.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.210104
+    avg_memory_mb: 31.66
+    avg_cpu_percent: 98.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 131.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=25.8508 files_scanned=2.0 total_loc=131.0 max_cc=11.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.240781
+    avg_memory_mb: 31.53
+    avg_cpu_percent: 98.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 25.8508
+      files_scanned: 2.0
+      total_loc: 131.0
+      max_cc: 11.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 25.6286
+    score_inputs_generated_mi_min: 25.8508
+    score_inputs_ratio_g_over_b: 1.0086700014827186
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.214036
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.191233
+    resource_tests_total: 2
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 1.215999
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.276187
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.416456
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 278.0
+  maintainability:
+    maintainability_suite_time_s: 1.253803
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.6286
+      files_scanned: 5.0
+      total_loc: 278.0
+      max_cc: 27.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Slugify\pytest_logs

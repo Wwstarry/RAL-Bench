@@ -1,0 +1,46 @@
+F.                                                                       [100%]
+================================== FAILURES ===================================
+_________________ test_cache_never_exceeds_maxsize_under_load _________________
+
+self = LRUCache(LRUCache([('key-1', 1), ('key-2', 2), ('key-3', 3), ('key-4', 4), ('key-5', 5), ('key-6', 6), ('key-7', 7), (... ('key-124', 124), ('key-125', 125), ('key-126', 126), ('key-127', 127), ('key-128', 128)]), maxsize=128, currsize=129)
+key = 'key-0'
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+>           self.move_to_end(key)
+E           KeyError: 'key-0'
+
+generation\Cachetools\cachetools\cache.py:47: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_cache_never_exceeds_maxsize_under_load():
+        maxsize = 128
+        cache = LRUCache(maxsize=maxsize)
+    
+        # Insert many more keys than maxsize; internal eviction policy should keep
+        # the number of stored entries bounded.
+        for i in range(5000):
+>           cache[f"key-{i}"] = i
+
+tests\Cachetools\resource_test.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\cache.py:55: in __setitem__
+    self.popitem(last=False)
+generation\Cachetools\cachetools\cache.py:50: in __getitem__
+    return self.__missing__(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache(LRUCache([('key-1', 1), ('key-2', 2), ('key-3', 3), ('key-4', 4), ('key-5', 5), ('key-6', 6), ('key-7', 7), (... ('key-124', 124), ('key-125', 125), ('key-126', 126), ('key-127', 127), ('key-128', 128)]), maxsize=128, currsize=129)
+key = 'key-0'
+
+    def __missing__(self, key):
+        """Called by __getitem__ when a key is not in the cache."""
+>       raise KeyError(key)
+E       KeyError: 'key-0'
+
+generation\Cachetools\cachetools\cache.py:30: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/resource_test.py::test_cache_never_exceeds_maxsize_under_load
+1 failed, 1 passed in 0.56s

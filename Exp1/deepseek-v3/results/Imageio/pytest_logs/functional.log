@@ -1,0 +1,152 @@
+F.FFFFFFF.                                                               [100%]
+================================== FAILURES ===================================
+_________________ test_png_roundtrip_with_imread_and_imwrite __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_roundtrip_with_imread0')
+
+    def test_png_roundtrip_with_imread_and_imwrite(tmp_path: Path) -> None:
+        """Exercise a simple PNG roundtrip and verify image shape and data."""
+        img = _make_color_image()
+        path = tmp_path / "test.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape == img.shape
+E       assert (48, 3, 3) == (32, 48, 3)
+E         
+E         At index 0 diff: 48 != 32
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:90: AssertionError
+____________________ test_improps_and_immeta_basic_fields _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_improps_and_immeta_basic_0')
+
+    def test_improps_and_immeta_basic_fields(tmp_path: Path) -> None:
+        """Check that improps and immeta expose basic metadata for a PNG image."""
+        img = _make_color_image(height=40, width=50)
+        path = tmp_path / "meta_test.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        props = iio.improps(path)
+>       assert tuple(props.shape) == img.shape
+E       assert (40, 50, 3, 3) == (40, 50, 3)
+E         
+E         Left contains one more item: 3
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:122: AssertionError
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+E       TypeError: imwrite() got an unexpected keyword argument 'extension'
+
+tests\Imageio\functional_test.py:139: TypeError
+_____________ test_png_imiter_yields_single_frame_equal_to_image ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imiter_yields_single_0')
+
+    def test_png_imiter_yields_single_frame_equal_to_image(tmp_path: Path) -> None:
+        """For a single-image PNG, imiter should yield exactly one frame."""
+        img = _make_color_image(height=18, width=22)
+        path = tmp_path / "single.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        frames = list(iio.imiter(path))
+>       assert len(frames) == 1
+E       assert 18 == 1
+E        +  where 18 = len([array([[[157, 157, 157],\n        [193, 193, 193],\n        [255, 255, 255]],\n\n       [[178, 178, 178],\n        [141, 1...     [228, 228, 228]],\n\n       [[154, 154, 154],\n        [109, 109, 109],\n        [  6,   6,   6]]], dtype=uint8), ...])
+
+tests\Imageio\functional_test.py:159: AssertionError
+______________ test_png_imread_accepts_path_and_str_equivalently ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imread_accepts_path_a0')
+
+    def test_png_imread_accepts_path_and_str_equivalently(tmp_path: Path) -> None:
+        """Read the same PNG via Path and str(path) and verify identical content."""
+        img = _make_color_image(height=25, width=27)
+        path = tmp_path / "path_vs_str.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        a = iio.imread(path)
+        b = iio.imread(str(path))
+    
+        assert isinstance(a, np.ndarray)
+        assert isinstance(b, np.ndarray)
+>       assert a.shape == b.shape == img.shape
+E       assert (27, 3, 3) == (25, 27, 3)
+E         
+E         At index 0 diff: 27 != 25
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:178: AssertionError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape[0] == frames.shape[0]
+E       assert 20 == 5
+
+tests\Imageio\functional_test.py:194: AssertionError
+___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_index0_matches0')
+
+    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path: Path) -> None:
+        """Read first GIF frame using both index=0 and imiter; verify consistent spatial shape."""
+        frames = _make_grayscale_frames(num_frames=4, height=19, width=23)
+        path = tmp_path / "index0.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+>       first_by_index = iio.imread(path, index=0)
+E       TypeError: imread() got an unexpected keyword argument 'index'
+
+tests\Imageio\functional_test.py:206: TypeError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_with_imread_and_imwrite
+FAILED tests/Imageio/functional_test.py::test_improps_and_immeta_basic_fields
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_png_imiter_yields_single_frame_equal_to_image
+FAILED tests/Imageio/functional_test.py::test_png_imread_accepts_path_and_str_equivalently
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+8 failed, 2 passed in 1.19s

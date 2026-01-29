@@ -1,0 +1,63 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_xmltodict_performance_smoke _______________________
+
+    def test_xmltodict_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_xmltodict_performance_benchmark(iterations=5, n_users=50)
+
+tests\Xmltodict\performance_test.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\performance_test.py:63: in run_xmltodict_performance_benchmark
+    parsed = xmltodict.parse(xml)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x0000020D3FEFF040>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x0000020D3FF3E130>
+parser = <pyexpat.xmlparser object at 0x0000020D3E888AC0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/performance_test.py::test_xmltodict_performance_smoke
+1 failed in 0.33s

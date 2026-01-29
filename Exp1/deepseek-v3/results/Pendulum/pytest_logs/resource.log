@@ -1,0 +1,37 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_generate_recurring_schedule_and_group_by_day ______________
+
+    def test_generate_recurring_schedule_and_group_by_day() -> None:
+        """
+        Integration-style test: build a recurring schedule, convert to another
+        timezone, and group events by local calendar day.
+        """
+        # Start from a fixed UTC anchor.
+>       start = pendulum.datetime(2022, 1, 1, 8, 0, 0, tz="UTC")
+
+tests\Pendulum\resource_test.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2022, month = 1, day = 1
+hour = 8, minute = 0, second = 0, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day
+1 failed in 0.33s

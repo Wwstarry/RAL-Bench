@@ -1,0 +1,384 @@
+project_name: Xmltodict
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Xmltodict\xmltodict.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Xmltodict
+timestamp: '2026-01-02 01:15:15'
+functional_score: 0.0
+non_functional_score: 0.765
+non_functional_subscores:
+  maintainability: 0.6805
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFFF                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________________ test_parse_simple_element __________________________\n\
+      \n    def test_parse_simple_element() -> None:\n        \"\"\"Parsing a simple\
+      \ XML element should produce the expected dict.\"\"\"\n        xml = \"<root><message>Hello</message></root>\"\
+      \n        data = _parse(xml)\n    \n>       assert \"root\" in data\nE     \
+      \  AssertionError: assert 'root' in {'message': 'Hello'}\n\ntests\\Xmltodict\\\
+      functional_test.py:79: AssertionError\n____________________ test_parse_repeated_elements_as_list\
+      \ _____________________\n\n    def test_parse_repeated_elements_as_list() ->\
+      \ None:\n        \"\"\"Repeated child elements should be represented as a list.\"\
+      \"\"\n        xml = \"<root><item>1</item><item>2</item><item>3</item></root>\"\
+      \n        data = _parse(xml)\n    \n>       items = data[\"root\"][\"item\"\
+      ]\nE       KeyError: 'root'\n\ntests\\Xmltodict\\functional_test.py:88: KeyError\n\
+      _______________________ test_parse_attributes_and_text ________________________\n\
+      \n    def test_parse_attributes_and_text() -> None:\n        \"\"\"Attributes\
+      \ and text content should be exposed using @attr and #text keys.\"\"\"\n   \
+      \     xml = '<user id=\"123\">Alice</user>'\n        data = _parse(xml)\n  \
+      \  \n>       user = data[\"user\"]\nE       KeyError: 'user'\n\ntests\\Xmltodict\\\
+      functional_test.py:98: KeyError\n___________________ test_unparse_roundtrip_basic_structure\
+      \ ____________________\n\n    def test_unparse_roundtrip_basic_structure() ->\
+      \ None:\n        \"\"\"unparse() followed by parse() should preserve the logical\
+      \ structure.\"\"\"\n        original = {\n            \"root\": {\n        \
+      \        \"item\": [\n                    {\"@id\": \"1\", \"#text\": \"A\"\
+      },\n                    {\"@id\": \"2\", \"#text\": \"B\"},\n              \
+      \  ]\n            }\n        }\n    \n        xml = _unparse(original)\n   \
+      \     round_tripped = _parse(xml)\n    \n>       assert round_tripped == original\n\
+      E       AssertionError: assert {'item': [{'#... '@id': '2'}]} == {'root': {'it...'@id':\
+      \ '2'}]}}\nE         \nE         Left contains 1 more item:\nE         {'item':\
+      \ [{'#text': 'A', '@id': '1'}, {'#text': 'B', '@id': '2'}]}\nE         Right\
+      \ contains 1 more item:\nE         {'root': {'item': [{'#text': 'A', '@id':\
+      \ '1'}, {'#text': 'B', '@id': '2'}]}}\nE         Use -v to get more diff\n\n\
+      tests\\Xmltodict\\functional_test.py:117: AssertionError\n_____________________\
+      \ test_namespace_prefix_is_preserved ______________________\n\n    def test_namespace_prefix_is_preserved()\
+      \ -> None:\n        \"\"\"Namespace prefixes in element names should be preserved\
+      \ in dict keys.\"\"\"\n        xml = \"\"\"\n        <root xmlns:x=\"http://example.com/x\"\
+      >\n            <x:item>value</x:item>\n        </root>\n        \"\"\"\n   \
+      \     data = _parse(xml)\n    \n>       root = data[\"root\"]\nE       KeyError:\
+      \ 'root'\n\ntests\\Xmltodict\\functional_test.py:129: KeyError\n_________________________\
+      \ test_parse_nested_structure _________________________\n\n    def test_parse_nested_structure()\
+      \ -> None:\n        \"\"\"Nested XML elements should map to nested dict structures.\"\
+      \"\"\n        xml = \"\"\"\n        <root>\n            <user>\n           \
+      \     <name>Ada</name>\n                <address>\n                    <city>London</city>\n\
+      \                    <country>UK</country>\n                </address>\n   \
+      \         </user>\n        </root>\n        \"\"\"\n        data = _parse(xml)\n\
+      >       assert data[\"root\"][\"user\"][\"name\"] == \"Ada\"\nE       KeyError:\
+      \ 'root'\n\ntests\\Xmltodict\\functional_test.py:151: KeyError\n__________________\
+      \ test_force_list_option_for_single_element __________________\n\n    def test_force_list_option_for_single_element()\
+      \ -> None:\n        \"\"\"force_list should allow representing a single child\
+      \ as a list when supported.\"\"\"\n        xml = \"<root><item>1</item></root>\"\
+      \n    \n        # Prefer a targeted force_list that is common in xmltodict.\n\
+      \        data = _parse(xml, force_list=(\"item\",))\n    \n>       item = data[\"\
+      root\"][\"item\"]\nE       KeyError: 'root'\n\ntests\\Xmltodict\\functional_test.py:163:\
+      \ KeyError\n_____________ test_custom_attr_prefix_and_cdata_key_if_supported\
+      \ ______________\n\n    def test_custom_attr_prefix_and_cdata_key_if_supported()\
+      \ -> None:\n        \"\"\"attr_prefix / cdata_key customization should reflect\
+      \ in output when supported.\"\"\"\n        xml = '<user id=\"7\">Bob</user>'\n\
+      \    \n        data = _parse(xml, attr_prefix=\"$\", cdata_key=\"text\")\n>\
+      \       user = data[\"user\"]\nE       KeyError: 'user'\n\ntests\\Xmltodict\\\
+      functional_test.py:177: KeyError\n____________ test_xml_attribs_false_drops_attributes_if_supported\
+      \ _____________\n\n    def test_xml_attribs_false_drops_attributes_if_supported()\
+      \ -> None:\n        \"\"\"xml_attribs=False should omit attribute keys when\
+      \ supported.\"\"\"\n        xml = '<user id=\"9\"><name>Alice</name></user>'\n\
+      \    \n        data = _parse(xml, xml_attribs=False)\n>       user = data[\"\
+      user\"]\nE       KeyError: 'user'\n\ntests\\Xmltodict\\functional_test.py:192:\
+      \ KeyError\n______________________ test_dict_constructor_ordereddict ______________________\n\
+      \n    def test_dict_constructor_ordereddict() -> None:\n        \"\"\"dict_constructor\
+      \ should allow choosing mapping type (e.g., OrderedDict) when supported.\"\"\
+      \"\n        xml = \"<root><a>1</a><b>2</b></root>\"\n        data = _parse(xml,\
+      \ dict_constructor=OrderedDict)\n    \n        if \"dict_constructor\" in _PARSE_PARAMS:\n\
+      \            assert isinstance(data, OrderedDict)\n            assert isinstance(data[\"\
+      root\"], OrderedDict)\n        else:\n            assert isinstance(data, dict)\n\
+      \    \n>       assert data[\"root\"][\"a\"] == \"1\"\nE       KeyError: 'root'\n\
+      \ntests\\Xmltodict\\functional_test.py:215: KeyError\n_____________________\
+      \ test_unparse_pretty_and_parse_back ______________________\n\n    def test_unparse_pretty_and_parse_back()\
+      \ -> None:\n        \"\"\"Pretty/full_document knobs should not break roundtrip\
+      \ of basic structure.\"\"\"\n        original: Dict[str, Any] = {\"root\": {\"\
+      x\": \"1\", \"y\": \"2\"}}\n    \n        xml = _unparse(original, pretty=True,\
+      \ full_document=True)\n        assert \"<root>\" in xml or \"<root\" in xml\n\
+      \    \n        round_tripped = _parse(xml)\n>       assert round_tripped ==\
+      \ original\nE       AssertionError: assert {'x': '1', 'y': '2'} == {'root':\
+      \ {'x': '1', 'y': '2'}}\nE         \nE         Left contains 2 more items:\n\
+      E         {'x': '1', 'y': '2'}\nE         Right contains 1 more item:\nE   \
+      \      {'root': {'x': '1', 'y': '2'}}\nE         Use -v to get more diff\n\n\
+      tests\\Xmltodict\\functional_test.py:227: AssertionError\n______________ test_postprocessor_transforms_value_if_supported\
+      \ _______________\n\n    def test_postprocessor_transforms_value_if_supported()\
+      \ -> None:\n        \"\"\"postprocessor can transform values in a happy-path\
+      \ parse when supported.\"\"\"\n        xml = \"<root><message>Hello</message></root>\"\
+      \n    \n        def _pp(path: Any, key: str, value: Any) -> Any:\n         \
+      \   if key == \"message\" and isinstance(value, str):\n                return\
+      \ key, value.upper()\n            return key, value\n    \n>       data = _parse(xml,\
+      \ postprocessor=_pp)\n\ntests\\Xmltodict\\functional_test.py:239: \n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      tests\\Xmltodict\\functional_test.py:62: in _parse\n    return xmltodict.parse(xml,\
+      \ **filtered)  # type: ignore[arg-type]\ngeneration\\Xmltodict\\xmltodict.py:70:\
+      \ in parse\n    return _element_to_dict(\ngeneration\\Xmltodict\\xmltodict.py:116:\
+      \ in _element_to_dict\n    child_dict = _element_to_dict(\n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nelement =\
+      \ <Element 'message' at 0x0000029B4CAA7860>, process_namespaces = False\nnamespace_separator\
+      \ = ':', force_list = []\npostprocessor = <function test_postprocessor_transforms_value_if_supported.<locals>._pp\
+      \ at 0x0000029B4CB23F70>\n\n    def _element_to_dict(\n        element: ET.Element,\n\
+      \        process_namespaces: bool,\n        namespace_separator: str,\n    \
+      \    force_list: List[str],\n        postprocessor: Any\n    ) -> Union[XMLDict,\
+      \ str]:\n        \"\"\"Convert XML element to dictionary.\"\"\"\n    \n    \
+      \    # Handle tag name\n        tag = element.tag\n        if process_namespaces\
+      \ and '}' in tag:\n            # Extract namespace and local name\n        \
+      \    namespace_match = re.match(r'\\{.*?\\}', tag)\n            if namespace_match:\n\
+      \                namespace = namespace_match.group(0)[1:-1]\n              \
+      \  local_name = tag[namespace_match.end():]\n                tag = f\"{namespace}{namespace_separator}{local_name}\"\
+      \n    \n        # Start with attributes\n        result: XMLDict = {}\n    \
+      \    if element.attrib:\n            for key, value in element.attrib.items():\n\
+      \                attr_key = f\"@{key}\"\n                if process_namespaces\
+      \ and '}' in key:\n                    namespace_match = re.match(r'\\{.*?\\\
+      }', key)\n                    if namespace_match:\n                        namespace\
+      \ = namespace_match.group(0)[1:-1]\n                        local_name = key[namespace_match.end():]\n\
+      \                        attr_key = f\"@{namespace}{namespace_separator}{local_name}\"\
+      \n                result[attr_key] = value\n    \n        # Handle children\n\
+      \        children_by_tag: Dict[str, List[Any]] = {}\n        text_parts: List[str]\
+      \ = []\n    \n        for child in element:\n            if isinstance(child,\
+      \ ET.Element):\n                child_dict = _element_to_dict(\n           \
+      \         child,\n                    process_namespaces,\n                \
+      \    namespace_separator,\n                    force_list,\n               \
+      \     postprocessor\n                )\n    \n                child_tag = child.tag\n\
+      \                if process_namespaces and '}' in child_tag:\n             \
+      \       namespace_match = re.match(r'\\{.*?\\}', child_tag)\n              \
+      \      if namespace_match:\n                        namespace = namespace_match.group(0)[1:-1]\n\
+      \                        local_name = child_tag[namespace_match.end():]\n  \
+      \                      child_tag = f\"{namespace}{namespace_separator}{local_name}\"\
+      \n    \n                if child_tag not in children_by_tag:\n             \
+      \       children_by_tag[child_tag] = []\n                children_by_tag[child_tag].append(child_dict)\n\
+      \            elif child.tail:\n                text_parts.append(child.tail)\n\
+      \    \n        # Add children to result\n        for child_tag, children in\
+      \ children_by_tag.items():\n            if len(children) == 1 and child_tag\
+      \ not in force_list:\n                result[child_tag] = children[0]\n    \
+      \        else:\n                result[child_tag] = children\n    \n       \
+      \ # Handle text\n        if element.text and element.text.strip():\n       \
+      \     text = element.text.strip()\n            if text_parts:\n            \
+      \    text = text + ''.join(text_parts)\n    \n            if '#text' in result:\n\
+      \                if isinstance(result['#text'], list):\n                   \
+      \ result['#text'].append(text)\n                else:\n                    result['#text']\
+      \ = [result['#text'], text]\n            else:\n                result['#text']\
+      \ = text\n    \n        # Apply postprocessor\n        if postprocessor:\n>\
+      \           result = postprocessor(tag, result)\nE           TypeError: _pp()\
+      \ missing 1 required positional argument: 'value'\n\ngeneration\\Xmltodict\\\
+      xmltodict.py:161: TypeError\n=========================== short test summary\
+      \ info ===========================\nFAILED tests/Xmltodict/functional_test.py::test_parse_simple_element\
+      \ - Assert...\nFAILED tests/Xmltodict/functional_test.py::test_parse_repeated_elements_as_list\n\
+      FAILED tests/Xmltodict/functional_test.py::test_parse_attributes_and_text -\
+      \ K...\nFAILED tests/Xmltodict/functional_test.py::test_unparse_roundtrip_basic_structure\n\
+      FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved\n\
+      FAILED tests/Xmltodict/functional_test.py::test_parse_nested_structure - KeyE...\n\
+      FAILED tests/Xmltodict/functional_test.py::test_force_list_option_for_single_element\n\
+      FAILED tests/Xmltodict/functional_test.py::test_custom_attr_prefix_and_cdata_key_if_supported\n\
+      FAILED tests/Xmltodict/functional_test.py::test_xml_attribs_false_drops_attributes_if_supported\n\
+      FAILED tests/Xmltodict/functional_test.py::test_dict_constructor_ordereddict\n\
+      FAILED tests/Xmltodict/functional_test.py::test_unparse_pretty_and_parse_back\n\
+      FAILED tests/Xmltodict/functional_test.py::test_postprocessor_transforms_value_if_supported\n\
+      12 failed in 0.68s\n"
+    elapsed_time_s: 27.765308
+    avg_memory_mb: 32.71
+    avg_cpu_percent: 0.59
+    passed: 0
+    failed: 12
+    skipped: 0
+    total: 12
+    score_inputs_passed: 0
+    score_inputs_failed: 12
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.11s
+
+      '
+    elapsed_time_s: 1.360889
+    avg_memory_mb: 30.66
+    avg_cpu_percent: 97.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.593666
+    score_inputs_actual_time_s: 1.360889
+  resource:
+    returncode: 1
+    stdout: "FF                                                                  \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_catalog_structure_and_types _______________________\n\
+      \n    def test_catalog_structure_and_types() -> None:\n        \"\"\"The parsed\
+      \ catalog should have the expected nested structure and types.\"\"\"\n     \
+      \   data = _parse_catalog()\n    \n>       assert \"catalog\" in data\nE   \
+      \    AssertionError: assert 'catalog' in {'book': [{'@id': 'bk101', 'author':\
+      \ 'Gambardella, Matthew', 'description': 'An in-depth look at creating applications...02',\
+      \ 'author': 'Ralls, Kim', 'description': 'A former architect battles corporate\
+      \ zombies.', 'genre': 'Fantasy', ...}]}\n\ntests\\Xmltodict\\resource_test.py:59:\
+      \ AssertionError\n_______________________ test_roundtrip_complex_catalog ________________________\n\
+      \n    def test_roundtrip_complex_catalog() -> None:\n        \"\"\"\n      \
+      \  Parsing and then unparsing the complex catalog XML should preserve\n    \
+      \    the logical structure when parsed again.\n        \"\"\"\n        original_dict\
+      \ = _parse_catalog()\n    \n        xml = xmltodict.unparse(original_dict)\n\
+      \        round_tripped = xmltodict.parse(xml)\n    \n>       assert round_tripped\
+      \ == original_dict\nE       AssertionError: assert {'@id': 'bk10...antasy'],\
+      \ ...} == {'book': [{'@...ntasy', ...}]}\nE         \nE         Left contains\
+      \ 7 more items:\nE         {'@id': 'bk102',\nE          'author': ['Gambardella,\
+      \ Matthew', 'Ralls, Kim'],\nE          'description': ['An in-depth look at\
+      \ creating applications with XML.',\nE                          'A former architect\
+      \ battles corporate zombies.'],\nE          'genre': ['Computer', 'Fantasy'],...\n\
+      E         \nE         ...Full output truncated (20 lines hidden), use '-vv'\
+      \ to show\n\ntests\\Xmltodict\\resource_test.py:84: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Xmltodict/resource_test.py::test_catalog_structure_and_types\
+      \ - A...\nFAILED tests/Xmltodict/resource_test.py::test_roundtrip_complex_catalog\
+      \ - Ass...\n2 failed in 0.42s\n"
+    elapsed_time_s: 1.714875
+    avg_memory_mb: 31.41
+    avg_cpu_percent: 98.0
+    passed: 0
+    failed: 2
+    skipped: 0
+    total: 2
+    score_inputs_passed: 0
+    score_inputs_failed: 2
+    score_inputs_total: 2
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 32.5
+    score_inputs_baseline_cpu_pct: 98.9
+    score_inputs_actual_mem_mb: 31.41
+    score_inputs_actual_cpu_pct: 98.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.35078
+    avg_memory_mb: 31.47
+    avg_cpu_percent: 98.8
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=1.0 total_loc=229.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.38605
+    avg_memory_mb: 31.3
+    avg_cpu_percent: 98.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 229.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=19.6840 files_scanned=1.0 total_loc=229.0 max_cc=27.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.418671
+    avg_memory_mb: 31.93
+    avg_cpu_percent: 101.2
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 19.684
+      files_scanned: 1.0
+      total_loc: 229.0
+      max_cc: 27.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 9.2435
+    score_inputs_generated_mi_min: 19.684
+    score_inputs_ratio_g_over_b: 2.1294964028776984
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.593666
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.556051
+    resource_tests_total: 2
+    avg_memory_mb: 32.5
+    avg_cpu_percent: 98.9
+  functional:
+    functional_suite_time_s: 1.63732
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.692569
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.470756
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 542.0
+  maintainability:
+    maintainability_suite_time_s: 1.751538
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 9.2435
+      files_scanned: 3.0
+      total_loc: 1446.0
+      max_cc: 44.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Xmltodict\pytest_logs

@@ -1,0 +1,30 @@
+....F                                                                    [100%]
+================================== FAILURES ===================================
+________________ test_005_markercluster_handles_empty_cluster _________________
+
+    def test_005_markercluster_handles_empty_cluster():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        MarkerCluster().add_to(m)
+    
+>       html = m.get_root().render().lower()
+
+tests\Folium\robustness_test.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.elements.Figure object at 0x000001CEBA675A00>, kwargs = {}
+
+    def render(self, **kwargs):
+        """Render the full HTML page."""
+>       header = "".join(child.render(**kwargs) for child in self.header._children.values())
+E       TypeError: sequence item 0: expected str instance, NoneType found
+
+generation\Folium\folium\elements.py:83: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/robustness_test.py::test_005_markercluster_handles_empty_cluster
+1 failed, 4 passed in 0.49s

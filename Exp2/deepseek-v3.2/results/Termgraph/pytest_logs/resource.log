@@ -1,0 +1,47 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+>       data = Data(normalized, labels)
+
+tests\Termgraph\resource_test.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022969F1C760>
+labels = [[5.0], [10.0], [7.5], [2.5]]
+data = ['Item-0', 'Item-1', 'Item-2', 'Item-3']
+
+    def __init__(self, labels: List[str], data: List[List[Union[int, float]]]):
+        """
+        Initialize Data object.
+    
+        Args:
+            labels: List of label strings
+            data: List of data series, each series is a list of numeric values
+        """
+        self.labels = labels
+        self.data = data
+    
+        # Validate data dimensions
+        if len(data) > 0:
+            series_length = len(data[0])
+            for series in data:
+                if len(series) != series_length:
+                    raise ValueError("All data series must have the same length")
+                if len(series) != len(labels):
+>                   raise ValueError("Number of data points must match number of labels")
+E                   ValueError: Number of data points must match number of labels
+
+generation\Termgraph\termgraph\data.py:31: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.31s

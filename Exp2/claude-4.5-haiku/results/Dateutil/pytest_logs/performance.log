@@ -1,0 +1,39 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_dateutil_performance_smoke _______________________
+
+    def test_dateutil_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)
+
+tests\Dateutil\performance_test.py:83: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+iterations = 10, rrule_span_days = 30
+
+    def run_dateutil_performance_benchmark(
+        iterations: int = 100, rrule_span_days: int = 365
+    ) -> dict[str, float]:
+        """Run repeated parsing and recurrence generation and measure total time."""
+        strings = _sample_datetime_strings()
+        # Use a fixed-offset timezone (UTC-5) instead of named zone.
+        ny = tz.tzoffset("NY", -5 * 3600)
+    
+        parse_calls = 0
+        rrule_events = 0
+    
+        base_start = dt.datetime(2020, 1, 1, tzinfo=tz.UTC)
+    
+        t0 = time.perf_counter()
+        for i in range(iterations):
+            # Parsing benchmark
+            for s in strings:
+                dt_obj = parser.parse(s)
+                # Convert to another timezone to exercise tz handling.
+>               _ = dt_obj.astimezone(ny)
+E               AttributeError: 'tuple' object has no attribute 'astimezone'
+
+tests\Dateutil\performance_test.py:58: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/performance_test.py::test_dateutil_performance_smoke - ...
+1 failed in 0.35s

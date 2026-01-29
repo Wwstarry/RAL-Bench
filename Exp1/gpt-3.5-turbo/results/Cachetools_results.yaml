@@ -1,0 +1,272 @@
+project_name: Cachetools
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Cachetools\cachetools.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Cachetools
+timestamp: '2025-12-31 20:56:11'
+functional_score: 1.0
+non_functional_score: 0.8371
+non_functional_subscores:
+  maintainability: 0.7958
+  security: 1.0
+  robustness: 0.4545
+  performance: 0.989
+  resource: 0.9935
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 0
+    stdout: '.............                                                            [100%]
+
+      13 passed in 1.69s
+
+      '
+    elapsed_time_s: 2.815593
+    avg_memory_mb: 31.43
+    avg_cpu_percent: 44.5
+    passed: 13
+    failed: 0
+    skipped: 0
+    total: 13
+    score_inputs_passed: 13
+    score_inputs_failed: 0
+    score_inputs_total: 13
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.261294
+    avg_memory_mb: 30.72
+    avg_cpu_percent: 102.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.247364
+    score_inputs_actual_time_s: 1.261294
+  resource:
+    returncode: 0
+    stdout: '..                                                                       [100%]
+
+      2 passed in 0.26s
+
+      '
+    elapsed_time_s: 1.41962
+    avg_memory_mb: 30.84
+    avg_cpu_percent: 100.0
+    passed: 2
+    failed: 0
+    skipped: 0
+    total: 2
+    score_inputs_passed: 2
+    score_inputs_failed: 0
+    score_inputs_total: 2
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 31.07
+    score_inputs_baseline_cpu_pct: 98.7
+    score_inputs_actual_mem_mb: 30.84
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 1
+    stdout: "F.FFF....FF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________ test_cache_negative_maxsize_rejects_values_predictably ____________\n\
+      \n    def test_cache_negative_maxsize_rejects_values_predictably():\n      \
+      \  \"\"\"\n        Reference cachetools in your repo treats maxsize=-1 as \"\
+      no item can fit\".\n        Robustness expectation:\n          - constructing\
+      \ Cache(-1) should not crash\n          - storing a normal value should fail\
+      \ predictably (ValueError) rather than corrupting state\n        \"\"\"\n  \
+      \      cachetools = _import_cachetools()\n    \n>       c = cachetools.Cache(-1)\n\
+      \ntests\\Cachetools\\robustness_test.py:72: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <cachetools.cache.Cache\
+      \ object at 0x0000021CD8967DF0>, maxsize = -1\nmissing = None\n\n    def __init__(self,\
+      \ maxsize=None, missing=None):\n        if maxsize is not None:\n          \
+      \  if not isinstance(maxsize, int) or maxsize < 0:\n>               raise ValueError(\"\
+      maxsize should be a non-negative integer or None\")\nE               ValueError:\
+      \ maxsize should be a non-negative integer or None\n\ngeneration\\Cachetools\\\
+      cachetools\\cache.py:9: ValueError\n___________ test_cache_value_too_large_for_getsizeof_does_not_crash\
+      \ ___________\n\n    def test_cache_value_too_large_for_getsizeof_does_not_crash():\n\
+      \        \"\"\"\n        Extreme getsizeof behavior should not crash the process.\n\
+      \        \"\"\"\n        cachetools = _import_cachetools()\n    \n>       c\
+      \ = cachetools.Cache(100, getsizeof=lambda _x: 200)\nE       TypeError: __init__()\
+      \ got an unexpected keyword argument 'getsizeof'\n\ntests\\Cachetools\\robustness_test.py:106:\
+      \ TypeError\n___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache]\
+      \ ____________\n\ncache_cls = 'FIFOCache'\n\n    @pytest.mark.parametrize(\"\
+      cache_cls\", [\"FIFOCache\", \"LFUCache\", \"LRUCache\"])\n    def test_popitem_on_empty_cache_raises_keyerror(cache_cls:\
+      \ str):\n        cachetools = _import_cachetools()\n>       cls = getattr(cachetools,\
+      \ cache_cls)\nE       AttributeError: module 'cachetools' has no attribute 'FIFOCache'\n\
+      \ntests\\Cachetools\\robustness_test.py:116: AttributeError\n____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache]\
+      \ ____________\n\ncache_cls = 'LFUCache'\n\n    @pytest.mark.parametrize(\"\
+      cache_cls\", [\"FIFOCache\", \"LFUCache\", \"LRUCache\"])\n    def test_popitem_on_empty_cache_raises_keyerror(cache_cls:\
+      \ str):\n        cachetools = _import_cachetools()\n>       cls = getattr(cachetools,\
+      \ cache_cls)\nE       AttributeError: module 'cachetools' has no attribute 'LFUCache'\n\
+      \ntests\\Cachetools\\robustness_test.py:116: AttributeError\n_____________________\
+      \ test_cachedmethod_basic_usage_smoke _____________________\n\n    def test_cachedmethod_basic_usage_smoke():\n\
+      \        \"\"\"\n        cachedmethod should work in a minimal class use case\
+      \ (present in many versions).\n        \"\"\"\n        cachetools = _import_cachetools()\n\
+      \    \n        if not hasattr(cachetools, \"cachedmethod\"):\n            pytest.skip(\"\
+      cachetools.cachedmethod not available in this implementation\")\n    \n    \
+      \    class TestClass:\n            @cachetools.cachedmethod(lambda self: cachetools.LRUCache(maxsize=10))\n\
+      \            def cached_method(self, x):\n                return x\n    \n \
+      \       obj = TestClass()\n>       assert obj.cached_method(1) == 1\n\ntests\\\
+      Cachetools\\robustness_test.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <robustness_test.test_cachedmethod_basic_usage_smoke.<locals>.TestClass\
+      \ object at 0x0000021CD7358F70>\nargs = (1,), kwargs = {}\nk = (<robustness_test.test_cachedmethod_basic_usage_smoke.<locals>.TestClass\
+      \ object at 0x0000021CD7358F70>, 1)\n\n    @functools.wraps(method)\n    def\
+      \ wrapper(self, *args, **kwargs):\n        k = key(self, *args, **kwargs)\n\
+      \        try:\n>           return cache[k]\nE           TypeError: 'function'\
+      \ object is not subscriptable\n\ngeneration\\Cachetools\\cachetools\\decorators.py:28:\
+      \ TypeError\n_________ test_non_hashable_keys_raise_typeerror_in_dict_like_methods\
+      \ _________\n\n    def test_non_hashable_keys_raise_typeerror_in_dict_like_methods():\n\
+      \        \"\"\"\n        This is stable: list keys are unhashable and should\
+      \ raise TypeError.\n        \"\"\"\n        cachetools = _import_cachetools()\n\
+      \        c = cachetools.Cache(100)\n    \n        with pytest.raises(TypeError):\n\
+      \            _ = c.get([1, 2, 3])  # type: ignore[arg-type]\n    \n        with\
+      \ pytest.raises(TypeError):\n            c[[1, 2, 3]] = \"value\"  # type: ignore[index]\n\
+      \    \n        with pytest.raises(TypeError):\n            del c[[1, 2, 3]]\
+      \  # type: ignore[index]\n    \n        with pytest.raises(TypeError):\n>  \
+      \         _ = c.pop([1, 2, 3], None)  # type: ignore[arg-type]\nE          \
+      \ Failed: DID NOT RAISE <class 'TypeError'>\n\ntests\\Cachetools\\robustness_test.py:231:\
+      \ Failed\n=========================== short test summary info ===========================\n\
+      FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably\n\
+      FAILED tests/Cachetools/robustness_test.py::test_cache_value_too_large_for_getsizeof_does_not_crash\n\
+      FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]\n\
+      FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]\n\
+      FAILED tests/Cachetools/robustness_test.py::test_cachedmethod_basic_usage_smoke\n\
+      FAILED tests/Cachetools/robustness_test.py::test_non_hashable_keys_raise_typeerror_in_dict_like_methods\n\
+      6 failed, 5 passed in 0.43s\n"
+    elapsed_time_s: 1.609562
+    avg_memory_mb: 31.93
+    avg_cpu_percent: 102.1
+    passed: 5
+    failed: 6
+    skipped: 0
+    total: 11
+    score_inputs_passed: 5
+    score_inputs_failed: 6
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=229.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.189235
+    avg_memory_mb: 31.16
+    avg_cpu_percent: 98.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 229.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=32.4455 files_scanned=6.0 total_loc=229.0 max_cc=5.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.223837
+    avg_memory_mb: 31.15
+    avg_cpu_percent: 101.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 32.4455
+      files_scanned: 6.0
+      total_loc: 229.0
+      max_cc: 5.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 8.3242
+    score_inputs_generated_mi_min: 32.4455
+    score_inputs_ratio_g_over_b: 3.89773191417794
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.247364
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.330613
+    resource_tests_total: 2
+    avg_memory_mb: 31.07
+    avg_cpu_percent: 98.7
+  functional:
+    functional_suite_time_s: 2.774696
+    functional_tests_total: 13
+  robustness:
+    robustness_suite_time_s: 1.275119
+    robustness_tests_total: 11
+  security:
+    security_suite_time_s: 1.163912
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 997.0
+  maintainability:
+    maintainability_suite_time_s: 1.271974
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 8.3242
+      files_scanned: 5.0
+      total_loc: 997.0
+      max_cc: 13.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Cachetools\pytest_logs

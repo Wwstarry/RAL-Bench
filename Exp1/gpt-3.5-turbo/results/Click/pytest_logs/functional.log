@@ -1,0 +1,171 @@
+FFFFF...FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_simple_command_with_argument_and_option _________________
+
+    def test_simple_command_with_argument_and_option():
+        @click.command()
+        @click.option("--count", "-c", type=int, default=1)
+        @click.argument("name")
+        def greet(count: int, name: str) -> None:
+            for _ in range(count):
+                click.echo(f"Hello {name}!")
+    
+        runner = CliRunner()
+        result = runner.invoke(greet, ["--count", "3", "World"])
+    
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <click.testing.Result object at 0x000001ECCEC94E80>.exit_code
+
+tests\Click\functional_test.py:143: AssertionError
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+        def cli(flag: bool) -> None:
+            click.echo(f"FLAG={flag}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["--flag"])
+>       assert r1.exit_code == 0
+E       assert 2 == 0
+E        +  where 2 = <click.testing.Result object at 0x000001ECCEC72310>.exit_code
+
+tests\Click\functional_test.py:157: AssertionError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:67: in decorator
+    grp = _make_group(f, name=name, cls=cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_group_with_subcommands.<locals>.cli at 0x000001ECCECB2B80>
+name = None, cls = None, attrs = {}, grp_name = 'cli'
+grp_cls = <class 'click.core.Group'>
+grp = <click.core.Group object at 0x000001ECCECAC1C0>
+
+    def _make_group(f, name=None, cls=None, **attrs):
+        grp_name = name or f.__name__
+        grp_cls = cls or Group
+        grp = grp_cls(name=grp_name, **attrs)
+        # Add commands from decorated functions attached to group
+>       f(grp)
+E       TypeError: cli() takes 0 positional arguments but 1 was given
+
+generation\Click\click\decorators.py:54: TypeError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+>       def cli() -> None:
+
+tests\Click\functional_test.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:67: in decorator
+    grp = _make_group(f, name=name, cls=cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_help_output_for_command_and_group.<locals>.cli at 0x000001ECCECB2D30>
+name = None, cls = None, attrs = {'help': 'Top level group'}, grp_name = 'cli'
+grp_cls = <class 'click.core.Group'>
+grp = <click.core.Group object at 0x000001ECCEC727F0>
+
+    def _make_group(f, name=None, cls=None, **attrs):
+        grp_name = name or f.__name__
+        grp_cls = cls or Group
+        grp = grp_cls(name=grp_name, **attrs)
+        # Add commands from decorated functions attached to group
+>       f(grp)
+E       TypeError: cli() takes 0 positional arguments but 1 was given
+
+generation\Click\click\decorators.py:54: TypeError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+>       def cli(config: str) -> None:
+
+tests\Click\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:67: in decorator
+    grp = _make_group(f, name=name, cls=cls, **attrs)
+generation\Click\click\decorators.py:54: in _make_group
+    f(grp)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+config = <click.core.Group object at 0x000001ECCED08880>
+
+    @click.group()
+    @click.option("--config", type=str, default="default.cfg")
+    def cli(config: str) -> None:
+>       ctx = click.get_current_context()
+E       AttributeError: module 'click' has no attribute 'get_current_context'
+
+tests\Click\functional_test.py:223: AttributeError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:67: in decorator
+    grp = _make_group(f, name=name, cls=cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_default_map_provides_default_option_value.<locals>.cli at 0x000001ECCEC29310>
+name = None, cls = None, attrs = {}, grp_name = 'cli'
+grp_cls = <class 'click.core.Group'>
+grp = <click.core.Group object at 0x000001ECCED0D1F0>
+
+    def _make_group(f, name=None, cls=None, **attrs):
+        grp_name = name or f.__name__
+        grp_cls = cls or Group
+        grp = grp_cls(name=grp_name, **attrs)
+        # Add commands from decorated functions attached to group
+>       f(grp)
+E       TypeError: cli() takes 0 positional arguments but 1 was given
+
+generation\Click\click\decorators.py:54: TypeError
+_______________ test_parameter_type_validation_error_exit_code ________________
+
+    def test_parameter_type_validation_error_exit_code():
+        @click.command()
+        @click.option("--count", type=int, required=True)
+        def cli(count: int) -> None:
+            click.echo(f"COUNT={count}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, ["--count", "not-an-int"])
+>       assert r.exit_code != 0
+E       assert 0 != 0
+E        +  where 0 = <click.testing.Result object at 0x000001ECCED05910>.exit_code
+
+tests\Click\functional_test.py:313: AssertionError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - TypeErro...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+8 failed, 3 passed in 3.18s

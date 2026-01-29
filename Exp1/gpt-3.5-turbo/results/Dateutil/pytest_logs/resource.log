@@ -1,0 +1,43 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_meeting_schedule_integration ______________________
+
+    def test_meeting_schedule_integration() -> None:
+        """Integration test for building a recurring meeting schedule."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 2, 29)
+    
+        # Approximate "Europe/Berlin" as UTC+1 for this test.
+        meetings = _generate_meeting_schedule(start, end, offset_hours=1)
+    
+        # There should be a reasonable number of meetings in this range.
+>       assert 10 <= len(meetings) <= 25
+E       assert 10 <= 9
+E        +  where 9 = len([datetime.datetime(2020, 1, 2, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), datetime.datetime(2020, 1, 9, 10, 0, tzinfo=<t...0, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), datetime.datetime(2020, 2, 6, 10, 0, tzinfo=<tzoffset LOCAL 1:00:00>), ...])
+
+tests\Dateutil\resource_test.py:78: AssertionError
+_____________ test_duration_between_two_events_with_relativedelta _____________
+
+    def test_duration_between_two_events_with_relativedelta() -> None:
+        """Use relativedelta to compute calendar duration between first and last meeting."""
+        start = dt.date(2020, 1, 1)
+        end = dt.date(2020, 3, 31)
+    
+        # Approximate "America/New_York" as UTC-5 for this test.
+        meetings = _generate_meeting_schedule(start, end, offset_hours=-5)
+        assert len(meetings) > 0
+    
+        first = meetings[0]
+        last = meetings[-1]
+    
+        delta = relativedelta(last, first)
+    
+        # The total duration should be several weeks.
+>       weeks = delta.years * 52 + delta.months * 4 + delta.days // 7
+E       TypeError: unsupported operand type(s) for *: 'datetime.datetime' and 'int'
+
+tests\Dateutil\resource_test.py:115: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Dateutil/resource_test.py::test_meeting_schedule_integration - a...
+FAILED tests/Dateutil/resource_test.py::test_duration_between_two_events_with_relativedelta
+2 failed in 0.51s

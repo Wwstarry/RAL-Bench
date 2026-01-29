@@ -1,0 +1,226 @@
+FFFFFFFFF.F                                                              [100%]
+================================== FAILURES ===================================
+________________ test_simple_command_with_argument_and_option _________________
+
+    def test_simple_command_with_argument_and_option():
+        @click.command()
+        @click.option("--count", "-c", type=int, default=1)
+        @click.argument("name")
+        def greet(count: int, name: str) -> None:
+            for _ in range(count):
+                click.echo(f"Hello {name}!")
+    
+        runner = CliRunner()
+        result = runner.invoke(greet, ["--count", "3", "World"])
+    
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <click.testing.Result object at 0x00000219D1C48F40>.exit_code
+
+tests\Click\functional_test.py:143: AssertionError
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+        def cli(flag: bool) -> None:
+            click.echo(f"FLAG={flag}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["--flag"])
+>       assert r1.exit_code == 0
+E       assert 2 == 0
+E        +  where 2 = <click.testing.Result object at 0x00000219D1CA7A60>.exit_code
+
+tests\Click\functional_test.py:157: AssertionError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:12: in decorator
+    grp = Group(name=name or f.__name__, callback=f, **attrs)
+generation\Click\click\decorators.py:54: in __init__
+    orig_init(self, *args, callback=callback, params=params, **kwargs)
+generation\Click\click\core.py:283: in __init__
+    super().__init__(name, callback, params, help, short_help, context_settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Group object at 0x00000219D1C202B0>, callback = None
+params = None
+args = ('cli', <function test_group_with_subcommands.<locals>.cli at 0x00000219D1C90AF0>, None, None, None, None)
+kwargs = {}
+
+    def __init__(self, *args, callback=None, params=None, **kwargs):
+        if callback and hasattr(callback, "__click_params__"):
+            params = list(callback.__click_params__) + (params or [])
+>       orig_init(self, *args, callback=callback, params=params, **kwargs)
+E       TypeError: __init__() got multiple values for argument 'callback'
+
+generation\Click\click\decorators.py:54: TypeError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+>       def cli() -> None:
+
+tests\Click\functional_test.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:12: in decorator
+    grp = Group(name=name or f.__name__, callback=f, **attrs)
+generation\Click\click\decorators.py:54: in __init__
+    orig_init(self, *args, callback=callback, params=params, **kwargs)
+generation\Click\click\core.py:283: in __init__
+    super().__init__(name, callback, params, help, short_help, context_settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Group object at 0x00000219D1C197F0>, callback = None
+params = None
+args = ('cli', <function test_help_output_for_command_and_group.<locals>.cli at 0x00000219D1C90CA0>, None, 'Top level group', None, None)
+kwargs = {}
+
+    def __init__(self, *args, callback=None, params=None, **kwargs):
+        if callback and hasattr(callback, "__click_params__"):
+            params = list(callback.__click_params__) + (params or [])
+>       orig_init(self, *args, callback=callback, params=params, **kwargs)
+E       TypeError: __init__() got multiple values for argument 'callback'
+
+generation\Click\click\decorators.py:54: TypeError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+>       def cli(config: str) -> None:
+
+tests\Click\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:12: in decorator
+    grp = Group(name=name or f.__name__, callback=f, **attrs)
+generation\Click\click\decorators.py:54: in __init__
+    orig_init(self, *args, callback=callback, params=params, **kwargs)
+generation\Click\click\core.py:283: in __init__
+    super().__init__(name, callback, params, help, short_help, context_settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Group object at 0x00000219D1D1F820>, callback = None
+params = None
+args = ('cli', <function test_get_current_context_propagation.<locals>.cli at 0x00000219D1C90DC0>, [<click.core.Option object at 0x00000219D1D1FAC0>], None, None, None)
+kwargs = {}
+
+    def __init__(self, *args, callback=None, params=None, **kwargs):
+        if callback and hasattr(callback, "__click_params__"):
+            params = list(callback.__click_params__) + (params or [])
+>       orig_init(self, *args, callback=callback, params=params, **kwargs)
+E       TypeError: __init__() got multiple values for argument 'callback'
+
+generation\Click\click\decorators.py:54: TypeError
+_________________ test_command_exception_is_exposed_in_result _________________
+
+    def test_command_exception_is_exposed_in_result():
+        class CustomError(Exception):
+            pass
+    
+        @click.command()
+        def boom() -> None:
+            raise CustomError("explode")
+    
+        runner = CliRunner()
+        result = runner.invoke(boom, [])
+    
+        assert result.exit_code != 0
+>       assert isinstance(result.exception, CustomError)
+E       AssertionError: assert False
+E        +  where False = isinstance(None, <class 'functional_test.test_command_exception_is_exposed_in_result.<locals>.CustomError'>)
+E        +    where None = <click.testing.Result object at 0x00000219D1CDBAF0>.exception
+
+tests\Click\functional_test.py:251: AssertionError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+>       def cli(name: str) -> None:
+
+tests\Click\functional_test.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:33: in decorator
+    param = Option(name=name, opts=opts, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000219D1CD17F0>, name = 'name'
+opts = ['--name'], kwargs = {'default': 'fallback', 'envvar': 'CLICK_TEST_NAME'}
+
+    def __init__(self, name, opts, **kwargs):
+>       super().__init__(name, param_type_name="option", opts=opts, **kwargs)
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+generation\Click\click\core.py:142: TypeError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+        def cli(token: str) -> None:
+            click.echo(f"TOKEN={token}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, [], input="secret-token\n")
+        assert r.exit_code == 0
+>       assert "TOKEN=secret-token" in r.output
+E       AssertionError: assert 'TOKEN=secret-token' in 'TOKEN=None\n'
+E        +  where 'TOKEN=None\n' = <click.testing.Result object at 0x00000219D1CDB550>.output
+
+tests\Click\functional_test.py:286: AssertionError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:12: in decorator
+    grp = Group(name=name or f.__name__, callback=f, **attrs)
+generation\Click\click\decorators.py:54: in __init__
+    orig_init(self, *args, callback=callback, params=params, **kwargs)
+generation\Click\click\core.py:283: in __init__
+    super().__init__(name, callback, params, help, short_help, context_settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Group object at 0x00000219D1C9D310>, callback = None
+params = None
+args = ('cli', <function test_default_map_provides_default_option_value.<locals>.cli at 0x00000219D1CE6550>, None, None, None, None)
+kwargs = {}
+
+    def __init__(self, *args, callback=None, params=None, **kwargs):
+        if callback and hasattr(callback, "__click_params__"):
+            params = list(callback.__click_params__) + (params or [])
+>       orig_init(self, *args, callback=callback, params=params, **kwargs)
+E       TypeError: __init__() got multiple values for argument 'callback'
+
+generation\Click\click\decorators.py:54: TypeError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - TypeErro...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - T...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+10 failed, 1 passed in 3.10s

@@ -1,0 +1,569 @@
+<file:name=tabulate/formats.py>
+# -*- coding: utf-8 -*-
+
+"""This module defines the formatting of tables."""
+
+from collections import namedtuple
+
+
+# A table format is a collection of functions for rendering headers,
+# data rows, and separator lines.
+TableFormat = namedtuple("TableFormat", ["lineabove", "linebelowheader",
+                                         "linebetweenrows", "linebelow",
+                                         "headerrow", "datarow",
+                                         "padding", "with_header_hide"])
+
+# A line is a collection of characters used to draw horizontal separators.
+Line = namedtuple("Line", ["begin", "hline", "sep", "end"])
+
+# A row is a collection of characters used to draw the outer edges of rows.
+DataRow = namedtuple("DataRow", ["begin", "sep", "end"])
+
+
+def _pipe_segment_with_colons(align, colwidth):
+    """Return a segment of a separator line with optional colons for alignment."""
+    if align == "right":
+        return "-" * (colwidth - 1) + ":"
+    elif align == "center":
+        return ":" + "-" * (colwidth - 2) + ":"
+    elif align == "decimal":
+        return "-" * colwidth
+    else:  # left
+        return ":" + "-" * (colwidth - 1)
+
+
+def _pipe_line_with_colons(colwidths, colaligns):
+    """Return a separator line for the pipe format, with colons for alignment."""
+    segments = [_pipe_segment_with_colons(a, w) for a, w in zip(colaligns, colwidths)]
+    return "|" + "|".join(segments) + "|"
+
+
+def _html_row(celltag, cells, colwidths, colaligns):
+    """Produce a row for an HTML table."""
+    align_map = {"left": "", "right": ' style="text-align: right;"',
+                 "center": ' style="text-align: center;"',
+                 "decimal": ' style="text-align: right;"'}
+    
+    row_items = []
+    for cell, align in zip(cells, colaligns):
+        # HTML escaping is not implemented to keep it pure Python with no deps
+        # but in a real scenario, this would be important.
+        # import html
+        # cell = html.escape(cell)
+        row_items.append(f"<{celltag}{align_map.get(align, '')}>{cell}</{celltag}>")
+    return "  <tr>\n" + "\n".join(row_items) + "\n  </tr>"
+
+
+def _html_header(cells, colwidths, colaligns):
+    return _html_row("th", cells, colwidths, colaligns)
+
+
+def _html_datarow(cells, colwidths, colaligns):
+    return _html_row("td", cells, colwidths, colaligns)
+
+
+# A dictionary of all supported table formats.
+_table_formats = {
+    "plain": TableFormat(
+        lineabove=None,
+        linebelowheader=None,
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("", "  ", ""),
+        datarow=DataRow("", "  ", ""),
+        padding=0,
+        with_header_hide=()),
+
+    "simple": TableFormat(
+        lineabove=Line("", "-", "  ", ""),
+        linebelowheader=Line("", "-", "  ", ""),
+        linebetweenrows=None,
+        linebelow=Line("", "-", "  ", ""),
+        headerrow=DataRow("", "  ", ""),
+        datarow=DataRow("", "  ", ""),
+        padding=1,
+        with_header_hide=["lineabove", "linebelowheader"]),
+
+    "grid": TableFormat(
+        lineabove=Line("+", "-", "+", "+"),
+        linebelowheader=Line("+", "=", "+", "+"),
+        linebetweenrows=Line("+", "-", "+", "+"),
+        linebelow=Line("+", "-", "+", "+"),
+        headerrow=DataRow("|", "|", "|"),
+        datarow=DataRow("|", "|", "|"),
+        padding=1,
+        with_header_hide=[]),
+
+    "fancy_grid": TableFormat(
+        lineabove=Line("╒", "═", "╤", "╕"),
+        linebelowheader=Line("╞", "═", "╪", "╡"),
+        linebetweenrows=Line("├", "─", "┼", "┤"),
+        linebelow=Line("╘", "═", "╧", "╛"),
+        headerrow=DataRow("│", "│", "│"),
+        datarow=DataRow("│", "│", "│"),
+        padding=1,
+        with_header_hide=[]),
+
+    "pipe": TableFormat(
+        lineabove=None,
+        linebelowheader=_pipe_line_with_colons,
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("|", "|", "|"),
+        datarow=DataRow("|", "|", "|"),
+        padding=1,
+        with_header_hide=["linebelowheader"]),
+
+    "orgtbl": TableFormat(
+        lineabove=None,
+        linebelowheader=Line("|", "-", "+", "|"),
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("|", "|", "|"),
+        datarow=DataRow("|", "|", "|"),
+        padding=1,
+        with_header_hide=["linebelowheader"]),
+    
+    "jira": TableFormat(
+        lineabove=None,
+        linebelowheader=Line("||", "", "||", "||"),
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("||", "||", "||"),
+        datarow=DataRow("|", "|", "|"),
+        padding=1,
+        with_header_hide=["linebelowheader"]),
+
+    "presto": TableFormat(
+        lineabove=None,
+        linebelowheader=Line("", "-", "+", ""),
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("", " | ", ""),
+        datarow=DataRow("", " | ", ""),
+        padding=1,
+        with_header_hide=["linebelowheader"]),
+
+    "psql": TableFormat(
+        lineabove=Line("+", "-", "+", "+"),
+        linebelowheader=Line("|", "-", "+", "|"),
+        linebetweenrows=None,
+        linebelow=Line("+", "-", "+", "+"),
+        headerrow=DataRow("|", "|", "|"),
+        datarow=DataRow("|", "|", "|"),
+        padding=1,
+        with_header_hide=[]),
+
+    "rst": TableFormat(
+        lineabove=Line("", "=", "  ", ""),
+        linebelowheader=Line("", "=", "  ", ""),
+        linebetweenrows=None,
+        linebelow=Line("", "=", "  ", ""),
+        headerrow=DataRow("", "  ", ""),
+        datarow=DataRow("", "  ", ""),
+        padding=1,
+        with_header_hide=["lineabove", "linebelowheader"]),
+    
+    "html": TableFormat(
+        lineabove=lambda c, ca: "<table>",
+        linebelowheader=None,
+        linebetweenrows=None,
+        linebelow=lambda c, ca: "</table>",
+        headerrow=_html_header,
+        datarow=_html_datarow,
+        padding=0,
+        with_header_hide=[]),
+}
+
+
+def simple_separated_format(separator):
+    """
+    Create a simple table format that uses a given separator.
+    """
+    return TableFormat(
+        lineabove=None,
+        linebelowheader=None,
+        linebetweenrows=None,
+        linebelow=None,
+        headerrow=DataRow("", separator, ""),
+        datarow=DataRow("", separator, ""),
+        padding=0,
+        with_header_hide=())
+
+
+_table_formats["tsv"] = simple_separated_format("\t")
+</file:name=tabulate/core.py>
+# -*- coding: utf-8 -*-
+
+"""Core implementation of the tabulate function."""
+
+import re
+from collections.abc import Sized, Iterable
+from .formats import _table_formats, simple_separated_format, Line, DataRow
+
+#
+# Utilities
+#
+
+_is_number = re.compile(r"^\s*([+-])?(\d+)?(\.\d+)?\s*$").match
+_is_int = re.compile(r"^\s*([+-])?\d+\s*$").match
+
+def _isbool(x):
+    return isinstance(x, bool)
+
+def _isnumber(x):
+    """Check if a value is a number."""
+    if _isbool(x):
+        return False
+    try:
+        float(x)
+        return True
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+def _isint(x):
+    """Check if a value is an integer."""
+    if _isbool(x):
+        return False
+    try:
+        return float(x) == int(x)
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+def _normalize_tabular_data(tabular_data, headers, showindex="default"):
+    """
+    Transform various data structures into a list of lists.
+    Returns (headers, list_of_lists).
+    """
+    if hasattr(tabular_data, "keys") and hasattr(tabular_data, "values"):
+        # It's a dict of iterables
+        # Transpose it
+        keys = list(tabular_data.keys())
+        if not headers:
+            headers = keys
+        
+        # Make all columns same length
+        vals = [list(v) for v in tabular_data.values()]
+        max_len = max(len(v) for v in vals) if vals else 0
+        for v in vals:
+            v.extend([None] * (max_len - len(v)))
+        
+        rows = list(zip(*vals))
+        return headers, rows
+
+    # It's a list of lists or a list of dicts
+    if not isinstance(tabular_data, list) or not tabular_data:
+        return headers, []
+
+    first_row = tabular_data[0]
+    if hasattr(first_row, "keys") and hasattr(first_row, "values"):
+        # List of dicts
+        if not headers:
+            # Union of all keys to be safe
+            all_keys = set()
+            for row in tabular_data:
+                all_keys.update(row.keys())
+            headers = sorted(list(all_keys))
+        
+        rows = [[row.get(h) for h in headers] for row in tabular_data]
+        return headers, rows
+
+    # List of lists
+    rows = list(tabular_data)
+    
+    # Add indices if requested
+    if showindex == "always" or (showindex == "default" and headers):
+        indices = [str(i) for i in range(len(rows))]
+        if headers:
+            headers = ("",) + tuple(headers)
+        rows = [[idx] + list(row) for idx, row in zip(indices, rows)]
+    
+    return headers, rows
+
+
+def _format_number(val, floatfmt):
+    """Format a number according to floatfmt."""
+    if isinstance(val, float):
+        return format(val, floatfmt)
+    return str(val)
+
+
+def _convert_to_str(val, missingval, floatfmt, is_numeric):
+    """Convert any value to its string representation."""
+    if val is None:
+        return missingval
+    if is_numeric:
+        return _format_number(val, floatfmt)
+    return str(val)
+
+
+def _align(s, align, width, padding=0):
+    """Pad a string to a given width."""
+    pad_len = width - len(s)
+    if pad_len <= 0:
+        return s
+    
+    if align == "right":
+        return " " * pad_len + s
+    if align == "center":
+        left_pad = pad_len // 2
+        right_pad = pad_len - left_pad
+        return " " * left_pad + s + " " * right_pad
+    # Default to left
+    return s + " " * pad_len
+
+
+def _align_cell(cell_line, width, align, decimal_info=None, padding=0):
+    """Align a single line of a cell."""
+    padded_cell = ""
+    if align == "decimal" and decimal_info:
+        max_i, max_f = decimal_info
+        if "." in cell_line:
+            i_part, f_part = cell_line.split(".", 1)
+        else:
+            i_part, f_part = cell_line, ""
+        
+        lpad = " " * (max_i - len(i_part))
+        rpad = " " * (max_f - len(f_part))
+        padded_cell = lpad + cell_line + rpad
+    
+    # Final padding to column width
+    return _align(padded_cell or cell_line, align, width)
+
+
+def tabulate(tabular_data, headers=(), tablefmt="grid",
+             floatfmt="g", numalign="decimal", stralign="left",
+             missingval="", showindex="default", disable_numparse=False,
+             colalign=None):
+    """
+    Format a list of lists or a dictionary of lists as a table.
+    """
+    if tabular_data is None:
+        tabular_data = []
+
+    # 1. Normalize data
+    headers, rows = _normalize_tabular_data(tabular_data, headers, showindex)
+    
+    # 2. Determine column types and convert to strings
+    if not rows and not headers:
+        return ""
+
+    num_cols = len(headers) if headers else (len(rows[0]) if rows else 0)
+    if not num_cols:
+        return ""
+
+    # Pad rows to match num_cols
+    for row in rows:
+        row.extend([None] * (num_cols - len(row)))
+
+    col_types = ["numeric"] * num_cols
+    if not disable_numparse:
+        for i in range(num_cols):
+            # A column is numeric if all non-None values are numbers
+            is_numeric_col = True
+            for row in rows:
+                if row[i] is not None and not _isnumber(row[i]):
+                    is_numeric_col = False
+                    break
+            if not is_numeric_col:
+                col_types[i] = "text"
+    else:
+        col_types = ["text"] * num_cols
+
+    string_rows = []
+    for row in rows:
+        str_row = []
+        for i, cell in enumerate(row):
+            s = _convert_to_str(cell, missingval, floatfmt, col_types[i] == "numeric")
+            str_row.append(s.splitlines() or [""])
+        string_rows.append(str_row)
+
+    string_headers = [str(h).splitlines() or [""] for h in headers]
+
+    # 3. Calculate column widths
+    col_widths = [0] * num_cols
+    for i in range(num_cols):
+        max_w = 0
+        if headers:
+            max_w = max(len(line) for line in string_headers[i])
+        for row in string_rows:
+            cell_w = max(len(line) for line in row[i])
+            if cell_w > max_w:
+                max_w = cell_w
+        col_widths[i] = max_w
+
+    # 4. Determine alignments
+    if colalign is None:
+        colalign = [None] * num_cols
+    
+    aligns = []
+    for i in range(num_cols):
+        if colalign[i] in ("left", "right", "center", "decimal"):
+            aligns.append(colalign[i])
+        elif col_types[i] == "numeric":
+            aligns.append(numalign)
+        else:
+            aligns.append(stralign)
+
+    # 5. Pre-calculate for decimal alignment
+    decimal_infos = [None] * num_cols
+    for i in range(num_cols):
+        if aligns[i] == "decimal":
+            max_i, max_f = 0, 0
+            for row in string_rows:
+                cell_text = row[i][0] # Decimal alignment only on first line
+                if _is_number.match(cell_text):
+                    if "." in cell_text:
+                        i_part, f_part = cell_text.strip().split(".", 1)
+                        max_i = max(max_i, len(i_part))
+                        max_f = max(max_f, len(f_part))
+                    else:
+                        max_i = max(max_i, len(cell_text.strip()))
+            
+            # Adjust column width for decimal alignment
+            dec_width = max_i + max_f + (1 if max_f > 0 else 0)
+            col_widths[i] = max(col_widths[i], dec_width)
+            decimal_infos[i] = (max_i, max_f)
+
+    # 6. Get table format
+    if isinstance(tablefmt, str):
+        if tablefmt in _table_formats:
+            fmt = _table_formats[tablefmt]
+        else:
+            # Assume it's a separator for a simple format
+            fmt = simple_separated_format(tablefmt)
+    else: # It's a TableFormat object
+        fmt = tablefmt
+
+    # 7. Build the table string
+    lines = []
+    pad = fmt.padding
+    padded_widths = [w + 2 * pad for w in col_widths]
+
+    def build_line(line_format):
+        if not line_format: return None
+        if callable(line_format):
+            return line_format(padded_widths, aligns)
+        
+        segs = [line_format.hline * w for w in padded_widths]
+        return line_format.begin + line_format.sep.join(segs) + line_format.end
+
+    def build_row(row_data, row_format):
+        num_lines = max(len(cell_lines) for cell_lines in row_data) if row_data else 0
+        row_lines = []
+        for i in range(num_lines):
+            line_cells = []
+            for j, cell_lines in enumerate(row_data):
+                line = cell_lines[i] if i < len(cell_lines) else ""
+                aligned = _align_cell(line, col_widths[j], aligns[j], decimal_infos[j])
+                padded = " " * pad + aligned + " " * pad
+                line_cells.append(padded)
+            
+            row_lines.append(row_format.begin + row_format.sep.join(line_cells) + row_format.end)
+        return "\n".join(row_lines)
+
+    # Header
+    if headers:
+        if fmt.lineabove and "lineabove" not in fmt.with_header_hide:
+            lines.append(build_line(fmt.lineabove))
+        
+        lines.append(build_row(string_headers, fmt.headerrow))
+        
+        if fmt.linebelowheader and "linebelowheader" not in fmt.with_header_hide:
+            lines.append(build_line(fmt.linebelowheader))
+    else: # No headers
+        if fmt.lineabove and "lineabove" not in fmt.with_header_hide and "linebelowheader" not in fmt.with_header_hide:
+            lines.append(build_line(fmt.lineabove))
+
+
+    # Data rows
+    for i, row in enumerate(string_rows):
+        lines.append(build_row(row, fmt.datarow))
+        if fmt.linebetweenrows and i < len(string_rows) - 1:
+            lines.append(build_line(fmt.linebetweenrows))
+
+    # Footer line
+    if fmt.linebelow:
+        lines.append(build_line(fmt.linebelow))
+    
+    # Special case for HTML
+    if tablefmt == "html":
+        if headers:
+            lines.insert(1, "  <thead>")
+            lines.insert(3, "  </thead>")
+        lines.insert(1 if not headers else 3, "  <tbody>")
+        lines.insert(-1, "  </tbody>")
+
+    return "\n".join(filter(None, lines))
+</file:name=tabulate/__init__.py>
+# -*- coding: utf-8 -*-
+
+"""
+This is a pure Python implementation of the tabulate library.
+"""
+
+__version__ = "0.9.0"
+
+from .core import tabulate
+from .formats import simple_separated_format, _table_formats
+
+tabulate_formats = sorted(list(_table_formats.keys()))
+
+__all__ = ["tabulate", "simple_separated_format", "tabulate_formats"]
+</file:name=tabulate/cli.py>
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Command-line interface for the tabulate library.
+"""
+
+import argparse
+import sys
+from . import tabulate, tabulate_formats
+
+def main():
+    """
+    The main entry point for the command-line tool.
+    """
+    parser = argparse.ArgumentParser(description="Format data as a table.")
+    parser.add_argument("tablefile", nargs="?", type=argparse.FileType('r'),
+                        default=sys.stdin,
+                        help="File to read data from (default: stdin).")
+    parser.add_argument("-f", "--format", default="grid",
+                        help=f"Table format. Supported formats: {', '.join(tabulate_formats)}. "
+                             "Default: grid.")
+    parser.add_argument("-s", "--separator", default=None,
+                        help="Column separator for input data (default: whitespace).")
+    parser.add_argument("--header", action="store_true",
+                        help="Use the first row of data as a table header.")
+    parser.add_argument("--floatfmt", default="g",
+                        help="Floating point number format (default: g).")
+    parser.add_argument("--numalign", default="decimal",
+                        help="Alignment for numbers (decimal, right, center, left). Default: decimal.")
+    parser.add_argument("--stralign", default="left",
+                        help="Alignment for strings (left, right, center). Default: left.")
+
+    args = parser.parse_args()
+
+    lines = args.tablefile.readlines()
+    if not lines:
+        return
+
+    # Split lines into cells
+    if args.separator:
+        rows = [line.strip().split(args.separator) for line in lines]
+    else:
+        rows = [line.strip().split() for line in lines]
+
+    headers = []
+    if args.header:
+        headers = rows.pop(0)
+
+    print(tabulate(rows, headers=headers, tablefmt=args.format,
+                   floatfmt=args.floatfmt, numalign=args.numalign,
+                   stralign=args.stralign))
+
+if __name__ == "__main__":
+    main()
+</file:name>

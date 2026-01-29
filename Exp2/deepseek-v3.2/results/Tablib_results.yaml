@@ -1,0 +1,261 @@
+project_name: Tablib
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Tablib\tablib.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Tablib
+timestamp: '2025-12-31 20:28:05'
+functional_score: 0.6364
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FF..F...F..                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________ test_dataset_export_import_csv_and_json_roundtrip ______________\n\
+      \n    def test_dataset_export_import_csv_and_json_roundtrip() -> None:\n   \
+      \     \"\"\"Exercise core CSV/JSON export and import roundtrips on Dataset.\"\
+      \"\"\n        data = _build_sample_dataset()\n    \n        # CSV roundtrip\
+      \ via export + .csv setter.\n        csv_text = data.export(\"csv\")\n     \
+      \   assert isinstance(csv_text, str)\n    \n        loaded_csv = tablib.Dataset()\n\
+      \        loaded_csv.csv = csv_text\n    \n        assert loaded_csv.headers\
+      \ == data.headers\n>       assert loaded_csv.height == data.height\nE      \
+      \ assert 4 == 3\nE        +  where 4 = <Dataset height=4 width=3>.height\nE\
+      \        +  and   3 = <Dataset height=3 width=3>.height\n\ntests\\Tablib\\functional_test.py:134:\
+      \ AssertionError\n__________________ test_dataset_export_import_tsv_roundtrip\
+      \ ___________________\n\n    def test_dataset_export_import_tsv_roundtrip()\
+      \ -> None:\n        \"\"\"TSV export/import should preserve shape and values\
+      \ (type-coercion tolerant).\"\"\"\n        if not _format_supported(\"tsv\"\
+      ):\n            pytest.skip(\"tsv format not available in this tablib build\"\
+      )\n    \n        data = _build_sample_dataset()\n>       tsv_text = data.export(\"\
+      tsv\")\n\ntests\\Tablib\\functional_test.py:163: \n_ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <Dataset height=3\
+      \ width=3>, fmt = 'tsv'\n\n    def export(self, fmt: str) -> str:\n        \"\
+      \"\"Export dataset to specified format.\"\"\"\n        if fmt == 'csv':\n  \
+      \          return self.csv\n        elif fmt == 'json':\n            return\
+      \ self.json\n        else:\n>           raise ValueError(f\"Unsupported format:\
+      \ {fmt}\")\nE           ValueError: Unsupported format: tsv\n\ngeneration\\\
+      Tablib\\tablib\\core.py:152: ValueError\n__________________ test_dataset_insert_and_pop_row_semantics\
+      \ __________________\n\n    def test_dataset_insert_and_pop_row_semantics()\
+      \ -> None:\n        \"\"\"Dataset should support inserting and popping rows\
+      \ (list-like usage).\"\"\"\n        data = tablib.Dataset(headers=(\"id\", \"\
+      name\"))\n        data.append((1, \"a\"))\n        data.append((3, \"c\"))\n\
+      \    \n        # Insert a missing middle row.\n>       data.insert(1, (2, \"\
+      b\"))\nE       AttributeError: 'Dataset' object has no attribute 'insert'\n\n\
+      tests\\Tablib\\functional_test.py:233: AttributeError\n______________ test_dataset_export_html_contains_table_structure\
+      \ ______________\n\n    def test_dataset_export_html_contains_table_structure()\
+      \ -> None:\n        \"\"\"HTML export (if available) should include a table-like\
+      \ structure and headers.\"\"\"\n        if not _format_supported(\"html\"):\n\
+      \            pytest.skip(\"html format not available in this tablib build\"\
+      )\n    \n        data = _build_sample_dataset()\n>       html = data.export(\"\
+      html\")\n\ntests\\Tablib\\functional_test.py:292: \n_ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nself = <Dataset\
+      \ height=3 width=3>, fmt = 'html'\n\n    def export(self, fmt: str) -> str:\n\
+      \        \"\"\"Export dataset to specified format.\"\"\"\n        if fmt ==\
+      \ 'csv':\n            return self.csv\n        elif fmt == 'json':\n       \
+      \     return self.json\n        else:\n>           raise ValueError(f\"Unsupported\
+      \ format: {fmt}\")\nE           ValueError: Unsupported format: html\n\ngeneration\\\
+      Tablib\\tablib\\core.py:152: ValueError\n=========================== short test\
+      \ summary info ===========================\nFAILED tests/Tablib/functional_test.py::test_dataset_export_import_csv_and_json_roundtrip\n\
+      FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip\n\
+      FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics\n\
+      FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure\n\
+      4 failed, 7 passed in 0.53s\n"
+    elapsed_time_s: 1.884144
+    avg_memory_mb: 32.67
+    avg_cpu_percent: 100.9
+    passed: 7
+    failed: 4
+    skipped: 0
+    total: 11
+    score_inputs_passed: 7
+    score_inputs_failed: 4
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      ______________ ERROR collecting tests/Tablib/performance_test.py ______________\n\
+      tests\\Tablib\\performance_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Unsupported TABLIB_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ TABLIB_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Tablib/performance_test.py -\
+      \ RuntimeError: Unsupported TABLIB_TAR...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.52s\n"
+    elapsed_time_s: 1.735095
+    avg_memory_mb: 35.25
+    avg_cpu_percent: 101.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.267515
+    score_inputs_actual_time_s: 1.735095
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Tablib/resource_test.py ________________\n\
+      tests\\Tablib\\resource_test.py:18: in <module>\n    raise RuntimeError(f\"\
+      Unsupported TABLIB_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ TABLIB_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Tablib/resource_test.py - RuntimeError:\
+      \ Unsupported TABLIB_TARGET...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.58s\n"
+    elapsed_time_s: 2.008284
+    avg_memory_mb: 34.92
+    avg_cpu_percent: 104.1
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 34.54
+    score_inputs_baseline_cpu_pct: 99.1
+    score_inputs_actual_mem_mb: 34.92
+    score_inputs_actual_cpu_pct: 104.1
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.526217
+    avg_memory_mb: 31.41
+    avg_cpu_percent: 98.9
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=266.0
+
+      .
+
+      1 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.524158
+    avg_memory_mb: 31.68
+    avg_cpu_percent: 93.4
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 266.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=20.1637 files_scanned=4.0 total_loc=266.0 max_cc=9.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.466432
+    avg_memory_mb: 31.66
+    avg_cpu_percent: 102.3
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 20.1637
+      files_scanned: 4.0
+      total_loc: 266.0
+      max_cc: 9.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 20.1637
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.267515
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.457667
+    resource_tests_total: 2
+    avg_memory_mb: 34.54
+    avg_cpu_percent: 99.1
+  functional:
+    functional_suite_time_s: 1.550296
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.567555
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.666207
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 31.0
+      total_loc: 3330.0
+  maintainability:
+    maintainability_suite_time_s: 2.204547
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 31.0
+      total_loc: 4978.0
+      max_cc: 17.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Tablib\pytest_logs

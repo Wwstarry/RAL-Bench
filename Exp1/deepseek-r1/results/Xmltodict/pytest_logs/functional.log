@@ -1,0 +1,296 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_parse_simple_element __________________________
+
+    def test_parse_simple_element() -> None:
+        """Parsing a simple XML element should produce the expected dict."""
+        xml = "<root><message>Hello</message></root>"
+        data = _parse(xml)
+    
+>       assert "root" in data
+E       AssertionError: assert 'root' in {'message': 'Hello'}
+
+tests\Xmltodict\functional_test.py:79: AssertionError
+____________________ test_parse_repeated_elements_as_list _____________________
+
+    def test_parse_repeated_elements_as_list() -> None:
+        """Repeated child elements should be represented as a list."""
+        xml = "<root><item>1</item><item>2</item><item>3</item></root>"
+        data = _parse(xml)
+    
+>       items = data["root"]["item"]
+E       KeyError: 'root'
+
+tests\Xmltodict\functional_test.py:88: KeyError
+_______________________ test_parse_attributes_and_text ________________________
+
+    def test_parse_attributes_and_text() -> None:
+        """Attributes and text content should be exposed using @attr and #text keys."""
+        xml = '<user id="123">Alice</user>'
+        data = _parse(xml)
+    
+>       user = data["user"]
+E       KeyError: 'user'
+
+tests\Xmltodict\functional_test.py:98: KeyError
+___________________ test_unparse_roundtrip_basic_structure ____________________
+
+    def test_unparse_roundtrip_basic_structure() -> None:
+        """unparse() followed by parse() should preserve the logical structure."""
+        original = {
+            "root": {
+                "item": [
+                    {"@id": "1", "#text": "A"},
+                    {"@id": "2", "#text": "B"},
+                ]
+            }
+        }
+    
+        xml = _unparse(original)
+        round_tripped = _parse(xml)
+    
+>       assert round_tripped == original
+E       AssertionError: assert {'item': [{'#... '@id': '2'}]} == {'root': {'it...'@id': '2'}]}}
+E         
+E         Left contains 1 more item:
+E         {'item': [{'#text': 'A', '@id': '1'}, {'#text': 'B', '@id': '2'}]}
+E         Right contains 1 more item:
+E         {'root': {'item': [{'#text': 'A', '@id': '1'}, {'#text': 'B', '@id': '2'}]}}
+E         Use -v to get more diff
+
+tests\Xmltodict\functional_test.py:117: AssertionError
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+        data = _parse(xml)
+    
+>       root = data["root"]
+E       KeyError: 'root'
+
+tests\Xmltodict\functional_test.py:129: KeyError
+_________________________ test_parse_nested_structure _________________________
+
+    def test_parse_nested_structure() -> None:
+        """Nested XML elements should map to nested dict structures."""
+        xml = """
+        <root>
+            <user>
+                <name>Ada</name>
+                <address>
+                    <city>London</city>
+                    <country>UK</country>
+                </address>
+            </user>
+        </root>
+        """
+        data = _parse(xml)
+>       assert data["root"]["user"]["name"] == "Ada"
+E       KeyError: 'root'
+
+tests\Xmltodict\functional_test.py:151: KeyError
+__________________ test_force_list_option_for_single_element __________________
+
+    def test_force_list_option_for_single_element() -> None:
+        """force_list should allow representing a single child as a list when supported."""
+        xml = "<root><item>1</item></root>"
+    
+        # Prefer a targeted force_list that is common in xmltodict.
+        data = _parse(xml, force_list=("item",))
+    
+>       item = data["root"]["item"]
+E       KeyError: 'root'
+
+tests\Xmltodict\functional_test.py:163: KeyError
+_____________ test_custom_attr_prefix_and_cdata_key_if_supported ______________
+
+    def test_custom_attr_prefix_and_cdata_key_if_supported() -> None:
+        """attr_prefix / cdata_key customization should reflect in output when supported."""
+        xml = '<user id="7">Bob</user>'
+    
+        data = _parse(xml, attr_prefix="$", cdata_key="text")
+>       user = data["user"]
+E       KeyError: 'user'
+
+tests\Xmltodict\functional_test.py:177: KeyError
+____________ test_xml_attribs_false_drops_attributes_if_supported _____________
+
+    def test_xml_attribs_false_drops_attributes_if_supported() -> None:
+        """xml_attribs=False should omit attribute keys when supported."""
+        xml = '<user id="9"><name>Alice</name></user>'
+    
+        data = _parse(xml, xml_attribs=False)
+>       user = data["user"]
+E       KeyError: 'user'
+
+tests\Xmltodict\functional_test.py:192: KeyError
+______________________ test_dict_constructor_ordereddict ______________________
+
+    def test_dict_constructor_ordereddict() -> None:
+        """dict_constructor should allow choosing mapping type (e.g., OrderedDict) when supported."""
+        xml = "<root><a>1</a><b>2</b></root>"
+        data = _parse(xml, dict_constructor=OrderedDict)
+    
+        if "dict_constructor" in _PARSE_PARAMS:
+            assert isinstance(data, OrderedDict)
+            assert isinstance(data["root"], OrderedDict)
+        else:
+            assert isinstance(data, dict)
+    
+>       assert data["root"]["a"] == "1"
+E       KeyError: 'root'
+
+tests\Xmltodict\functional_test.py:215: KeyError
+_____________________ test_unparse_pretty_and_parse_back ______________________
+
+    def test_unparse_pretty_and_parse_back() -> None:
+        """Pretty/full_document knobs should not break roundtrip of basic structure."""
+        original: Dict[str, Any] = {"root": {"x": "1", "y": "2"}}
+    
+        xml = _unparse(original, pretty=True, full_document=True)
+        assert "<root>" in xml or "<root" in xml
+    
+        round_tripped = _parse(xml)
+>       assert round_tripped == original
+E       AssertionError: assert {'x': '1', 'y': '2'} == {'root': {'x': '1', 'y': '2'}}
+E         
+E         Left contains 2 more items:
+E         {'x': '1', 'y': '2'}
+E         Right contains 1 more item:
+E         {'root': {'x': '1', 'y': '2'}}
+E         Use -v to get more diff
+
+tests\Xmltodict\functional_test.py:227: AssertionError
+______________ test_postprocessor_transforms_value_if_supported _______________
+
+    def test_postprocessor_transforms_value_if_supported() -> None:
+        """postprocessor can transform values in a happy-path parse when supported."""
+        xml = "<root><message>Hello</message></root>"
+    
+        def _pp(path: Any, key: str, value: Any) -> Any:
+            if key == "message" and isinstance(value, str):
+                return key, value.upper()
+            return key, value
+    
+>       data = _parse(xml, postprocessor=_pp)
+
+tests\Xmltodict\functional_test.py:239: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+generation\Xmltodict\xmltodict.py:70: in parse
+    return _element_to_dict(
+generation\Xmltodict\xmltodict.py:116: in _element_to_dict
+    child_dict = _element_to_dict(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+element = <Element 'message' at 0x0000029B4CAA7860>, process_namespaces = False
+namespace_separator = ':', force_list = []
+postprocessor = <function test_postprocessor_transforms_value_if_supported.<locals>._pp at 0x0000029B4CB23F70>
+
+    def _element_to_dict(
+        element: ET.Element,
+        process_namespaces: bool,
+        namespace_separator: str,
+        force_list: List[str],
+        postprocessor: Any
+    ) -> Union[XMLDict, str]:
+        """Convert XML element to dictionary."""
+    
+        # Handle tag name
+        tag = element.tag
+        if process_namespaces and '}' in tag:
+            # Extract namespace and local name
+            namespace_match = re.match(r'\{.*?\}', tag)
+            if namespace_match:
+                namespace = namespace_match.group(0)[1:-1]
+                local_name = tag[namespace_match.end():]
+                tag = f"{namespace}{namespace_separator}{local_name}"
+    
+        # Start with attributes
+        result: XMLDict = {}
+        if element.attrib:
+            for key, value in element.attrib.items():
+                attr_key = f"@{key}"
+                if process_namespaces and '}' in key:
+                    namespace_match = re.match(r'\{.*?\}', key)
+                    if namespace_match:
+                        namespace = namespace_match.group(0)[1:-1]
+                        local_name = key[namespace_match.end():]
+                        attr_key = f"@{namespace}{namespace_separator}{local_name}"
+                result[attr_key] = value
+    
+        # Handle children
+        children_by_tag: Dict[str, List[Any]] = {}
+        text_parts: List[str] = []
+    
+        for child in element:
+            if isinstance(child, ET.Element):
+                child_dict = _element_to_dict(
+                    child,
+                    process_namespaces,
+                    namespace_separator,
+                    force_list,
+                    postprocessor
+                )
+    
+                child_tag = child.tag
+                if process_namespaces and '}' in child_tag:
+                    namespace_match = re.match(r'\{.*?\}', child_tag)
+                    if namespace_match:
+                        namespace = namespace_match.group(0)[1:-1]
+                        local_name = child_tag[namespace_match.end():]
+                        child_tag = f"{namespace}{namespace_separator}{local_name}"
+    
+                if child_tag not in children_by_tag:
+                    children_by_tag[child_tag] = []
+                children_by_tag[child_tag].append(child_dict)
+            elif child.tail:
+                text_parts.append(child.tail)
+    
+        # Add children to result
+        for child_tag, children in children_by_tag.items():
+            if len(children) == 1 and child_tag not in force_list:
+                result[child_tag] = children[0]
+            else:
+                result[child_tag] = children
+    
+        # Handle text
+        if element.text and element.text.strip():
+            text = element.text.strip()
+            if text_parts:
+                text = text + ''.join(text_parts)
+    
+            if '#text' in result:
+                if isinstance(result['#text'], list):
+                    result['#text'].append(text)
+                else:
+                    result['#text'] = [result['#text'], text]
+            else:
+                result['#text'] = text
+    
+        # Apply postprocessor
+        if postprocessor:
+>           result = postprocessor(tag, result)
+E           TypeError: _pp() missing 1 required positional argument: 'value'
+
+generation\Xmltodict\xmltodict.py:161: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/functional_test.py::test_parse_simple_element - Assert...
+FAILED tests/Xmltodict/functional_test.py::test_parse_repeated_elements_as_list
+FAILED tests/Xmltodict/functional_test.py::test_parse_attributes_and_text - K...
+FAILED tests/Xmltodict/functional_test.py::test_unparse_roundtrip_basic_structure
+FAILED tests/Xmltodict/functional_test.py::test_namespace_prefix_is_preserved
+FAILED tests/Xmltodict/functional_test.py::test_parse_nested_structure - KeyE...
+FAILED tests/Xmltodict/functional_test.py::test_force_list_option_for_single_element
+FAILED tests/Xmltodict/functional_test.py::test_custom_attr_prefix_and_cdata_key_if_supported
+FAILED tests/Xmltodict/functional_test.py::test_xml_attribs_false_drops_attributes_if_supported
+FAILED tests/Xmltodict/functional_test.py::test_dict_constructor_ordereddict
+FAILED tests/Xmltodict/functional_test.py::test_unparse_pretty_and_parse_back
+FAILED tests/Xmltodict/functional_test.py::test_postprocessor_transforms_value_if_supported
+12 failed in 0.68s

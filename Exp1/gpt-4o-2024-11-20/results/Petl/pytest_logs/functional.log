@@ -1,0 +1,131 @@
+.FFssFFsFsss                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_fromdicts_addfield_and_select ______________________
+
+    def test_fromdicts_addfield_and_select() -> None:
+        """Validate fromdicts, addfield, and select with a small in-memory table."""
+        records = [
+            {"id": 1, "value": 10},
+            {"id": 2, "value": 20},
+            {"id": 3, "value": 30},
+            {"id": 4, "value": 40},
+        ]
+        table = petl.fromdicts(records, header=["id", "value"])
+    
+        table = petl.addfield(table, "double", lambda rec: int(rec["value"]) * 2)
+        table = petl.select(table, lambda rec: int(rec["double"]) >= 60)
+    
+>       result = _table_to_list_of_dicts(table)
+
+tests\Petl\functional_test.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = <function select.<locals>.filtered at 0x000002A5488DC700>
+
+    def _table_to_list_of_dicts(table: Iterable[Iterable[Any]]) -> List[Dict[str, Any]]:
+        """Convert a petl table into a list of dictionaries using the header row."""
+>       iterator = iter(table)
+E       TypeError: 'function' object is not iterable
+
+tests\Petl\functional_test.py:81: TypeError
+_______________________ test_join_two_tables_fromdicts ________________________
+
+    def test_join_two_tables_fromdicts() -> None:
+        """Check that an inner join between two small tables behaves as expected."""
+        customers = [
+            {"id": 1, "name": "Alice"},
+            {"id": 2, "name": "Bob"},
+            {"id": 3, "name": "Carol"},
+        ]
+        orders = [
+            {"id": 1, "amount": 100},
+            {"id": 1, "amount": 50},
+            {"id": 2, "amount": 200},
+        ]
+    
+        customers_tbl = petl.fromdicts(customers, header=["id", "name"])
+        orders_tbl = petl.fromdicts(orders, header=["id", "amount"])
+    
+        joined = petl.join(customers_tbl, orders_tbl, key="id")
+>       result = _table_to_list_of_dicts(joined)
+
+tests\Petl\functional_test.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = <function join.<locals>.joined at 0x000002A548918670>
+
+    def _table_to_list_of_dicts(table: Iterable[Iterable[Any]]) -> List[Dict[str, Any]]:
+        """Convert a petl table into a list of dictionaries using the header row."""
+>       iterator = iter(table)
+E       TypeError: 'function' object is not iterable
+
+tests\Petl\functional_test.py:81: TypeError
+________________ test_convert_with_lambda_and_values_preserved ________________
+
+    def test_convert_with_lambda_and_values_preserved() -> None:
+        """Convert a column with a lambda and verify new typed values."""
+        records = [
+            {"id": "1", "amount": "100"},
+            {"id": "2", "amount": "250"},
+        ]
+        table = petl.fromdicts(records, header=["id", "amount"])
+    
+        converted = petl.convert(table, "amount", lambda v: int(v) + 1)
+>       rows = _table_to_list_of_dicts(converted)
+
+tests\Petl\functional_test.py:260: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = <function convert.<locals>.transformed at 0x000002A548918C10>
+
+    def _table_to_list_of_dicts(table: Iterable[Iterable[Any]]) -> List[Dict[str, Any]]:
+        """Convert a petl table into a list of dictionaries using the header row."""
+>       iterator = iter(table)
+E       TypeError: 'function' object is not iterable
+
+tests\Petl\functional_test.py:81: TypeError
+_____________________ test_sort_descending_orders_values ______________________
+
+    def test_sort_descending_orders_values() -> None:
+        """Sort descending by a numeric field."""
+        _require_attr("sort")
+    
+        records = [
+            {"name": "A", "score": 10},
+            {"name": "B", "score": 30},
+            {"name": "C", "score": 20},
+        ]
+        table = petl.fromdicts(records, header=["name", "score"])
+    
+        # petl.sort supports reverse=True in typical implementations.
+>       sorted_tbl = petl.sort(table, "score", reverse=True)
+E       TypeError: sort() got an unexpected keyword argument 'reverse'
+
+tests\Petl\functional_test.py:278: TypeError
+___________________ test_tocsv_then_fromcsv_preserves_data ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-272/test_tocsv_then_fromcsv_preser0')
+
+    def test_tocsv_then_fromcsv_preserves_data(tmp_path: Path) -> None:
+        """Write a table to CSV and read it back, verifying header and row content."""
+        src = tmp_path / "roundtrip.csv"
+    
+        table = petl.fromdicts(
+            [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}],
+            header=["a", "b"],
+        )
+        petl.tocsv(table, str(src))
+        assert src.exists()
+    
+        table2 = petl.fromcsv(str(src))
+>       rows = list(table2)
+E       TypeError: 'function' object is not iterable
+
+tests\Petl\functional_test.py:328: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Petl/functional_test.py::test_fromdicts_addfield_and_select - Ty...
+FAILED tests/Petl/functional_test.py::test_join_two_tables_fromdicts - TypeEr...
+FAILED tests/Petl/functional_test.py::test_convert_with_lambda_and_values_preserved
+FAILED tests/Petl/functional_test.py::test_sort_descending_orders_values - Ty...
+FAILED tests/Petl/functional_test.py::test_tocsv_then_fromcsv_preserves_data
+5 failed, 1 passed, 6 skipped in 0.50s

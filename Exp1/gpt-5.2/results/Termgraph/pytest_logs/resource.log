@@ -1,0 +1,50 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+>       data = Data(normalized, labels)
+
+tests\Termgraph\resource_test.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Data(labels=[[5.0], [10.0], [7.5], [2.5]], series=[['I', 't', 'e', 'm', '-', '0'], ['I', 't', 'e', 'm', '-', '1'], ['I', 't', 'e', 'm', '-', '2'], ['I', 't', 'e', 'm', '-', '3']])
+labels = [[5.0], [10.0], [7.5], [2.5]]
+series = ['Item-0', 'Item-1', 'Item-2', 'Item-3']
+
+    def __init__(
+        self,
+        labels: Optional[Sequence[str]] = None,
+        series: Optional[Sequence[Sequence[Number]]] = None,
+    ):
+        self.labels = list(labels) if labels is not None else []
+        self.series = [list(s) for s in series] if series is not None else []
+    
+        # Normalize empty inputs
+        if self.labels is None:
+            self.labels = []
+        if self.series is None:
+            self.series = []
+    
+        # Basic validation/normalization: ensure rectangular where possible
+        if self.series and self.labels:
+            n = len(self.labels)
+            for idx, s in enumerate(self.series):
+                if len(s) != n:
+>                   raise ValueError(
+                        f"Series {idx} has length {len(s)} but labels has length {n}"
+                    )
+E                   ValueError: Series 0 has length 6 but labels has length 4
+
+generation\Termgraph\termgraph\data.py:43: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.31s

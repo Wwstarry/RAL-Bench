@@ -1,0 +1,68 @@
+.....F.....F                                                             [100%]
+================================== FAILURES ===================================
+_________________________ test_006_bin_scripts_exist __________________________
+
+    def test_006_bin_scripts_exist():
+        base = _resolve_repo_root()
+        b = base / "bin"
+        assert b.is_dir(), "Expected bin/ directory"
+        assert (b / "fail2ban-client").is_file(), "Expected bin/fail2ban-client"
+        assert (b / "fail2ban-server").is_file(), "Expected bin/fail2ban-server"
+>       assert (b / "fail2ban-regex").is_file(), "Expected bin/fail2ban-regex"
+E       AssertionError: Expected bin/fail2ban-regex
+E       assert False
+E        +  where False = is_file()
+E        +    where is_file = (WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Fail2ban/bin') / 'fail2ban-regex').is_file
+
+tests\Fail2ban\functional_test.py:144: AssertionError
+___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________
+
+    def test_012_fail2ban_regex_matches_simple_pattern_offline():
+        """
+        Offline-only functional check:
+        - Create a temp log with repeated failure lines.
+        - Run fail2ban-regex <LOG> <REGEX>
+        - Assert output indicates it processed lines and found matches.
+        """
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONPATH"] = str(_resolve_repo_root()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "auth.log"
+            logp.write_text(
+                "\n".join(
+                    [
+                        "Failed password for invalid user root from 203.0.113.5 port 2222 ssh2",
+                        "Failed password for invalid user admin from 203.0.113.5 port 2223 ssh2",
+                        "Accepted password for user ok from 198.51.100.2 port 3333 ssh2",
+                        "Failed password for invalid user test from 203.0.113.9 port 4444 ssh2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+    
+            # Use a very simple regex (do not rely on <HOST> substitutions).
+            regex = r"Failed password"
+            p = subprocess.run(
+                [sys.executable, str(script), str(logp), regex],
+                text=True,
+                input="",
+                capture_output=True,
+                timeout=30,
+                env=env,
+            )
+            out = _out(p)
+    
+            # Must not hang; and should show it processed lines.
+>           assert ("line" in out) or ("lines" in out)
+E           assert ('line' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n" or 'lines' in "\nc:\\users\\86152\\appdata\\local\\programs\\python\\python39\\python.exe: can't open file 'd:\\妗岄潰\\realappcodebench_generic_eval\\generation\\fail2ban\\bin\\fail2ban-regex': [errno 2] no such file or directory\n")
+
+tests\Fail2ban\functional_test.py:246: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/functional_test.py::test_006_bin_scripts_exist - Assert...
+FAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline
+2 failed, 10 passed in 1.19s

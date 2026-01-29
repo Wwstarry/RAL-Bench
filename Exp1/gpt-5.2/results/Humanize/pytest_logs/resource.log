@@ -1,0 +1,34 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_report_generation_pipeline _______________________
+
+    def test_report_generation_pipeline() -> None:
+        """
+        Integration-like test: simulate a log/report formatting pipeline.
+        Ensures humanize functions can be composed.
+        """
+    
+        base = {
+            "bytes_sent": 123456789,
+            "items_processed": 2345,
+            "start": datetime(2020, 1, 1, 12, 0, 0),
+            "end": datetime(2020, 1, 1, 14, 30, 0),
+        }
+    
+        report = {
+            "size_human": humanize.naturalsize(base["bytes_sent"]),
+            "items": humanize.intcomma(base["items_processed"]),
+            "duration": humanize.naturaldelta(base["end"] - base["start"]),
+            "finished": humanize.naturaltime(base["end"], when=base["end"]),
+        }
+    
+        assert "MB" in report["size_human"] or "GB" in report["size_human"]
+        assert "," in report["items"]
+        assert "hours" in report["duration"]
+>       assert "now" in report["finished"]
+E       AssertionError: assert 'now' in 'a moment ago'
+
+tests\Humanize\resource_test.py:69: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/resource_test.py::test_report_generation_pipeline - Ass...
+1 failed in 0.36s

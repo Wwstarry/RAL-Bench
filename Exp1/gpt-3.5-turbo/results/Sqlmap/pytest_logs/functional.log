@@ -1,0 +1,23 @@
+....F....                                                                [100%]
+================================== FAILURES ===================================
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       AssertionError: assert None is not None
+E        +  where None = <function search at 0x000001C3E9FD99D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\nusage: sqlmap.py [-h] [-hh] [--version] [-u url] [-p param]\n                 [--level {1,2,3,4,5}] [--risk {1,2,3}]\nsqlmap.py: error: unrecognized arguments: --batch\n')
+E        +    where <function search at 0x000001C3E9FD99D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+1 failed, 8 passed in 1.89s

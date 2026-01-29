@@ -1,0 +1,31 @@
+F...F                                                                    [100%]
+================================== FAILURES ===================================
+______________ test_001_invalid_location_type_raises_or_handles _______________
+
+    def test_001_invalid_location_type_raises_or_handles():
+        _prepend_import_path()
+        import folium
+    
+        with pytest.raises(Exception):
+>           _ = folium.Map(location="not-a-latlng", zoom_start=2)
+E           Failed: DID NOT RAISE <class 'Exception'>
+
+tests\Folium\robustness_test.py:33: Failed
+________________ test_005_markercluster_handles_empty_cluster _________________
+
+    def test_005_markercluster_handles_empty_cluster():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       MarkerCluster().add_to(m)
+E       AttributeError: 'MarkerCluster' object has no attribute 'add_to'
+
+tests\Folium\robustness_test.py:74: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/robustness_test.py::test_001_invalid_location_type_raises_or_handles
+FAILED tests/Folium/robustness_test.py::test_005_markercluster_handles_empty_cluster
+2 failed, 3 passed in 0.51s

@@ -1,0 +1,571 @@
+FF.F.F.FFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+self = <sqlalchemy.engine.base.Connection object at 0x0000020C88193B20>
+dialect = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C88193760>
+constructor = <bound method DefaultExecutionContext._init_compiled of <class 'sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext'>>
+statement = 'SELECT users.id, users.name, users.age, users.country, users.active \nFROM users \nWHERE users.age = ?'
+parameters = ({'>=': 40},), execution_options = immutabledict({})
+args = (<sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x0000020C88A6BDC0>, [], <sqlalchemy.sql.selectable.Select object at 0x0000020C88A6BDF0>, [BindParameter('%(2252855490208 age)s', {'>=': 40}, type_=INTEGER())])
+kw = {'cache_hit': symbol('CACHE_MISS')}
+branched = <sqlalchemy.engine.base.Connection object at 0x0000020C88193B20>
+conn = <sqlalchemy.pool.base._ConnectionFairy object at 0x0000020C87F45B50>
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C88A6BD90>
+cursor = <sqlite3.Cursor object at 0x0000020C889DBB20>, evt_handled = False
+
+    def _execute_context(
+        self,
+        dialect,
+        constructor,
+        statement,
+        parameters,
+        execution_options,
+        *args,
+        **kw
+    ):
+        """Create an :class:`.ExecutionContext` and execute, returning
+        a :class:`_engine.CursorResult`."""
+    
+        branched = self
+        if self.__branch_from:
+            # if this is a "branched" connection, do everything in terms
+            # of the "root" connection, *except* for .close(), which is
+            # the only feature that branching provides
+            self = self.__branch_from
+    
+        if execution_options:
+            yp = execution_options.get("yield_per", None)
+            if yp:
+                execution_options = execution_options.union(
+                    {"stream_results": True, "max_row_buffer": yp}
+                )
+    
+        try:
+            conn = self._dbapi_connection
+            if conn is None:
+                conn = self._revalidate_connection()
+    
+            context = constructor(
+                dialect, self, conn, execution_options, *args, **kw
+            )
+        except (exc.PendingRollbackError, exc.ResourceClosedError):
+            raise
+        except BaseException as e:
+            self._handle_dbapi_exception(
+                e, util.text_type(statement), parameters, None, None
+            )
+    
+        if (
+            self._transaction
+            and not self._transaction.is_active
+            or (
+                self._nested_transaction
+                and not self._nested_transaction.is_active
+            )
+        ):
+            self._invalid_transaction()
+    
+        elif self._trans_context_manager:
+            TransactionalContext._trans_ctx_check(self)
+    
+        if self._is_future and self._transaction is None:
+            self._autobegin()
+    
+        context.pre_exec()
+    
+        if dialect.use_setinputsizes:
+            context._set_input_sizes()
+    
+        cursor, statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        if not context.executemany:
+            parameters = parameters[0]
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                statement, parameters = fn(
+                    self,
+                    cursor,
+                    statement,
+                    parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+    
+            self._log_info(statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        parameters, batches=10, ismulti=context.executemany
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]"
+                    % (stats,)
+                )
+    
+        evt_handled = False
+        try:
+            if context.executemany:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(cursor, statement, parameters, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor, statement, parameters, context
+                    )
+            elif not parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, statement, context
+                    )
+            else:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(cursor, statement, parameters, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, statement, parameters, context
+                    )
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1910: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C88193760>
+cursor = <sqlite3.Cursor object at 0x0000020C889DBB20>
+statement = 'SELECT users.id, users.name, users.age, users.country, users.active \nFROM users \nWHERE users.age = ?'
+parameters = ({'>=': 40},)
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C88A6BD90>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported type.
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\default.py:736: InterfaceError
+
+The above exception was the direct cause of the following exception:
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+        alice = table.find_one(name="Alice")
+        assert alice is not None
+        assert alice["country"] == "DE"
+    
+>       older = list(table.find(age={">=": 40}))
+
+tests\Dataset\functional_test.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:200: in find
+    result = conn.execute(stmt)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1385: in execute
+    return meth(self, multiparams, params, _EMPTY_EXECUTION_OPTS)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\sql\elements.py:334: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1577: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1953: in _execute_context
+    self._handle_dbapi_exception(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:2134: in _handle_dbapi_exception
+    util.raise_(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\util\compat.py:211: in raise_
+    raise exception
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1910: in _execute_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C88193760>
+cursor = <sqlite3.Cursor object at 0x0000020C889DBB20>
+statement = 'SELECT users.id, users.name, users.age, users.country, users.active \nFROM users \nWHERE users.age = ?'
+parameters = ({'>=': 40},)
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C88A6BD90>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.InterfaceError: (sqlite3.InterfaceError) Error binding parameter 0 - probably unsupported type.
+E       [SQL: SELECT users.id, users.name, users.age, users.country, users.active 
+E       FROM users 
+E       WHERE users.age = ?]
+E       [parameters: ({'>=': 40},)]
+E       (Background on this error at: https://sqlalche.me/e/14/rvf5)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\default.py:736: InterfaceError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+>           table.create_index(["owner", "currency"])
+
+tests\Dataset\functional_test.py:178: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Table('accounts')>, columns = ['owner', 'currency'], unique = False
+_conn = None
+
+    def create_index(self, columns, unique=False, _conn=None):
+        """Create an index on one or more columns."""
+        columns = [columns] if not isinstance(columns, (list, tuple)) else columns
+        conn = _conn or self.database._get_connection()
+        try:
+            sa_table = self._get_sa_table(conn)
+            if sa_table is None:
+>               raise RuntimeError("Table does not exist, cannot create index.")
+E               RuntimeError: Table does not exist, cannot create index.
+
+generation\Dataset\dataset\table.py:264: RuntimeError
+___________________ test_insert_many_returns_ids_and_count ____________________
+
+    def test_insert_many_returns_ids_and_count() -> None:
+        db = create_in_memory_db()
+        table = db["items"]
+    
+        rows = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
+        ret = table.insert_many(rows)
+    
+>       assert len(table) == 3
+E       AssertionError: assert 0 == 3
+E        +  where 0 = len(<Table('items')>)
+
+tests\Dataset\functional_test.py:225: AssertionError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+>       rows = list(table.find(order_by="n", _limit=3, _offset=4))
+
+tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:197: in find
+    stmt = self._build_select_query(conn, **filters)
+generation\Dataset\dataset\table.py:185: in _build_select_query
+    clauses = [sa_table.c[k] == v for k, v in filters.items()]
+generation\Dataset\dataset\table.py:185: in <listcomp>
+    clauses = [sa_table.c[k] == v for k, v in filters.items()]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.sql.base.ImmutableColumnCollection object at 0x0000020C88F44AE0>
+key = 'order_by'
+
+    def __getitem__(self, key):
+        try:
+>           return self._index[key]
+E           KeyError: 'order_by'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\sql\base.py:1214: KeyError
+_______________________ test_delete_and_clear_all_rows ________________________
+
+    def test_delete_and_clear_all_rows() -> None:
+        """
+        Older dataset.Table may not expose truncate().
+        Clear a table and end at 0 rows without relying on result iteration for DML.
+        """
+        db = create_in_memory_db()
+        table = db["logs"]
+        table.insert_many([{"kind": "a"}, {"kind": "b"}, {"kind": "b"}])
+    
+>       assert len(table) == 3
+E       AssertionError: assert 0 == 3
+E        +  where 0 = len(<Table('logs')>)
+
+tests\Dataset\functional_test.py:272: AssertionError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<Database(sqlite:///:memory:)>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_raw_sql_query_with_parameters ______________________
+
+self = <sqlalchemy.engine.base.Connection object at 0x0000020C879CAA90>
+dialect = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C879F02B0>
+constructor = <bound method DefaultExecutionContext._init_compiled of <class 'sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext'>>
+statement = 'SELECT k, v FROM kv WHERE v >= ? ORDER BY v', parameters = (2,)
+execution_options = immutabledict({'autocommit': symbol('PARSE_AUTOCOMMIT')})
+args = (<sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x0000020C879CACA0>, [{'min_v': 2}], <sqlalchemy.sql.elements.TextClause object at 0x0000020C879CAAF0>, [BindParameter('min_v', None, type_=NullType())])
+kw = {'cache_hit': symbol('CACHE_MISS')}
+branched = <sqlalchemy.engine.base.Connection object at 0x0000020C879CAA90>
+yp = None
+conn = <sqlalchemy.pool.base._ConnectionFairy object at 0x0000020C879CA8B0>
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C879CA7F0>
+cursor = <sqlite3.Cursor object at 0x0000020C88A7AB90>, evt_handled = False
+
+    def _execute_context(
+        self,
+        dialect,
+        constructor,
+        statement,
+        parameters,
+        execution_options,
+        *args,
+        **kw
+    ):
+        """Create an :class:`.ExecutionContext` and execute, returning
+        a :class:`_engine.CursorResult`."""
+    
+        branched = self
+        if self.__branch_from:
+            # if this is a "branched" connection, do everything in terms
+            # of the "root" connection, *except* for .close(), which is
+            # the only feature that branching provides
+            self = self.__branch_from
+    
+        if execution_options:
+            yp = execution_options.get("yield_per", None)
+            if yp:
+                execution_options = execution_options.union(
+                    {"stream_results": True, "max_row_buffer": yp}
+                )
+    
+        try:
+            conn = self._dbapi_connection
+            if conn is None:
+                conn = self._revalidate_connection()
+    
+            context = constructor(
+                dialect, self, conn, execution_options, *args, **kw
+            )
+        except (exc.PendingRollbackError, exc.ResourceClosedError):
+            raise
+        except BaseException as e:
+            self._handle_dbapi_exception(
+                e, util.text_type(statement), parameters, None, None
+            )
+    
+        if (
+            self._transaction
+            and not self._transaction.is_active
+            or (
+                self._nested_transaction
+                and not self._nested_transaction.is_active
+            )
+        ):
+            self._invalid_transaction()
+    
+        elif self._trans_context_manager:
+            TransactionalContext._trans_ctx_check(self)
+    
+        if self._is_future and self._transaction is None:
+            self._autobegin()
+    
+        context.pre_exec()
+    
+        if dialect.use_setinputsizes:
+            context._set_input_sizes()
+    
+        cursor, statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        if not context.executemany:
+            parameters = parameters[0]
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                statement, parameters = fn(
+                    self,
+                    cursor,
+                    statement,
+                    parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+    
+            self._log_info(statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        parameters, batches=10, ismulti=context.executemany
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]"
+                    % (stats,)
+                )
+    
+        evt_handled = False
+        try:
+            if context.executemany:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(cursor, statement, parameters, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor, statement, parameters, context
+                    )
+            elif not parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, statement, context
+                    )
+            else:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(cursor, statement, parameters, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_execute(
+                        cursor, statement, parameters, context
+                    )
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1910: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C879F02B0>
+cursor = <sqlite3.Cursor object at 0x0000020C88A7AB90>
+statement = 'SELECT k, v FROM kv WHERE v >= ? ORDER BY v', parameters = (2,)
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C879CA7F0>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlite3.OperationalError: no such table: kv
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\default.py:736: OperationalError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-447/test_raw_sql_query_with_parame0')
+
+    def test_raw_sql_query_with_parameters(tmp_path: Path) -> None:
+        db_path = tmp_path / "param.db"
+        db = dataset.connect("sqlite:///%s" % str(db_path))
+        table = db["kv"]
+        table.insert_many([{"k": "a", "v": 1}, {"k": "b", "v": 2}])
+    
+>       rows = list(db.query("SELECT k, v FROM kv WHERE v >= :min_v ORDER BY v", min_v=2))
+
+tests\Dataset\functional_test.py:321: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\database.py:77: in query
+    result = conn.execute(sqlalchemy.text(sql), params)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1385: in execute
+    return meth(self, multiparams, params, _EMPTY_EXECUTION_OPTS)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\sql\elements.py:334: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1577: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1953: in _execute_context
+    self._handle_dbapi_exception(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:2134: in _handle_dbapi_exception
+    util.raise_(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\util\compat.py:211: in raise_
+    raise exception
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\base.py:1910: in _execute_context
+    self.dialect.do_execute(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <sqlalchemy.dialects.sqlite.pysqlite.SQLiteDialect_pysqlite object at 0x0000020C879F02B0>
+cursor = <sqlite3.Cursor object at 0x0000020C88A7AB90>
+statement = 'SELECT k, v FROM kv WHERE v >= ? ORDER BY v', parameters = (2,)
+context = <sqlalchemy.dialects.sqlite.base.SQLiteExecutionContext object at 0x0000020C879CA7F0>
+
+    def do_execute(self, cursor, statement, parameters, context=None):
+>       cursor.execute(statement, parameters)
+E       sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: kv
+E       [SQL: SELECT k, v FROM kv WHERE v >= ? ORDER BY v]
+E       [parameters: (2,)]
+E       (Background on this error at: https://sqlalche.me/e/14/e3q8)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\sqlalchemy\engine\default.py:736: OperationalError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+    
+        distinct = list(table.distinct("c"))
+        values = {r["c"] for r in distinct}
+>       assert values == {"red", "blue"}
+E       AssertionError: assert set() == {'blue', 'red'}
+E         
+E         Extra items in the right set:
+E         'red'
+E         'blue'
+E         Use -v to get more diff
+
+tests\Dataset\functional_test.py:334: AssertionError
+============================== warnings summary ===============================
+tests/Dataset/functional_test.py::test_insert_and_query_basic_rows
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Dataset\dataset\table.py:55: RemovedIn20Warning: Deprecated API features detected! These feature(s) are not compatible with SQLAlchemy 2.0. To prevent incompatible upgrades prior to updating applications, ensure requirements files are pinned to "sqlalchemy<2.0". Set environment variable SQLALCHEMY_WARN_20=1 to show all deprecation warnings.  Set environment variable SQLALCHEMY_SILENCE_UBER_WARNING=1 to silence this message. (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    table.create(conn)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - Run...
+FAILED tests/Dataset/functional_test.py::test_insert_many_returns_ids_and_count
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - Ke...
+FAILED tests/Dataset/functional_test.py::test_delete_and_clear_all_rows - Ass...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_raw_sql_query_with_parameters
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+8 failed, 3 passed, 1 warning in 48.87s

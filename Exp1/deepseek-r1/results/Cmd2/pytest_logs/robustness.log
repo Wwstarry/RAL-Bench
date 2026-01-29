@@ -1,0 +1,109 @@
+FFF                                                                      [100%]
+================================== FAILURES ===================================
+___________ test_cmd2_robustness_import_or_graceful_incompatibility ___________
+
+    @pytest.mark.timeout(10)
+    def test_cmd2_robustness_import_or_graceful_incompatibility():
+        """
+        Robustness 1:
+          - If cmd2 can be imported, PASS (and later tests will cover behavior).
+          - If cmd2 cannot be imported due to known Python-version incompatibility, PASS
+            (we cannot execute dynamic robustness on this runtime).
+          - Otherwise, FAIL.
+        """
+        mod, reason = _try_import_cmd2()
+        if mod is None:
+            print(f"ROBUSTNESS_NOTE {reason}")
+            assert True
+            return
+    
+>       assert hasattr(mod, "Cmd"), "cmd2 should expose Cmd"
+E       AssertionError: cmd2 should expose Cmd
+E       assert False
+E        +  where False = hasattr(<module 'cmd2' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\cmd2\\cmd2\\__init__.py'>, 'Cmd')
+
+tests\Cmd2\robustness_test.py:144: AssertionError
+___________ test_cmd2_robustness_minimal_instantiation_if_possible ____________
+
+    @pytest.mark.timeout(10)
+    def test_cmd2_robustness_minimal_instantiation_if_possible():
+        """
+        Robustness 2:
+          If import works, minimal app instantiation should not hang or hard-crash.
+          If import is impossible due to python version incompatibility, PASS.
+        """
+        mod, reason = _try_import_cmd2()
+        if mod is None:
+            print(f"ROBUSTNESS_NOTE {reason}")
+            assert True
+            return
+    
+>       app = _try_make_app(mod)
+
+tests\Cmd2\robustness_test.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cmd2_mod = <module 'cmd2' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\cmd2\\cmd2\\__init__.py'>
+
+    def _try_make_app(cmd2_mod: Any):
+        """
+        Create a minimal Cmd2 application instance in a non-interactive safe way.
+        """
+        Cmd = getattr(cmd2_mod, "Cmd", None)
+        if Cmd is None:
+>           raise AttributeError("cmd2.Cmd not found")
+E           AttributeError: cmd2.Cmd not found
+
+tests\Cmd2\robustness_test.py:113: AttributeError
+__________ test_cmd2_robustness_basic_command_execution_if_possible ___________
+
+    @pytest.mark.timeout(10)
+    def test_cmd2_robustness_basic_command_execution_if_possible():
+        """
+        Robustness 3:
+          If import works, running a simple command should not hang.
+          Exceptions are allowed (version differences), but no hard crash/hang.
+          If import is impossible due to python version incompatibility, PASS.
+        """
+        mod, reason = _try_import_cmd2()
+        if mod is None:
+            print(f"ROBUSTNESS_NOTE {reason}")
+            assert True
+            return
+    
+>       app = _try_make_app(mod)
+
+tests\Cmd2\robustness_test.py:179: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cmd2_mod = <module 'cmd2' from 'D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\cmd2\\cmd2\\__init__.py'>
+
+    def _try_make_app(cmd2_mod: Any):
+        """
+        Create a minimal Cmd2 application instance in a non-interactive safe way.
+        """
+        Cmd = getattr(cmd2_mod, "Cmd", None)
+        if Cmd is None:
+>           raise AttributeError("cmd2.Cmd not found")
+E           AttributeError: cmd2.Cmd not found
+
+tests\Cmd2\robustness_test.py:113: AttributeError
+============================== warnings summary ===============================
+tests\Cmd2\robustness_test.py:129
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:129: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+tests\Cmd2\robustness_test.py:148
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:148: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+tests\Cmd2\robustness_test.py:165
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Cmd2\robustness_test.py:165: PytestUnknownMarkWarning: Unknown pytest.mark.timeout - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.timeout(10)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/robustness_test.py::test_cmd2_robustness_import_or_graceful_incompatibility
+FAILED tests/Cmd2/robustness_test.py::test_cmd2_robustness_minimal_instantiation_if_possible
+FAILED tests/Cmd2/robustness_test.py::test_cmd2_robustness_basic_command_execution_if_possible
+3 failed, 3 warnings in 0.40s

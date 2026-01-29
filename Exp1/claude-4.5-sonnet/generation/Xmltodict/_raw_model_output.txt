@@ -1,0 +1,245 @@
+<file:name=xmltodict.py>
+"""
+Pure Python XML parsing and serialization library.
+API-compatible with the core parts of xmltodict.
+"""
+
+import xml.parsers.expat
+from xml.sax.saxutils import escape, quoteattr
+from collections import OrderedDict
+
+
+__version__ = '0.1.0'
+__author__ = 'Claude Code'
+
+
+def parse(xml_input, encoding=None, expat=xml.parsers.expat, process_namespaces=False,
+          namespace_separator=':', disable_entities=True, **kwargs):
+    """
+    Parse XML input into an OrderedDict.
+    
+    Args:
+        xml_input: XML string or file-like object
+        encoding: Character encoding (default: None, auto-detect)
+        expat: XML parser module (default: xml.parsers.expat)
+        process_namespaces: Whether to process namespaces (default: False)
+        namespace_separator: Separator for namespace prefix (default: ':')
+        disable_entities: Whether to disable entity expansion (default: True)
+        **kwargs: Additional options (e.g., attr_prefix, cdata_key, etc.)
+    
+    Returns:
+        OrderedDict representing the XML structure
+    """
+    handler = _DictSAXHandler(
+        namespace_separator=namespace_separator,
+        **kwargs
+    )
+    
+    if isinstance(xml_input, str):
+        xml_input = xml_input.encode(encoding or 'utf-8')
+    elif hasattr(xml_input, 'read'):
+        xml_input = xml_input.read()
+        if isinstance(xml_input, str):
+            xml_input = xml_input.encode(encoding or 'utf-8')
+    
+    parser = expat.ParserCreate(
+        encoding=encoding,
+        namespace_separator=namespace_separator if process_namespaces else None
+    )
+    
+    if disable_entities:
+        try:
+            # Attempt to disable external entity processing
+            parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+        except AttributeError:
+            pass
+        parser.DefaultHandler = None
+        parser.ExternalEntityRefHandler = None
+    
+    parser.StartElementHandler = handler.start_element
+    parser.EndElementHandler = handler.end_element
+    parser.CharacterDataHandler = handler.char_data
+    parser.buffer_text = True
+    
+    try:
+        parser.Parse(xml_input, True)
+    except expat.ExpatError as e:
+        raise Exception(f"XML parsing error: {e}")
+    
+    return handler.get_result()
+
+
+def unparse(input_dict, output=None, encoding='utf-8', full_document=True,
+            short_empty_elements=False, **kwargs):
+    """
+    Convert an OrderedDict back to XML.
+    
+    Args:
+        input_dict: Dictionary to convert to XML
+        output: File-like object to write to (default: None, return string)
+        encoding: Character encoding (default: 'utf-8')
+        full_document: Whether to include XML declaration (default: True)
+        short_empty_elements: Use short form for empty elements (default: False)
+        **kwargs: Additional options (e.g., attr_prefix, cdata_key, etc.)
+    
+    Returns:
+        XML string if output is None, otherwise None (writes to output)
+    """
+    attr_prefix = kwargs.get('attr_prefix', '@')
+    cdata_key = kwargs.get('cdata_key', '#text')
+    
+    if full_document and output is None:
+        result = f'<?xml version="1.0" encoding="{encoding}"?>'
+    else:
+        result = ''
+    
+    def _unparse_node(key, value, result):
+        if isinstance(value, list):
+            for item in value:
+                result = _unparse_node(key, item, result)
+            return result
+        
+        if isinstance(value, dict):
+            # Extract attributes
+            attrs = OrderedDict()
+            children = OrderedDict()
+            text_content = None
+            
+            for k, v in value.items():
+                if k.startswith(attr_prefix):
+                    attrs[k[len(attr_prefix):]] = v
+                elif k == cdata_key:
+                    text_content = v
+                else:
+                    children[k] = v
+            
+            # Build opening tag
+            result += f'<{key}'
+            for attr_name, attr_value in attrs.items():
+                result += f' {attr_name}={quoteattr(str(attr_value))}'
+            
+            # Handle content
+            if not children and text_content is None:
+                if short_empty_elements:
+                    result += '/>'
+                else:
+                    result += f'></{key}>'
+            else:
+                result += '>'
+                
+                if text_content is not None:
+                    result += escape(str(text_content))
+                
+                for child_key, child_value in children.items():
+                    result = _unparse_node(child_key, child_value, result)
+                
+                result += f'</{key}>'
+        else:
+            # Simple text node
+            result += f'<{key}>{escape(str(value))}</{key}>'
+        
+        return result
+    
+    # Process root element(s)
+    for key, value in input_dict.items():
+        result = _unparse_node(key, value, result)
+    
+    if output is None:
+        return result
+    else:
+        output.write(result.encode(encoding) if hasattr(output, 'mode') and 'b' in output.mode else result)
+
+
+class _DictSAXHandler:
+    """SAX-like handler that builds nested dictionaries."""
+    
+    def __init__(self, namespace_separator=':', attr_prefix='@', cdata_key='#text',
+                 force_cdata=False, force_list=None, **kwargs):
+        self.namespace_separator = namespace_separator
+        self.attr_prefix = attr_prefix
+        self.cdata_key = cdata_key
+        self.force_cdata = force_cdata
+        self.force_list = force_list or []
+        
+        self.stack = []
+        self.data = []
+        self.result = None
+    
+    def start_element(self, name, attrs):
+        # Save any pending character data
+        self._save_data()
+        
+        # Create new element dict
+        element = OrderedDict()
+        
+        # Add attributes
+        if attrs:
+            for attr_name, attr_value in attrs.items():
+                element[self.attr_prefix + attr_name] = attr_value
+        
+        # Push to stack
+        self.stack.append((name, element))
+        self.data = []
+    
+    def end_element(self, name):
+        # Save any pending character data
+        self._save_data()
+        
+        # Pop from stack
+        element_name, element = self.stack.pop()
+        
+        # If stack is empty, this is the root
+        if not self.stack:
+            self.result = OrderedDict([(element_name, element)])
+            return
+        
+        # Add to parent
+        parent_name, parent = self.stack[-1]
+        
+        # Check if element should be a list
+        if element_name in parent:
+            # Already exists - convert to list or append
+            existing = parent[element_name]
+            if not isinstance(existing, list):
+                parent[element_name] = [existing]
+            parent[element_name].append(element)
+        else:
+            # First occurrence
+            if element_name in self.force_list:
+                parent[element_name] = [element]
+            else:
+                parent[element_name] = element
+    
+    def char_data(self, data):
+        self.data.append(data)
+    
+    def _save_data(self):
+        """Save accumulated character data to current element."""
+        if not self.data:
+            return
+        
+        text = ''.join(self.data).strip()
+        self.data = []
+        
+        if not text:
+            return
+        
+        if self.stack:
+            element_name, element = self.stack[-1]
+            
+            # If element has no children and no attributes (or force_cdata), use text directly
+            if not element or self.force_cdata:
+                if self.cdata_key in element:
+                    element[self.cdata_key] += text
+                else:
+                    element[self.cdata_key] = text
+            else:
+                # Element has attributes or children, add as #text
+                if self.cdata_key in element:
+                    element[self.cdata_key] += text
+                else:
+                    element[self.cdata_key] = text
+    
+    def get_result(self):
+        return self.result if self.result is not None else OrderedDict()
+</file:name=xmltodict.py>

@@ -1,0 +1,497 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C6D74F0>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C6D7490>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+Test Chart
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C7308B0>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:81: in draw
+    max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000002008C7306D0>
+
+>   max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+E   TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:81: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stacked Chart
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C68ABE0>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C68A850>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+Bars
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C721CA0>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C7216A0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Values
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C727850>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C727AF0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Labels
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C7204F0>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C7206A0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+Suffix
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C740430>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C740100>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+Fmt
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C7303D0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:81: in draw
+    max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000002008C730160>
+
+>   max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+E   TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:81: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack Labels
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C7226D0>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:81: in draw
+    max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000002008C722DF0>
+
+>   max_val = max(sum(series) for series in self.data.data) if self.data.data else 1
+E   TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:81: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack No Values
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C721520>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C721EE0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000002008C742070>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002008C7422E0>
+file = <_io.TextIOWrapper name='<tempfile._TemporaryFileWrapper object at 0x000002008AC0D6A0>' mode='r+' encoding='utf-8'>
+
+    def draw(self, file=sys.stdout):
+        if self.args.title:
+            print(self.args.title, file=file)
+        max_label_len = max((len(str(label)) for label in self.data.labels), default=0)
+        width = self.args.width
+        fmt = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+        color = self.args.color
+    
+        # Find max value for scaling
+        if self.args.different_scale:
+            max_vals = [max(series) if series else 0 for series in self.data.data]
+        else:
+            max_val = self.data.max_value()
+    
+        for idx, (label, series) in enumerate(zip(self.data.labels, self.data.data)):
+            if self.args.different_scale:
+                scale = max_vals[idx] if max_vals[idx] else 1
+            else:
+                scale = max_val if max_val else 1
+    
+            bars = []
+            for sidx, value in enumerate(series):
+>               bar_len = int(round((value / scale) * width)) if scale else 0
+E               TypeError: unsupported operand type(s) for /: 'str' and 'str'
+
+generation\Termgraph\termgraph\charts.py:49: TypeError
+---------------------------- Captured stdout call -----------------------------
+Narrow
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 23.61s

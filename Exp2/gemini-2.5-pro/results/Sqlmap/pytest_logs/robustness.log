@@ -1,0 +1,29 @@
+FF...                                                                    [100%]
+================================== FAILURES ===================================
+___________ test_001_nonexistent_request_file_reports_missing_file ____________
+
+    def test_001_nonexistent_request_file_reports_missing_file():
+        p = _run_cli(["--batch", "-r", "this_file_should_not_exist.req"], timeout_s=20)
+        out = _out(p)
+    
+        # sqlmap prints "does not exist" for missing request file
+>       assert "does not exist" in out or "not found" in out or "no such file" in out
+E       AssertionError: assert ('does not exist' in '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized arguments: --batch -r this_file_should_not_exist.req\n' or 'not found' in '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized arguments: --batch -r this_file_should_not_exist.req\n' or 'no such file' in '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized arguments: --batch -r this_file_should_not_exist.req\n')
+
+tests\Sqlmap\robustness_test.py:48: AssertionError
+___________ test_002_invalid_scheme_url_reports_invalid_target_url ____________
+
+    def test_002_invalid_scheme_url_reports_invalid_target_url():
+        # Use invalid scheme; should fail fast with "invalid target url" message.
+        p = _run_cli(["--batch", "-u", "not_a_scheme://example"], timeout_s=20)
+        out = _out(p)
+    
+        # Reference prints "[CRITICAL] invalid target URL" (case-insensitive compare)
+>       assert "invalid target url" in out or "invalid target" in out
+E       AssertionError: assert ('invalid target url' in '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized argument: --batch\n' or 'invalid target' in '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized argument: --batch\n')
+
+tests\Sqlmap\robustness_test.py:57: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/robustness_test.py::test_001_nonexistent_request_file_reports_missing_file
+FAILED tests/Sqlmap/robustness_test.py::test_002_invalid_scheme_url_reports_invalid_target_url
+2 failed, 3 passed in 1.76s

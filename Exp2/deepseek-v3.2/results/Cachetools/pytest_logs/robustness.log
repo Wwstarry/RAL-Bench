@@ -1,0 +1,61 @@
+F..FF......                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+        cachetools = _import_cachetools()
+    
+>       c = cachetools.Cache(-1)
+
+tests\Cachetools\robustness_test.py:72: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError("'Cache' object has no attribute '_cache'") raised in repr()] Cache object at 0x17c84c67df0>
+maxsize = -1, getsizeof = None
+
+    def __init__(self, maxsize: int, getsizeof: Optional[Callable[[Any], int]] = None):
+        """
+        Initialize cache with maximum size.
+    
+        Args:
+            maxsize: Maximum number of items in cache
+            getsizeof: Function to calculate size of values (default: constant 1)
+        """
+        if maxsize <= 0:
+>           raise ValueError("maxsize must be positive")
+E           ValueError: maxsize must be positive
+
+generation\Cachetools\cachetools\cache.py:21: ValueError
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'FIFOCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+        cachetools = _import_cachetools()
+>       cls = getattr(cachetools, cache_cls)
+E       AttributeError: module 'cachetools' has no attribute 'LFUCache'
+
+tests\Cachetools\robustness_test.py:116: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+3 failed, 8 passed in 0.52s

@@ -1,0 +1,35 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_generate_recurring_schedule_and_group_by_day ______________
+
+    def test_generate_recurring_schedule_and_group_by_day() -> None:
+        """
+        Integration-style test: build a recurring schedule, convert to another
+        timezone, and group events by local calendar day.
+        """
+        # Start from a fixed UTC anchor.
+>       start = pendulum.datetime(2022, 1, 1, 8, 0, 0, tz="UTC")
+
+tests\Pendulum\resource_test.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\datetime.py:168: in datetime
+    return DateTime.datetime(year, month, day, hour, minute, second, microsecond, tz)
+generation\Pendulum\pendulum\datetime.py:61: in datetime
+    return cls(year, month, day, hour, minute, second, microsecond, tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError('_dt') raised in repr()] DateTime object at 0x15bd4acee80>
+year = 2022, month = 1, day = 1, hour = 8, minute = 0, second = 0
+microsecond = 0, tz = 'UTC'
+
+    def __init__(self, year, month=1, day=1, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is None:
+            tz = timezone("UTC")
+        elif not isinstance(tz, Timezone):
+>           raise TypeError("tz must be a pendulum.timezone.Timezone instance or None")
+E           TypeError: tz must be a pendulum.timezone.Timezone instance or None
+
+generation\Pendulum\pendulum\datetime.py:15: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/resource_test.py::test_generate_recurring_schedule_and_group_by_day
+1 failed in 0.45s

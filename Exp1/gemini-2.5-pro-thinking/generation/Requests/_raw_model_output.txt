@@ -1,0 +1,656 @@
+<file:name=pyproject.toml>
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "requests-evaluation"
+version = "0.1.0"
+description = "A repository to evaluate the core public APIs of the Requests library against a local server."
+dependencies = [
+    "requests",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+</file:name>
+<file:name=README.md>
+# Requests Library Core API Evaluation
+
+This repository contains a suite of tests designed to evaluate the core public APIs of the [Requests](https://requests.readthedocs.io/) library.
+
+To avoid network flakiness and ensure consistent test results, all tests are run against a local HTTP server that simulates various responses, status codes, and behaviors.
+
+## Core Modules Covered
+
+The test suite focuses on the following key components of the Requests library:
+
+-   `requests.api`: High-level functions like `get()`, `post()`, `put()`, etc.
+-   `requests.sessions`: `Session` objects for connection pooling and state persistence (cookies, headers).
+-   `requests.models`: The `Request`, `PreparedRequest`, and `Response` objects.
+-   `requests.auth`: Authentication helpers, specifically `HTTPBasicAuth`.
+-   `requests.exceptions`: The hierarchy of exceptions for handling various network and HTTP errors.
+
+## Setup and Running Tests
+
+1.  **Create a virtual environment:**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
+
+2.  **Install dependencies:**
+    The project uses `pyproject.toml` to define dependencies. Install the project in editable mode along with the test dependencies.
+    ```bash
+    pip install -e ".[test]"
+    ```
+
+3.  **Run the tests:**
+    The tests are written using the `pytest` framework.
+    ```bash
+    pytest
+    ```
+
+## Project Structure
+
+-   `pyproject.toml`: Defines project metadata and dependencies.
+-   `server.py`: A simple, multi-threaded HTTP server used as the target for all test requests.
+-   `tests/`: Contains all the test files.
+    -   `conftest.py`: Pytest fixtures, including the one that manages the local server's lifecycle.
+    -   `test_api.py`: Tests for the top-level API functions.
+    -   `test_sessions.py`: Tests for `requests.Session` functionality.
+    -   `test_models.py`: Tests for the data models like `Request` and `Response`.
+    -   `test_auth.py`: Tests for authentication mechanisms.
+    -   `test_exceptions.py`: Tests for correct exception handling.
+</file:name>
+<file:name=.gitignore>
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# PEP 582; used by PDM, PEP 582 compatible tools
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# IDEs
+.idea/
+.vscode/
+</file:name>
+<file:name=server.py>
+import http.server
+import json
+import threading
+import time
+import base64
+from urllib.parse import urlparse, parse_qs
+
+class TestRequestHandler(http.server.BaseHTTPRequestHandler):
+    """A custom request handler for the test server."""
+
+    def _send_response(self, status_code, content_type, body):
+        self.send_response(status_code)
+        self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_request(self, method):
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        query = parse_qs(parsed_path.query)
+
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+
+        response_data = {
+            'method': method,
+            'path': path,
+            'query': query,
+            'headers': dict(self.headers),
+            'body': post_data.decode('utf-8', errors='ignore')
+        }
+
+        if path in ('/get', '/post', '/put', '/patch', '/delete'):
+            if 'application/json' in self.headers.get('Content-Type', ''):
+                try:
+                    response_data['json'] = json.loads(post_data)
+                except json.JSONDecodeError:
+                    pass  # Keep raw body if JSON is invalid
+            self._send_response(200, 'application/json', json.dumps(response_data).encode('utf-8'))
+        elif path == '/head':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            self.send_header('X-Test-Header', 'TestValue')
+            self.end_headers()
+        elif path == '/options':
+            self.send_response(200)
+            self.send_header('Allow', 'GET, POST, OPTIONS')
+            self.end_headers()
+        elif path.startswith('/status/'):
+            try:
+                status_code = int(path.split('/')[-1])
+                self._send_response(status_code, 'text/plain', f'Status {status_code}'.encode('utf-8'))
+            except ValueError:
+                self._send_response(400, 'text/plain', b'Invalid status code')
+        elif path == '/cookies/set':
+            self.send_response(200)
+            self.send_header('Set-Cookie', 'session_id=12345; Path=/')
+            self.send_header('Set-Cookie', 'user=test; Path=/')
+            self.end_headers()
+            self.wfile.write(b'Cookies set')
+        elif path == '/cookies/get':
+            self._send_response(200, 'application/json', json.dumps({'cookies': self.headers.get('Cookie')}).encode('utf-8'))
+        elif path == '/auth':
+            auth_header = self.headers.get('Authorization')
+            if not auth_header:
+                self.send_response(401)
+                self.send_header('WWW-Authenticate', 'Basic realm="Test Realm"')
+                self.end_headers()
+                return
+
+            auth_type, credentials = auth_header.split()
+            if auth_type.lower() == 'basic':
+                try:
+                    decoded_credentials = base64.b64decode(credentials).decode('utf-8')
+                    if decoded_credentials == 'user:pass':
+                        self._send_response(200, 'text/plain', b'Authentication successful')
+                    else:
+                        self._send_response(401, 'text/plain', b'Invalid credentials')
+                except Exception:
+                    self._send_response(400, 'text/plain', b'Invalid base64 encoding')
+            else:
+                self._send_response(400, 'text/plain', b'Unsupported authentication method')
+        elif path == '/slow':
+            time.sleep(1)
+            self._send_response(200, 'text/plain', b'Finally!')
+        elif path.startswith('/redirect/'):
+            try:
+                count = int(path.split('/')[-1])
+                if count > 0:
+                    self.send_response(302)
+                    self.send_header('Location', f'/redirect/{count - 1}')
+                    self.end_headers()
+                else:
+                    self._send_response(200, 'text/plain', b'Redirect finished')
+            except ValueError:
+                self._send_response(400, 'text/plain', b'Invalid redirect count')
+        else:
+            self._send_response(404, 'text/plain', b'Not Found')
+
+    def do_GET(self): self._handle_request('GET')
+    def do_POST(self): self._handle_request('POST')
+    def do_PUT(self): self._handle_request('PUT')
+    def do_DELETE(self): self._handle_request('DELETE')
+    def do_PATCH(self): self._handle_request('PATCH')
+    def do_HEAD(self): self._handle_request('HEAD')
+    def do_OPTIONS(self): self._handle_request('OPTIONS')
+
+    def log_message(self, format, *args):
+        # Suppress logging to keep test output clean
+        return
+
+class StoppableHTTPServer(http.server.HTTPServer):
+    """An HTTPServer that can be gracefully shut down."""
+    def run(self):
+        try:
+            self.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.server_close()
+</file:name>
+<file:name=tests/conftest.py>
+import pytest
+import threading
+import time
+import socket
+from contextlib import closing
+
+from server import TestRequestHandler, StoppableHTTPServer
+
+def find_free_port():
+    """Find and return an available port."""
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+@pytest.fixture(scope="session")
+def local_server():
+    """Fixture to run a local HTTP server in a separate thread for the whole test session."""
+    host = '127.0.0.1'
+    port = find_free_port()
+    
+    server = StoppableHTTPServer((host, port), TestRequestHandler)
+    
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.daemon = True
+    server_thread.start()
+
+    # Wait a moment for the server to be ready
+    time.sleep(0.1)
+
+    yield f"http://{host}:{port}"
+
+    # Teardown: shut down the server
+    server.shutdown()
+    server.server_close()
+    server_thread.join()
+
+@pytest.fixture
+def base_url(local_server):
+    """Provides the base URL for the running local server."""
+    return local_server
+</file:name>
+<file:name=tests/test_api.py>
+import requests
+
+def test_get_request(base_url):
+    """Test a simple GET request with query parameters."""
+    params = {'key': 'value', 'foo': 'bar'}
+    response = requests.get(f"{base_url}/get", params=params)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'GET'
+    assert data['query']['key'] == ['value']
+    assert data['query']['foo'] == ['bar']
+
+def test_post_request_form_data(base_url):
+    """Test a POST request with form data."""
+    payload = {'key1': 'value1', 'key2': 'value2'}
+    response = requests.post(f"{base_url}/post", data=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'POST'
+    assert 'application/x-www-form-urlencoded' in data['headers']['Content-Type']
+    assert data['body'] == 'key1=value1&key2=value2'
+
+def test_post_request_json_data(base_url):
+    """Test a POST request with JSON data."""
+    payload = {'a': 1, 'b': [2, 3]}
+    response = requests.post(f"{base_url}/post", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'POST'
+    assert 'application/json' in data['headers']['Content-Type']
+    assert data['json'] == payload
+
+def test_put_request(base_url):
+    """Test a PUT request."""
+    payload = {'message': 'updated'}
+    response = requests.put(f"{base_url}/put", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'PUT'
+    assert data['json'] == payload
+
+def test_patch_request(base_url):
+    """Test a PATCH request."""
+    payload = {'message': 'partially updated'}
+    response = requests.patch(f"{base_url}/patch", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'PATCH'
+    assert data['json'] == payload
+
+def test_delete_request(base_url):
+    """Test a DELETE request."""
+    response = requests.delete(f"{base_url}/delete")
+    assert response.status_code == 200
+    data = response.json()
+    assert data['method'] == 'DELETE'
+
+def test_head_request(base_url):
+    """Test a HEAD request, which should have headers but no body."""
+    response = requests.head(f"{base_url}/head")
+    assert response.status_code == 200
+    assert response.text == ''
+    assert 'X-Test-Header' in response.headers
+    assert response.headers['X-Test-Header'] == 'TestValue'
+
+def test_options_request(base_url):
+    """Test an OPTIONS request."""
+    response = requests.options(f"{base_url}/options")
+    assert response.status_code == 200
+    assert 'Allow' in response.headers
+    assert 'GET' in response.headers['Allow']
+    assert 'POST' in response.headers['Allow']
+
+def test_custom_headers(base_url):
+    """Test sending custom headers with a request."""
+    headers = {'X-Custom-Header': 'MyValue', 'User-Agent': 'TestClient/1.0'}
+    response = requests.get(f"{base_url}/get", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['headers']['X-Custom-Header'] == 'MyValue'
+    assert data['headers']['User-Agent'] == 'TestClient/1.0'
+</file:name>
+<file:name=tests/test_sessions.py>
+import requests
+
+def test_session_cookie_persistence(base_url):
+    """Test that sessions persist cookies across requests."""
+    with requests.Session() as s:
+        # First request to an endpoint that sets cookies
+        response_set = s.get(f"{base_url}/cookies/set")
+        assert response_set.status_code == 200
+        assert 'session_id' in s.cookies
+        assert 'user' in s.cookies
+
+        # Second request to check if the browser sends the cookies back
+        response_get = s.get(f"{base_url}/cookies/get")
+        assert response_get.status_code == 200
+        data = response_get.json()
+        assert 'session_id=12345' in data['cookies']
+        assert 'user=test' in data['cookies']
+
+def test_session_headers_persistence(base_url):
+    """Test that sessions persist headers across requests."""
+    with requests.Session() as s:
+        s.headers.update({'X-Session-Header': 'PersistentValue'})
+
+        # First request
+        response1 = s.get(f"{base_url}/get")
+        assert response1.status_code == 200
+        data1 = response1.json()
+        assert data1['headers']['X-Session-Header'] == 'PersistentValue'
+
+        # Second request
+        response2 = s.get(f"{base_url}/get")
+        assert response2.status_code == 200
+        data2 = response2.json()
+        assert data2['headers']['X-Session-Header'] == 'PersistentValue'
+
+def test_session_header_override(base_url):
+    """Test that request-level headers override session-level headers."""
+    with requests.Session() as s:
+        s.headers.update({'X-Common-Header': 'Session', 'X-Override-Header': 'SessionValue'})
+        
+        headers = {'X-Override-Header': 'RequestValue', 'X-Request-Header': 'Request'}
+        response = s.get(f"{base_url}/get", headers=headers)
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check that all headers are present and correctly valued
+        assert data['headers']['X-Common-Header'] == 'Session'
+        assert data['headers']['X-Override-Header'] == 'RequestValue'
+        assert data['headers']['X-Request-Header'] == 'Request'
+
+def test_session_without_context_manager(base_url):
+    """Test session object without a 'with' statement, including manual close."""
+    s = requests.Session()
+    s.get(f"{base_url}/cookies/set")
+    assert 'session_id' in s.cookies
+    
+    response = s.get(f"{base_url}/cookies/get")
+    assert 'session_id=12345' in response.json()['cookies']
+    
+    s.close()
+</file:name>
+<file:name=tests/test_models.py>
+import requests
+
+def test_response_object_attributes(base_url):
+    """Test core attributes of the Response object."""
+    response = requests.get(f"{base_url}/status/201")
+    
+    assert response.status_code == 201
+    assert response.reason == 'Created'
+    assert response.ok is True
+    assert response.text == 'Status 201'
+    assert response.url == f"{base_url}/status/201"
+    assert 'Content-Type' in response.headers
+    assert response.headers['content-type'] == 'text/plain' # Test case-insensitivity
+
+    response_404 = requests.get(f"{base_url}/status/404")
+    assert response_404.status_code == 404
+    assert response_404.reason == 'Not Found'
+    assert response_404.ok is False
+
+def test_response_json_method(base_url):
+    """Test the .json() method of the Response object."""
+    response = requests.get(f"{base_url}/get")
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert isinstance(data, dict)
+    assert data['method'] == 'GET'
+
+def test_request_and_prepared_request(base_url):
+    """Test creating a Request object, preparing it, and sending it."""
+    url = f"{base_url}/post"
+    data = {'key': 'value'}
+    headers = {'X-Test': 'true'}
+    
+    # 1. Create a Request object
+    req = requests.Request('POST', url, data=data, headers=headers)
+    
+    # 2. Prepare it using a Session
+    s = requests.Session()
+    prepared_req = s.prepare_request(req)
+    
+    # 3. Check attributes of the PreparedRequest
+    assert prepared_req.method == 'POST'
+    assert prepared_req.url == url
+    assert prepared_req.body == b'key=value'
+    assert 'Content-Length' in prepared_req.headers
+    assert prepared_req.headers['Content-Type'] == 'application/x-www-form-urlencoded'
+    assert prepared_req.headers['X-Test'] == 'true'
+    
+    # 4. Send the prepared request
+    response = s.send(prepared_req)
+    
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data['body'] == 'key=value'
+    assert response_data['headers']['X-Test'] == 'true'
+</file:name>
+<file:name=tests/test_auth.py>
+import requests
+from requests.auth import HTTPBasicAuth
+
+def test_http_basic_auth_success(base_url):
+    """Test successful basic authentication."""
+    auth = HTTPBasicAuth('user', 'pass')
+    response = requests.get(f"{base_url}/auth", auth=auth)
+    
+    assert response.status_code == 200
+    assert response.text == 'Authentication successful'
+
+def test_http_basic_auth_failure(base_url):
+    """Test failed basic authentication due to wrong credentials."""
+    auth = HTTPBasicAuth('user', 'wrongpass')
+    response = requests.get(f"{base_url}/auth", auth=auth)
+    
+    assert response.status_code == 401
+    assert response.text == 'Invalid credentials'
+
+def test_http_basic_auth_no_creds(base_url):
+    """Test request to a protected endpoint without any authentication."""
+    response = requests.get(f"{base_url}/auth")
+    
+    assert response.status_code == 401
+    assert 'WWW-Authenticate' in response.headers
+    assert response.headers['WWW-Authenticate'] == 'Basic realm="Test Realm"'
+</file:name>
+<file:name=tests/test_exceptions.py>
+import pytest
+import requests
+import socket
+from contextlib import closing
+
+def find_free_port():
+    """Find and return an available port to test connection errors."""
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+def test_connection_error():
+    """Test ConnectionError for a non-existent server."""
+    port = find_free_port()
+    with pytest.raises(requests.exceptions.ConnectionError):
+        requests.get(f"http://127.0.0.1:{port}", timeout=0.1)
+
+def test_timeout_error(base_url):
+    """Test Timeout exception for a slow response."""
+    with pytest.raises(requests.exceptions.Timeout):
+        requests.get(f"{base_url}/slow", timeout=0.1)
+
+def test_http_error_4xx(base_url):
+    """Test HTTPError is raised for 4xx status codes via raise_for_status()."""
+    response = requests.get(f"{base_url}/status/404")
+    assert response.status_code == 404
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response.raise_for_status()
+    assert "404 Client Error: Not Found for url" in str(excinfo.value)
+
+def test_http_error_5xx(base_url):
+    """Test HTTPError is raised for 5xx status codes via raise_for_status()."""
+    response = requests.get(f"{base_url}/status/500")
+    assert response.status_code == 500
+    with pytest.raises(requests.exceptions.HTTPError) as excinfo:
+        response.raise_for_status()
+    assert "500 Server Error: Internal Server Error for url" in str(excinfo.value)
+
+def test_no_http_error_on_success(base_url):
+    """Test that raise_for_status() does nothing on a successful status code."""
+    response = requests.get(f"{base_url}/status/200")
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError:
+        pytest.fail("raise_for_status() raised HTTPError on 200 OK")
+
+def test_too_many_redirects(base_url):
+    """Test TooManyRedirects exception."""
+    with requests.Session() as s:
+        # The default is 30, so we set it lower to speed up the test
+        s.max_redirects = 5
+        with pytest.raises(requests.exceptions.TooManyRedirects):
+            s.get(f"{base_url}/redirect/10")
+
+def test_redirects_allowed(base_url):
+    """Test successful redirection when within the configured limit."""
+    response = requests.get(f"{base_url}/redirect/3")
+    assert response.status_code == 200
+    assert response.text == 'Redirect finished'
+    assert len(response.history) == 3
+    assert response.history[0].status_code == 302
+    assert response.history[0].is_redirect
+</file:name>

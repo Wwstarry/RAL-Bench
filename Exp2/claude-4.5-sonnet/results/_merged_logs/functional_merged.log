@@ -1,0 +1,2718 @@
+####################################################################################################
+# MODEL: claude-4.5-sonnet
+# NUM_PROJECT_LOGS: 32
+####################################################################################################
+
+==========================================================================================
+PROJECT: Astral
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Astral\pytest_logs\functional.log
+==========================================================================================
+...........                                                              [100%]
+11 passed in 0.15s
+
+==========================================================================================
+PROJECT: Cachetools
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Cachetools\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+____________ ERROR collecting tests/Cachetools/functional_test.py _____________
+tests\Cachetools\functional_test.py:26: in <module>
+    from cachetools import LRUCache, TTLCache, cached  # type: ignore  # noqa: E402
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+generation\Cachetools\cachetools\keys.py:21: in <module>
+    class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+=========================== short test summary info ===========================
+ERROR tests/Cachetools/functional_test.py - TypeError: nonempty __slots__ not...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.73s
+
+==========================================================================================
+PROJECT: Celery
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Celery\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFF                                                               [100%]
+================================== FAILURES ===================================
+___________________ test_001_import_celery_and_core_symbols ___________________
+
+    def test_001_import_celery_and_core_symbols() -> None:
+        _ensure_celery_importable()
+        import celery  # noqa: F401
+    
+        from celery import Celery  # noqa: F401
+>       from celery import chain, chord, group, signature  # noqa: F401
+E       ImportError: cannot import name 'chain' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:61: ImportError
+______________ test_002_create_app_and_register_task_runs_delay _______________
+
+    def test_002_create_app_and_register_task_runs_delay() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_test.add")
+>       def add(x: int, y: int) -> int:
+
+tests\Celery\functional_test.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_002_create_app_and_register_task_runs_delay.<locals>.add at 0x000002C4D87A74C0>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+____ test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager ____
+
+    def test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager() -> None:
+        app = _make_app()
+    
+        @app.task(name="celery_test.mul")
+>       def mul(x: int, y: int) -> int:
+
+tests\Celery\functional_test.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager.<locals>.mul at 0x000002C4D87A73A0>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+__________________ test_004_group_collects_results_in_order ___________________
+
+    def test_004_group_collects_results_in_order() -> None:
+        app = _make_app()
+>       from celery import group
+E       ImportError: cannot import name 'group' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:90: ImportError
+____________________ test_005_chain_passes_previous_result ____________________
+
+    def test_005_chain_passes_previous_result() -> None:
+        app = _make_app()
+>       from celery import chain
+E       ImportError: cannot import name 'chain' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:104: ImportError
+_______________ test_006_chord_runs_callback_over_group_results _______________
+
+    def test_006_chord_runs_callback_over_group_results() -> None:
+        app = _make_app()
+>       from celery import chord, group
+E       ImportError: cannot import name 'chord' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:117: ImportError
+______________ test_007_task_exception_propagates_in_eager_mode _______________
+
+    def test_007_task_exception_propagates_in_eager_mode() -> None:
+        """
+        In some Celery versions/configs with task_always_eager=True and
+        task_eager_propagates=True, the exception is raised immediately during
+        delay()/apply_async() rather than on AsyncResult.get().
+    
+        This test accepts both correct behaviors:
+        - delay raises ValueError directly, OR
+        - delay returns a result whose .get() raises ValueError.
+        """
+        app = _make_app()
+    
+        @app.task(name="celery_test.boom")
+>       def boom() -> None:
+
+tests\Celery\functional_test.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_007_task_exception_propagates_in_eager_mode.<locals>.boom at 0x000002C4D873CE50>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+_____________ test_008_disable_propagation_returns_failed_result ______________
+
+    def test_008_disable_propagation_returns_failed_result() -> None:
+        """
+        With task_eager_propagates=False:
+          - Some Celery builds still raise on get(..., propagate=True)
+          - get(..., propagate=False) may return None OR return the exception object
+        We accept both behaviors as long as the task is marked failed.
+        """
+        app = _make_app()
+        app.conf.task_eager_propagates = False
+    
+        @app.task(name="celery_test.boom2")
+>       def boom2() -> None:
+
+tests\Celery\functional_test.py:169: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_008_disable_propagation_returns_failed_result.<locals>.boom2 at 0x000002C4D87A7940>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+_______________ test_009_signature_freeze_has_id_and_task_name ________________
+
+    def test_009_signature_freeze_has_id_and_task_name() -> None:
+        app = _make_app()
+>       from celery import signature
+E       ImportError: cannot import name 'signature' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:191: ImportError
+____________ test_010_default_app_does_not_break_custom_app_usage _____________
+
+    def test_010_default_app_does_not_break_custom_app_usage() -> None:
+        """
+        Ensure that importing celery and using a custom app is not polluted by globals.
+        """
+        app = _make_app("celery_test_app_2")
+    
+        @app.task(name="celery_test_app_2.add")
+>       def add(x: int, y: int) -> int:
+
+tests\Celery\functional_test.py:210: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+func = <function test_010_default_app_does_not_break_custom_app_usage.<locals>.add at 0x000002C4D87A7310>
+
+    def decorator(func):
+        name = opts.get('name') or f'{self.main}.{func.__name__}'
+        bind = opts.get('bind', False)
+    
+>       task = Task(
+            func=func,
+            name=name,
+            app=self,
+            bind=bind,
+            **opts
+        )
+E       TypeError: celery.app.task.Task() got multiple values for keyword argument 'name'
+
+generation\Celery\celery\app\base.py:80: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Celery/functional_test.py::test_001_import_celery_and_core_symbols
+FAILED tests/Celery/functional_test.py::test_002_create_app_and_register_task_runs_delay
+FAILED tests/Celery/functional_test.py::test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager
+FAILED tests/Celery/functional_test.py::test_004_group_collects_results_in_order
+FAILED tests/Celery/functional_test.py::test_005_chain_passes_previous_result
+FAILED tests/Celery/functional_test.py::test_006_chord_runs_callback_over_group_results
+FAILED tests/Celery/functional_test.py::test_007_task_exception_propagates_in_eager_mode
+FAILED tests/Celery/functional_test.py::test_008_disable_propagation_returns_failed_result
+FAILED tests/Celery/functional_test.py::test_009_signature_freeze_has_id_and_task_name
+FAILED tests/Celery/functional_test.py::test_010_default_app_does_not_break_custom_app_usage
+10 failed in 0.83s
+
+==========================================================================================
+PROJECT: Click
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Click\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_______________ ERROR collecting tests/Click/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Click\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Click\functional_test.py:128: in <module>
+    import click  # type: ignore  # noqa: E402
+generation\Click\click\__init__.py:5: in <module>
+    from .core import (
+generation\Click\click\core.py:8: in <module>
+    from .utils import make_str, make_default_short_help
+E   ModuleNotFoundError: No module named 'click.utils'
+=========================== short test summary info ===========================
+ERROR tests/Click/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 4.28s
+
+==========================================================================================
+PROJECT: Cmd2
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Cmd2\pytest_logs\functional.log
+==========================================================================================
+..FF....F..                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_echo_arguments_and_parsing _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x000001FD7ADEE820>
+
+    def test_echo_arguments_and_parsing(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, "echo_args one two three")
+>       assert "one two three" in output
+E       AssertionError: assert 'one two three' in '\n'
+
+tests\Cmd2\functional_test.py:276: AssertionError
+_______________________ test_echo_arguments_with_quotes _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x000001FD7ADE3490>
+
+    def test_echo_arguments_with_quotes(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, 'echo_args "hello world" two')
+>       assert "hello world two" in output
+E       AssertionError: assert 'hello world two' in '\n'
+
+tests\Cmd2\functional_test.py:283: AssertionError
+_____________________ test_multiple_commands_and_history ______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x000001FD7AD87490>
+
+    def test_multiple_commands_and_history(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        commands = ["greet Alice", "greet Bob", "history"]
+        output = run_commands(app, commands)
+>       assert "Hello Alice" in output
+E       AssertionError: assert 'Hello Alice' in ''
+
+tests\Cmd2\functional_test.py:321: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_and_parsing - Asser...
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_with_quotes - Asser...
+FAILED tests/Cmd2/functional_test.py::test_multiple_commands_and_history - As...
+3 failed, 8 passed in 4.17s
+
+==========================================================================================
+PROJECT: Dataset
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Dataset\pytest_logs\functional.log
+==========================================================================================
+FF...F..F.F                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+        alice = table.find_one(name="Alice")
+        assert alice is not None
+        assert alice["country"] == "DE"
+    
+>       older = list(table.find(age={">=": 40}))
+
+tests\Dataset\functional_test.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:233: in find
+    cursor = self.database.execute(sql, values)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x000001D902AB6AF0>
+sql = 'SELECT * FROM users WHERE age = ?', params = [{'>=': 40}]
+
+    def execute(self, sql, params=None):
+        """
+        Execute a SQL statement.
+    
+        Args:
+            sql: SQL statement
+            params: Parameters (dict or tuple)
+    
+        Returns:
+            Cursor object
+        """
+        if params is None:
+            params = {}
+>       return self._connection.execute(sql, params)
+E       sqlite3.InterfaceError: Error binding parameter 0 - probably unsupported type.
+
+generation\Dataset\dataset\database.py:107: InterfaceError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+        updated = table.find_one(account_id=1)
+        assert updated is not None
+>       assert pytest.approx(updated["balance"]) == 150.0
+E       assert 150.0 == 150.0
+E         
+E         comparison failed
+E         Obtained: 150.0
+E         Expected: 150.0
+
+tests\Dataset\functional_test.py:184: AssertionError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+>       rows = list(table.find(order_by="n", _limit=3, _offset=4))
+
+tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:233: in find
+    cursor = self.database.execute(sql, values)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x000001D902AA8610>
+sql = 'SELECT * FROM nums WHERE order_by = ? AND _limit = ? AND _offset = ?'
+params = ['n', 3, 4]
+
+    def execute(self, sql, params=None):
+        """
+        Execute a SQL statement.
+    
+        Args:
+            sql: SQL statement
+            params: Parameters (dict or tuple)
+    
+        Returns:
+            Cursor object
+        """
+        if params is None:
+            params = {}
+>       return self._connection.execute(sql, params)
+E       sqlite3.OperationalError: no such column: order_by
+
+generation\Dataset\dataset\database.py:107: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<dataset.database.Database object at 0x000001D902B733D0>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+    
+        distinct = list(table.distinct("c"))
+>       values = {r["c"] for r in distinct}
+
+tests\Dataset\functional_test.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000001D902B77A30>
+
+>   values = {r["c"] for r in distinct}
+E   TypeError: string indices must be integers
+
+tests\Dataset\functional_test.py:333: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - ass...
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+5 failed, 6 passed in 4.48s
+
+==========================================================================================
+PROJECT: Fail2ban
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Fail2ban\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.09s
+
+==========================================================================================
+PROJECT: Glances
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Glances\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.51s
+
+==========================================================================================
+PROJECT: Humanize
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Humanize\pytest_logs\functional.log
+==========================================================================================
+............Fss                                                          [100%]
+================================== FAILURES ===================================
+_________________________ test_intword_thousand_scale _________________________
+
+    def test_intword_thousand_scale() -> None:
+        if not hasattr(humanize, "intword"):
+            pytest.skip("humanize.intword is not available in this repository/version.")
+        s = humanize.intword(12_000)
+        assert isinstance(s, str)
+        assert s
+>       assert "thousand" in s.lower()
+E       AssertionError: assert 'thousand' in '12,000'
+E        +  where '12,000' = <built-in method lower of str object at 0x000001F5AF1083B0>()
+E        +    where <built-in method lower of str object at 0x000001F5AF1083B0> = '12,000'.lower
+
+tests\Humanize\functional_test.py:195: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_intword_thousand_scale - Asser...
+1 failed, 12 passed, 2 skipped in 0.54s
+
+==========================================================================================
+PROJECT: Imageio
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Imageio\pytest_logs\functional.log
+==========================================================================================
+...F..F.F.                                                               [100%]
+================================== FAILURES ===================================
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+
+tests\Imageio\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:416: in imwrite
+    _write_png(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('<bytes>')
+image = array([[[157, 193, 255],
+        [178, 141, 177],
+        [ 50,  58, 222],
+        ...,
+        [249,   7, 141],
+     ...[  9, 234,  27],
+        ...,
+        [219, 110, 131],
+        [255, 135, 132],
+        [203,  36, 116]]], dtype=uint8)
+
+    def _write_png(path: Path, image: np.ndarray) -> None:
+        """Write a single image as PNG."""
+        if image.ndim == 2:
+            # Grayscale
+            height, width = image.shape
+            color_type = 0
+            channels = 1
+            data = image.reshape(height, width, 1)
+        elif image.ndim == 3:
+            height, width, channels = image.shape
+            if channels == 1:
+                color_type = 0
+            elif channels == 3:
+                color_type = 2
+            else:
+                raise ValueError(f"Unsupported number of channels: {channels}")
+            data = image
+        else:
+            raise ValueError(f"Unsupported image dimensions: {image.ndim}")
+    
+        # Convert to uint8 if needed
+        if data.dtype != np.uint8:
+            data = data.astype(np.uint8)
+    
+>       with open(path, 'wb') as f:
+E       OSError: [Errno 22] Invalid argument: '<bytes>'
+
+generation\Imageio\imageio\v3.py:47: OSError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-283/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape[0] == frames.shape[0]
+E       assert 20 == 5
+
+tests\Imageio\functional_test.py:194: AssertionError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-283/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+3 failed, 7 passed in 1.08s
+
+==========================================================================================
+PROJECT: Lifelines
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Lifelines\pytest_logs\functional.log
+==========================================================================================
+.....FFFF.F..F.                                                          [100%]
+================================== FAILURES ===================================
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       cd = kmf.cumulative_density_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'cumulative_density_'
+
+tests\Lifelines\functional_test.py:170: AttributeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+        et = kmf.event_table
+        for col in ["removed", "observed", "censored", "at_risk"]:
+>           assert col in et.columns
+E           AssertionError: assert 'removed' in Index(['at_risk', 'observed'], dtype='object')
+E            +  where Index(['at_risk', 'observed'], dtype='object') =    at_risk  observed\n2        6         1\n3        5         0\n4        4         1\n5        3         1\n6        2         1.columns
+
+tests\Lifelines\functional_test.py:185: AssertionError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+>       ci = kmf.confidence_interval_
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'confidence_interval_'
+
+tests\Lifelines\functional_test.py:192: AttributeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+        kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+    
+>       m = float(kmf.median_survival_time_)
+E       AttributeError: 'KaplanMeierFitter' object has no attribute 'median_survival_time_'
+
+tests\Lifelines\functional_test.py:206: AttributeError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       bch = cph.baseline_cumulative_hazard_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'
+
+tests\Lifelines\functional_test.py:225: AttributeError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+6 failed, 9 passed in 3.53s
+
+==========================================================================================
+PROJECT: Mitmproxy
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Mitmproxy\pytest_logs\functional.log
+==========================================================================================
+........FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+3 failed, 8 passed in 0.63s
+
+==========================================================================================
+PROJECT: Mutagen
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Mutagen\pytest_logs\functional.log
+==========================================================================================
+.....F.F....                                                             [100%]
+================================== FAILURES ===================================
+________________ test_easyid3_genre_and_albumartist_roundtrip _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-284/test_easyid3_genre_and_albumar0')
+
+    def test_easyid3_genre_and_albumartist_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common optional fields via EasyID3 (genre/albumartist)."""
+        audio_path = tmp_path / "genre_albumartist.mp3"
+    
+        tags = EasyID3()
+        tags["title"] = ["Tagged Song"]
+        tags["artist"] = ["Main Artist"]
+>       tags["albumartist"] = ["Album Artist"]
+
+tests\Mutagen\functional_test.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.easyid3.EasyID3 object at 0x00000126B5AC5AF0>
+key = 'albumartist', value = ['Album Artist']
+
+    def __setitem__(self, key, value):
+        """
+        Set tag values for a key.
+    
+        Args:
+            key: Tag key (e.g., "title", "artist")
+            value: List of string values
+        """
+        if key not in _EASY_MAP:
+>           raise KeyError(key)
+E           KeyError: 'albumartist'
+
+generation\Mutagen\mutagen\easyid3.py:74: KeyError
+_______________ test_low_level_id3_frames_with_comment_and_apic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-284/test_low_level_id3_frames_with0')
+
+    def test_low_level_id3_frames_with_comment_and_apic(tmp_path: Path) -> None:
+        """Use low-level ID3 frames to store text and embedded artwork."""
+        audio_path = tmp_path / "id3_frames.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Frame Title"))
+        tags.add(TPE1(encoding=3, text="Frame Artist"))
+        tags.add(
+            COMM(
+                encoding=3,
+                lang="eng",
+                desc="Comment",
+                text="This is a test comment.",
+            )
+        )
+    
+        image_data = b"\xff\xd8\xff\x00FAKEJPEGDATA"
+        tags.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=image_data,
+            )
+        )
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+    
+>       assert "TIT2" in loaded
+
+tests\Mutagen\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000126B5ABC7C0>, frame_id = 0
+
+    def __getitem__(self, frame_id):
+        """Get the first frame with the given ID."""
+        frames = self._frames.get(frame_id, [])
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 0
+
+generation\Mutagen\mutagen\id3.py:216: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Mutagen/functional_test.py::test_easyid3_genre_and_albumartist_roundtrip
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_frames_with_comment_and_apic
+2 failed, 10 passed in 0.68s
+
+==========================================================================================
+PROJECT: Pendulum
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Pendulum\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.19s
+
+==========================================================================================
+PROJECT: Petl
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Petl\pytest_logs\functional.log
+==========================================================================================
+...ss.Fs.sss                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_sort_descending_orders_values ______________________
+
+    def test_sort_descending_orders_values() -> None:
+        """Sort descending by a numeric field."""
+        _require_attr("sort")
+    
+        records = [
+            {"name": "A", "score": 10},
+            {"name": "B", "score": 30},
+            {"name": "C", "score": 20},
+        ]
+        table = petl.fromdicts(records, header=["name", "score"])
+    
+        # petl.sort supports reverse=True in typical implementations.
+>       sorted_tbl = petl.sort(table, "score", reverse=True)
+E       TypeError: sort() got an unexpected keyword argument 'reverse'
+
+tests\Petl\functional_test.py:278: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Petl/functional_test.py::test_sort_descending_orders_values - Ty...
+1 failed, 5 passed, 6 skipped in 0.62s
+
+==========================================================================================
+PROJECT: Pygments
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Pygments\pytest_logs\functional.log
+==========================================================================================
+Traceback (most recent call last):
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 188, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 147, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 111, in _get_module_details
+    __import__(pkg_name)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytest\__init__.py", line 8, in <module>
+    from _pytest._code import ExceptionInfo
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\__init__.py", line 5, in <module>
+    from .code import Code
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\code.py", line 44, in <module>
+    from _pytest._io import TerminalWriter
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\__init__.py", line 3, in <module>
+    from .terminalwriter import get_terminal_width
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\terminalwriter.py", line 14, in <module>
+    from pygments.formatters.terminal import TerminalFormatter
+ModuleNotFoundError: No module named 'pygments.formatters.terminal'
+
+==========================================================================================
+PROJECT: PyJWT
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\PyJWT\pytest_logs\functional.log
+==========================================================================================
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <jwt.api_jwt.PyJWT object at 0x0000022A157F0FD0>
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', headers = None, json_encoder = None
+
+    def encode(self, payload, key, algorithm="HS256", headers=None, json_encoder=None):
+        """
+        Encode a payload into a JWT string.
+    
+        Args:
+            payload: Dictionary containing the claims
+            key: Secret key for signing
+            algorithm: Signing algorithm (only HS256 supported)
+            headers: Optional additional headers
+            json_encoder: Optional custom JSON encoder
+    
+        Returns:
+            JWT string in format: header.payload.signature
+        """
+        if algorithm != "HS256":
+>           raise NotImplementedError(f"Algorithm {algorithm} not supported")
+E           NotImplementedError: Algorithm HS512 not supported
+
+generation\PyJWT\jwt\api_jwt.py:56: NotImplementedError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:65: in encode
+    payload_bytes = json.dumps(payload, separators=(',', ':'), cls=json_encoder).encode('utf-8')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000022A15875AC0>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:65: in encode
+    payload_bytes = json.dumps(payload, separators=(',', ':'), cls=json_encoder).encode('utf-8')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000022A158711C0>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - N...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.63s
+
+==========================================================================================
+PROJECT: PyPDF
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\PyPDF\pytest_logs\functional.log
+==========================================================================================
+FFFFFF.FFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+        _create_simple_pdf(pdf_path, num_pages=3)
+    
+        reader = PdfReader(str(pdf_path))
+>       assert len(reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf.reader.PdfReader object at 0x000001EE665A10D0>.pages
+
+tests\PyPDF\functional_test.py:137: AssertionError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+        reader = PdfReader(str(pdf_path))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:146: IndexError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+        _create_simple_pdf(pdf1, num_pages=1)
+        _create_simple_pdf(pdf2, num_pages=2)
+    
+        _write_pdf_with_pages([pdf1, pdf2], merged)
+    
+        merged_reader = PdfReader(str(merged))
+>       assert len(merged_reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf.reader.PdfReader object at 0x000001EE666258B0>.pages
+
+tests\PyPDF\functional_test.py:165: AssertionError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+        _create_simple_pdf(src, num_pages=4)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 4
+E       assert 0 == 4
+E        +  where 0 = len([])
+E        +    where [] = <pypdf.reader.PdfReader object at 0x000001EE665B57F0>.pages
+
+tests\PyPDF\functional_test.py:183: AssertionError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:192: IndexError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:213: IndexError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:260: IndexError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        writer.add_metadata(
+            {
+                "/Title": "PyPDF Benchmark Document",
+                "/Author": "RealAppCodeBench",
+            }
+        )
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       meta = reader2.metadata
+
+tests\PyPDF\functional_test.py:296: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <pypdf.reader.PdfReader object at 0x000001EE666255B0>
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        """Get document metadata."""
+        if b'/Info' in self._trailer:
+            info_ref = self._trailer[b'/Info']
+            info_dict = self._resolve_object(info_ref)
+    
+            # Convert to string keys
+            result = {}
+>           for key, value in info_dict.items():
+E           AttributeError: 'bytes' object has no attribute 'items'
+
+generation\PyPDF\pypdf\reader.py:324: AttributeError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:310: IndexError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-286/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+        _create_simple_pdf(src, num_pages=3)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for p in reader.pages:
+            writer.add_page(p)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf.reader.PdfReader object at 0x000001EE665BF040>.pages
+
+tests\PyPDF\functional_test.py:372: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - asser...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - In...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - assert 0 == 3
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - IndexError: list in...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Inde...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AttributeErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+10 failed, 1 passed, 1 skipped in 0.87s
+
+==========================================================================================
+PROJECT: Requests
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Requests\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Requests/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Requests\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Requests\functional_test.py:40: in <module>
+    import requests  # noqa: E402
+generation\Requests\requests\__init__.py:21: in <module>
+    from .api import request, get, head, post, patch, put, delete, options
+E   ModuleNotFoundError: No module named 'requests.api'
+=========================== short test summary info ===========================
+ERROR tests/Requests/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.72s
+
+==========================================================================================
+PROJECT: Rich
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Rich\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.19s
+
+==========================================================================================
+PROJECT: Schedule
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Schedule\pytest_logs\functional.log
+==========================================================================================
+...F........                                                             [100%]
+================================== FAILURES ===================================
+__________________ test_repeat_decorator_registers_and_runs ___________________
+
+    def test_repeat_decorator_registers_and_runs() -> None:
+        """@repeat(every(...)) schedules a function correctly and run_all triggers it."""
+        _clear()
+        call_count = 0
+    
+>       @schedule.repeat(schedule.every().seconds)
+E       AttributeError: module 'schedule' has no attribute 'repeat'
+
+tests\Schedule\functional_test.py:164: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs
+1 failed, 11 passed in 0.49s
+
+==========================================================================================
+PROJECT: Slugify
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Slugify\pytest_logs\functional.log
+==========================================================================================
+.......F....                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+>       assert result_default_sep.startswith("___")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x000001B9F1454E30>('___')
+E        +    where <built-in method startswith of str object at 0x000001B9F1454E30> = 'thisisatest'.startswith
+
+tests\Slugify\functional_test.py:173: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+1 failed, 11 passed in 0.50s
+
+==========================================================================================
+PROJECT: Sqlmap
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Sqlmap\pytest_logs\functional.log
+==========================================================================================
+..FFFFF.F                                                                [100%]
+================================== FAILURES ===================================
+______________ test_003_help_runs_and_mentions_usage_or_options _______________
+
+    def test_003_help_runs_and_mentions_usage_or_options():
+        p = _run_cli(["-h"], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...odule>\n    from lib.parse.cmdline import cmdLineParser\nModuleNotFoundError: No module named \'lib.parse.cmdline\'\n').returncode
+
+tests\Sqlmap\functional_test.py:58: AssertionError
+_________________________ test_004_advanced_help_runs _________________________
+
+    def test_004_advanced_help_runs():
+        p = _run_cli(["-hh"], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...odule>\n    from lib.parse.cmdline import cmdLineParser\nModuleNotFoundError: No module named \'lib.parse.cmdline\'\n').returncode
+
+tests\Sqlmap\functional_test.py:65: AssertionError
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       assert None is not None
+E        +  where None = <function search at 0x000001FBE47699D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...module>\n    from lib.parse.cmdline import cmdlineparser\nmodulenotfounderror: no module named \'lib.parse.cmdline\'\n')
+E        +    where <function search at 0x000001FBE47699D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+________________ test_006_invalid_option_reports_error_cleanly ________________
+
+    def test_006_invalid_option_reports_error_cleanly():
+        """
+        In sqlmap reference, invalid options can still return code 0 in some paths,
+        but stderr includes 'no such option' (argparse style). We assert on the message.
+        """
+        p = _run_cli(["--this-option-should-not-exist"], timeout_s=30)
+        out = _out(p)
+    
+        # Must clearly indicate option parsing failure; do NOT assert return code.
+>       assert ("no such option" in out) or ("unrecognized" in out) or ("unknown" in out)
+E       assert ('no such option' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...module>\n    from lib.parse.cmdline import cmdlineparser\nmodulenotfounderror: no module named \'lib.parse.cmdline\'\n' or 'unrecognized' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...module>\n    from lib.parse.cmdline import cmdlineparser\nmodulenotfounderror: no module named \'lib.parse.cmdline\'\n' or 'unknown' in '\ntraceback (most recent call last):\n  file "d:\\桌面\\realappcodebench_generic_eval\\generation\\sqlmap\\sqlmap.py", ...module>\n    from lib.parse.cmdline import cmdlineparser\nmodulenotfounderror: no module named \'lib.parse.cmdline\'\n')
+
+tests\Sqlmap\functional_test.py:92: AssertionError
+______________ test_007_alignment_api_surface_symbols_importable ______________
+
+    def test_007_alignment_api_surface_symbols_importable():
+        """
+        Alignment anchors (must exist in BOTH reference and generated repos):
+    
+          - lib.parse.cmdline.cmdLineParser
+          - lib.core.option.init, lib.core.option.initOptions
+          - lib.core.data: cmdLineOptions, conf, kb
+          - lib.core.settings: VERSION, DESCRIPTION
+          - lib.controller.controller.start
+    
+        Only checks importability + symbol presence; does not execute scanning logic.
+        """
+        repo = _repo_root()
+        sys.path.insert(0, str(repo))
+        try:
+>           from lib.parse.cmdline import cmdLineParser  # noqa: F401
+E           ModuleNotFoundError: No module named 'lib.parse.cmdline'
+
+tests\Sqlmap\functional_test.py:110: ModuleNotFoundError
+__________ test_009_unicode_output_dir_argument_stable_in_help_mode ___________
+
+    def test_009_unicode_output_dir_argument_stable_in_help_mode():
+        root = _project_root()
+        out_dir = root / "generation" / "Sqlmap" / "tmp_输出"
+        out_dir.mkdir(parents=True, exist_ok=True)
+    
+        p = _run_cli(["-h", "--output-dir", str(out_dir)], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...odule>\n    from lib.parse.cmdline import cmdLineParser\nModuleNotFoundError: No module named \'lib.parse.cmdline\'\n').returncode
+
+tests\Sqlmap\functional_test.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_003_help_runs_and_mentions_usage_or_options
+FAILED tests/Sqlmap/functional_test.py::test_004_advanced_help_runs - Asserti...
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+FAILED tests/Sqlmap/functional_test.py::test_006_invalid_option_reports_error_cleanly
+FAILED tests/Sqlmap/functional_test.py::test_007_alignment_api_surface_symbols_importable
+FAILED tests/Sqlmap/functional_test.py::test_009_unicode_output_dir_argument_stable_in_help_mode
+6 failed, 3 passed in 2.06s
+
+==========================================================================================
+PROJECT: SQLModel
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\SQLModel\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/SQLModel/functional_test.py ______________
+tests\SQLModel\functional_test.py:34: in <module>
+    SQLModel.metadata.clear()
+E   AttributeError: type object 'SQLModel' has no attribute 'metadata'
+=========================== short test summary info ===========================
+ERROR tests/SQLModel/functional_test.py - AttributeError: type object 'SQLMod...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.72s
+
+==========================================================================================
+PROJECT: Stegano
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Stegano\pytest_logs\functional.log
+==========================================================================================
+.F..........                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-290/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+input_image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x000001DEB7E1AB30>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(input_image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hide a message in an image using LSB steganography.
+    
+        Args:
+            input_image: Path to image file or PIL Image object
+            message: String message to hide
+            generator: Optional generator for pixel selection (default: sequential)
+            shift: Offset for generator sequence
+            encoding: Text encoding (default: UTF-8)
+            auto_convert_rgb: Convert image to RGB if needed
+    
+        Returns:
+            PIL Image object with hidden message
+        """
+        if isinstance(input_image, str):
+            img = Image.open(input_image)
+        else:
+            img = input_image.copy()
+    
+        # Convert to RGB if needed
+        if img.mode not in ('RGB', 'RGBA'):
+            if auto_convert_rgb:
+                img = img.convert('RGB')
+            else:
+                raise ValueError(f"Image mode {img.mode} not supported. Use auto_convert_rgb=True or convert to RGB.")
+    
+        # Encode message to bytes and add null terminator
+        message_bytes = message.encode(encoding)
+        message_bytes += b'\x00\x00\x00\x00'  # 4-byte null terminator
+    
+        # Convert bytes to bits
+        bits = []
+        for byte in message_bytes:
+            for i in range(8):
+                bits.append((byte >> (7 - i)) & 1)
+    
+        # Get image dimensions
+        width, height = img.size
+        pixels = img.load()
+    
+        # Create generator for pixel positions
+        if generator is None:
+            # Sequential generator
+            def sequential_gen():
+                idx = 0
+                while True:
+                    yield idx
+                    idx += 1
+            gen = sequential_gen()
+        else:
+>           gen = generator()
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:60: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+1 failed, 11 passed in 2.89s
+
+==========================================================================================
+PROJECT: Tablib
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Tablib\pytest_logs\functional.log
+==========================================================================================
+.F..F.F.F.F                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000277FA1EDF10>, fmt = 'tsv'
+
+    def export(self, fmt):
+        """Export dataset to a format.
+    
+        Args:
+            fmt: Format string ('csv', 'json', etc.)
+    
+        Returns:
+            String representation in the requested format
+        """
+        fmt = fmt.lower()
+    
+        if fmt == 'csv':
+            from tablib.formats import _csv
+            return _csv.export_set(self)
+        elif fmt == 'json':
+            from tablib.formats import _json
+            return _json.export_set(self)
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:157: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+_________________ test_dataset_title_and_headers_persistence __________________
+
+    def test_dataset_title_and_headers_persistence() -> None:
+        """Dataset title and headers should be assignable and remain consistent."""
+        data = tablib.Dataset(headers=("k", "v"))
+        data.title = "Config"
+        data.append(("a", 1))
+        data.append(("b", 2))
+    
+        assert getattr(data, "title") == "Config"
+        assert tuple(data.headers) == ("k", "v")
+        assert data.height == 2
+>       assert data[1][0] == "b"
+
+tests\Tablib\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000277FA268CD0>, key = 1
+
+    def __getitem__(self, key):
+        """Get rows by slice or column by name.
+    
+        Args:
+            key: Either a slice for rows or a string for column access
+    
+        Returns:
+            For slice: list of row tuples
+            For string: list of column values
+        """
+        if isinstance(key, slice):
+            return self._data[key]
+        elif isinstance(key, str):
+            # Column access by header name
+            if self._headers is None:
+                raise KeyError(f"No headers defined")
+            if key not in self._headers:
+                raise KeyError(f"Column '{key}' not found")
+    
+            col_index = self._headers.index(key)
+            return [row[col_index] if col_index < len(row) else None for row in self._data]
+        else:
+>           raise TypeError(f"Invalid key type: {type(key)}")
+E           TypeError: Invalid key type: <class 'int'>
+
+generation\Tablib\tablib\core.py:119: TypeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000277FA2973D0>, fmt = 'html'
+
+    def export(self, fmt):
+        """Export dataset to a format.
+    
+        Args:
+            fmt: Format string ('csv', 'json', etc.)
+    
+        Returns:
+            String representation in the requested format
+        """
+        fmt = fmt.lower()
+    
+        if fmt == 'csv':
+            from tablib.formats import _csv
+            return _csv.export_set(self)
+        elif fmt == 'json':
+            from tablib.formats import _json
+            return _json.export_set(self)
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:157: ValueError
+_________________ test_databook_add_sheet_and_iteration_order _________________
+
+    def test_databook_add_sheet_and_iteration_order() -> None:
+        """Databook should allow adding sheets and preserve the order in iteration."""
+        s1 = tablib.Dataset((1, "x"), headers=("id", "val"))
+        s1.title = "S1"
+        s2 = tablib.Dataset((2, "y"), headers=("id", "val"))
+        s2.title = "S2"
+    
+        book = tablib.Databook([s1])
+    
+        if hasattr(book, "add_sheet"):
+            book.add_sheet(s2)  # type: ignore[attr-defined]
+        else:
+            # Fallback: reconstruct via the public constructor (still normal usage).
+            book = tablib.Databook([s1, s2])
+    
+        assert book.size == 2
+    
+        sheets = _iter_databook_sheets(book)
+        assert len(sheets) == 2
+        assert sheets[0].title == "S1"
+        assert sheets[1].title == "S2"
+>       assert sheets[0][0] == (1, "x")
+
+tests\Tablib\functional_test.py:365: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x00000277FA211D90>, key = 0
+
+    def __getitem__(self, key):
+        """Get rows by slice or column by name.
+    
+        Args:
+            key: Either a slice for rows or a string for column access
+    
+        Returns:
+            For slice: list of row tuples
+            For string: list of column values
+        """
+        if isinstance(key, slice):
+            return self._data[key]
+        elif isinstance(key, str):
+            # Column access by header name
+            if self._headers is None:
+                raise KeyError(f"No headers defined")
+            if key not in self._headers:
+                raise KeyError(f"Column '{key}' not found")
+    
+            col_index = self._headers.index(key)
+            return [row[col_index] if col_index < len(row) else None for row in self._data]
+        else:
+>           raise TypeError(f"Invalid key type: {type(key)}")
+E           TypeError: Invalid key type: <class 'int'>
+
+generation\Tablib\tablib\core.py:119: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_title_and_headers_persistence
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_add_sheet_and_iteration_order
+5 failed, 6 passed in 0.70s
+
+==========================================================================================
+PROJECT: Tabulate
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Tabulate\pytest_logs\functional.log
+==========================================================================================
+..FFFF....F.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+        output = tabulate(table, headers="firstrow", tablefmt="simple")
+        lines = _lines(output)
+    
+>       assert lines[0].strip().startswith("Name")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000019D3251F470>('Name')
+E        +    where <built-in method startswith of str object at 0x0000019D3251F470> = '-----  ---'.startswith
+E        +      where '-----  ---' = <built-in method strip of str object at 0x0000019D3251F470>()
+E        +        where <built-in method strip of str object at 0x0000019D3251F470> = '-----  ---'.strip
+
+tests\Tabulate\functional_test.py:120: AssertionError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+        output = tabulate(table, headers="keys")
+        lines = _lines(output)
+    
+>       assert "Name" in lines[0]
+E       AssertionError: assert 'Name' in '----------------  --------'
+
+tests\Tabulate\functional_test.py:137: AssertionError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+        out_true = tabulate(table, showindex=True)
+        lines_true = _lines(out_true)
+>       assert any(line.lstrip().startswith("0") for line in lines_true)
+E       assert False
+E        +  where False = any(<generator object test_showindex_variants.<locals>.<genexpr> at 0x0000019D3249B190>)
+
+tests\Tabulate\functional_test.py:153: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+        out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+        lines_gh = _lines(out_github)
+>       assert lines_gh[0].startswith("|")
+E       AssertionError: assert False
+E        +  where False = <built-in method startswith of str object at 0x0000019D3249C8B0>('|')
+E        +    where <built-in method startswith of str object at 0x0000019D3249C8B0> = 'item githubqty'.startswith
+
+tests\Tabulate\functional_test.py:172: AssertionError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - assert False
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Asse...
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+5 failed, 7 passed in 0.62s
+
+==========================================================================================
+PROJECT: Termgraph
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Termgraph\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B2EAC0>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B2EA60>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Test Chart
+
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B7E940>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000021064B7E370>
+
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stacked Chart
+
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B76D60>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B76D90>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Bars
+
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B0E340>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B0E6A0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# No Values
+
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B80A30>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B80760>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# No Labels
+
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B916D0>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B91A60>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Suffix
+
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064BD3C70>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064BD3D00>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Fmt
+
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B92BB0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000021064B92550>
+
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stack Labels
+
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064AEFD60>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:177: in draw
+    total = sum(v if v > 0 else 0 for v in values_list)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000021064AEF1F0>
+
+>   total = sum(v if v > 0 else 0 for v in values_list)
+E   TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:177: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Stack No Values
+
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064BDE2E0>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064BDE700>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000021064B88BB0>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x0000021064B88C70>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Narrow
+
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 27.79s
+
+==========================================================================================
+PROJECT: TheFuck
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\TheFuck\pytest_logs\functional.log
+==========================================================================================
+......F.....                                                             [100%]
+================================== FAILURES ===================================
+________ test_007_no_command_suggests_python_when_only_python_in_path _________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-291/test_007_no_command_suggests_p0')
+
+    def test_007_no_command_suggests_python_when_only_python_in_path(tmp_path: Path) -> None:
+        """
+        With PATH constrained to a directory containing only python.cmd,
+        the best correction for 'pythno' should include 'python' in the suggestion.
+        """
+        _, get_new_fn = _import_no_command_rule()
+    
+        _make_windows_cmd(tmp_path, "python")
+    
+        with _with_temp_path(tmp_path):
+            cmd = FakeCommand(
+                script="pythno -V",
+                stderr=_windows_command_not_found_output("pythno"),
+                returncode=1,
+            )
+            suggestion = _coerce_suggestion(get_new_fn(cmd)).lower()
+>           assert "python" in suggestion, f"expected suggestion to contain 'python', got: {suggestion!r}"
+E           AssertionError: expected suggestion to contain 'python', got: 'pythno -v'
+E           assert 'python' in 'pythno -v'
+
+tests\TheFuck\functional_test.py:195: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/TheFuck/functional_test.py::test_007_no_command_suggests_python_when_only_python_in_path
+1 failed, 11 passed in 0.57s
+
+==========================================================================================
+PROJECT: TinyDB
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\TinyDB\pytest_logs\functional.log
+==========================================================================================
+.F....F.FFF.                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_multiple_tables_isolation ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-292/test_multiple_tables_isolation0')
+
+    def test_multiple_tables_isolation(tmp_path: Path) -> None:
+        """Data in different tables should be isolated."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "write code", "done": False})
+        tasks.insert({"title": "write tests", "done": False})
+        logs.insert({"event": "created_tasks"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:88: TypeError
+___________________________ test_contains_and_count ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-292/test_contains_and_count0')
+
+    def test_contains_and_count(tmp_path: Path) -> None:
+        """contains and count should reflect stored data and queries."""
+        db = _open_db(tmp_path)
+        User = Query()
+    
+        db.insert({"name": "Alice", "age": 30})
+        db.insert({"name": "Bob", "age": 25})
+        db.insert({"name": "Charlie", "age": 35})
+    
+>       assert db.contains(User.name == "Alice") is True
+E       AttributeError: 'TinyDB' object has no attribute 'contains'
+
+tests\TinyDB\functional_test.py:180: AttributeError
+_________________ test_table_truncate_clears_only_that_table __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-292/test_table_truncate_clears_onl0')
+
+    def test_table_truncate_clears_only_that_table(tmp_path: Path) -> None:
+        """truncate on a table should clear its rows without affecting other tables."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "t1"})
+        tasks.insert({"title": "t2"})
+        logs.insert({"event": "created"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:215: TypeError
+____________________________ test_update_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-292/test_update_by_doc_id0')
+
+    def test_update_by_doc_id(tmp_path: Path) -> None:
+        """update with doc_ids should modify the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        doc_id = table.insert({"name": "ItemA", "qty": 1})
+>       assert len(table) == 1
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:231: TypeError
+____________________________ test_remove_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-292/test_remove_by_doc_id0')
+
+    def test_remove_by_doc_id(tmp_path: Path) -> None:
+        """remove with doc_ids should delete the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        id1 = table.insert({"name": "A"})
+        id2 = table.insert({"name": "B"})
+>       assert len(table) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:249: TypeError
+=========================== short test summary info ===========================
+FAILED tests/TinyDB/functional_test.py::test_multiple_tables_isolation - Type...
+FAILED tests/TinyDB/functional_test.py::test_contains_and_count - AttributeEr...
+FAILED tests/TinyDB/functional_test.py::test_table_truncate_clears_only_that_table
+FAILED tests/TinyDB/functional_test.py::test_update_by_doc_id - TypeError: ob...
+FAILED tests/TinyDB/functional_test.py::test_remove_by_doc_id - TypeError: ob...
+5 failed, 7 passed in 0.76s
+
+==========================================================================================
+PROJECT: Typer
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Typer\pytest_logs\functional.log
+==========================================================================================
+FFF..F.FFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+        app = _create_greeter_app()
+        result = runner.invoke(app, ["World"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x00000246BDAA1DC0>.exit_code
+
+tests\Typer\functional_test.py:199: AssertionError
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+        app = _create_greeter_app()
+        # Safer ordering across Click versions: options before args.
+        result = runner.invoke(app, ["--excited", "World"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x00000246BDAAF700>.exit_code
+
+tests\Typer\functional_test.py:207: AssertionError
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+        app = _create_greeter_app()
+        result = runner.invoke(app, ["--help"])
+        assert result.exit_code == 0
+        out = result.stdout
+>       assert "--excited" in out
+E       AssertionError: assert '--excited' in 'Usage: [OPTIONS] COMMAND [ARGS]...\n'
+
+tests\Typer\functional_test.py:216: AssertionError
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x00000246BDAA8CA0>.exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["add", "--help"])
+        assert result.exit_code == 0
+        out = result.stdout
+>       assert "TITLE" in out or "title" in out
+E       AssertionError: assert ('TITLE' in 'Usage: [OPTIONS] COMMAND [ARGS]...\n\nCommands:\n  add                  \n  list                 \n  remove               \n' or 'title' in 'Usage: [OPTIONS] COMMAND [ARGS]...\n\nCommands:\n  add                  \n  list                 \n  remove               \n')
+
+tests\Typer\functional_test.py:276: AssertionError
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+        app = _create_prompt_app()
+        # Now stable: "greet" always exists as a subcommand (multi-command app).
+        result = runner.invoke(app, ["greet"], input="Alice\n")
+        assert result.exit_code == 0
+>       assert "Hi Alice" in result.stdout
+E       AssertionError: assert 'Hi Alice' in 'Hi <typer.params.ParamInfo object at 0x00000246BDAA7EB0>\n'
+E        +  where 'Hi <typer.params.ParamInfo object at 0x00000246BDAA7EB0>\n' = <typer.testing.Result object at 0x00000246BDAA7880>.stdout
+
+tests\Typer\functional_test.py:284: AssertionError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000246BDAB2580>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+        app = _create_env_app()
+        monkeypatch.setenv("APP_TOKEN", "abc123")
+    
+        result = runner.invoke(app, ["show"])
+        assert result.exit_code == 0
+>       assert "TOKEN=abc123" in result.stdout
+E       AssertionError: assert 'TOKEN=abc123' in 'TOKEN=Ellipsis\n'
+E        +  where 'TOKEN=Ellipsis\n' = <typer.testing.Result object at 0x00000246BDAB2610>.stdout
+
+tests\Typer\functional_test.py:293: AssertionError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+        app = _create_callback_app()
+    
+        r1 = runner.invoke(app, ["run"])
+        assert r1.exit_code == 0
+        assert "running" in r1.stdout
+        assert "verbose" not in r1.stdout
+    
+        r2 = runner.invoke(app, ["--verbose", "run"])
+>       assert r2.exit_code == 0
+E       assert 2 == 0
+E        +  where 2 = <typer.testing.Result object at 0x00000246BDAAF2B0>.exit_code
+
+tests\Typer\functional_test.py:305: AssertionError
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+        app = _create_types_app()
+        # Now stable: "calc" always exists as a subcommand (multi-command app).
+        r = runner.invoke(app, ["calc", "2", "3", "--scale", "2.0"])
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x00000246BDB16250>.exit_code
+
+tests\Typer\functional_test.py:313: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - assert 1 == 0
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - as...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - a...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - Assert...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - Assert...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+9 failed, 3 passed in 0.71s
+
+==========================================================================================
+PROJECT: Watchdog
+LOG: D:\桌面\Exp1\claude-4.5-sonnet\results\Watchdog\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Watchdog/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Watchdog\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Watchdog\functional_test.py:55: in <module>
+    from watchdog.events import (  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'PatternMatchingEventHandler' from 'watchdog.events' (D:\桌面\RealAppCodeBench_generic_eval\generation\Watchdog\watchdog\events.py)
+=========================== short test summary info ===========================
+ERROR tests/Watchdog/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.65s
+

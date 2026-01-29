@@ -1,0 +1,35 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_resource_build_medium_map_rss_cpu ____________________
+
+    def test_resource_build_medium_map_rss_cpu():
+        sys.path.insert(0, str(_resolve_repo_root()))
+        import folium
+    
+        proc = psutil.Process()
+        rss_before = proc.memory_info().rss
+        _ = proc.cpu_percent(interval=None)
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\resource_test.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x00000187E7F99820>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', width = '100%', height = '100%'
+
+    def __init__(self, location=None, zoom_start=10, tiles='OpenStreetMap', width='100%', height='100%'):
+        super().__init__()
+        self.location = location or [0, 0]
+        self.zoom_start = zoom_start
+        self.width = width
+        self.height = height
+        self.tile_layer = None
+        if tiles:
+>           self.tile_layer = TileLayer(tiles).add_to(self)
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:14: NameError
+=========================== short test summary info ===========================
+FAILED tests/Folium/resource_test.py::test_resource_build_medium_map_rss_cpu
+1 failed in 0.42s

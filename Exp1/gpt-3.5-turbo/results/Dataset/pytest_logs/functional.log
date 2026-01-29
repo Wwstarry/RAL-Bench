@@ -1,0 +1,141 @@
+FFF..FF.F.F                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+>       assert "id" in _table_columns(table)
+E       AssertionError: assert 'id' in ['name', 'age', 'country', 'active']
+E        +  where ['name', 'age', 'country', 'active'] = _table_columns(<dataset.table.Table object at 0x0000025575C01E20>)
+
+tests\Dataset\functional_test.py:146: AssertionError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+        updated = table.find_one(account_id=1)
+        assert updated is not None
+>       assert pytest.approx(updated["balance"]) == 150.0
+E       assert 150.0 == 150.0
+E         
+E         comparison failed
+E         Obtained: 150.0
+E         Expected: 150.0
+
+tests\Dataset\functional_test.py:184: AssertionError
+____________________ test_transactions_commit_and_rollback ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-333/test_transactions_commit_and_r0')
+
+    def test_transactions_commit_and_rollback(tmp_path: Path) -> None:
+        db_path = tmp_path / "tx_sample.db"
+        db_url = "sqlite:///%s" % str(db_path)
+        db = dataset.connect(db_url)
+        table = db["events"]
+    
+        db.begin()
+        table.insert({"name": "committed", "category": "ok"})
+>       db.commit()
+
+tests\Dataset\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000025575C7FB50>
+
+    def commit(self):
+        if not self._transaction_active:
+            return
+>       self._conn.execute("COMMIT")
+E       sqlite3.OperationalError: cannot commit - no transaction is active
+
+generation\Dataset\dataset\database.py:36: OperationalError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+        rows = list(table.find(order_by="n", _limit=3, _offset=4))
+>       assert [r["n"] for r in rows] == [4, 5, 6]
+E       assert [] == [4, 5, 6]
+E         
+E         Right contains 3 more items, first extra item: 4
+E         Use -v to get more diff
+
+tests\Dataset\functional_test.py:249: AssertionError
+___________________ test_table_all_iteration_and_row_shape ____________________
+
+    def test_table_all_iteration_and_row_shape() -> None:
+        db = create_in_memory_db()
+        table = db["people"]
+        table.insert({"name": "Alice", "age": 30})
+        table.insert({"name": "Bob", "age": 31})
+    
+        rows = list(table.all())
+        assert len(rows) == 2
+>       assert all(("id" in r and "name" in r) for r in rows)
+E       assert False
+E        +  where False = all(<generator object test_table_all_iteration_and_row_shape.<locals>.<genexpr> at 0x0000025575BC8350>)
+
+tests\Dataset\functional_test.py:260: AssertionError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<dataset.database.Database object at 0x0000025575BF9A90>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+    
+        distinct = list(table.distinct("c"))
+>       values = {r["c"] for r in distinct}
+
+tests\Dataset\functional_test.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000025575C7F970>
+
+>   values = {r["c"] for r in distinct}
+E   TypeError: string indices must be integers
+
+tests\Dataset\functional_test.py:333: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - A...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - ass...
+FAILED tests/Dataset/functional_test.py::test_transactions_commit_and_rollback
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - as...
+FAILED tests/Dataset/functional_test.py::test_table_all_iteration_and_row_shape
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+7 failed, 4 passed in 3.10s

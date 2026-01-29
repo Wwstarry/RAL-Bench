@@ -1,0 +1,78 @@
+..FF..F.FF.                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_echo_arguments_and_parsing _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588A99400>
+
+    def test_echo_arguments_and_parsing(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, "echo_args one two three")
+>       assert "one two three" in output
+E       AssertionError: assert 'one two three' in '\n'
+
+tests\Cmd2\functional_test.py:276: AssertionError
+_______________________ test_echo_arguments_with_quotes _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AA4EE0>
+
+    def test_echo_arguments_with_quotes(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, 'echo_args "hello world" two')
+>       assert "hello world two" in output
+E       AssertionError: assert 'hello world two' in '\n'
+
+tests\Cmd2\functional_test.py:283: AssertionError
+_____________________ test_unknown_command_reports_error ______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588B09CA0>
+
+    def test_unknown_command_reports_error(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, "this_command_does_not_exist")
+        low = output.lower()
+>       assert ("unknown" in low) or ("syntax" in low) or ("not found" in low) or (output.strip() != "")
+E       AssertionError: assert ('unknown' in '' or 'syntax' in '' or 'not found' in '' or '' != '')
+E        +  where '' = <built-in method strip of str object at 0x0000023585C44670>()
+E        +    where <built-in method strip of str object at 0x0000023585C44670> = ''.strip
+
+tests\Cmd2\functional_test.py:306: AssertionError
+---------------------------- Captured stderr call -----------------------------
+*** Unknown syntax: this_command_does_not_exist
+_____________________ test_multiple_commands_and_history ______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AFCB20>
+
+    def test_multiple_commands_and_history(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        commands = ["greet Alice", "greet Bob", "history"]
+        output = run_commands(app, commands)
+>       assert "Hello Alice" in output
+E       AssertionError: assert 'Hello Alice' in ''
+
+tests\Cmd2\functional_test.py:321: AssertionError
+---------------------------- Captured stderr call -----------------------------
+*** Unknown syntax: history
+____________________ test_history_object_records_commands _____________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023587479EE0>
+
+    def test_history_object_records_commands(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        _ = run_command(app, "greet Zoe")
+        hist = getattr(app, "history", None)
+>       assert hist is not None
+E       assert None is not None
+
+tests\Cmd2\functional_test.py:331: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_and_parsing - Asser...
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_with_quotes - Asser...
+FAILED tests/Cmd2/functional_test.py::test_unknown_command_reports_error - As...
+FAILED tests/Cmd2/functional_test.py::test_multiple_commands_and_history - As...
+FAILED tests/Cmd2/functional_test.py::test_history_object_records_commands - ...
+5 failed, 6 passed in 3.53s

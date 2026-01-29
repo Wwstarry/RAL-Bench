@@ -1,0 +1,2339 @@
+####################################################################################################
+# MODEL: gemini-2.5-pro
+# NUM_PROJECT_LOGS: 21
+####################################################################################################
+
+==========================================================================================
+PROJECT: Cachetools
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Cachetools\pytest_logs\functional.log
+==========================================================================================
+F......F.....                                                            [100%]
+================================== FAILURES ===================================
+________________________ test_basic_lru_cache_eviction ________________________
+
+self = LRUCache(LRUCache([('a', 1), ('c', 3)]), maxsize=2, currsize=3)
+key = 'b'
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+>           self.move_to_end(key)
+E           KeyError: 'b'
+
+generation\Cachetools\cachetools\cache.py:47: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_basic_lru_cache_eviction():
+        cache = LRUCache(maxsize=2)
+    
+        cache["a"] = 1
+        cache["b"] = 2
+    
+        # Touch "a" so it becomes most recently used
+        _ = cache["a"]
+    
+        # Adding "c" should evict the least recently used entry ("b")
+>       cache["c"] = 3
+
+tests\Cachetools\functional_test.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\cache.py:55: in __setitem__
+    self.popitem(last=False)
+generation\Cachetools\cachetools\cache.py:50: in __getitem__
+    return self.__missing__(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache(LRUCache([('a', 1), ('c', 3)]), maxsize=2, currsize=3)
+key = 'b'
+
+    def __missing__(self, key):
+        """Called by __getitem__ when a key is not in the cache."""
+>       raise KeyError(key)
+E       KeyError: 'b'
+
+generation\Cachetools\cachetools\cache.py:30: KeyError
+__________________ test_lru_cache_popitem_removes_one_entry ___________________
+
+self = LRUCache(LRUCache([('a', 1), ('b', 2)]), maxsize=3, currsize=3)
+key = 'c'
+
+    def __getitem__(self, key):
+        try:
+            value = super().__getitem__(key)
+>           self.move_to_end(key)
+E           KeyError: 'c'
+
+generation\Cachetools\cachetools\cache.py:47: KeyError
+
+During handling of the above exception, another exception occurred:
+
+    def test_lru_cache_popitem_removes_one_entry():
+        cache = LRUCache(maxsize=3)
+        cache["a"] = 1
+        cache["b"] = 2
+        cache["c"] = 3
+        assert len(cache) == 3
+    
+>       k, v = cache.popitem()
+
+tests\Cachetools\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Cachetools\cachetools\cache.py:50: in __getitem__
+    return self.__missing__(key)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = LRUCache(LRUCache([('a', 1), ('b', 2)]), maxsize=3, currsize=3)
+key = 'c'
+
+    def __missing__(self, key):
+        """Called by __getitem__ when a key is not in the cache."""
+>       raise KeyError(key)
+E       KeyError: 'c'
+
+generation\Cachetools\cachetools\cache.py:30: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_basic_lru_cache_eviction - K...
+FAILED tests/Cachetools/functional_test.py::test_lru_cache_popitem_removes_one_entry
+2 failed, 11 passed in 2.01s
+
+==========================================================================================
+PROJECT: Click
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Click\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_simple_command_with_argument_and_option _________________
+
+    def test_simple_command_with_argument_and_option():
+        @click.command()
+        @click.option("--count", "-c", type=int, default=1)
+        @click.argument("name")
+>       def greet(count: int, name: str) -> None:
+
+tests\Click\functional_test.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:17: in _make_command
+    params.append(Option(['--help'], is_flag=True, help='Show this message and exit.'))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D38F9D30>
+param_decls = ['--help']
+attrs = {'help': 'Show this message and exit.', 'is_flag': True}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'is_flag'
+
+generation\Click\click\core.py:189: TypeError
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+>       def cli(flag: bool) -> None:
+
+tests\Click\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:17: in _make_command
+    params.append(Option(['--help'], is_flag=True, help='Show this message and exit.'))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D3897E80>
+param_decls = ['--help']
+attrs = {'help': 'Show this message and exit.', 'is_flag': True}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'is_flag'
+
+generation\Click\click\core.py:189: TypeError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_group_with_subcommands.<locals>.cli at 0x00000260D38D8700>
+name = 'cli', cls = <class 'click.core.Group'>, attrs = {}, params = []
+
+    def _make_command(f, name, cls, **attrs):
+        if name is None:
+            name = f.__name__.lower().replace('_', '-')
+    
+        # Get params attached by decorators, in reverse order of application
+        params = getattr(f, '__click_params__', [])
+        params.reverse()
+>       delattr(f, '__click_params__')
+E       AttributeError: __click_params__
+
+generation\Click\click\decorators.py:13: AttributeError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+>       def cli() -> None:
+
+tests\Click\functional_test.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_help_output_for_command_and_group.<locals>.cli at 0x00000260D38D8310>
+name = 'cli', cls = <class 'click.core.Group'>
+attrs = {'help': 'Top level group'}, params = []
+
+    def _make_command(f, name, cls, **attrs):
+        if name is None:
+            name = f.__name__.lower().replace('_', '-')
+    
+        # Get params attached by decorators, in reverse order of application
+        params = getattr(f, '__click_params__', [])
+        params.reverse()
+>       delattr(f, '__click_params__')
+E       AttributeError: __click_params__
+
+generation\Click\click\decorators.py:13: AttributeError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+>       def cli(config: str) -> None:
+
+tests\Click\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:17: in _make_command
+    params.append(Option(['--help'], is_flag=True, help='Show this message and exit.'))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D39B8FA0>
+param_decls = ['--help']
+attrs = {'help': 'Show this message and exit.', 'is_flag': True}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'is_flag'
+
+generation\Click\click\core.py:189: TypeError
+_________________ test_command_exception_is_exposed_in_result _________________
+
+    def test_command_exception_is_exposed_in_result():
+        class CustomError(Exception):
+            pass
+    
+        @click.command()
+>       def boom() -> None:
+
+tests\Click\functional_test.py:244: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_command_exception_is_exposed_in_result.<locals>.boom at 0x00000260D38D8310>
+name = 'boom', cls = <class 'click.core.Command'>, attrs = {}, params = []
+
+    def _make_command(f, name, cls, **attrs):
+        if name is None:
+            name = f.__name__.lower().replace('_', '-')
+    
+        # Get params attached by decorators, in reverse order of application
+        params = getattr(f, '__click_params__', [])
+        params.reverse()
+>       delattr(f, '__click_params__')
+E       AttributeError: __click_params__
+
+generation\Click\click\decorators.py:13: AttributeError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+>       def cli(name: str) -> None:
+
+tests\Click\functional_test.py:263: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:43: in decorator
+    param = param_cls(param_decls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D38F3490>
+param_decls = ('--name',)
+attrs = {'default': 'fallback', 'envvar': 'CLICK_TEST_NAME'}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'envvar'
+
+generation\Click\click\core.py:189: TypeError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+>       def cli(token: str) -> None:
+
+tests\Click\functional_test.py:280: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:43: in decorator
+    param = param_cls(param_decls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D38E7B50>
+param_decls = ('--token',), attrs = {'prompt': True}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'prompt'
+
+generation\Click\click\core.py:189: TypeError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+>       def cli() -> None:
+
+tests\Click\functional_test.py:291: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+f = <function test_default_map_provides_default_option_value.<locals>.cli at 0x00000260D39A7700>
+name = 'cli', cls = <class 'click.core.Group'>, attrs = {}, params = []
+
+    def _make_command(f, name, cls, **attrs):
+        if name is None:
+            name = f.__name__.lower().replace('_', '-')
+    
+        # Get params attached by decorators, in reverse order of application
+        params = getattr(f, '__click_params__', [])
+        params.reverse()
+>       delattr(f, '__click_params__')
+E       AttributeError: __click_params__
+
+generation\Click\click\decorators.py:13: AttributeError
+_______________ test_parameter_type_validation_error_exit_code ________________
+
+    def test_parameter_type_validation_error_exit_code():
+        @click.command()
+        @click.option("--count", type=int, required=True)
+>       def cli(count: int) -> None:
+
+tests\Click\functional_test.py:308: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:27: in decorator
+    cmd = _make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:73: in _make_command
+    return original_make_command(f, name, cls, **attrs)
+generation\Click\click\decorators.py:17: in _make_command
+    params.append(Option(['--help'], is_flag=True, help='Show this message and exit.'))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x00000260D38D0160>
+param_decls = ['--help']
+attrs = {'help': 'Show this message and exit.', 'is_flag': True}
+
+    def __init__(self, param_decls, **attrs):
+>       super(Option, self).__init__(param_decls, **attrs)
+E       TypeError: __init__() got an unexpected keyword argument 'is_flag'
+
+generation\Click\click\core.py:189: TypeError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - TypeEr...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - Attribut...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - T...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+11 failed in 3.96s
+
+==========================================================================================
+PROJECT: Dataset
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Dataset\pytest_logs\functional.log
+==========================================================================================
+FF..FF..F..                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+>       alice = table.find_one(name="Alice")
+
+tests\Dataset\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061E40>)>
+sql = 'SELECT * FROM "users" WHERE "name" = ?', params = {'name': 'Alice'}
+cursor = <sqlite3.Cursor object at 0x0000029F820EC9D0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+>       updated = table.find_one(account_id=1)
+
+tests\Dataset\functional_test.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061990>)>
+sql = 'SELECT * FROM "accounts" WHERE "account_id" = ?'
+params = {'account_id': 1}
+cursor = <sqlite3.Cursor object at 0x0000029F821531F0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+        db = create_in_memory_db()
+        table = db["t"]
+        table.insert({"name": "only"})
+>       missing = table.find_one(name="absent")
+
+tests\Dataset\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061D50>)>
+sql = 'SELECT * FROM "t" WHERE "name" = ?', params = {'name': 'absent'}
+cursor = <sqlite3.Cursor object at 0x0000029F821536C0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+>       rows = list(table.find(order_by="n", _limit=3, _offset=4))
+
+tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061C60>)>
+sql = 'SELECT * FROM "nums" WHERE "order_by" = ? AND "_limit" = ? AND "_offset" = ?'
+params = {'_limit': 3, '_offset': 4, 'order_by': 'n'}
+cursor = <sqlite3.Cursor object at 0x0000029F820EC9D0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<Database(connection=<sqlite3.Connection object at 0x0000029F82061A80>)>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+5 failed, 6 passed in 3.78s
+
+==========================================================================================
+PROJECT: Fail2ban
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Fail2ban\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.05s
+
+==========================================================================================
+PROJECT: Folium
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Folium\pytest_logs\functional.log
+==========================================================================================
+..FFFF.FFF.F                                                             [100%]
+================================== FAILURES ===================================
+__________________ test_002_create_basic_map_renders_leaflet __________________
+
+    def test_002_create_basic_map_renders_leaflet():
+        _prepend_import_path()
+        import folium
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF85756A0>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+_________________________ test_003_map_has_html_root __________________________
+
+    def test_003_map_has_html_root():
+        _prepend_import_path()
+        import folium
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF85AACD0>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+__________________ test_004_add_marker_layer_changes_output ___________________
+
+    def test_004_add_marker_layer_changes_output():
+        _prepend_import_path()
+        import folium
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF85FF2B0>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+__________________ test_005_add_circle_marker_changes_output __________________
+
+    def test_005_add_circle_marker_changes_output():
+        _prepend_import_path()
+        import folium
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:79: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF8601B50>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+__________________ test_007_geojson_adds_feature_collection ___________________
+
+    def test_007_geojson_adds_feature_collection():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"name": "p"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF6F7F730>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+_________________ test_008_geojson_style_function_serializes __________________
+
+    def test_008_geojson_style_function_serializes():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"style": "x"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        def style_fn(feature):
+            _ = feature
+            return {"color": "red", "weight": 2}
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF85A3A00>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+________________________ test_009_map_save_writes_html ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-383/test_009_map_save_writes_html0')
+
+    def test_009_map_save_writes_html(tmp_path: Path):
+        _prepend_import_path()
+        import folium
+    
+        out = tmp_path / "m.html"
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF859C8B0>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+_________________ test_011_markercluster_adds_cluster_snippet _________________
+
+    def test_011_markercluster_adds_cluster_snippet():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+>       m = folium.Map(location=[0, 0], zoom_start=2)
+
+tests\Folium\functional_test.py:173: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <folium.map.Map object at 0x000001DCF85EB160>, location = [0, 0]
+zoom_start = 2, tiles = 'OpenStreetMap', kwargs = {}
+
+    def __init__(self, location=None, zoom_start=10, tiles="OpenStreetMap", **kwargs):
+        super().__init__()
+        self._name = "map"
+        self.location = location if location is not None else [0, 0]
+        self.zoom_start = zoom_start
+        self.js = []
+        self.css = []
+    
+        # Add default Leaflet JS/CSS
+        self.js.append(("leaflet", templates.LEAFLET_JS))
+        self.css.append(("leaflet", templates.LEAFLET_CSS))
+    
+        if tiles:
+>           self.add_child(TileLayer(tiles))
+E           NameError: name 'TileLayer' is not defined
+
+generation\Folium\folium\map.py:97: NameError
+=========================== short test summary info ===========================
+FAILED tests/Folium/functional_test.py::test_002_create_basic_map_renders_leaflet
+FAILED tests/Folium/functional_test.py::test_003_map_has_html_root - NameErro...
+FAILED tests/Folium/functional_test.py::test_004_add_marker_layer_changes_output
+FAILED tests/Folium/functional_test.py::test_005_add_circle_marker_changes_output
+FAILED tests/Folium/functional_test.py::test_007_geojson_adds_feature_collection
+FAILED tests/Folium/functional_test.py::test_008_geojson_style_function_serializes
+FAILED tests/Folium/functional_test.py::test_009_map_save_writes_html - NameE...
+FAILED tests/Folium/functional_test.py::test_011_markercluster_adds_cluster_snippet
+8 failed, 4 passed in 0.70s
+
+==========================================================================================
+PROJECT: Glances
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Glances\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.34s
+
+==========================================================================================
+PROJECT: Humanize
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Humanize\pytest_logs\functional.log
+==========================================================================================
+..FF......sssss                                                          [100%]
+================================== FAILURES ===================================
+______________________________ test_naturalsize _______________________________
+
+    def test_naturalsize() -> None:
+>       assert humanize.naturalsize(1024) == "1.0 kB"
+E       AssertionError: assert '1.0 KB' == '1.0 kB'
+E         
+E         - 1.0 kB
+E         ?     ^
+E         + 1.0 KB
+E         ?     ^
+
+tests\Humanize\functional_test.py:107: AssertionError
+__________________________ test_precisedelta_numeric __________________________
+
+    def test_precisedelta_numeric() -> None:
+        d = humanize.precisedelta(3661)  # seconds
+        assert "1 hour" in d
+        assert "1 minute" in d
+>       assert "1 second" in d
+E       AssertionError: assert '1 second' in '1 hour, 1 minute, and 1.00 second'
+
+tests\Humanize\functional_test.py:115: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_naturalsize - AssertionError: ...
+FAILED tests/Humanize/functional_test.py::test_precisedelta_numeric - Asserti...
+2 failed, 8 passed, 5 skipped in 0.51s
+
+==========================================================================================
+PROJECT: Loguru
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Loguru\pytest_logs\functional.log
+==========================================================================================
+..F.F.FFF.F                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_log_method_with_level_name _______________________
+
+    def test_log_method_with_level_name() -> None:
+        log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+    
+>       log.log("INFO", "hello-info")
+E       AttributeError: 'Logger' object has no attribute 'log'
+
+tests\Loguru\functional_test.py:125: AttributeError
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+        log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+    
+>       with log.contextualize(user="bob"):
+E       AttributeError: 'Logger' object has no attribute 'contextualize'
+
+tests\Loguru\functional_test.py:149: AttributeError
+_______________________ test_add_file_sink_writes_lines _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-386/test_add_file_sink_writes_line0')
+
+    def test_add_file_sink_writes_lines(tmp_path: Path) -> None:
+        log_path = tmp_path / "loguru_test.log"
+    
+        logger.remove()
+>       logger.add(log_path, format="{level}:{message}", level="INFO")
+
+tests\Loguru\functional_test.py:179: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <loguru._logger.Logger object at 0x00000252BFF1EFD0>
+sink = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-386/test_add_file_sink_writes_line0/loguru_test.log')
+level = 'INFO', format = '{level}:{message}', filter = None, kwargs = {}
+level_no = 20, writer = None
+
+    def add(self, sink, *, level="DEBUG", format="{message}\n", filter=None, **kwargs):
+        level_no = self._level_name_to_no[level].no if isinstance(level, str) else level
+    
+        writer = None
+        if isinstance(sink, str):
+            writer = open(sink, "a", encoding="utf-8")
+        elif hasattr(sink, 'write'):
+            writer = sink
+        elif callable(sink):
+            # For callable sinks, the writer is a wrapper
+            writer = lambda msg: sink(msg)
+    
+        if writer is None:
+>           raise ValueError("Invalid sink specified")
+E           ValueError: Invalid sink specified
+
+generation\Loguru\loguru\_logger.py:168: ValueError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+        log, buf = make_buffer_logger(level="INFO", serialize=True)
+    
+        log.info("json-msg")
+    
+        raw_lines = _lines(buf)
+        assert len(raw_lines) >= 1
+    
+>       record = json.loads(raw_lines[-1])
+
+tests\Loguru\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x00000252BDD4BCD0>
+s = 'INFO:json-msg', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:355: JSONDecodeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+        log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+    
+>       patched = log.patch(lambda r: r["extra"].update({"patched": "yes"}))
+E       AttributeError: 'Logger' object has no attribute 'patch'
+
+tests\Loguru\functional_test.py:211: AttributeError
+____________________ test_time_and_level_in_default_format ____________________
+
+    def test_time_and_level_in_default_format() -> None:
+        # Default format should include some timestamp-like content, level, and message.
+        buf = io.StringIO()
+        logger.remove()
+        logger.add(buf)
+    
+        logger.info("default-format-test")
+    
+        output = buf.getvalue()
+>       assert "INFO" in output
+E       AssertionError: assert 'INFO' in 'default-format-test\n'
+
+tests\Loguru\functional_test.py:243: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_log_method_with_level_name - Att...
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_add_file_sink_writes_lines - Val...
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+FAILED tests/Loguru/functional_test.py::test_time_and_level_in_default_format
+6 failed, 5 passed in 0.56s
+
+==========================================================================================
+PROJECT: Mitmproxy
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Mitmproxy\pytest_logs\functional.log
+==========================================================================================
+.....F..FFF                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_006_tools_cmdline_file_exists ______________________
+
+    def test_006_tools_cmdline_file_exists():
+        pkg = _mitmproxy_pkg_dir()
+>       assert (pkg / "tools" / "cmdline.py").is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = ((WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy') / 'tools') / 'cmdline.py').is_file
+
+tests\Mitmproxy\functional_test.py:122: AssertionError
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_006_tools_cmdline_file_exists
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+4 failed, 7 passed in 0.59s
+
+==========================================================================================
+PROJECT: Pendulum
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Pendulum\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.19s
+
+==========================================================================================
+PROJECT: PyJWT
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\PyJWT\pytest_logs\functional.log
+==========================================================================================
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', kwargs = {}
+
+    def encode(payload, key, algorithm="HS256", **kwargs):
+        """
+        Encodes a payload into a JSON Web Token (JWT).
+        """
+        if algorithm != "HS256":
+>           raise NotImplementedError("Only HS256 algorithm is supported")
+E           NotImplementedError: Only HS256 algorithm is supported
+
+generation\PyJWT\jwt\api_jwt.py:36: NotImplementedError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:46: in encode
+    json_payload = json.dumps(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000001DBD19C6B80>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:46: in encode
+    json_payload = json.dumps(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000001DBD19E5D90>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - N...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.58s
+
+==========================================================================================
+PROJECT: Requests
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Requests\pytest_logs\functional.log
+==========================================================================================
+..........                                                               [100%]
+10 passed in 2.15s
+
+==========================================================================================
+PROJECT: Slugify
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Slugify\pytest_logs\functional.log
+==========================================================================================
+.......F....                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+        assert result_default_sep.startswith("___")
+>       assert "this-is-a-test" in result_default_sep
+E       AssertionError: assert 'this-is-a-test' in '___thisisatest___'
+
+tests\Slugify\functional_test.py:174: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+1 failed, 11 passed in 0.46s
+
+==========================================================================================
+PROJECT: Sqlmap
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Sqlmap\pytest_logs\functional.log
+==========================================================================================
+....F...F                                                                [100%]
+================================== FAILURES ===================================
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       AssertionError: assert None is not None
+E        +  where None = <function search at 0x000001E23BE399D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\nusage: python sqlmap.py [options]\nsqlmap.py: error: unrecognized argument: --batch\n')
+E        +    where <function search at 0x000001E23BE399D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+__________ test_009_unicode_output_dir_argument_stable_in_help_mode ___________
+
+    def test_009_unicode_output_dir_argument_stable_in_help_mode():
+        root = _project_root()
+        out_dir = root / "generation" / "Sqlmap" / "tmp_输出"
+        out_dir.mkdir(parents=True, exist_ok=True)
+    
+        p = _run_cli(["-h", "--output-dir", str(out_dir)], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...p.py: error: unrecognized arguments: --output-dir D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Sqlmap\\tmp_输出\n').returncode
+
+tests\Sqlmap\functional_test.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+FAILED tests/Sqlmap/functional_test.py::test_009_unicode_output_dir_argument_stable_in_help_mode
+2 failed, 7 passed in 2.00s
+
+==========================================================================================
+PROJECT: SQLModel
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\SQLModel\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/SQLModel/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\SQLModel\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+generation\SQLModel\sqlmodel\__init__.py:11: in <module>
+    from pydantic.fields import FieldInfo, Undefined
+E   ImportError: cannot import name 'Undefined' from 'pydantic.fields' (C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pydantic\fields.py)
+
+During handling of the above exception, another exception occurred:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\SQLModel\functional_test.py:24: in <module>
+    from sqlmodel import (  # type: ignore  # noqa: E402
+generation\SQLModel\sqlmodel\__init__.py:14: in <module>
+    raise ImportError("pydantic is required to use this mock sqlmodel. Please `pip install pydantic`.")
+E   ImportError: pydantic is required to use this mock sqlmodel. Please `pip install pydantic`.
+=========================== short test summary info ===========================
+ERROR tests/SQLModel/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.78s
+
+==========================================================================================
+PROJECT: Stegano
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Stegano\pytest_logs\functional.log
+==========================================================================================
+FF.FFF..F.F.                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_lsb_hide_and_reveal_text0\\lsb_lenna.png'
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\lsb\lsb.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 0, 1, 0, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+        encoded_img = lsb.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = lsb.reveal(str(output))
+
+tests\Stegano\functional_test.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_lsb_hide_and_reveal_text0\\lsb_lenna.png'
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+            message_bytes = utils.bits_to_bytes(message_bits)
+            return message_bytes.decode(encoding)
+        except UnicodeDecodeError as e:
+            raise ValueError("Failed to decode message. The encoding might be incorrect.") from e
+        except ValueError as e:
+            # This can happen if bits_to_bytes gets a non-multiple of 8 length
+>           raise ValueError("Failed to reconstruct message from bits. Data may be corrupt.") from e
+E           ValueError: Failed to reconstruct message from bits. Data may be corrupt.
+
+generation\Stegano\stegano\lsb\lsb.py:117: ValueError
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hides a message in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode != 'RGB' and auto_convert_rgb:
+            img = img.convert('RGB')
+        elif img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        new_img = img.copy()
+        pixels = new_img.load()
+    
+        message_bits = utils.get_bit_generator(message, encoding)
+        pixel_gen = _get_pixel_generator(new_img, generator, shift)
+    
+        try:
+>           for x, y in pixel_gen:
+
+generation\Stegano\stegano\lsb\lsb.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+img = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F417CB310>
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+
+    def _get_pixel_generator(img, generator=None, shift=0):
+        """
+        Returns a generator for pixel coordinates (x, y).
+        If a generator is provided, it yields indices which are then converted to (x, y).
+        Otherwise, it yields sequential (x, y) coordinates.
+        """
+        width, height = img.size
+        max_pixels = width * height
+    
+        if generator:
+            # Use the provided prime number generator
+            # Skip 'shift' number of primes
+>           gen = itertools.islice(generator(), shift, None)
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:19: TypeError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'D:\\桌面\\RealAppCodeBench_generic_eval\\repositories\\Stegano\\tests\\sample-files\\Lenna.png'
+message = 'generator secret'
+generator = <generator object eratosthenes at 0x0000016F417C5900>, shift = 0
+encoding = 'UTF-8', auto_convert_rgb = False
+
+    def hide(image, message, generator=None, shift=0, encoding="UTF-8", auto_convert_rgb=False):
+        """
+        Hides a message in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode != 'RGB' and auto_convert_rgb:
+            img = img.convert('RGB')
+        elif img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        new_img = img.copy()
+        pixels = new_img.load()
+    
+        message_bits = utils.get_bit_generator(message, encoding)
+        pixel_gen = _get_pixel_generator(new_img, generator, shift)
+    
+        try:
+            for x, y in pixel_gen:
+                pixel = list(pixels[x, y])
+                for i in range(3): # R, G, B channels
+                    try:
+                        bit = next(message_bits)
+                        pixel[i] = (pixel[i] & 0xFE) | bit
+                    except StopIteration:
+                        # No more bits to hide
+                        pixels[x, y] = tuple(pixel)
+                        return new_img
+                pixels[x, y] = tuple(pixel)
+        except Exception as e:
+>           raise ValueError("The message is too long to be hidden in the image.") from e
+E           ValueError: The message is too long to be hidden in the image.
+
+generation\Stegano\stegano\lsb\lsb.py:67: ValueError
+______________________ test_lsb_reveal_from_image_object ______________________
+
+image = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F41237A60>
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\lsb\lsb.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 0, 1, 1, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+        img_obj = lsb.hide(str(LENNA_PNG), secret)
+>       revealed = lsb.reveal(img_obj)
+
+tests\Stegano\functional_test.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = <PIL.Image.Image image mode=RGB size=512x512 at 0x16F41237A60>
+generator = None, shift = 0, encoding = 'UTF-8'
+
+    def reveal(image, generator=None, shift=0, encoding="UTF-8"):
+        """
+        Reveals a message hidden in the LSB of an image.
+        """
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        pixel_gen = _get_pixel_generator(img, generator, shift)
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for x, y in pixel_gen:
+            pixel = pixels[x, y]
+            for i in range(3): # R, G, B channels
+                extracted_bits.append(pixel[i] & 1)
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        # Remove the delimiter
+        message_bits = extracted_bits[:-8]
+    
+        try:
+            message_bytes = utils.bits_to_bytes(message_bits)
+            return message_bytes.decode(encoding)
+        except UnicodeDecodeError as e:
+            raise ValueError("Failed to decode message. The encoding might be incorrect.") from e
+        except ValueError as e:
+            # This can happen if bits_to_bytes gets a non-multiple of 8 length
+>           raise ValueError("Failed to reconstruct message from bits. Data may be corrupt.") from e
+E           ValueError: Failed to reconstruct message from bits. Data may be corrupt.
+
+generation\Stegano\stegano\lsb\lsb.py:117: ValueError
+________________________ test_red_hide_and_reveal_text ________________________
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_red_hide_and_reveal_text0\\red_lenna.png'
+
+    def reveal(image):
+        """
+        Reveals a message hidden in the LSB of the red channel of an image.
+        """
+        encoding = "UTF-8" # Default encoding
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        width, height = img.size
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for y in range(height):
+            for x in range(width):
+                pixel = pixels[x, y]
+                extracted_bits.append(pixel[0] & 1)
+    
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        message_bits = extracted_bits[:-8]
+    
+        try:
+>           message_bytes = utils.bits_to_bytes(message_bits)
+
+generation\Stegano\stegano\red\red.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+bit_list = [0, 1, 1, 1, 0, 0, ...]
+
+    def bits_to_bytes(bit_list):
+        """Convert a list of bits to a byte string."""
+        if len(bit_list) % 8 != 0:
+>           raise ValueError("The length of the bit list must be a multiple of 8.")
+E           ValueError: The length of the bit list must be a multiple of 8.
+
+generation\Stegano\stegano\tools\utils.py:11: ValueError
+
+The above exception was the direct cause of the following exception:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-387/test_red_hide_and_reveal_text0')
+
+    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:
+        """red.hide(..., str) then red.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "red secret"
+        output = tmp_path / "red_lenna.png"
+    
+        encoded_img = red.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+>       revealed = red.reveal(str(output))
+
+tests\Stegano\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+image = 'C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-387\\test_red_hide_and_reveal_text0\\red_lenna.png'
+
+    def reveal(image):
+        """
+        Reveals a message hidden in the LSB of the red channel of an image.
+        """
+        encoding = "UTF-8" # Default encoding
+        if not isinstance(image, Image.Image):
+            try:
+                img = Image.open(image)
+            except Exception as e:
+                raise TypeError("The 'image' parameter must be a PIL.Image.Image object or a file path.") from e
+        else:
+            img = image
+    
+        if img.mode not in ['RGB', 'RGBA']:
+            raise ValueError("Steganography is only supported for RGB or RGBA images.")
+    
+        pixels = img.load()
+        width, height = img.size
+    
+        extracted_bits = []
+        delimiter_found = False
+    
+        for y in range(height):
+            for x in range(width):
+                pixel = pixels[x, y]
+                extracted_bits.append(pixel[0] & 1)
+    
+                if len(extracted_bits) >= 8 and extracted_bits[-8:] == utils.DELIMITER:
+                    delimiter_found = True
+                    break
+            if delimiter_found:
+                break
+    
+        if not delimiter_found:
+            raise ValueError("No hidden message found or delimiter is missing.")
+    
+        message_bits = extracted_bits[:-8]
+
+==========================================================================================
+PROJECT: Tablib
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Tablib\pytest_logs\functional.log
+==========================================================================================
+.F..F...F..                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001E57C28E280>, fmt = 'tsv'
+
+    def export(self, fmt):
+        fmt = fmt.lower()
+        if fmt == 'csv':
+            from .formats import _csv
+            return _csv.export_set(self)
+        elif fmt == 'json':
+            from .formats import _json
+            return _json.export_set(self)
+        else:
+>           raise NotImplementedError(f"Format '{fmt}' is not supported for export.")
+E           NotImplementedError: Format 'tsv' is not supported for export.
+
+generation\Tablib\tablib\core.py:96: NotImplementedError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001E57C25A910>, fmt = 'html'
+
+    def export(self, fmt):
+        fmt = fmt.lower()
+        if fmt == 'csv':
+            from .formats import _csv
+            return _csv.export_set(self)
+        elif fmt == 'json':
+            from .formats import _json
+            return _json.export_set(self)
+        else:
+>           raise NotImplementedError(f"Format '{fmt}' is not supported for export.")
+E           NotImplementedError: Format 'html' is not supported for export.
+
+generation\Tablib\tablib\core.py:96: NotImplementedError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+3 failed, 8 passed in 0.55s
+
+==========================================================================================
+PROJECT: Termgraph
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Termgraph\pytest_logs\functional.log
+==========================================================================================
+F.FFFFFFFF.                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E11280>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E11430>
+data = [[3], [5], [2]], labels = ['A', 'B', 'C']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E00700>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E005B0>, data = [[4], [1]]
+labels = ['D', 'E']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E7F970>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E7F9D0>, data = [[2], [7]]
+labels = ['A', 'B']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779DFA520>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779DFA9D0>
+data = [[1], [2], [3]], labels = ['L1', 'L2', 'L3']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E7E460>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E7E8E0>
+data = [[12.5], [7.0]], labels = ['CPU', 'RAM']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779DDE5E0>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779DDEB20>
+data = [[3.14159], [2.71828]], labels = ['P', 'Q']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E045B0>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E04D60>
+data = [[1, 1], [2, 1], [1, 3]], labels = ['S1', 'S2', 'S3']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E733D0>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E73CA0>
+data = [[1, 2, 3], [3, 2, 1]], labels = ['A', 'B']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x0000022779E00F70>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\functional_test.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.data.Data object at 0x0000022779E00820>, data = [[4], [6]]
+labels = ['U', 'V']
+
+    def __init__(self, data, labels):
+        """
+        Initializes the Data object.
+    
+        Args:
+            data (list of list of floats): The numeric data series.
+                Example: [[10, 20, 30], [5, 15, 25]]
+            labels (list of str): The labels for each data point.
+                Example: ['A', 'B', 'C']
+        """
+        if not isinstance(data, list) or not all(isinstance(s, list) for s in data):
+            raise TypeError("data must be a list of lists")
+        if not isinstance(labels, list) or not all(isinstance(l, str) for l in labels):
+            raise TypeError("labels must be a list of strings")
+    
+        num_points = len(labels)
+        for s in data:
+            if len(s) != num_points:
+>               raise ValueError("All data series must have the same length as the labels list.")
+E               ValueError: All data series must have the same length as the labels list.
+
+generation\Termgraph\termgraph\data.py:24: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+9 failed, 2 passed in 0.64s
+
+==========================================================================================
+PROJECT: TheFuck
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\TheFuck\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 0.22s
+
+==========================================================================================
+PROJECT: TinyDB
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\TinyDB\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/TinyDB/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\TinyDB\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\TinyDB\functional_test.py:49: in <module>
+    from tinydb import TinyDB, Query, where  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'where' from 'tinydb' (D:\桌面\RealAppCodeBench_generic_eval\generation\TinyDB\tinydb\__init__.py)
+=========================== short test summary info ===========================
+ERROR tests/TinyDB/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.70s
+
+==========================================================================================
+PROJECT: Watchdog
+LOG: D:\桌面\Exp1\gemini-2.5-pro\results\Watchdog\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Watchdog/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Watchdog\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Watchdog\functional_test.py:55: in <module>
+    from watchdog.events import (  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'PatternMatchingEventHandler' from 'watchdog.events' (D:\桌面\RealAppCodeBench_generic_eval\generation\Watchdog\watchdog\events.py)
+=========================== short test summary info ===========================
+ERROR tests/Watchdog/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.59s
+

@@ -1,0 +1,63 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_xmltodict_performance_smoke _______________________
+
+    def test_xmltodict_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_xmltodict_performance_benchmark(iterations=5, n_users=50)
+
+tests\Xmltodict\performance_test.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\performance_test.py:63: in run_xmltodict_performance_benchmark
+    parsed = xmltodict.parse(xml)
+generation\Xmltodict\xmltodict.py:144: in parse
+    return _convert(root)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+generation\Xmltodict\xmltodict.py:121: in _convert
+    child_mapping = _convert(child)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+el = <Element 'user' at 0x000001CFC8F3CE50>
+
+    def _convert(el: _ET.Element) -> Mapping[str, Any]:
+        """
+        Convert *el* into mapping according to the rules described above and
+        return ``{el.tag: value}``.
+        """
+        node_map: MutableMapping[str, Any] = dict_constructor()
+    
+        # Attributes ---------------------------------------------------- #
+        for k, v in el.attrib.items():
+            node_map[f"{attr_prefix}{k}"] = v
+    
+        # Children ------------------------------------------------------ #
+        for child in el:
+            child_mapping = _convert(child)
+            tag, value = next(iter(child_mapping.items()))
+    
+            if tag in node_map:
+                existing = node_map[tag]
+                if isinstance(existing, list):
+                    existing.append(value)
+                else:
+                    node_map[tag] = [existing, value]
+            else:
+                node_map[tag] = value
+    
+        # Text ---------------------------------------------------------- #
+        text = (el.text or "").strip()
+        if text:
+            if node_map:
+                node_map[cdata_key] = text
+            else:
+                # No attributes/children – represent directly as text
+                return dict_constructor(((el.tag, text),))
+    
+>       return dict_constructor(((el.tag, node_map)))
+E       ValueError: too many values to unpack (expected 2)
+
+generation\Xmltodict\xmltodict.py:142: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Xmltodict/performance_test.py::test_xmltodict_performance_smoke
+1 failed in 0.34s

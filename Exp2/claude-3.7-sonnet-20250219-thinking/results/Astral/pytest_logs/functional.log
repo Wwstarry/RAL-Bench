@@ -1,0 +1,234 @@
+FF...FFF...                                                              [100%]
+================================== FAILURES ===================================
+_________________________ test_sun_times_basic_sanity _________________________
+
+    def test_sun_times_basic_sanity() -> None:
+        """sun() returns expected keys and times are in a plausible order."""
+        loc = _london_location()
+        d = dt.date(2020, 6, 1)
+    
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = <astral.locationinfo.Observer object at 0x0000024DA5B84F70>
+date = datetime.date(2020, 6, 1), tzinfo = datetime.timezone.utc
+
+    def sun(observer, date=None, tzinfo=None):
+        """Calculate all sun-related values for a date.
+    
+        Args:
+            observer: LocationInfo observer attribute or similar
+            date: The date for which to calculate the times. Default is today.
+            tzinfo: The timezone to use for the returned times.
+    
+        Returns:
+            A dictionary with keys 'dawn', 'sunrise', 'noon', 'sunset', 'dusk'
+            containing the respective times as datetime objects.
+        """
+        if date is None:
+            date = datetime.date.today()
+    
+        if tzinfo is None:
+            tzinfo = datetime.timezone.utc
+    
+        # Sunrise/sunset zenith adjusted for elevation
+        sunrise_sunset_zenith = 90 + _adjust_to_horizon(observer.elevation)
+    
+        # Civil dawn/dusk zenith angle (6 degrees below horizon)
+        dawn_dusk_zenith = 96  # 90 + 6
+    
+        # Calculate times
+>       sunrise, sunset, noon = _calculate_sunrise_sunset(observer, date, tzinfo, sunrise_sunset_zenith)
+E       ValueError: not enough values to unpack (expected 3, got 2)
+
+generation\Astral\astral\sun.py:181: ValueError
+______________________ test_sun_time_changes_across_days ______________________
+
+    def test_sun_time_changes_across_days() -> None:
+        """Sunrise and sunset should change slightly between consecutive days."""
+        loc = _london_location()
+        d1 = dt.date(2020, 1, 1)
+        d2 = d1 + dt.timedelta(days=1)
+    
+>       s1 = sun(_observer_from_location(loc), date=d1, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = <astral.locationinfo.Observer object at 0x0000024DA457ADC0>
+date = datetime.date(2020, 1, 1), tzinfo = datetime.timezone.utc
+
+    def sun(observer, date=None, tzinfo=None):
+        """Calculate all sun-related values for a date.
+    
+        Args:
+            observer: LocationInfo observer attribute or similar
+            date: The date for which to calculate the times. Default is today.
+            tzinfo: The timezone to use for the returned times.
+    
+        Returns:
+            A dictionary with keys 'dawn', 'sunrise', 'noon', 'sunset', 'dusk'
+            containing the respective times as datetime objects.
+        """
+        if date is None:
+            date = datetime.date.today()
+    
+        if tzinfo is None:
+            tzinfo = datetime.timezone.utc
+    
+        # Sunrise/sunset zenith adjusted for elevation
+        sunrise_sunset_zenith = 90 + _adjust_to_horizon(observer.elevation)
+    
+        # Civil dawn/dusk zenith angle (6 degrees below horizon)
+        dawn_dusk_zenith = 96  # 90 + 6
+    
+        # Calculate times
+>       sunrise, sunset, noon = _calculate_sunrise_sunset(observer, date, tzinfo, sunrise_sunset_zenith)
+E       ValueError: not enough values to unpack (expected 3, got 2)
+
+generation\Astral\astral\sun.py:181: ValueError
+_________________________ test_sun_returns_datetimes __________________________
+
+    def test_sun_returns_datetimes() -> None:
+        loc = _london_location()
+        d = dt.date(2020, 6, 1)
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = <astral.locationinfo.Observer object at 0x0000024DA5B92310>
+date = datetime.date(2020, 6, 1), tzinfo = datetime.timezone.utc
+
+    def sun(observer, date=None, tzinfo=None):
+        """Calculate all sun-related values for a date.
+    
+        Args:
+            observer: LocationInfo observer attribute or similar
+            date: The date for which to calculate the times. Default is today.
+            tzinfo: The timezone to use for the returned times.
+    
+        Returns:
+            A dictionary with keys 'dawn', 'sunrise', 'noon', 'sunset', 'dusk'
+            containing the respective times as datetime objects.
+        """
+        if date is None:
+            date = datetime.date.today()
+    
+        if tzinfo is None:
+            tzinfo = datetime.timezone.utc
+    
+        # Sunrise/sunset zenith adjusted for elevation
+        sunrise_sunset_zenith = 90 + _adjust_to_horizon(observer.elevation)
+    
+        # Civil dawn/dusk zenith angle (6 degrees below horizon)
+        dawn_dusk_zenith = 96  # 90 + 6
+    
+        # Calculate times
+>       sunrise, sunset, noon = _calculate_sunrise_sunset(observer, date, tzinfo, sunrise_sunset_zenith)
+E       ValueError: not enough values to unpack (expected 3, got 2)
+
+generation\Astral\astral\sun.py:181: ValueError
+_________________ test_sun_noon_is_between_sunrise_and_sunset _________________
+
+    def test_sun_noon_is_between_sunrise_and_sunset() -> None:
+        loc = _london_location()
+        d = dt.date(2020, 3, 1)
+>       s = sun(_observer_from_location(loc), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:196: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = <astral.locationinfo.Observer object at 0x0000024DA5B74880>
+date = datetime.date(2020, 3, 1), tzinfo = datetime.timezone.utc
+
+    def sun(observer, date=None, tzinfo=None):
+        """Calculate all sun-related values for a date.
+    
+        Args:
+            observer: LocationInfo observer attribute or similar
+            date: The date for which to calculate the times. Default is today.
+            tzinfo: The timezone to use for the returned times.
+    
+        Returns:
+            A dictionary with keys 'dawn', 'sunrise', 'noon', 'sunset', 'dusk'
+            containing the respective times as datetime objects.
+        """
+        if date is None:
+            date = datetime.date.today()
+    
+        if tzinfo is None:
+            tzinfo = datetime.timezone.utc
+    
+        # Sunrise/sunset zenith adjusted for elevation
+        sunrise_sunset_zenith = 90 + _adjust_to_horizon(observer.elevation)
+    
+        # Civil dawn/dusk zenith angle (6 degrees below horizon)
+        dawn_dusk_zenith = 96  # 90 + 6
+    
+        # Calculate times
+>       sunrise, sunset, noon = _calculate_sunrise_sunset(observer, date, tzinfo, sunrise_sunset_zenith)
+E       ValueError: not enough values to unpack (expected 3, got 2)
+
+generation\Astral\astral\sun.py:181: ValueError
+_______ test_sun_times_differ_between_locations_same_date_or_one_raises _______
+
+    def test_sun_times_differ_between_locations_same_date_or_one_raises() -> None:
+        """
+        Some generated implementations have edge-case bugs for certain longitudes that can
+        yield out-of-range hours (e.g., hour < 0 or > 23) and raise ValueError.
+        This test remains targeted (different locations) while being compatible across
+        implementations by accepting either:
+          - both computations succeed and differ, OR
+          - one implementation raises a clear exception for the second location.
+        """
+        london = _london_location()
+        nyc = _new_york_location()
+        d = dt.date(2020, 6, 1)
+    
+>       s_l = sun(_observer_from_location(london), date=d, tzinfo=_safe_tzinfo())
+
+tests\Astral\functional_test.py:213: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+observer = <astral.locationinfo.Observer object at 0x0000024DA5B6C880>
+date = datetime.date(2020, 6, 1), tzinfo = datetime.timezone.utc
+
+    def sun(observer, date=None, tzinfo=None):
+        """Calculate all sun-related values for a date.
+    
+        Args:
+            observer: LocationInfo observer attribute or similar
+            date: The date for which to calculate the times. Default is today.
+            tzinfo: The timezone to use for the returned times.
+    
+        Returns:
+            A dictionary with keys 'dawn', 'sunrise', 'noon', 'sunset', 'dusk'
+            containing the respective times as datetime objects.
+        """
+        if date is None:
+            date = datetime.date.today()
+    
+        if tzinfo is None:
+            tzinfo = datetime.timezone.utc
+    
+        # Sunrise/sunset zenith adjusted for elevation
+        sunrise_sunset_zenith = 90 + _adjust_to_horizon(observer.elevation)
+    
+        # Civil dawn/dusk zenith angle (6 degrees below horizon)
+        dawn_dusk_zenith = 96  # 90 + 6
+    
+        # Calculate times
+>       sunrise, sunset, noon = _calculate_sunrise_sunset(observer, date, tzinfo, sunrise_sunset_zenith)
+E       ValueError: not enough values to unpack (expected 3, got 2)
+
+generation\Astral\astral\sun.py:181: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Astral/functional_test.py::test_sun_times_basic_sanity - ValueEr...
+FAILED tests/Astral/functional_test.py::test_sun_time_changes_across_days - V...
+FAILED tests/Astral/functional_test.py::test_sun_returns_datetimes - ValueErr...
+FAILED tests/Astral/functional_test.py::test_sun_noon_is_between_sunrise_and_sunset
+FAILED tests/Astral/functional_test.py::test_sun_times_differ_between_locations_same_date_or_one_raises
+5 failed, 6 passed in 0.48s

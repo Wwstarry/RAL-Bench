@@ -1,0 +1,1 @@
+# Minimal console package for compatibility with reference project structure.

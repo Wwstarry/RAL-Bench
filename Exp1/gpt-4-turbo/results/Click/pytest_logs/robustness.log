@@ -1,0 +1,40 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_click_robustness_invalid_inputs_do_not_crash ______________
+
+    def test_click_robustness_invalid_inputs_do_not_crash():
+        """
+        Robustness tests should be version-tolerant:
+          - Invalid inputs may raise exceptions (acceptable).
+          - Some invalid inputs may be coerced/ignored (also acceptable).
+        Requirement: no hard crashes; library remains importable and callable.
+        """
+        click = _import_click()
+    
+        results: list[Tuple[bool, str]] = []
+    
+        # 1) Construct basic objects
+        cmd = click.Command(name="test")
+>       group = click.Group(name="test_group")
+
+tests\Click\robustness_test.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:54: in __init__
+    orig_init(self, *args, callback=callback, params=params, **kwargs)
+generation\Click\click\core.py:283: in __init__
+    super().__init__(name, callback, params, help, short_help, context_settings)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Group object at 0x000001F9472FD310>, callback = None
+params = None, args = ('test_group', None, None, None, None, None), kwargs = {}
+
+    def __init__(self, *args, callback=None, params=None, **kwargs):
+        if callback and hasattr(callback, "__click_params__"):
+            params = list(callback.__click_params__) + (params or [])
+>       orig_init(self, *args, callback=callback, params=params, **kwargs)
+E       TypeError: __init__() got multiple values for argument 'callback'
+
+generation\Click\click\decorators.py:54: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash
+1 failed in 0.32s

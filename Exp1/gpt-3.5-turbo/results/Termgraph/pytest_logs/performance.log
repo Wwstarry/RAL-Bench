@@ -1,0 +1,52 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(width=20)
+    
+        start = time.perf_counter()
+        for _ in range(200):
+            chart = BarChart(data, args)
+>           chart.draw()
+
+tests\Termgraph\performance_test.py:57: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001B8BF7BE5E0>
+
+    def draw(self):
+        # Only horizontal bar charts supported
+        if self.args.vertical:
+            print("Vertical charts not supported in this implementation.", file=sys.stderr)
+            return
+    
+        labels = self.args.labels if self.args.labels is not None else self.data.labels
+        if labels is None:
+            labels = [''] * self.data.num_items()
+    
+        max_label_len = max((len(str(label)) for label in labels), default=0)
+        max_label_len = min(max_label_len, 20)  # limit label width
+    
+        max_width = self.args.width
+        format_str = self.args.format
+        suffix = self.args.suffix
+        no_labels = self.args.no_labels
+        no_values = self.args.no_values
+    
+        # For bar length scaling
+        max_val = 0
+        for series in self.data.data:
+            for val in series:
+>               if val > max_val:
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:31: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.33s

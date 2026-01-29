@@ -1,0 +1,162 @@
+FF..FF..F..                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+>       alice = table.find_one(name="Alice")
+
+tests\Dataset\functional_test.py:151: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061E40>)>
+sql = 'SELECT * FROM "users" WHERE "name" = ?', params = {'name': 'Alice'}
+cursor = <sqlite3.Cursor object at 0x0000029F820EC9D0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+>       updated = table.find_one(account_id=1)
+
+tests\Dataset\functional_test.py:182: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061990>)>
+sql = 'SELECT * FROM "accounts" WHERE "account_id" = ?'
+params = {'account_id': 1}
+cursor = <sqlite3.Cursor object at 0x0000029F821531F0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+        db = create_in_memory_db()
+        table = db["t"]
+        table.insert({"name": "only"})
+>       missing = table.find_one(name="absent")
+
+tests\Dataset\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:215: in find_one
+    return next(iter(self.find(**filters)))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061D50>)>
+sql = 'SELECT * FROM "t" WHERE "name" = ?', params = {'name': 'absent'}
+cursor = <sqlite3.Cursor object at 0x0000029F821536C0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+>       rows = list(table.find(order_by="n", _limit=3, _offset=4))
+
+tests\Dataset\functional_test.py:248: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Database(connection=<sqlite3.Connection object at 0x0000029F82061C60>)>
+sql = 'SELECT * FROM "nums" WHERE "order_by" = ? AND "_limit" = ? AND "_offset" = ?'
+params = {'_limit': 3, '_offset': 4, 'order_by': 'n'}
+cursor = <sqlite3.Cursor object at 0x0000029F820EC9D0>
+
+    def query(self, sql, **params):
+        """
+        Execute a raw SQL query and yield rows as dictionaries.
+    
+        :param sql: The SQL query string.
+        :param params: A dictionary of parameters to bind to the query.
+        """
+        cursor = self.conn.cursor()
+>       cursor.execute(sql, params)
+E       sqlite3.ProgrammingError: Binding 1 has no name, but you supplied a dictionary (which has only names).
+
+generation\Dataset\dataset\database.py:89: ProgrammingError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<Database(connection=<sqlite3.Connection object at 0x0000029F82061A80>)>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+5 failed, 6 passed in 3.78s

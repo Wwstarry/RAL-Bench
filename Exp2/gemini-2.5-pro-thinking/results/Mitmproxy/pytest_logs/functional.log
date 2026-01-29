@@ -1,0 +1,100 @@
+..F.....FFF                                                              [100%]
+================================== FAILURES ===================================
+_______ test_003_version_source_file_exists_and_has_version_like_token ________
+
+    def test_003_version_source_file_exists_and_has_version_like_token():
+        """
+        Do NOT assume mitmproxy exposes __version__ at top-level.
+        Instead, require a stable version source file under the package and a version-like token inside.
+    
+        This aligns better with how many projects store version information (e.g. version.py, __init__.py, or pyproject).
+        """
+        pkg = _mitmproxy_pkg_dir()
+    
+        candidates = [
+            pkg / "version.py",
+            pkg / "__init__.py",
+        ]
+    
+        existing = [p for p in candidates if p.is_file()]
+        assert existing, f"Expected one of these to exist: {[str(p) for p in candidates]}"
+    
+        text = "\n".join(_file(p).lower() for p in existing)
+    
+        # Accept multiple common patterns.
+        # Examples: __version__ = "10.0.0", VERSION = "10.0.0", version = "10.0.0"
+        import re
+    
+>       assert (
+            re.search(r"__version__\s*=\s*['\"][^'\"]+['\"]", text)
+            or re.search(r"\bversion\s*=\s*['\"][^'\"]+['\"]", text)
+            or re.search(r"\bversion\b", text)
+        ), "Expected a version-like assignment or token in version source files."
+E       AssertionError: Expected a version-like assignment or token in version source files.
+E       assert (None or None or None)
+E        +  where None = <function search at 0x0000017F0D6E99D0>('__version__\\s*=\\s*[\'\\"][^\'\\"]+[\'\\"]', '# this file is intentionally left blank.')
+E        +    where <function search at 0x0000017F0D6E99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+E        +  and   None = <function search at 0x0000017F0D6E99D0>('\\bversion\\s*=\\s*[\'\\"][^\'\\"]+[\'\\"]', '# this file is intentionally left blank.')
+E        +    where <function search at 0x0000017F0D6E99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+E        +  and   None = <function search at 0x0000017F0D6E99D0>('\\bversion\\b', '# this file is intentionally left blank.')
+E        +    where <function search at 0x0000017F0D6E99D0> = <module 're' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\re.py'>.search
+
+tests\Mitmproxy\functional_test.py:103: AssertionError
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_003_version_source_file_exists_and_has_version_like_token
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+4 failed, 7 passed in 0.62s

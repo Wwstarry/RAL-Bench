@@ -1,0 +1,39 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_astral_performance_smoke ________________________
+
+    def test_astral_performance_smoke() -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_astral_performance_benchmark(iterations=5, days=10)
+
+tests\Astral\performance_test.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Astral\performance_test.py:60: in run_astral_performance_benchmark
+    _ = sun(loc.observer, date=d, tzinfo=loc.timezone)
+generation\Astral\astral\sun.py:186: in sun
+    'noon': _minutes_to_datetime(noon_min, date, tzinfo),
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+minutes = 723.5987263394142, date_obj = datetime.date(2020, 1, 1)
+tzinfo = 'Europe/London'
+
+    def _minutes_to_datetime(minutes, date_obj, tzinfo):
+        # Normalize minutes (handle <0 or >1440)
+        # We want the time on the specific date.
+        # If minutes < 0, it technically belongs to previous day UTC, but we want to represent it relative to the date.
+        # However, Astral usually returns a datetime on the requested date (or shifted if timezone implies).
+        # We construct UTC datetime then convert.
+    
+        # Base is 00:00 UTC of the date
+        base = datetime.datetime(date_obj.year, date_obj.month, date_obj.day, tzinfo=datetime.timezone.utc)
+        delta = datetime.timedelta(minutes=minutes)
+        dt_utc = base + delta
+    
+        if tzinfo:
+>           return dt_utc.astimezone(tzinfo)
+E           TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'str'
+
+generation\Astral\astral\sun.py:159: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Astral/performance_test.py::test_astral_performance_smoke - Type...
+1 failed in 0.42s

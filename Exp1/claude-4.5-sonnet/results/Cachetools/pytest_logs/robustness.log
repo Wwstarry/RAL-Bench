@@ -1,0 +1,488 @@
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+___________ test_cache_negative_maxsize_rejects_values_predictably ____________
+
+    def test_cache_negative_maxsize_rejects_values_predictably():
+        """
+        Reference cachetools in your repo treats maxsize=-1 as "no item can fit".
+        Robustness expectation:
+          - constructing Cache(-1) should not crash
+          - storing a normal value should fail predictably (ValueError) rather than corrupting state
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:70: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+__________ test_cache_weird_maxsize_type_does_not_crash_constructor ___________
+
+    def test_cache_weird_maxsize_type_does_not_crash_constructor():
+        """
+        Different cachetools versions differ on whether Cache("100") is accepted.
+        Robustness expectation:
+          - Constructor should not hard-crash the interpreter.
+          - Subsequent basic operations may raise (acceptable).
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:84: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+___________ test_cache_value_too_large_for_getsizeof_does_not_crash ___________
+
+    def test_cache_value_too_large_for_getsizeof_does_not_crash():
+        """
+        Extreme getsizeof behavior should not crash the process.
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+___________ test_popitem_on_empty_cache_raises_keyerror[FIFOCache] ____________
+
+cache_cls = 'FIFOCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LFUCache] ____________
+
+cache_cls = 'LFUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+____________ test_popitem_on_empty_cache_raises_keyerror[LRUCache] ____________
+
+cache_cls = 'LRUCache'
+
+    @pytest.mark.parametrize("cache_cls", ["FIFOCache", "LFUCache", "LRUCache"])
+    def test_popitem_on_empty_cache_raises_keyerror(cache_cls: str):
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+_______________ test_ttlcache_invalid_maxsize_is_handled_safely _______________
+
+    def test_ttlcache_invalid_maxsize_is_handled_safely():
+        """
+        Some implementations accept maxsize=-1; others raise.
+        Either behavior is acceptable as long as it is predictable and does not crash/hang.
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+________________ test_ttlcache_negative_ttl_is_handled_safely _________________
+
+    def test_ttlcache_negative_ttl_is_handled_safely():
+        """
+        In your reference, TTLCache(100, ttl=-1) does not raise.
+        Robustness expectation:
+          - Constructing should not crash.
+          - Subsequent operations may behave differently across versions; we accept both.
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:149: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+_______ test_cached_decorator_is_version_compatible_and_does_not_crash ________
+
+    def test_cached_decorator_is_version_compatible_and_does_not_crash():
+        """
+        cachetools.cached has multiple signatures across versions.
+        We attempt cached(cache) form; if unsupported, skip to avoid false negatives.
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:169: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+_____________________ test_cachedmethod_basic_usage_smoke _____________________
+
+    def test_cachedmethod_basic_usage_smoke():
+        """
+        cachedmethod should work in a minimal class use case (present in many versions).
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+_________ test_non_hashable_keys_raise_typeerror_in_dict_like_methods _________
+
+    def test_non_hashable_keys_raise_typeerror_in_dict_like_methods():
+        """
+        This is stable: list keys are unhashable and should raise TypeError.
+        """
+>       cachetools = _import_cachetools()
+
+tests\Cachetools\robustness_test.py:218: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Cachetools\robustness_test.py:59: in _import_cachetools
+    import cachetools  # type: ignore
+generation\Cachetools\cachetools\__init__.py:8: in <module>
+    from .decorators import cached, cachedmethod
+generation\Cachetools\cachetools\decorators.py:4: in <module>
+    from .keys import hashkey
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """Key functions for caching."""
+    
+    
+    def hashkey(*args, **kwargs):
+        """Create a cache key from function arguments."""
+        return _HashedTuple(args + tuple(sorted(kwargs.items())))
+    
+    
+    def typedkey(*args, **kwargs):
+        """Create a typed cache key from function arguments."""
+        key = args
+        if kwargs:
+            key += (object(),) + tuple(sorted(kwargs.items()))
+        # Include types in the key
+        key += tuple(type(arg) for arg in args)
+        if kwargs:
+            key += tuple(type(v) for k, v in sorted(kwargs.items()))
+        return _HashedTuple(key)
+    
+    
+>   class _HashedTuple(tuple):
+E   TypeError: nonempty __slots__ not supported for subtype of 'tuple'
+
+generation\Cachetools\cachetools\keys.py:21: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/robustness_test.py::test_cache_negative_maxsize_rejects_values_predictably
+FAILED tests/Cachetools/robustness_test.py::test_cache_weird_maxsize_type_does_not_crash_constructor
+FAILED tests/Cachetools/robustness_test.py::test_cache_value_too_large_for_getsizeof_does_not_crash
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[FIFOCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LFUCache]
+FAILED tests/Cachetools/robustness_test.py::test_popitem_on_empty_cache_raises_keyerror[LRUCache]
+FAILED tests/Cachetools/robustness_test.py::test_ttlcache_invalid_maxsize_is_handled_safely
+FAILED tests/Cachetools/robustness_test.py::test_ttlcache_negative_ttl_is_handled_safely
+FAILED tests/Cachetools/robustness_test.py::test_cached_decorator_is_version_compatible_and_does_not_crash
+FAILED tests/Cachetools/robustness_test.py::test_cachedmethod_basic_usage_smoke
+FAILED tests/Cachetools/robustness_test.py::test_non_hashable_keys_raise_typeerror_in_dict_like_methods
+11 failed in 25.54s

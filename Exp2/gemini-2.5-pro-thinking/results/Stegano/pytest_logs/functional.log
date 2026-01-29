@@ -1,0 +1,191 @@
+FF.FFF..F.F.                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_lsb_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_lsb_hide_and_reveal_text0')
+
+    def test_lsb_hide_and_reveal_text(tmp_path: Path) -> None:
+        """lsb.hide(..., str) then lsb.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "hello world"
+        output = tmp_path / "lsb_lenna.png"
+    
+        encoded_img = lsb.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+        revealed = lsb.reveal(str(output))
+>       assert revealed == secret
+E       AssertionError: assert 'hello worl' == 'hello world'
+E         
+E         - hello world
+E         ?           -
+E         + hello worl
+
+tests\Stegano\functional_test.py:94: AssertionError
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:86: in hide
+    x, y, channel_index = next(coord_generator)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+img = <PIL.Image.Image image mode=RGB size=512x512 at 0x152E7A3FC10>
+generator = <generator object eratosthenes at 0x00000152E7C8A740>, shift = 0
+
+    def _get_coords(img, generator=None, shift=0):
+        """
+        Generates pixel coordinates (x, y, channel_index) for embedding data.
+        """
+        width, height = img.size
+    
+        if img.mode == 'RGB':
+            num_channels = 3
+        elif img.mode == 'RGBA':
+            num_channels = 4
+        elif img.mode == 'L':
+            num_channels = 1
+        else:
+            raise ValueError(f"Unsupported image mode: {img.mode}")
+    
+        total_positions = width * height * num_channels
+    
+        if generator:
+>           indices = itertools.islice(generator(), shift, None)
+E           TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:23: TypeError
+______________________ test_lsb_reveal_from_image_object ______________________
+
+    def test_lsb_reveal_from_image_object() -> None:
+        """lsb.reveal should work when passed a PIL.Image object (common API usage)."""
+        _ensure_image_samples_exist()
+    
+        secret = "object input"
+        img_obj = lsb.hide(str(LENNA_PNG), secret)
+        revealed = lsb.reveal(img_obj)
+>       assert revealed == secret
+E       AssertionError: assert 'object inpu' == 'object input'
+E         
+E         - object input
+E         ?            -
+E         + object inpu
+
+tests\Stegano\functional_test.py:134: AssertionError
+________________________ test_red_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_red_hide_and_reveal_text0')
+
+    def test_red_hide_and_reveal_text(tmp_path: Path) -> None:
+        """red.hide(..., str) then red.reveal(...) returns the same string."""
+        _ensure_image_samples_exist()
+    
+        secret = "red secret"
+        output = tmp_path / "red_lenna.png"
+    
+        encoded_img = red.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+        revealed = red.reveal(str(output))
+>       assert revealed == secret
+E       AssertionError: assert 'red secre' == 'red secret'
+E         
+E         - red secret
+E         ?          -
+E         + red secre
+
+tests\Stegano\functional_test.py:152: AssertionError
+________________ test_red_hide_and_reveal_extended_latin_text _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_red_hide_and_reveal_exten0')
+
+    def test_red_hide_and_reveal_extended_latin_text(tmp_path: Path) -> None:
+        """Red backend stores per-char ord() into a byte channel; Latin-1 chars like 'é' are valid."""
+        _ensure_image_samples_exist()
+    
+        secret = "Café au lait"
+        output = tmp_path / "red_latin.png"
+    
+        encoded_img = red.hide(str(LENNA_PNG), secret)
+        encoded_img.save(str(output))
+    
+        revealed = red.reveal(str(output))
+>       assert revealed == secret
+E       AssertionError: assert 'Café au lai' == 'Café au lait'
+E         
+E         - Café au lait
+E         ?            -
+E         + Café au lai
+
+tests\Stegano\functional_test.py:166: AssertionError
+________________________ test_wav_hide_and_reveal_text ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_wav_hide_and_reveal_text0')
+
+    def test_wav_hide_and_reveal_text(tmp_path: Path) -> None:
+        """wav.hide writes output WAV; wav.reveal returns the same string."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "wav secret"
+        output = tmp_path / "out.wav"
+    
+        wav.hide(str(wav_in), secret, str(output))
+        assert output.exists()
+        assert output.stat().st_size > 0
+    
+        revealed = wav.reveal(str(output))
+>       assert revealed == secret
+E       AssertionError: assert 'wav secre' == 'wav secret'
+E         
+E         - wav secret
+E         ?          -
+E         + wav secre
+
+tests\Stegano\functional_test.py:224: AssertionError
+____________________ test_wav_hide_and_reveal_longer_text _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-457/test_wav_hide_and_reveal_longe0')
+
+    def test_wav_hide_and_reveal_longer_text(tmp_path: Path) -> None:
+        """Roundtrip a longer ASCII message via WAV backend."""
+        wav_in = _pick_sample_wav()
+    
+        secret = "WAV backend long message: 1234567890 abcdefghijklmnopqrstuvwxyz"
+        output = tmp_path / "out_long.wav"
+    
+        wav.hide(str(wav_in), secret, str(output))
+        assert output.exists()
+        assert output.stat().st_size > 0
+    
+        revealed = wav.reveal(str(output))
+>       assert revealed == secret
+E       AssertionError: assert 'WAV backend ...mnopqrstuvwxy' == 'WAV backend ...nopqrstuvwxyz'
+E         
+E         Skipping 51 identical leading characters in diff, use -v to show
+E         - opqrstuvwxyz
+E         ?            -
+E         + opqrstuvwxy
+
+tests\Stegano\functional_test.py:254: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_text - Asse...
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+FAILED tests/Stegano/functional_test.py::test_lsb_reveal_from_image_object - ...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_text - Asse...
+FAILED tests/Stegano/functional_test.py::test_red_hide_and_reveal_extended_latin_text
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_text - Asse...
+FAILED tests/Stegano/functional_test.py::test_wav_hide_and_reveal_longer_text
+7 failed, 5 passed in 1.79s

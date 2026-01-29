@@ -1,0 +1,67 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+        data = Data(normalized, labels)
+        args = _make_args()
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\resource_test.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000002AD4CD2B3A0>
+
+    def draw(self):
+        """
+        Render the bar chart to stdout.
+        """
+        if self.args.title:
+            print(f"\n# {self.args.title}\n")
+    
+        # Collect all data and determine if multi-series
+        all_data = []
+        max_label_len = 0
+        is_multi_series = False
+    
+        for label, values in self.data:
+            if not self.args.no_labels and self.args.labels:
+                max_label_len = max(max_label_len, len(str(label)))
+    
+            # Check if values is a list (multi-series) or single value
+            if isinstance(values, (list, tuple)):
+                is_multi_series = True
+                all_data.append((label, list(values)))
+            else:
+                all_data.append((label, [values]))
+    
+        # Find maximum value for scaling
+        if is_multi_series and not self.args.different_scale:
+            # For multi-series, find max across all series
+            max_val = 0
+            for label, values in all_data:
+                max_val = max(max_val, max(values) if values else 0)
+        else:
+            max_val = 0
+            for label, values in all_data:
+>               max_val = max(max_val, max(values) if values else 0)
+E               TypeError: '>' not supported between instances of 'str' and 'int'
+
+generation\Termgraph\termgraph\charts.py:67: TypeError
+---------------------------- Captured stdout call -----------------------------
+
+# Normalized Stats
+
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.32s

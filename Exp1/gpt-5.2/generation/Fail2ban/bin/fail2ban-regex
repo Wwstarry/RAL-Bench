@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+from pathlib import Path
+
+from fail2ban.server.filter import FailRegex
+
+
+def _read_lines(path: Path):
+    # Read as text, replacing errors for robustness in tests
+    return path.read_text(encoding="utf-8", errors="replace").splitlines(True)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex checker: scans a log file for matching lines and IPs.",
+    )
+    parser.add_argument("logfile", nargs="?", help="Path to log file to scan.")
+    parser.add_argument("regex", nargs="?", help="Regex pattern (Python re).")
+    parser.add_argument(
+        "-v", "--verbose", action="count", default=0, help="Increase verbosity."
+    )
+    parser.add_argument(
+        "--max-lines",
+        type=int,
+        default=0,
+        help="Limit number of lines read (0 = no limit).",
+    )
+    args = parser.parse_args(argv)
+
+    if not args.logfile or not args.regex:
+        parser.print_help()
+        return 0
+
+    log_path = Path(args.logfile)
+    if not log_path.exists() or not log_path.is_file():
+        sys.stderr.write(f"fail2ban-regex: logfile not found: {log_path}\n")
+        return 2
+
+    try:
+        fr = FailRegex(args.regex)
+    except Exception as e:
+        sys.stderr.write(f"fail2ban-regex: invalid regex: {e}\n")
+        return 2
+
+    lines = _read_lines(log_path)
+    if args.max_lines and args.max_lines > 0:
+        lines = lines[: args.max_lines]
+
+    total = len(lines)
+    matched = 0
+    ips = {}
+    for i, line in enumerate(lines, 1):
+        res = fr.match_line(line)
+        if not res:
+            continue
+        ip, m = res
+        matched += 1
+        ips[ip] = ips.get(ip, 0) + 1
+        if args.verbose:
+            sys.stdout.write(f"{i}: {ip}: {line}")
+            if not line.endswith("\n"):
+                sys.stdout.write("\n")
+            if args.verbose > 1:
+                sys.stdout.write(f"    match={m.group(0)!r}\n")
+
+    sys.stdout.write(f"Lines: {total}\n")
+    sys.stdout.write(f"Matches: {matched}\n")
+    sys.stdout.write(f"Unique IPs: {len(ips)}\n")
+    if ips:
+        for ip in sorted(ips):
+            sys.stdout.write(f"{ip}\t{ips[ip]}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

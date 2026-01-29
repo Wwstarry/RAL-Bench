@@ -1,0 +1,45 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_performance_many_small_charts ______________________
+
+    def test_performance_many_small_charts() -> None:
+        """Render many small charts to ensure performance is reasonable."""
+        labels = ["A", "B", "C"]
+        values = [[1], [2], [3]]
+    
+>       data = Data(values, labels)
+
+tests\Termgraph\performance_test.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = Data(labels=[[1], [2], [3]], series=[['A'], ['B'], ['C']])
+labels = [[1], [2], [3]], series = ['A', 'B', 'C']
+
+    def __init__(
+        self,
+        labels: Optional[Sequence[str]] = None,
+        series: Optional[Sequence[Sequence[Number]]] = None,
+    ):
+        self.labels = list(labels) if labels is not None else []
+        self.series = [list(s) for s in series] if series is not None else []
+    
+        # Normalize empty inputs
+        if self.labels is None:
+            self.labels = []
+        if self.series is None:
+            self.series = []
+    
+        # Basic validation/normalization: ensure rectangular where possible
+        if self.series and self.labels:
+            n = len(self.labels)
+            for idx, s in enumerate(self.series):
+                if len(s) != n:
+>                   raise ValueError(
+                        f"Series {idx} has length {len(s)} but labels has length {n}"
+                    )
+E                   ValueError: Series 0 has length 1 but labels has length 3
+
+generation\Termgraph\termgraph\data.py:43: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/performance_test.py::test_performance_many_small_charts
+1 failed in 0.32s

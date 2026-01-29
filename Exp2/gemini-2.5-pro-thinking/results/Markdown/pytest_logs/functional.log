@@ -1,0 +1,66 @@
+..F...F..Fsssssssss                                                      [100%]
+================================== FAILURES ===================================
+_______________________ test_inline_code_and_code_block _______________________
+
+    def test_inline_code_and_code_block() -> None:
+        src = textwrap.dedent(
+            """
+            Use `code()` inline.
+    
+            ```
+            def foo():
+                return 42
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+        assert "<code>" in norm and "</code>" in norm
+>       assert "code()" in norm
+E       AssertionError: assert 'code()' in '<p>Use <strong>CODE<em>PLACEHOLDER</em>0</strong> inline.</p>\n<pre><code>def foo():\nreturn 42\n</code></pre>'
+
+tests\Markdown\functional_test.py:143: AssertionError
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<pre><code>literal &lt;b&gt; tag in code block\n</code></pre>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+_______________________ test_horizontal_rule_renders_hr _______________________
+
+    def test_horizontal_rule_renders_hr() -> None:
+        src = textwrap.dedent(
+            """
+            Paragraph above
+    
+            ---
+    
+            Paragraph below
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<hr" in norm
+E       AssertionError: assert '<hr' in '<p>Paragraph above</p>\n<p>---</p>\n<p>Paragraph below</p>'
+
+tests\Markdown\functional_test.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_inline_code_and_code_block - A...
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+FAILED tests/Markdown/functional_test.py::test_horizontal_rule_renders_hr - A...
+3 failed, 7 passed, 9 skipped in 0.53s

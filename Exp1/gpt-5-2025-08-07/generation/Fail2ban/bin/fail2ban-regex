@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+"""
+Minimal offline fail2ban-regex tool.
+
+Usage:
+  fail2ban-regex LOGFILE REGEX [--ignore IGNORE_REGEX] [--max N]
+
+This tool tests a regex against a log file, printing matching lines and
+extracted IP addresses. It does not start any daemon and performs no
+system modifications.
+"""
+import os
+import sys
+import argparse
+
+# Ensure repo root is importable when running from a checkout
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fail2ban.server.filter import Filter
+
+
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(
+        prog="fail2ban-regex",
+        description="Offline regex tester for the minimal Fail2Ban subset",
+    )
+    p.add_argument("logfile", nargs="?", help="Path to log file to scan")
+    p.add_argument("regex", nargs="?", help="Fail2Ban-style regex (supports <HOST>)")
+    p.add_argument("--ignore", dest="ignore", default=None, help="Ignore regex to skip matches")
+    p.add_argument("--max", dest="max", type=int, default=None, help="Max number of matches to print")
+    p.add_argument("--count", action="store_true", help="Print only the number of matches")
+    p.add_argument("--verbose", "-v", action="store_true", help="Print detailed match info")
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    if not args.logfile or not args.regex:
+        print("Usage: fail2ban-regex LOGFILE REGEX [--ignore IGNORE_REGEX] [--max N]")
+        print("Example: fail2ban-regex /var/log/auth.log 'Failed password for .* from <HOST>'")
+        return 2
+
+    logfile = args.logfile
+    regex = args.regex
+    ignore = args.ignore
+
+    if not os.path.exists(logfile):
+        print(f"Error: logfile not found: {logfile}", file=sys.stderr)
+        return 1
+
+    failregex = [regex]
+    ignoreregex = [ignore] if ignore else []
+
+    filt = Filter(name="cli", failregex=failregex, ignoreregex=ignoreregex)
+
+    total = 0
+    printed = 0
+    try:
+        with open(logfile, "r", encoding="utf-8", errors="replace") as fh:
+            for idx, line in enumerate(fh, start=1):
+                res = filt.match_line(line)
+                if res["matched"]:
+                    total += 1
+                    if not args.count:
+                        if args.max is None or printed < args.max:
+                            if args.verbose:
+                                ip = res.get("ip")
+                                pat = res.get("pattern")
+                                print(f"Line {idx}: MATCH ip={ip or '-'} pattern={pat or '-'} :: {line.rstrip()}")
+                            else:
+                                print(f"Line {idx}: {line.rstrip()}")
+                            printed += 1
+    except KeyboardInterrupt:
+        pass
+
+    if args.count:
+        print(total)
+    else:
+        print(f"Total matches: {total}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

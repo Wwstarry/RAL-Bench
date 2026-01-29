@@ -1,0 +1,58 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+____________ test_performance_large_marker_map_build_and_html_size ____________
+
+    def test_performance_large_marker_map_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        for i in range(n):
+            folium.Marker([i * 1e-6, i * 1e-6]).add_to(m)
+>       html = m.get_root().render()
+
+tests\Folium\performance_test.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+generation\Folium\folium\map.py:103: in render
+    return fig.render(**kwargs)
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+E   RecursionError: maximum recursion depth exceeded while calling a Python object
+!!! Recursion detected (same locals & position)
+_____________ test_performance_markercluster_build_and_html_size ______________
+
+    def test_performance_markercluster_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        mc = MarkerCluster(name="mc").add_to(m)
+        for i in range(n):
+            folium.Marker([i * 1e-6, i * 1e-6]).add_to(mc)
+>       html = m.get_root().render()
+
+tests\Folium\performance_test.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+generation\Folium\folium\map.py:103: in render
+    return fig.render(**kwargs)
+generation\Folium\folium\elements.py:65: in render
+    ch.render(**kwargs)
+E   RecursionError: maximum recursion depth exceeded while encoding a JSON object
+!!! Recursion detected (same locals & position)
+=========================== short test summary info ===========================
+FAILED tests/Folium/performance_test.py::test_performance_large_marker_map_build_and_html_size
+FAILED tests/Folium/performance_test.py::test_performance_markercluster_build_and_html_size
+2 failed in 29.51s

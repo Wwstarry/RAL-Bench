@@ -1,0 +1,29 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_bulk_commands_performance ________________________
+
+    def test_bulk_commands_performance() -> None:
+        app = PerfApp()
+        commands = ["ping"] * 2000
+    
+        start = time.perf_counter()
+>       output = run_commands(app, commands)
+
+tests\Cmd2\performance_test.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+app = <performance_test.PerfApp object at 0x0000027A6715BE80>
+commands = ['ping', 'ping', 'ping', 'ping', 'ping', 'ping', ...]
+
+    def run_commands(app: PerfApp, commands: list[str]) -> str:
+        buffer = io.StringIO()
+        saved_stdout = app.stdout
+        app.stdout = buffer
+        try:
+>           app.runcmds_plus_hooks(commands)
+E           AttributeError: 'PerfApp' object has no attribute 'runcmds_plus_hooks'
+
+tests\Cmd2\performance_test.py:42: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/performance_test.py::test_bulk_commands_performance - Attri...
+1 failed in 0.45s

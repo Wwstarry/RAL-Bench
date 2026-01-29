@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""
+Minimal offline fail2ban-client stub.
+
+This implementation is safe and does not start any daemon, change firewall rules,
+or require root. It only provides simple help/version/ping and basic config display.
+"""
+import os
+import sys
+import argparse
+
+# Ensure repo root is importable when running from a checkout
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fail2ban import __version__
+
+
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(
+        prog="fail2ban-client",
+        description="Minimal offline Fail2Ban client stub (safe; no daemon operations)",
+    )
+    sub = p.add_subparsers(dest="command")
+
+    sub.add_parser("help", help="Show help")
+    sub.add_parser("version", help="Show version")
+    sub.add_parser("ping", help="Check client responsiveness")
+    sub.add_parser("show-config", help="Print path to canonical configuration (jail.conf)")
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    cmd = args.command
+    if cmd in (None, "help"):
+        print("fail2ban-client (minimal subset)")
+        print("Available commands:")
+        print("  help         Show this help")
+        print("  version      Show version")
+        print("  ping         Check client responsiveness")
+        print("  show-config  Print path to canonical jail configuration")
+        return 0
+
+    if cmd == "version":
+        print(__version__)
+        return 0
+
+    if cmd == "ping":
+        print("OK")
+        return 0
+
+    if cmd == "show-config":
+        # Resolve config/jail.conf path relative to repo root
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        jail_conf = os.path.join(repo_root, "config", "jail.conf")
+        print(jail_conf)
+        if os.path.exists(jail_conf):
+            try:
+                with open(jail_conf, "r", encoding="utf-8", errors="replace") as fh:
+                    print("--- BEGIN jail.conf ---")
+                    sys.stdout.write(fh.read())
+                    print("\n--- END jail.conf ---")
+            except Exception as e:
+                print(f"(Unable to read jail.conf: {e})")
+        else:
+            print("(jail.conf not found)")
+        return 0
+
+    # Unknown command (should not reach due to argparse)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

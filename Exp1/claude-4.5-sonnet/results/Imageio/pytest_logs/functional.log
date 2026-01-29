@@ -1,0 +1,92 @@
+...F..F.F.                                                               [100%]
+================================== FAILURES ===================================
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+
+tests\Imageio\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Imageio\imageio\v3.py:416: in imwrite
+    _write_png(path, image)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('<bytes>')
+image = array([[[157, 193, 255],
+        [178, 141, 177],
+        [ 50,  58, 222],
+        ...,
+        [249,   7, 141],
+     ...[  9, 234,  27],
+        ...,
+        [219, 110, 131],
+        [255, 135, 132],
+        [203,  36, 116]]], dtype=uint8)
+
+    def _write_png(path: Path, image: np.ndarray) -> None:
+        """Write a single image as PNG."""
+        if image.ndim == 2:
+            # Grayscale
+            height, width = image.shape
+            color_type = 0
+            channels = 1
+            data = image.reshape(height, width, 1)
+        elif image.ndim == 3:
+            height, width, channels = image.shape
+            if channels == 1:
+                color_type = 0
+            elif channels == 3:
+                color_type = 2
+            else:
+                raise ValueError(f"Unsupported number of channels: {channels}")
+            data = image
+        else:
+            raise ValueError(f"Unsupported image dimensions: {image.ndim}")
+    
+        # Convert to uint8 if needed
+        if data.dtype != np.uint8:
+            data = data.astype(np.uint8)
+    
+>       with open(path, 'wb') as f:
+E       OSError: [Errno 22] Invalid argument: '<bytes>'
+
+generation\Imageio\imageio\v3.py:47: OSError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-283/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape[0] == frames.shape[0]
+E       assert 20 == 5
+
+tests\Imageio\functional_test.py:194: AssertionError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-283/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+3 failed, 7 passed in 1.08s

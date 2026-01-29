@@ -1,0 +1,81 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+____________ test_performance_001_many_small_tasks_finish_quickly _____________
+
+    @pytest.mark.performance
+    def test_performance_001_many_small_tasks_finish_quickly() -> None:
+        """
+        Absolute threshold is intentionally conservative to avoid false failures on slow CI.
+        """
+>       app = _make_app()
+
+tests\Celery\performance_test.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_perf_app'
+
+    def _make_app(name: str = "celery_perf_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(name, broker="memory://", backend="cache+memory://")
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=False,  # reduce overhead
+            broker_url="memory://",
+            result_backend="cache+memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       AttributeError: 'Config' object has no attribute 'update'
+
+tests\Celery\performance_test.py:32: AttributeError
+______________ test_performance_002_group_batching_is_reasonable ______________
+
+    @pytest.mark.performance
+    def test_performance_002_group_batching_is_reasonable() -> None:
+>       app = _make_app()
+
+tests\Celery\performance_test.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_perf_app'
+
+    def _make_app(name: str = "celery_perf_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(name, broker="memory://", backend="cache+memory://")
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=False,  # reduce overhead
+            broker_url="memory://",
+            result_backend="cache+memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       AttributeError: 'Config' object has no attribute 'update'
+
+tests\Celery\performance_test.py:32: AttributeError
+============================== warnings summary ===============================
+tests\Celery\performance_test.py:47
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Celery\performance_test.py:47: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+tests\Celery\performance_test.py:69
+  D:\桌面\RealAppCodeBench_generic_eval\tests\Celery\performance_test.py:69: PytestUnknownMarkWarning: Unknown pytest.mark.performance - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.performance
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Celery/performance_test.py::test_performance_001_many_small_tasks_finish_quickly
+FAILED tests/Celery/performance_test.py::test_performance_002_group_batching_is_reasonable
+2 failed, 2 warnings in 0.33s

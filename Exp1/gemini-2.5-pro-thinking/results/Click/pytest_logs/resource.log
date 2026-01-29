@@ -1,0 +1,31 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________________ test_repeated_invocations_memory_usage ____________________
+
+    def test_repeated_invocations_memory_usage():
+        @click.command()
+        @click.option("--times", type=int, default=1)
+        @click.argument("name")
+>       def greet(times: int, name: str) -> None:
+
+tests\Click\resource_test.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Click\click\decorators.py:44: in decorator
+    f.__click_params__.append(param_cls(param_decls, **attrs))
+generation\Click\click\core.py:88: in __init__
+    super().__init__(param_decls, **attrs)
+generation\Click\click\core.py:63: in __init__
+    self.opts, self.name = self._parse_decls(param_decls)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <click.core.Option object at 0x000001A8C947EA00>, decls = ('--times',)
+
+    def _parse_decls(self, decls):
+        opts = [d for d in decls if d.startswith("-")]
+>       name = [d for d in decls if not d.startswith("-")][0]
+E       IndexError: list index out of range
+
+generation\Click\click\core.py:71: IndexError
+=========================== short test summary info ===========================
+FAILED tests/Click/resource_test.py::test_repeated_invocations_memory_usage
+1 failed in 0.46s

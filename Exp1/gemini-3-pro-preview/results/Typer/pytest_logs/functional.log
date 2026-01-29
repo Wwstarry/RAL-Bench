@@ -1,0 +1,180 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+_____________________ test_todo_list_empty_shows_no_tasks _____________________
+
+    def test_todo_list_empty_shows_no_tasks() -> None:
+        app = _create_todo_app()
+        r = runner.invoke(app, ["list"])
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D23ED60>.exit_code
+
+tests\Typer\functional_test.py:223: AssertionError
+___________________________ test_todo_add_and_list ____________________________
+
+    def test_todo_add_and_list() -> None:
+        app = _create_todo_app()
+    
+        r1 = runner.invoke(app, ["add", "Write tests"])
+        r2 = runner.invoke(app, ["add", "Review PRs"])
+    
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D293E20>.exit_code
+
+tests\Typer\functional_test.py:233: AssertionError
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A19A0>.exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_____________________ test_help_output_includes_commands ______________________
+
+    def test_help_output_includes_commands() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["--help"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A1760>.exit_code
+
+tests\Typer\functional_test.py:264: AssertionError
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["add", "--help"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A1370>.exit_code
+
+tests\Typer\functional_test.py:274: AssertionError
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+        app = _create_prompt_app()
+        # Now stable: "greet" always exists as a subcommand (multi-command app).
+>       result = runner.invoke(app, ["greet"], input="Alice\n")
+E       TypeError: invoke() got an unexpected keyword argument 'input'
+
+tests\Typer\functional_test.py:282: TypeError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002597D228B80>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+        app = _create_env_app()
+        monkeypatch.setenv("APP_TOKEN", "abc123")
+    
+        result = runner.invoke(app, ["show"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D228AC0>.exit_code
+
+tests\Typer\functional_test.py:292: AssertionError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+        app = _create_callback_app()
+    
+        r1 = runner.invoke(app, ["run"])
+        assert r1.exit_code == 0
+        assert "running" in r1.stdout
+        assert "verbose" not in r1.stdout
+    
+        r2 = runner.invoke(app, ["--verbose", "run"])
+>       assert r2.exit_code == 0
+E       assert 2 == 0
+E        +  where 2 = <typer.testing.Result object at 0x000002597D22FCA0>.exit_code
+
+tests\Typer\functional_test.py:305: AssertionError
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+        app = _create_types_app()
+        # Now stable: "calc" always exists as a subcommand (multi-command app).
+        r = runner.invoke(app, ["calc", "2", "3", "--scale", "2.0"])
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D21A730>.exit_code
+
+tests\Typer\functional_test.py:313: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - TypeError:...
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - Ty...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_list_empty_shows_no_tasks - ...
+FAILED tests/Typer/functional_test.py::test_todo_add_and_list - assert 1 == 0
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - a...
+FAILED tests/Typer/functional_test.py::test_help_output_includes_commands - a...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - assert...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+12 failed in 0.81s

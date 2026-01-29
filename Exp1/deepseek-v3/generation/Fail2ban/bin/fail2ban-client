@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""
+Minimal Fail2Ban client for testing purposes.
+Supports offline operations only.
+"""
+import sys
+import argparse
+from fail2ban.server.jail import Jail
+
+def main():
+    parser = argparse.ArgumentParser(description='Fail2Ban Client (Minimal)')
+    parser.add_argument('--help', action='store_true', help='Show help message')
+    parser.add_argument('--version', action='store_true', help='Show version')
+    parser.add_argument('command', nargs='?', help='Command to execute')
+    parser.add_argument('jail', nargs='?', help='Jail name')
+    parser.add_argument('ip', nargs='?', help='IP address')
+    
+    args = parser.parse_args()
+    
+    if args.help or not args.command:
+        parser.print_help()
+        return 0
+        
+    if args.version:
+        print("fail2ban-client 0.11.2 (minimal)")
+        return 0
+        
+    if args.command == 'status':
+        print("Status: offline (minimal implementation)")
+        print("Jails: sshd (minimal test jail)")
+        return 0
+        
+    elif args.command == 'ban' and args.jail and args.ip:
+        jail = Jail(args.jail)
+        if jail.banIP(args.ip):
+            print(f"Banned {args.ip} in jail {args.jail} (simulated)")
+            return 0
+        else:
+            print(f"Failed to ban {args.ip}")
+            return 1
+            
+    elif args.command == 'unban' and args.jail and args.ip:
+        jail = Jail(args.jail)
+        if jail.unbanIP(args.ip):
+            print(f"Unbanned {args.ip} in jail {args.jail} (simulated)")
+            return 0
+        else:
+            print(f"Failed to unban {args.ip}")
+            return 1
+            
+    else:
+        print(f"Unknown command: {args.command}")
+        return 1
+
+if __name__ == '__main__':
+    sys.exit(main())

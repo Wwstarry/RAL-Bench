@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""
+Fail2Ban regex testing tool.
+Tests patterns against log files without actual banning.
+"""
+import sys
+import argparse
+import re
+from fail2ban.server.filter import Filter, searchIP
+
+def test_regex(pattern, lines, verbose=False):
+    """Test a regex pattern against lines of text."""
+    filter_obj = Filter('test', pattern)
+    matches = filter_obj.test(lines)
+    
+    print(f"Testing pattern: {pattern}")
+    print(f"Lines processed: {len(lines)}")
+    print(f"Matches found: {len(matches)}")
+    print()
+    
+    for i, match in enumerate(matches):
+        print(f"Match {i+1}:")
+        print(f"  Line: {match['line'].strip()}")
+        print(f"  Matched: {match['match']['matched']}")
+        if 'ip' in match['match']:
+            print(f"  IP: {match['match']['ip']}")
+        if verbose:
+            if match['match']['groups']:
+                print(f"  Groups: {match['match']['groups']}")
+            if match['match']['groupdict']:
+                print(f"  Named groups: {match['match']['groupdict']}")
+        print()
+
+def main():
+    parser = argparse.ArgumentParser(description='Fail2Ban Regex Tester')
+    parser.add_argument('pattern', help='Regex pattern to test')
+    parser.add_argument('logfile', nargs='?', help='Log file to test against')
+    parser.add_argument('--verbose', '-v', action='store_true', help='Verbose output')
+    parser.add_argument('--print-all-matches', action='store_true', help='Print all matches')
+    
+    args = parser.parse_args()
+    
+    # Read lines from file or stdin
+    if args.logfile:
+        try:
+            with open(args.logfile, 'r') as f:
+                lines = f.readlines()
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.logfile}")
+            return 1
+    else:
+        lines = sys.stdin.readlines()
+    
+    if not lines:
+        print("No lines to process")
+        return 1
+        
+    test_regex(args.pattern, lines, args.verbose)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())

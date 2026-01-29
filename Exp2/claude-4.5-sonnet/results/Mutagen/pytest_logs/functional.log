@@ -1,0 +1,87 @@
+.....F.F....                                                             [100%]
+================================== FAILURES ===================================
+________________ test_easyid3_genre_and_albumartist_roundtrip _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-284/test_easyid3_genre_and_albumar0')
+
+    def test_easyid3_genre_and_albumartist_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common optional fields via EasyID3 (genre/albumartist)."""
+        audio_path = tmp_path / "genre_albumartist.mp3"
+    
+        tags = EasyID3()
+        tags["title"] = ["Tagged Song"]
+        tags["artist"] = ["Main Artist"]
+>       tags["albumartist"] = ["Album Artist"]
+
+tests\Mutagen\functional_test.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.easyid3.EasyID3 object at 0x00000126B5AC5AF0>
+key = 'albumartist', value = ['Album Artist']
+
+    def __setitem__(self, key, value):
+        """
+        Set tag values for a key.
+    
+        Args:
+            key: Tag key (e.g., "title", "artist")
+            value: List of string values
+        """
+        if key not in _EASY_MAP:
+>           raise KeyError(key)
+E           KeyError: 'albumartist'
+
+generation\Mutagen\mutagen\easyid3.py:74: KeyError
+_______________ test_low_level_id3_frames_with_comment_and_apic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-284/test_low_level_id3_frames_with0')
+
+    def test_low_level_id3_frames_with_comment_and_apic(tmp_path: Path) -> None:
+        """Use low-level ID3 frames to store text and embedded artwork."""
+        audio_path = tmp_path / "id3_frames.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Frame Title"))
+        tags.add(TPE1(encoding=3, text="Frame Artist"))
+        tags.add(
+            COMM(
+                encoding=3,
+                lang="eng",
+                desc="Comment",
+                text="This is a test comment.",
+            )
+        )
+    
+        image_data = b"\xff\xd8\xff\x00FAKEJPEGDATA"
+        tags.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=image_data,
+            )
+        )
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+    
+>       assert "TIT2" in loaded
+
+tests\Mutagen\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000126B5ABC7C0>, frame_id = 0
+
+    def __getitem__(self, frame_id):
+        """Get the first frame with the given ID."""
+        frames = self._frames.get(frame_id, [])
+        if not frames:
+>           raise KeyError(frame_id)
+E           KeyError: 0
+
+generation\Mutagen\mutagen\id3.py:216: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Mutagen/functional_test.py::test_easyid3_genre_and_albumartist_roundtrip
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_frames_with_comment_and_apic
+2 failed, 10 passed in 0.68s

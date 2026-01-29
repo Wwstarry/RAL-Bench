@@ -1,0 +1,284 @@
+project_name: Cmd2
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Cmd2\cmd2.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\cmd2
+timestamp: '2025-12-31 16:07:52'
+functional_score: 0.5455
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "..FF..F.FF.                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_echo_arguments_and_parsing _______________________\n\
+      \napp = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588A99400>\n\
+      \n    def test_echo_arguments_and_parsing(app: Optional[Any]) -> None:\n   \
+      \     if not _require_app(app):\n            return\n        output = run_command(app,\
+      \ \"echo_args one two three\")\n>       assert \"one two three\" in output\n\
+      E       AssertionError: assert 'one two three' in '\\n'\n\ntests\\Cmd2\\functional_test.py:276:\
+      \ AssertionError\n_______________________ test_echo_arguments_with_quotes _______________________\n\
+      \napp = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AA4EE0>\n\
+      \n    def test_echo_arguments_with_quotes(app: Optional[Any]) -> None:\n   \
+      \     if not _require_app(app):\n            return\n        output = run_command(app,\
+      \ 'echo_args \"hello world\" two')\n>       assert \"hello world two\" in output\n\
+      E       AssertionError: assert 'hello world two' in '\\n'\n\ntests\\Cmd2\\functional_test.py:283:\
+      \ AssertionError\n_____________________ test_unknown_command_reports_error ______________________\n\
+      \napp = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588B09CA0>\n\
+      \n    def test_unknown_command_reports_error(app: Optional[Any]) -> None:\n\
+      \        if not _require_app(app):\n            return\n        output = run_command(app,\
+      \ \"this_command_does_not_exist\")\n        low = output.lower()\n>       assert\
+      \ (\"unknown\" in low) or (\"syntax\" in low) or (\"not found\" in low) or (output.strip()\
+      \ != \"\")\nE       AssertionError: assert ('unknown' in '' or 'syntax' in ''\
+      \ or 'not found' in '' or '' != '')\nE        +  where '' = <built-in method\
+      \ strip of str object at 0x0000023585C44670>()\nE        +    where <built-in\
+      \ method strip of str object at 0x0000023585C44670> = ''.strip\n\ntests\\Cmd2\\\
+      functional_test.py:306: AssertionError\n---------------------------- Captured\
+      \ stderr call -----------------------------\n*** Unknown syntax: this_command_does_not_exist\n\
+      _____________________ test_multiple_commands_and_history ______________________\n\
+      \napp = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AFCB20>\n\
+      \n    def test_multiple_commands_and_history(app: Optional[Any]) -> None:\n\
+      \        if not _require_app(app):\n            return\n        commands = [\"\
+      greet Alice\", \"greet Bob\", \"history\"]\n        output = run_commands(app,\
+      \ commands)\n>       assert \"Hello Alice\" in output\nE       AssertionError:\
+      \ assert 'Hello Alice' in ''\n\ntests\\Cmd2\\functional_test.py:321: AssertionError\n\
+      ---------------------------- Captured stderr call -----------------------------\n\
+      *** Unknown syntax: history\n____________________ test_history_object_records_commands\
+      \ _____________________\n\napp = <functional_test._make_app_class.<locals>.SimpleApp\
+      \ object at 0x0000023587479EE0>\n\n    def test_history_object_records_commands(app:\
+      \ Optional[Any]) -> None:\n        if not _require_app(app):\n            return\n\
+      \        _ = run_command(app, \"greet Zoe\")\n        hist = getattr(app, \"\
+      history\", None)\n>       assert hist is not None\nE       assert None is not\
+      \ None\n\ntests\\Cmd2\\functional_test.py:331: AssertionError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Cmd2/functional_test.py::test_echo_arguments_and_parsing\
+      \ - Asser...\nFAILED tests/Cmd2/functional_test.py::test_echo_arguments_with_quotes\
+      \ - Asser...\nFAILED tests/Cmd2/functional_test.py::test_unknown_command_reports_error\
+      \ - As...\nFAILED tests/Cmd2/functional_test.py::test_multiple_commands_and_history\
+      \ - As...\nFAILED tests/Cmd2/functional_test.py::test_history_object_records_commands\
+      \ - ...\n5 failed, 6 passed in 3.53s\n"
+    elapsed_time_s: 4.837541
+    avg_memory_mb: 32.14
+    avg_cpu_percent: 98.4
+    passed: 6
+    failed: 5
+    skipped: 0
+    total: 11
+    score_inputs_passed: 6
+    score_inputs_failed: 5
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_bulk_commands_performance ________________________\n\
+      \n    def test_bulk_commands_performance() -> None:\n        app = PerfApp()\n\
+      \        commands = [\"ping\"] * 2000\n    \n        start = time.perf_counter()\n\
+      >       output = run_commands(app, commands)\n\ntests\\Cmd2\\performance_test.py:53:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\n\napp = <performance_test.PerfApp object at 0x000002B0C0A4AC10>\n\
+      commands = ['ping', 'ping', 'ping', 'ping', 'ping', 'ping', ...]\n\n    def\
+      \ run_commands(app: PerfApp, commands: list[str]) -> str:\n        buffer =\
+      \ io.StringIO()\n        saved_stdout = app.stdout\n        app.stdout = buffer\n\
+      \        try:\n>           app.runcmds_plus_hooks(commands)\nE           AttributeError:\
+      \ 'PerfApp' object has no attribute 'runcmds_plus_hooks'\n\ntests\\Cmd2\\performance_test.py:42:\
+      \ AttributeError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Cmd2/performance_test.py::test_bulk_commands_performance - Attri...\n\
+      1 failed in 0.39s\n"
+    elapsed_time_s: 1.934219
+    avg_memory_mb: 31.56
+    avg_cpu_percent: 98.3
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.911562
+    score_inputs_actual_time_s: 1.934219
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_memory_usage_for_many_commands _____________________\n\
+      \n    def test_memory_usage_for_many_commands() -> None:\n        app = ResourceApp()\n\
+      \        commands = [\"noop\"] * 3000\n    \n        process = psutil.Process()\n\
+      \        base_mem = process.memory_info().rss\n    \n>       run_commands(app,\
+      \ commands)\n\ntests\\Cmd2\\resource_test.py:57: \n_ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\napp = <resource_test.ResourceApp\
+      \ object at 0x000002A5B204E280>\ncommands = ['noop', 'noop', 'noop', 'noop',\
+      \ 'noop', 'noop', ...]\n\n    def run_commands(app: ResourceApp, commands: list[str])\
+      \ -> str:\n        buffer = io.StringIO()\n        saved_stdout = app.stdout\n\
+      \        app.stdout = buffer\n        try:\n>           app.runcmds_plus_hooks(commands)\n\
+      E           AttributeError: 'ResourceApp' object has no attribute 'runcmds_plus_hooks'\n\
+      \ntests\\Cmd2\\resource_test.py:44: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Cmd2/resource_test.py::test_memory_usage_for_many_commands\
+      \ - Att...\n1 failed in 0.45s\n"
+    elapsed_time_s: 1.83785
+    avg_memory_mb: 33.12
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 44.14
+    score_inputs_baseline_cpu_pct: 100.9
+    score_inputs_actual_mem_mb: 33.12
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: "...                                                                 \
+      \     [100%]\n============================== warnings summary ===============================\n\
+      tests\\Cmd2\\robustness_test.py:129\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Cmd2\\robustness_test.py:129: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Cmd2\\robustness_test.py:148\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Cmd2\\robustness_test.py:148: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \ntests\\Cmd2\\robustness_test.py:165\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      tests\\Cmd2\\robustness_test.py:165: PytestUnknownMarkWarning: Unknown pytest.mark.timeout\
+      \ - is this a typo?  You can register custom marks to avoid this warning - for\
+      \ details, see https://docs.pytest.org/en/stable/how-to/mark.html\n    @pytest.mark.timeout(10)\n\
+      \n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      3 passed, 3 warnings in 0.14s\n"
+    elapsed_time_s: 1.533445
+    avg_memory_mb: 30.98
+    avg_cpu_percent: 100.0
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=4.0 total_loc=211.0
+
+      .
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.413328
+    avg_memory_mb: 31.4
+    avg_cpu_percent: 103.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 4.0
+      total_loc: 211.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 3.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=26.6488 files_scanned=4.0 total_loc=211.0 max_cc=13.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.460273
+    avg_memory_mb: 31.39
+    avg_cpu_percent: 97.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 26.6488
+      files_scanned: 4.0
+      total_loc: 211.0
+      max_cc: 13.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 26.6488
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.911562
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.91871
+    resource_tests_total: 1
+    avg_memory_mb: 44.14
+    avg_cpu_percent: 100.9
+  functional:
+    functional_suite_time_s: 3.166834
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.488449
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.400502
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 3.0
+      files_scanned: 21.0
+      total_loc: 9076.0
+  maintainability:
+    maintainability_suite_time_s: 1.998324
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 21.0
+      total_loc: 9076.0
+      max_cc: 69.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Cmd2\pytest_logs

@@ -1,0 +1,128 @@
+FF...F..F.F                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+        table.insert({"name": "Alice", "age": 30, "country": "DE"})
+        table.insert({"name": "Bob", "age": 41, "country": "US", "active": True})
+        table.insert({"name": "Charlie", "age": 41, "country": "US", "active": False})
+    
+        assert "id" in _table_columns(table)
+        assert "name" in _table_columns(table)
+        assert "country" in _table_columns(table)
+        assert len(table) == 3
+    
+        alice = table.find_one(name="Alice")
+        assert alice is not None
+        assert alice["country"] == "DE"
+    
+>       older = list(table.find(age={">=": 40}))
+
+tests\Dataset\functional_test.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000001EACF67F2B0>
+filters = {'age': {'>=': 40}}, where_parts = ['"age" = :age'], k = 'age'
+where_clause = '"age" = :age', sql = 'SELECT * FROM "users" WHERE "age" = :age'
+
+    def find(self, **filters):
+        """
+        Yield rows matching the given filters as dictionaries.
+        """
+        if not filters:
+            yield from self.all()
+            return
+    
+        where_parts = []
+        for k in filters:
+            where_parts.append(f'"{k}" = :{k}')
+        where_clause = " AND ".join(where_parts)
+        sql = f'SELECT * FROM "{self.name}" WHERE {where_clause}'
+>       cur = self._db._connection.execute(sql, filters)
+E       sqlite3.InterfaceError: Error binding parameter :age - probably unsupported type.
+
+generation\Dataset\dataset\table.py:153: InterfaceError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+        table.insert_many(rows)
+    
+        if hasattr(table, "create_index") and hasattr(table, "has_index"):
+            table.create_index(["owner", "currency"])
+            assert table.has_index(["owner", "currency"])
+    
+        table.update({"account_id": 1, "balance": 150.0}, ["account_id"])
+        updated = table.find_one(account_id=1)
+        assert updated is not None
+>       assert pytest.approx(updated["balance"]) == 150.0
+E       assert 150.0 == 150.0
+E         
+E         comparison failed
+E         Obtained: 150.0
+E         Expected: 150.0
+
+tests\Dataset\functional_test.py:184: AssertionError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+            table.insert({"n": i})
+    
+        rows = list(table.find(order_by="n", _limit=3, _offset=4))
+>       assert [r["n"] for r in rows] == [4, 5, 6]
+E       assert [] == [4, 5, 6]
+E         
+E         Right contains 3 more items, first extra item: 4
+E         Use -v to get more diff
+
+tests\Dataset\functional_test.py:249: AssertionError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+        table.insert({"x": 1})
+    
+>       assert "to_drop" in _db_tables(db)
+E       AssertionError: assert 'to_drop' in []
+E        +  where [] = _db_tables(<dataset.database.Database object at 0x000001EACF719280>)
+
+tests\Dataset\functional_test.py:301: AssertionError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+        table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+    
+        distinct = list(table.distinct("c"))
+>       values = {r["c"] for r in distinct}
+
+tests\Dataset\functional_test.py:333: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x000001EACF6E3A00>
+
+>   values = {r["c"] for r in distinct}
+E   TypeError: string indices must be integers
+
+tests\Dataset\functional_test.py:333: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - ass...
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - as...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+5 failed, 6 passed in 3.79s

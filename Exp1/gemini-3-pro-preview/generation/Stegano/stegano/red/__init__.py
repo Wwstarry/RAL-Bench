@@ -1,0 +1,1 @@
+from .red import hide, reveal

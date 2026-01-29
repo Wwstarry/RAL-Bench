@@ -1,0 +1,98 @@
+.F...FFF.Fsssssssss                                                      [100%]
+================================== FAILURES ===================================
+__________________________ test_emphasis_and_strong ___________________________
+
+    def test_emphasis_and_strong() -> None:
+        src = "This is *italic* and **bold** and __also bold__."
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<em>" in norm and "</em>" in norm
+E       AssertionError: assert ('<em>' in '<p>This is &lt;em&gt;italic&lt;/em&gt; and &lt;strong&gt;bold&lt;/strong&gt; and &lt;strong&gt;also bold&lt;/strong&gt;.</p>')
+
+tests\Markdown\functional_test.py:122: AssertionError
+____________________________ test_links_and_images ____________________________
+
+    def test_links_and_images() -> None:
+        src = textwrap.dedent(
+            """
+            A [link](https://example.com) and
+            an image: ![alt text](https://example.com/image.png)
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<a " in norm and "</a>" in norm
+E       AssertionError: assert ('<a ' in '<p>A &lt;a href=&quot;https://example.com&quot;&gt;link&lt;/a&gt; and\nan image: &lt;img alt=&quot;alt text&quot; src=&quot;https://example.com/image.png&quot; /&gt;</p>')
+
+tests\Markdown\functional_test.py:189: AssertionError
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<pre><code>literal &lt;b&gt; tag in code block</code></pre>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+__________________ test_markdown_class_multiple_conversions ___________________
+
+    def test_markdown_class_multiple_conversions() -> None:
+        src1 = "# First\n\nParagraph."
+        src2 = "Second document with *emphasis*."
+    
+        md = markdown.Markdown()
+        html1 = md.convert(src1)
+        if hasattr(md, "reset"):
+            md.reset()
+        html2 = md.convert(src2)
+    
+        norm1 = normalize_html(html1)
+        norm2 = normalize_html(html2)
+    
+        assert "First" in norm1
+        assert "Paragraph." in norm1
+        assert "<h1>" in norm1
+    
+        assert "Second document" in norm2
+>       assert "<em>" in norm2 or "<i>" in norm2
+E       AssertionError: assert ('<em>' in '<p>Second document with &lt;em&gt;emphasis&lt;/em&gt;.</p>' or '<i>' in '<p>Second document with &lt;em&gt;emphasis&lt;/em&gt;.</p>')
+
+tests\Markdown\functional_test.py:231: AssertionError
+_______________________ test_horizontal_rule_renders_hr _______________________
+
+    def test_horizontal_rule_renders_hr() -> None:
+        src = textwrap.dedent(
+            """
+            Paragraph above
+    
+            ---
+    
+            Paragraph below
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<hr" in norm
+E       AssertionError: assert '<hr' in '<p>Paragraph above</p>\n<p>---</p>\n<p>Paragraph below</p>'
+
+tests\Markdown\functional_test.py:272: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_emphasis_and_strong - Assertio...
+FAILED tests/Markdown/functional_test.py::test_links_and_images - AssertionEr...
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+FAILED tests/Markdown/functional_test.py::test_markdown_class_multiple_conversions
+FAILED tests/Markdown/functional_test.py::test_horizontal_rule_renders_hr - A...
+5 failed, 5 passed, 9 skipped in 0.58s

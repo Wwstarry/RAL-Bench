@@ -1,0 +1,38 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+____________ test_performance_large_marker_map_build_and_html_size ____________
+
+    def test_performance_large_marker_map_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        for i in range(n):
+>           folium.Marker([i * 1e-6, i * 1e-6]).add_to(m)
+E           AttributeError: 'Marker' object has no attribute 'add_to'
+
+tests\Folium\performance_test.py:36: AttributeError
+_____________ test_performance_markercluster_build_and_html_size ______________
+
+    def test_performance_markercluster_build_and_html_size():
+        _prepend_import_path()
+        import folium
+    
+        plugins = _plugins_module()
+        MarkerCluster = getattr(plugins, "MarkerCluster")
+    
+        n = 2000
+    
+        t0 = time.perf_counter()
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       mc = MarkerCluster(name="mc").add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'name'
+
+tests\Folium\performance_test.py:58: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/performance_test.py::test_performance_large_marker_map_build_and_html_size
+FAILED tests/Folium/performance_test.py::test_performance_markercluster_build_and_html_size
+2 failed in 0.34s

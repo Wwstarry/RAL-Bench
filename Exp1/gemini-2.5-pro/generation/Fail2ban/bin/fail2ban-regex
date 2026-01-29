@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+import os
+
+# Add project root to Python path to allow importing 'fail2ban'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from fail2ban.server.jail import Jail
+
+def main():
+    """
+    A script to test a failregex against a log file, mimicking the real
+    fail2ban-regex tool for offline testing.
+    """
+    parser = argparse.ArgumentParser(description="Test fail2ban regexes against log files.")
+    parser.add_argument("logpath", help="Path to the log file.")
+    parser.add_argument("failregex", help="Regex to test.")
+    
+    args = parser.parse_args()
+
+    print("\nRunning tests")
+    print("=============\n")
+    print(f"Use failregex: {args.failregex}\n")
+    
+    try:
+        with open(args.logpath, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        print(f"ERROR: Log file not found: {args.logpath}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: Could not read log file: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    try:
+        # Use the Jail class to encapsulate the regex logic
+        jail = Jail("test-regex", args.logpath, args.failregex)
+    except ValueError as e:
+        print(f"ERROR: Invalid regex: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    total_lines = len(lines)
+    matched_lines_count = 0
+    
+    print("Results")
+    print("=======\n")
+    
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+        
+        ip = jail.process_log_line(line)
+        if ip:
+            matched_lines_count += 1
+            print(f"|- Matched line {i+1}: '{line}'")
+            print(f"|  `- IP: {ip}")
+
+    print("\nSummary")
+    print("=======\n")
+    
+    failures = jail.get_failures()
+    if failures:
+        print("Failures:")
+        for ip, count in sorted(failures.items()):
+            print(f"  {ip} ({count} failures)")
+    else:
+        print("No failures found.")
+
+    # The real tool has more complex stats, this is a simplified summary
+    print(f"\nTotal lines: {total_lines}")
+    print(f"Matched lines: {matched_lines_count}")
+    print(f"Missed lines: {total_lines - matched_lines_count}")
+
+
+if __name__ == "__main__":
+    main()

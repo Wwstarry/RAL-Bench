@@ -1,0 +1,23 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_memory_usage_for_large_tables ______________________
+
+    def test_memory_usage_for_large_tables():
+        rows = [
+            [f"row-{i}", i, i * 0.1234, f"value-{i % 10}"]
+            for i in range(5000)
+        ]
+        headers = ["name", "index", "metric", "tag"]
+    
+        before = _memory_mb()
+    
+        # Call tabulate several times to exercise allocations.
+        out1 = tabulate(rows, headers=headers, tablefmt="simple")
+        out2 = tabulate(rows, headers=headers, tablefmt="github")
+>       out3 = tabulate(rows, headers=headers, tablefmt="grid", showindex=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'showindex'
+
+tests\Tabulate\resource_test.py:39: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/resource_test.py::test_memory_usage_for_large_tables - ...
+1 failed in 0.59s

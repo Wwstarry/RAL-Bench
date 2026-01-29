@@ -1,0 +1,358 @@
+FFFFFFFFFFF.                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_basic_list_of_lists_default_simple ___________________
+
+    def test_basic_list_of_lists_default_simple() -> None:
+        table = [
+            ["Sun", 696000, 1.9891e9],
+            ["Earth", 6371, 5973.6],
+            ["Moon", 1737, 73.5],
+            ["Mars", 3390, 641.85],
+        ]
+    
+>       output = tabulate(table)
+
+tests\Tabulate\functional_test.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [['Sun', 696000, 1989100000.0], ['Earth', 6371, 5973.6], ['Moon', 1737, 73.5], ['Mars', 3390, 641.85]]
+headers = None, tablefmt = 'plain', numalign = 'right', stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+            raise ValueError(f"Table format {tablefmt} not supported")
+    
+        headers, rows = _normalize_table(table, headers)
+        if not rows:
+            return ""
+    
+        widths = _calculate_widths(headers, rows)
+        align_funcs = []
+        for i in range(len(widths)):
+            if headers and i < len(headers) and any(isinstance(row[i], (int, float)) for row in rows if i < len(row)):
+                align = numalign
+            else:
+                align = stralign
+            if align == "left":
+                align_funcs.append(str.ljust)
+            elif align == "right":
+                align_funcs.append(str.rjust)
+            elif align == "center":
+                align_funcs.append(str.center)
+            else:
+                align_funcs.append(str.ljust)
+    
+        output_lines = []
+        if fmt.lineabove and (headers or "lineabove" not in fmt.with_header_hide):
+            output_lines.append(fmt.lineabove(widths))
+    
+        if headers:
+            aligned_headers = _align_row(headers, widths, align_funcs)
+            header_line = fmt.headerrow(aligned_headers, widths)
+            output_lines.append(header_line)
+            if fmt.linebelowheader and (headers or "linebelowheader" not in fmt.with_header_hide):
+                output_lines.append(fmt.linebelowheader(widths))
+    
+        for i, row in enumerate(rows):
+            if i > 0 and fmt.linebetweenrows:
+                output_lines.append(fmt.linebetweenrows(widths))
+            aligned_row = _align_row(row, widths, align_funcs)
+            output_lines.append(fmt.datarow(aligned_row, widths))
+    
+        if fmt.linebelow and (headers or "linebelow" not in fmt.with_header_hide):
+            output_lines.append(fmt.linebelow(widths))
+    
+>       return '\n'.join(output_lines)
+E       TypeError: sequence item 0: expected str instance, list found
+
+generation\Tabulate\tabulate\core.py:103: TypeError
+____________________ test_headers_as_list_and_plain_format ____________________
+
+    def test_headers_as_list_and_plain_format() -> None:
+        table = [
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+        headers = ["item", "qty"]
+    
+>       output = tabulate(table, headers=headers, tablefmt="plain")
+
+tests\Tabulate\functional_test.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [['spam', 42], ['eggs', 451], ['bacon', 0]], headers = ['item', 'qty']
+tablefmt = 'plain', numalign = 'right', stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+            raise ValueError(f"Table format {tablefmt} not supported")
+    
+        headers, rows = _normalize_table(table, headers)
+        if not rows:
+            return ""
+    
+        widths = _calculate_widths(headers, rows)
+        align_funcs = []
+        for i in range(len(widths)):
+            if headers and i < len(headers) and any(isinstance(row[i], (int, float)) for row in rows if i < len(row)):
+                align = numalign
+            else:
+                align = stralign
+            if align == "left":
+                align_funcs.append(str.ljust)
+            elif align == "right":
+                align_funcs.append(str.rjust)
+            elif align == "center":
+                align_funcs.append(str.center)
+            else:
+                align_funcs.append(str.ljust)
+    
+        output_lines = []
+        if fmt.lineabove and (headers or "lineabove" not in fmt.with_header_hide):
+            output_lines.append(fmt.lineabove(widths))
+    
+        if headers:
+            aligned_headers = _align_row(headers, widths, align_funcs)
+            header_line = fmt.headerrow(aligned_headers, widths)
+            output_lines.append(header_line)
+            if fmt.linebelowheader and (headers or "linebelowheader" not in fmt.with_header_hide):
+                output_lines.append(fmt.linebelowheader(widths))
+    
+        for i, row in enumerate(rows):
+            if i > 0 and fmt.linebetweenrows:
+                output_lines.append(fmt.linebetweenrows(widths))
+            aligned_row = _align_row(row, widths, align_funcs)
+            output_lines.append(fmt.datarow(aligned_row, widths))
+    
+        if fmt.linebelow and (headers or "linebelow" not in fmt.with_header_hide):
+            output_lines.append(fmt.linebelow(widths))
+    
+>       return '\n'.join(output_lines)
+E       TypeError: sequence item 0: expected str instance, list found
+
+generation\Tabulate\tabulate\core.py:103: TypeError
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [['Name', 'Age'], ['Alice', 24], ['Bob', 19]], headers = 'firstrow'
+tablefmt = 'simple', numalign = 'right', stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+>           raise ValueError(f"Table format {tablefmt} not supported")
+E           ValueError: Table format simple not supported
+
+generation\Tabulate\tabulate\core.py:61: ValueError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+>       output = tabulate(table, headers="keys")
+
+tests\Tabulate\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:63: in tabulate
+    headers, rows = _normalize_table(table, headers)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = {'Age': [24, 19], 'Name': ['Alice', 'Bob']}, headers = 'keys'
+
+    def _normalize_table(table, headers):
+        if not table:
+            return [], []
+    
+>       if isinstance(table[0], dict):
+E       KeyError: 0
+
+generation\Tabulate\tabulate\core.py:7: KeyError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+>       out_true = tabulate(table, showindex=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'showindex'
+
+tests\Tabulate\functional_test.py:151: TypeError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [['spam', 42], ['eggs', 451], ['bacon', 0]], headers = ['item', 'qty']
+tablefmt = 'github', numalign = 'right', stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+>           raise ValueError(f"Table format {tablefmt} not supported")
+E           ValueError: Table format github not supported
+
+generation\Tabulate\tabulate\core.py:61: ValueError
+____________________ test_list_of_dicts_headers_keys_plain ____________________
+
+    def test_list_of_dicts_headers_keys_plain() -> None:
+        rows = [
+            {"name": "Alice", "score": 10},
+            {"name": "Bob", "score": 12},
+        ]
+>       output = tabulate(rows, headers="keys", tablefmt="plain")
+
+tests\Tabulate\functional_test.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+table = [{'name': 'Alice', 'score': 10}, {'name': 'Bob', 'score': 12}]
+headers = ['name', 'score'], tablefmt = 'plain', numalign = 'right'
+stralign = 'left'
+
+    def tabulate(table, headers=None, tablefmt="plain", numalign="right", stralign="left"):
+        if tablefmt in PRESET_FORMATS:
+            fmt = PRESET_FORMATS[tablefmt]
+        else:
+            raise ValueError(f"Table format {tablefmt} not supported")
+    
+        headers, rows = _normalize_table(table, headers)
+        if not rows:
+            return ""
+    
+        widths = _calculate_widths(headers, rows)
+        align_funcs = []
+        for i in range(len(widths)):
+            if headers and i < len(headers) and any(isinstance(row[i], (int, float)) for row in rows if i < len(row)):
+                align = numalign
+            else:
+                align = stralign
+            if align == "left":
+                align_funcs.append(str.ljust)
+            elif align == "right":
+                align_funcs.append(str.rjust)
+            elif align == "center":
+                align_funcs.append(str.center)
+            else:
+                align_funcs.append(str.ljust)
+    
+        output_lines = []
+        if fmt.lineabove and (headers or "lineabove" not in fmt.with_header_hide):
+            output_lines.append(fmt.lineabove(widths))
+    
+        if headers:
+            aligned_headers = _align_row(headers, widths, align_funcs)
+            header_line = fmt.headerrow(aligned_headers, widths)
+            output_lines.append(header_line)
+            if fmt.linebelowheader and (headers or "linebelowheader" not in fmt.with_header_hide):
+                output_lines.append(fmt.linebelowheader(widths))
+    
+        for i, row in enumerate(rows):
+            if i > 0 and fmt.linebetweenrows:
+                output_lines.append(fmt.linebetweenrows(widths))
+            aligned_row = _align_row(row, widths, align_funcs)
+            output_lines.append(fmt.datarow(aligned_row, widths))
+    
+        if fmt.linebelow and (headers or "linebelow" not in fmt.with_header_hide):
+            output_lines.append(fmt.linebelow(widths))
+    
+>       return '\n'.join(output_lines)
+E       TypeError: sequence item 0: expected str instance, list found
+
+generation\Tabulate\tabulate\core.py:103: TypeError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+>       output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+E       TypeError: tabulate() got an unexpected keyword argument 'missingval'
+
+tests\Tabulate\functional_test.py:207: TypeError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+>       output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+E       TypeError: tabulate() got an unexpected keyword argument 'floatfmt'
+
+tests\Tabulate\functional_test.py:222: TypeError
+_______________ test_disable_numparse_preserves_numeric_strings _______________
+
+    def test_disable_numparse_preserves_numeric_strings() -> None:
+        rows = [
+            ["code", "value"],
+            ["A", "001"],
+            ["B", "010"],
+        ]
+>       output = tabulate(rows[1:], headers=rows[0], tablefmt="plain", disable_numparse=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'disable_numparse'
+
+tests\Tabulate\functional_test.py:236: TypeError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_basic_list_of_lists_default_simple
+FAILED tests/Tabulate/functional_test.py::test_headers_as_list_and_plain_format
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - TypeError...
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...
+FAILED tests/Tabulate/functional_test.py::test_list_of_dicts_headers_keys_plain
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_disable_numparse_preserves_numeric_strings
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+11 failed, 1 passed in 0.69s

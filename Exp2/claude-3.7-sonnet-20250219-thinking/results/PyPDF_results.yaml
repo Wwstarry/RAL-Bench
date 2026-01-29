@@ -1,0 +1,275 @@
+project_name: PyPDF
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\PyPDF\pypdf.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\PyPDF
+timestamp: '2026-01-01 19:08:09'
+functional_score: 0.6667
+non_functional_score: 0.6152
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.7932
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: ".F.....F.Fs.                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_blank_page_has_expected_size ______________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_blank_page_has_expected_s0')\n\
+      \n    def test_blank_page_has_expected_size(tmp_path: Path) -> None:\n     \
+      \   \"\"\"The first blank page should have the width/height we set.\"\"\"\n\
+      \        pdf_path = tmp_path / \"size.pdf\"\n        _create_simple_pdf(pdf_path,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(pdf_path))\n        page\
+      \ = reader.pages[0]\n        w, h = _page_size(page)\n    \n>       assert w\
+      \ > 0 and h > 0\nE       assert (0.0 > 0)\n\ntests\\PyPDF\\functional_test.py:149:\
+      \ AssertionError\n_____________ test_encrypted_pdf_allows_page_access_after_decrypt\
+      \ _____________\n\ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_encrypted_pdf_allows_page0')\n\
+      \n    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path)\
+      \ -> None:\n        \"\"\"After decrypting, basic page access should succeed\
+      \ and page size is valid.\"\"\"\n        src = tmp_path / \"plain2.pdf\"\n \
+      \       enc = tmp_path / \"encrypted2.pdf\"\n        _create_simple_pdf(src,\
+      \ num_pages=1)\n    \n        reader = PdfReader(str(src))\n        writer =\
+      \ PdfWriter()\n        writer.add_page(reader.pages[0])\n        writer.encrypt(\"\
+      pw\")\n    \n        with enc.open(\"wb\") as fp:\n            writer.write(fp)\n\
+      \    \n        enc_reader = PdfReader(str(enc))\n        assert enc_reader.is_encrypted\n\
+      \        assert enc_reader.decrypt(\"pw\")\n    \n        page = enc_reader.pages[0]\n\
+      \        w, h = _page_size(page)\n>       assert w > 0 and h > 0\nE       assert\
+      \ (0.0 > 0)\n\ntests\\PyPDF\\functional_test.py:272: AssertionError\n___________________\
+      \ test_metadata_multiple_fields_roundtrip ___________________\n\ntmp_path =\
+      \ WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-440/test_metadata_multiple_fields_0')\n\
+      \n    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:\n\
+      \        \"\"\"Add several info dict fields and ensure they can be read back.\"\
+      \"\"\n        src = tmp_path / \"src_info.pdf\"\n        dst = tmp_path / \"\
+      info.pdf\"\n        _create_simple_pdf(src, num_pages=1)\n    \n        reader\
+      \ = PdfReader(str(src))\n        writer = PdfWriter()\n        writer.add_page(reader.pages[0])\n\
+      \    \n        writer.add_metadata(\n            {\n                \"/Title\"\
+      : \"Doc Title\",\n                \"/Author\": \"Author Name\",\n          \
+      \      \"/Subject\": \"Subject Line\",\n                \"/Producer\": \"PyPDF\"\
+      ,\n            }\n        )\n    \n        with dst.open(\"wb\") as fp:\n  \
+      \          writer.write(fp)\n    \n        reader2 = PdfReader(str(dst))\n \
+      \       meta = reader2.metadata\n        assert meta is not None\n        assert\
+      \ meta.get(\"/Title\") == \"Doc Title\"\n        assert meta.get(\"/Author\"\
+      ) == \"Author Name\"\n>       assert meta.get(\"/Subject\") == \"Subject Line\"\
+      \nE       AssertionError: assert None == 'Subject Line'\nE        +  where None\
+      \ = <built-in method get of dict object at 0x0000019C8E024FC0>('/Subject')\n\
+      E        +    where <built-in method get of dict object at 0x0000019C8E024FC0>\
+      \ = {'/Author': 'Author Name', '/Title': 'Doc Title'}.get\n\ntests\\PyPDF\\\
+      functional_test.py:329: AssertionError\n============================== warnings\
+      \ summary ===============================\ngeneration\\PyPDF\\pypdf\\pdf.py:81\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\PyPDF\\pypdf\\pdf.py:81:\
+      \ DeprecationWarning: invalid escape sequence \\s\n    info_match = re.search(b\"\
+      /Info\\s+(\\d+)\\s+\\d+\\s+R\", data)\n\ngeneration\\PyPDF\\pypdf\\pdf.py:84\n\
+      \  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\PyPDF\\pypdf\\pdf.py:84:\
+      \ DeprecationWarning: invalid escape sequence \\s\n    title_match = re.search(b\"\
+      /Title\\s*\\((.*?)\\)\", data)\n\ngeneration\\PyPDF\\pypdf\\pdf.py:88\n  D:\\\
+      桌面\\RealAppCodeBench_generic_eval\\generation\\PyPDF\\pypdf\\pdf.py:88: DeprecationWarning:\
+      \ invalid escape sequence \\s\n    author_match = re.search(b\"/Author\\s*\\\
+      ((.*?)\\)\", data)\n\ngeneration\\PyPDF\\pypdf\\pdf.py:93\n  D:\\桌面\\RealAppCodeBench_generic_eval\\\
+      generation\\PyPDF\\pypdf\\pdf.py:93: DeprecationWarning: invalid escape sequence\
+      \ \\s\n    page_count = len(re.findall(b\"/Type\\s*/Page[^s]\", data))\n\ngeneration\\\
+      PyPDF\\pypdf\\pdf.py:107\n  D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\\
+      PyPDF\\pypdf\\pdf.py:107: DeprecationWarning: invalid escape sequence \\s\n\
+      \    rotation_match = re.search(b\"/Rotate\\s+(\\d+)\", data)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      =========================== short test summary info ===========================\n\
+      FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - as...\n\
+      FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt\n\
+      FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip\n\
+      3 failed, 8 passed, 1 skipped, 5 warnings in 0.60s\n"
+    elapsed_time_s: 1.902725
+    avg_memory_mb: 32.38
+    avg_cpu_percent: 99.1
+    passed: 8
+    failed: 3
+    skipped: 1
+    total: 12
+    score_inputs_passed: 8
+    score_inputs_failed: 3
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.480252
+    avg_memory_mb: 31.71
+    avg_cpu_percent: 96.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.841743
+    score_inputs_actual_time_s: 1.480252
+  resource:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.604112
+    avg_memory_mb: 31.5
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.95
+    score_inputs_baseline_cpu_pct: 58.64
+    score_inputs_actual_mem_mb: 31.5
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: "....                                                                \
+      \     [100%]\n============================== warnings summary ===============================\n\
+      tests/PyPDF/robustness_test.py::test_robustness_import_and_introspection\n \
+      \ C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\\
+      PyPDF2\\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move\
+      \ to the pypdf library instead.\n    warnings.warn(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\
+      4 passed, 1 warning in 0.27s\n"
+    elapsed_time_s: 1.698808
+    avg_memory_mb: 36.45
+    avg_cpu_percent: 101.0
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: "SECURITY_METRICS high_risk_count=0.0 files_scanned=2.0 total_loc=269.0\n\
+      .\n============================== warnings summary ===============================\n\
+      tests/_generic/security_test.py::test_security_high_risk_count_metric\n  <unknown>:81:\
+      \ DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/security_test.py::test_security_high_risk_count_metric\n\
+      \  <unknown>:84: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/security_test.py::test_security_high_risk_count_metric\n\
+      \  <unknown>:88: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/security_test.py::test_security_high_risk_count_metric\n\
+      \  <unknown>:93: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/security_test.py::test_security_high_risk_count_metric\n\
+      \  <unknown>:107: DeprecationWarning: invalid escape sequence \\s\n\n-- Docs:\
+      \ https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed,\
+      \ 5 warnings in 0.13s\n"
+    elapsed_time_s: 1.537383
+    avg_memory_mb: 31.68
+    avg_cpu_percent: 95.6
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 2.0
+      total_loc: 269.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: "MAINT_METRICS mi_min=18.2207 files_scanned=2.0 total_loc=269.0 max_cc=14.0\n\
+      .\n============================== warnings summary ===============================\n\
+      tests/_generic/maintainability_test.py::test_maintainability_metrics_smoke\n\
+      \  <unknown>:81: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/maintainability_test.py::test_maintainability_metrics_smoke\n\
+      \  <unknown>:84: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/maintainability_test.py::test_maintainability_metrics_smoke\n\
+      \  <unknown>:88: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/maintainability_test.py::test_maintainability_metrics_smoke\n\
+      \  <unknown>:93: DeprecationWarning: invalid escape sequence \\s\n\ntests/_generic/maintainability_test.py::test_maintainability_metrics_smoke\n\
+      \  <unknown>:107: DeprecationWarning: invalid escape sequence \\s\n\n-- Docs:\
+      \ https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed,\
+      \ 5 warnings in 0.16s\n"
+    elapsed_time_s: 1.498726
+    avg_memory_mb: 32.0
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 18.2207
+      files_scanned: 2.0
+      total_loc: 269.0
+      max_cc: 14.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 18.2207
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.841743
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.962762
+    resource_tests_total: 1
+    avg_memory_mb: 33.95
+    avg_cpu_percent: 58.64
+  functional:
+    functional_suite_time_s: 1.987759
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.353217
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.862179
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 56.0
+      total_loc: 37260.0
+  maintainability:
+    maintainability_suite_time_s: 3.494968
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 56.0
+      total_loc: 37260.0
+      max_cc: 47.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\PyPDF\pytest_logs

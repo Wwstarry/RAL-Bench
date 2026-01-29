@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        prog="fail2ban-server",
+        description="Minimal offline fail2ban-server stub (does not start a daemon).",
+    )
+    parser.add_argument(
+        "--help-all",
+        action="store_true",
+        help="Show extended help (stub).",
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Show version information and exit.",
+    )
+    args, rest = parser.parse_known_args(argv)
+
+    if args.version:
+        try:
+            from fail2ban import __version__
+        except Exception:
+            __version__ = "unknown"
+        print(f"fail2ban-server {__version__}")
+        return 0
+
+    if args.help_all:
+        parser.print_help()
+        print("\nThis is a stub; no server/daemon functionality is implemented.")
+        return 0
+
+    if rest:
+        sys.stderr.write(
+            "fail2ban-server: this minimal build does not start a server.\n"
+        )
+        return 2
+
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

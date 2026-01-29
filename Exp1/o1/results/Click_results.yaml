@@ -1,0 +1,330 @@
+project_name: Click
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Click\click.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Click
+timestamp: '2026-01-02 07:08:55'
+functional_score: 0.0909
+non_functional_score: 0.24
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 0.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFF.FFFFF                                                         \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________ test_simple_command_with_argument_and_option _________________\n\
+      \n    def test_simple_command_with_argument_and_option():\n        @click.command()\n\
+      >       @click.option(\"--count\", \"-c\", type=int, default=1)\nE       TypeError:\
+      \ option() takes 1 positional argument but 2 were given\n\ntests\\Click\\functional_test.py:134:\
+      \ TypeError\n________________________ test_boolean_flag_option_pair ________________________\n\
+      \n    def test_boolean_flag_option_pair():\n        @click.command()\n     \
+      \   @click.option(\"--flag/--no-flag\", default=False)\n        def cli(flag:\
+      \ bool) -> None:\n            click.echo(f\"FLAG={flag}\")\n    \n        runner\
+      \ = CliRunner()\n    \n        r1 = runner.invoke(cli, [\"--flag\"])\n>    \
+      \   assert r1.exit_code == 0\nE       assert 1 == 0\nE        +  where 1 = <click.testing.Result\
+      \ object at 0x0000019762BB8760>.exit_code\n\ntests\\Click\\functional_test.py:157:\
+      \ AssertionError\n_________________________ test_group_with_subcommands _________________________\n\
+      \n    def test_group_with_subcommands():\n        @click.group()\n        def\
+      \ cli() -> None:\n            pass\n    \n>       @cli.command()\nE       AttributeError:\
+      \ 'Group' object has no attribute 'command'\n\ntests\\Click\\functional_test.py:170:\
+      \ AttributeError\n___________________ test_help_output_for_command_and_group\
+      \ ____________________\n\n    def test_help_output_for_command_and_group():\n\
+      \        @click.group(help=\"Top level group\")\n        def cli() -> None:\n\
+      \            pass\n    \n>       @cli.command(help=\"Say hello\")\nE       AttributeError:\
+      \ 'Group' object has no attribute 'command'\n\ntests\\Click\\functional_test.py:196:\
+      \ AttributeError\n____________________ test_get_current_context_propagation\
+      \ _____________________\n\n    def test_get_current_context_propagation():\n\
+      \        @click.group()\n        @click.option(\"--config\", type=str, default=\"\
+      default.cfg\")\n>       def cli(config: str) -> None:\n\ntests\\Click\\functional_test.py:222:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Click\\click\\decorators.py:33: in decorator\n    f.__click_params__.append(Option(name,\
+      \ **kwargs))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _\n\nself = <click.core.Option object at 0x0000019762C27C70>,\
+      \ name = '--config'\nkwargs = {'default': 'default.cfg', 'type': <class 'str'>}\n\
+      \n    def __init__(self, name, **kwargs):\n        #  e.g. name could be '--count'\n\
+      >       super().__init__(name, **kwargs)\nE       TypeError: __init__() got\
+      \ an unexpected keyword argument 'type'\n\ngeneration\\Click\\click\\core.py:89:\
+      \ TypeError\n_____________________ test_option_envvar_default_is_used ______________________\n\
+      \n    def test_option_envvar_default_is_used():\n        @click.command()\n\
+      \        @click.option(\"--name\", envvar=\"CLICK_TEST_NAME\", default=\"fallback\"\
+      )\n>       def cli(name: str) -> None:\n\ntests\\Click\\functional_test.py:263:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\ngeneration\\Click\\click\\decorators.py:33: in decorator\n    f.__click_params__.append(Option(name,\
+      \ **kwargs))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _\n\nself = <click.core.Option object at 0x0000019762BBD460>,\
+      \ name = '--name'\nkwargs = {'default': 'fallback', 'envvar': 'CLICK_TEST_NAME'}\n\
+      \n    def __init__(self, name, **kwargs):\n        #  e.g. name could be '--count'\n\
+      >       super().__init__(name, **kwargs)\nE       TypeError: __init__() got\
+      \ an unexpected keyword argument 'envvar'\n\ngeneration\\Click\\click\\core.py:89:\
+      \ TypeError\n________________ test_prompt_option_can_be_satisfied_via_input\
+      \ ________________\n\n    def test_prompt_option_can_be_satisfied_via_input():\n\
+      \        @click.command()\n        @click.option(\"--token\", prompt=True)\n\
+      \        def cli(token: str) -> None:\n            click.echo(f\"TOKEN={token}\"\
+      )\n    \n        runner = CliRunner()\n        r = runner.invoke(cli, [], input=\"\
+      secret-token\\n\")\n>       assert r.exit_code == 0\nE       assert 1 == 0\n\
+      E        +  where 1 = <click.testing.Result object at 0x0000019762B69A30>.exit_code\n\
+      \ntests\\Click\\functional_test.py:285: AssertionError\n_______________ test_default_map_provides_default_option_value\
+      \ ________________\n\n    def test_default_map_provides_default_option_value():\n\
+      \        @click.group()\n        def cli() -> None:\n            pass\n    \n\
+      >       @cli.command()\nE       AttributeError: 'Group' object has no attribute\
+      \ 'command'\n\ntests\\Click\\functional_test.py:294: AttributeError\n_______________\
+      \ test_parameter_type_validation_error_exit_code ________________\n\n    def\
+      \ test_parameter_type_validation_error_exit_code():\n        @click.command()\n\
+      \        @click.option(\"--count\", type=int, required=True)\n>       def cli(count:\
+      \ int) -> None:\n\ntests\\Click\\functional_test.py:308: \n_ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\\
+      Click\\click\\decorators.py:33: in decorator\n    f.__click_params__.append(Option(name,\
+      \ **kwargs))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _\n\nself = <click.core.Option object at 0x0000019762B80070>,\
+      \ name = '--count'\nkwargs = {'required': True, 'type': <class 'int'>}\n\n \
+      \   def __init__(self, name, **kwargs):\n        #  e.g. name could be '--count'\n\
+      >       super().__init__(name, **kwargs)\nE       TypeError: __init__() got\
+      \ an unexpected keyword argument 'type'\n\ngeneration\\Click\\click\\core.py:89:\
+      \ TypeError\n_____________ test_path_type_creates_writable_path_in_isolated_fs\
+      \ _____________\n\n    def test_path_type_creates_writable_path_in_isolated_fs():\n\
+      \        @click.command()\n>       @click.option(\"--out\", type=click.Path(dir_okay=False,\
+      \ writable=True))\nE       AttributeError: module 'click' has no attribute 'Path'\n\
+      \ntests\\Click\\functional_test.py:319: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/functional_test.py::test_simple_command_with_argument_and_option\n\
+      FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...\n\
+      FAILED tests/Click/functional_test.py::test_group_with_subcommands - Attribut...\n\
+      FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group\n\
+      FAILED tests/Click/functional_test.py::test_get_current_context_propagation\n\
+      FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used -\
+      \ T...\nFAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input\n\
+      FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value\n\
+      FAILED tests/Click/functional_test.py::test_parameter_type_validation_error_exit_code\n\
+      FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs\n\
+      10 failed, 1 passed in 4.08s\n"
+    elapsed_time_s: 5.517474
+    avg_memory_mb: 32.91
+    avg_cpu_percent: 99.4
+    passed: 1
+    failed: 10
+    skipped: 0
+    total: 11
+    score_inputs_passed: 1
+    score_inputs_failed: 10
+    score_inputs_total: 11
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________________ test_many_invocations_performance ______________________\n\
+      \n    def test_many_invocations_performance():\n        @click.command()\n \
+      \       @click.option(\"--count\", type=int, default=1)\n        @click.argument(\"\
+      name\")\n>       def greet(count: int, name: str) -> None:\n\ntests\\Click\\\
+      performance_test.py:29: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Click\\click\\decorators.py:33:\
+      \ in decorator\n    f.__click_params__.append(Option(name, **kwargs))\n_ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\
+      \nself = <click.core.Option object at 0x000002023B5FFD00>, name = '--count'\n\
+      kwargs = {'default': 1, 'type': <class 'int'>}\n\n    def __init__(self, name,\
+      \ **kwargs):\n        #  e.g. name could be '--count'\n>       super().__init__(name,\
+      \ **kwargs)\nE       TypeError: __init__() got an unexpected keyword argument\
+      \ 'type'\n\ngeneration\\Click\\click\\core.py:89: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/performance_test.py::test_many_invocations_performance\
+      \ - T...\n1 failed in 0.42s\n"
+    elapsed_time_s: 1.89399
+    avg_memory_mb: 32.08
+    avg_cpu_percent: 101.8
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.523511
+    score_inputs_actual_time_s: 1.89399
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ___________________ test_repeated_invocations_memory_usage ____________________\n\
+      \n    def test_repeated_invocations_memory_usage():\n        @click.command()\n\
+      \        @click.option(\"--times\", type=int, default=1)\n        @click.argument(\"\
+      name\")\n>       def greet(times: int, name: str) -> None:\n\ntests\\Click\\\
+      resource_test.py:35: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _\ngeneration\\Click\\click\\decorators.py:33: in\
+      \ decorator\n    f.__click_params__.append(Option(name, **kwargs))\n_ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\n\
+      self = <click.core.Option object at 0x0000023991A10610>, name = '--times'\n\
+      kwargs = {'default': 1, 'type': <class 'int'>}\n\n    def __init__(self, name,\
+      \ **kwargs):\n        #  e.g. name could be '--count'\n>       super().__init__(name,\
+      \ **kwargs)\nE       TypeError: __init__() got an unexpected keyword argument\
+      \ 'type'\n\ngeneration\\Click\\click\\core.py:89: TypeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Click/resource_test.py::test_repeated_invocations_memory_usage\n\
+      1 failed in 0.45s\n"
+    elapsed_time_s: 1.862062
+    avg_memory_mb: 34.12
+    avg_cpu_percent: 98.2
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 34.28
+    score_inputs_baseline_cpu_pct: 97.6
+    score_inputs_actual_mem_mb: 34.12
+    score_inputs_actual_cpu_pct: 98.2
+  robustness:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ______________ test_click_robustness_invalid_inputs_do_not_crash ______________\n\
+      \n    def test_click_robustness_invalid_inputs_do_not_crash():\n        \"\"\
+      \"\n        Robustness tests should be version-tolerant:\n          - Invalid\
+      \ inputs may raise exceptions (acceptable).\n          - Some invalid inputs\
+      \ may be coerced/ignored (also acceptable).\n        Requirement: no hard crashes;\
+      \ library remains importable and callable.\n        \"\"\"\n        click =\
+      \ _import_click()\n    \n        results: list[Tuple[bool, str]] = []\n    \n\
+      \        # 1) Construct basic objects\n        cmd = click.Command(name=\"test\"\
+      )\n        group = click.Group(name=\"test_group\")\n    \n        # 2) Callback\
+      \ non-callable: assignment may or may not raise; both OK\n        def _set_callback():\n\
+      \            cmd.callback = \"not a function\"  # type: ignore[assignment]\n\
+      \    \n        results.append(_run_case(\"Command callback set to non-callable\"\
+      , _set_callback))\n    \n        # 3) Option invalid type: signature/validation\
+      \ varies across versions\n>       results.append(_run_case(\"Option with invalid\
+      \ type\", click.Option, [\"--test\"], type=\"not a type\"))  # type: ignore[arg-type]\n\
+      E       AttributeError: module 'click' has no attribute 'Option'\n\ntests\\\
+      Click\\robustness_test.py:107: AttributeError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Click/robustness_test.py::test_click_robustness_invalid_inputs_do_not_crash\n\
+      1 failed in 0.41s\n"
+    elapsed_time_s: 1.862626
+    avg_memory_mb: 31.79
+    avg_cpu_percent: 100.9
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=6.0 total_loc=374.0
+
+      .
+
+      1 passed in 0.13s
+
+      '
+    elapsed_time_s: 1.492347
+    avg_memory_mb: 31.49
+    avg_cpu_percent: 98.8
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 374.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 2.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.2539 files_scanned=6.0 total_loc=374.0 max_cc=10.0
+
+      .
+
+      1 passed in 0.17s
+
+      '
+    elapsed_time_s: 1.59897
+    avg_memory_mb: 31.76
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.2539
+      files_scanned: 6.0
+      total_loc: 374.0
+      max_cc: 10.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 21.2539
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.523511
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.392334
+    resource_tests_total: 1
+    avg_memory_mb: 34.28
+    avg_cpu_percent: 97.6
+  functional:
+    functional_suite_time_s: 3.08833
+    functional_tests_total: 11
+  security:
+    security_suite_time_s: 1.36602
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 2.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+  maintainability:
+    maintainability_suite_time_s: 1.770477
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 16.0
+      total_loc: 7731.0
+      max_cc: 43.0
+  robustness:
+    robustness_suite_time_s: 1.208987
+    robustness_tests_total: 1
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Click\pytest_logs

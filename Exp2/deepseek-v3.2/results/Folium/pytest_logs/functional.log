@@ -1,0 +1,199 @@
+....FFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________ test_004_add_marker_layer_changes_output ___________________
+
+    def test_004_add_marker_layer_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        base = m.get_root().render()
+    
+        folium.Marker([0, 0], tooltip="t").add_to(m)
+        html = m.get_root().render()
+>       assert len(html) > len(base)
+E       assert 1201 > 1201
+E        +  where 1201 = len('\n        <!DOCTYPE html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = L.map("map").setView([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+E        +  and   1201 = len('\n        <!DOCTYPE html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = L.map("map").setView([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+
+tests\Folium\functional_test.py:71: AssertionError
+__________________ test_005_add_circle_marker_changes_output __________________
+
+    def test_005_add_circle_marker_changes_output():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        base = m.get_root().render()
+    
+        folium.CircleMarker([0, 0], radius=5).add_to(m)
+        html = m.get_root().render()
+>       assert len(html) > len(base)
+E       assert 1201 > 1201
+E        +  where 1201 = len('\n        <!DOCTYPE html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = L.map("map").setView([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+E        +  and   1201 = len('\n        <!DOCTYPE html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = L.map("map").setView([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+
+tests\Folium\functional_test.py:84: AssertionError
+__________________ test_006_add_tile_layer_and_layer_control __________________
+
+    def test_006_add_tile_layer_and_layer_control():
+        _prepend_import_path()
+        import folium
+    
+        m = folium.Map(location=[0, 0], zoom_start=2, tiles=None)
+        folium.TileLayer("OpenStreetMap", name="osm").add_to(m)
+        folium.LayerControl().add_to(m)
+    
+        html = m.get_root().render().lower()
+>       assert "layercontrol" in html or "layers" in html
+E       assert ('layercontrol' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ' or 'layers' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+
+tests\Folium\functional_test.py:96: AssertionError
+__________________ test_007_geojson_adds_feature_collection ___________________
+
+    def test_007_geojson_adds_feature_collection():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"name": "p"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        folium.GeoJson(gj, name="g").add_to(m)
+    
+        html = m.get_root().render().lower()
+>       assert "featurecollection" in html or "geojson" in html
+E       assert ('featurecollection' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ' or 'geojson' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+
+tests\Folium\functional_test.py:118: AssertionError
+_________________ test_008_geojson_style_function_serializes __________________
+
+    def test_008_geojson_style_function_serializes():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"style": "x"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        def style_fn(feature):
+            _ = feature
+            return {"color": "red", "weight": 2}
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+        folium.GeoJson(gj, style_function=style_fn).add_to(m)
+    
+        html = m.get_root().render().lower()
+>       assert "color" in html or "weight" in html
+E       assert ('color' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ' or 'weight' in '\n        <!doctype html>\n        <html>\n        <head>\n            <meta http-equiv="content-type" content="text/...></div>\n<script>\nvar map = l.map("map").setview([0, 0], 2);\n</script>\n\n        </body>\n        </html>\n        ')
+
+tests\Folium\functional_test.py:144: AssertionError
+________________________ test_009_map_save_writes_html ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-325/test_009_map_save_writes_html0')
+
+    def test_009_map_save_writes_html(tmp_path: Path):
+        _prepend_import_path()
+        import folium
+    
+        out = tmp_path / "m.html"
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       m.save(str(out))
+E       AttributeError: 'Map' object has no attribute 'save'
+
+tests\Folium\functional_test.py:153: AttributeError
+______________ test_010_plugins_markercluster_module_importable _______________
+
+    def test_010_plugins_markercluster_module_importable():
+        _prepend_import_path()
+>       plugins = _plugins_module()
+
+tests\Folium\functional_test.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Folium\functional_test.py:29: in _plugins_module
+    return importlib.import_module("folium.plugins")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:986: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:680: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:790: in exec_module
+    ???
+<frozen importlib._bootstrap>:228: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """
+    Plugins for folium.
+    """
+    
+>   from folium.plugins.marker_cluster import MarkerCluster
+E   ModuleNotFoundError: No module named 'folium.plugins.marker_cluster'
+
+generation\Folium\folium\plugins\__init__.py:5: ModuleNotFoundError
+_________________ test_011_markercluster_adds_cluster_snippet _________________
+
+    def test_011_markercluster_adds_cluster_snippet():
+        _prepend_import_path()
+        import folium
+    
+>       plugins = _plugins_module()
+
+tests\Folium\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Folium\functional_test.py:29: in _plugins_module
+    return importlib.import_module("folium.plugins")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+<frozen importlib._bootstrap>:986: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:680: in _load_unlocked
+    ???
+<frozen importlib._bootstrap_external>:790: in exec_module
+    ???
+<frozen importlib._bootstrap>:228: in _call_with_frames_removed
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    """
+    Plugins for folium.
+    """
+    
+>   from folium.plugins.marker_cluster import MarkerCluster
+E   ModuleNotFoundError: No module named 'folium.plugins.marker_cluster'
+
+generation\Folium\folium\plugins\__init__.py:5: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/Folium/functional_test.py::test_004_add_marker_layer_changes_output
+FAILED tests/Folium/functional_test.py::test_005_add_circle_marker_changes_output
+FAILED tests/Folium/functional_test.py::test_006_add_tile_layer_and_layer_control
+FAILED tests/Folium/functional_test.py::test_007_geojson_adds_feature_collection
+FAILED tests/Folium/functional_test.py::test_008_geojson_style_function_serializes
+FAILED tests/Folium/functional_test.py::test_009_map_save_writes_html - Attri...
+FAILED tests/Folium/functional_test.py::test_010_plugins_markercluster_module_importable
+FAILED tests/Folium/functional_test.py::test_011_markercluster_adds_cluster_snippet
+8 failed, 4 passed in 0.65s

@@ -1,0 +1,142 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+______________________ test_project_workflow_integration ______________________
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+args = ['add-task', 'demo', 'Write docs'], namespace = Namespace(command=None)
+
+    def parse_known_args(self, args=None, namespace=None):
+        if args is None:
+            # args default to the system args
+            args = _sys.argv[1:]
+        else:
+            # make sure that args are mutable
+            args = list(args)
+    
+        # default Namespace built from parser defaults
+        if namespace is None:
+            namespace = Namespace()
+    
+        # add any action defaults that aren't present
+        for action in self._actions:
+            if action.dest is not SUPPRESS:
+                if not hasattr(namespace, action.dest):
+                    if action.default is not SUPPRESS:
+                        setattr(namespace, action.dest, action.default)
+    
+        # add any parser defaults that aren't present
+        for dest in self._defaults:
+            if not hasattr(namespace, dest):
+                setattr(namespace, dest, self._defaults[dest])
+    
+        # parse the arguments and exit if there are any errors
+        if self.exit_on_error:
+            try:
+>               namespace, args = self._parse_known_args(args, namespace)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2063: in _parse_known_args
+    stop_index = consume_positionals(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2019: in consume_positionals
+    take_action(action, args)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1912: in take_action
+    argument_values = self._get_values(action, argument_strings)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2453: in _get_values
+    self._check_value(action, value[0])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+action = _SubParsersAction(option_strings=[], dest='command', nargs='A...', const=None, default=None, type=None, choices={'init...atter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)}, help='Commands', metavar=None)
+value = 'add-task'
+
+    def _check_value(self, action, value):
+        # converted value must be one of the choices (if specified)
+        if action.choices is not None and value not in action.choices:
+            args = {'value': value,
+                    'choices': ', '.join(map(repr, action.choices))}
+            msg = _('invalid choice: %(value)r (choose from %(choices)s)')
+>           raise ArgumentError(action, msg % args)
+E           argparse.ArgumentError: argument command: invalid choice: 'add-task' (choose from 'init', 'add_task', 'list_tasks')
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2500: ArgumentError
+
+During handling of the above exception, another exception occurred:
+
+    def test_project_workflow_integration() -> None:
+        """End-to-end test of initializing a project and managing tasks."""
+        app = _create_project_app()
+    
+        r1 = runner.invoke(app, ["init", "demo"])
+        assert r1.exit_code == 0
+        assert "Initialized project demo" in r1.stdout
+    
+        # Command names follow Click/Typer convention: underscores in function
+        # names become hyphens in the CLI, so we must use "add-task" here.
+>       r2 = runner.invoke(app, ["add-task", "demo", "Write docs"])
+
+tests\Typer\resource_test.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1818: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1854: in parse_known_args
+    self.error(str(err))
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2575: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2
+message = "__main__.py: error: argument command: invalid choice: 'add-task' (choose from 'init', 'add_task', 'list_tasks')\n"
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+____________________ test_help_output_for_integration_app _____________________
+
+    def test_help_output_for_integration_app() -> None:
+        app = _create_project_app()
+>       result = runner.invoke(app, ["--help"])
+
+tests\Typer\resource_test.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Typer\typer\testing\runner.py:62: in invoke
+    exit_code = cli()
+generation\Typer\typer\main.py:112: in __call__
+    args = self.parser.parse_args()
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1818: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1851: in parse_known_args
+    namespace, args = self._parse_known_args(args, namespace)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2060: in _parse_known_args
+    start_index = consume_optional(start_index)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2000: in consume_optional
+    take_action(action, args, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1928: in take_action
+    action(self, namespace, argument_values, option_string)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:1093: in __call__
+    parser.exit()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = ArgumentParser(prog='__main__.py', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 0, message = None
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 0
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\argparse.py:2562: SystemExit
+=========================== short test summary info ===========================
+FAILED tests/Typer/resource_test.py::test_project_workflow_integration - Syst...
+FAILED tests/Typer/resource_test.py::test_help_output_for_integration_app - S...
+2 failed in 0.95s

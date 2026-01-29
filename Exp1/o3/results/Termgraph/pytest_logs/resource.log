@@ -1,0 +1,40 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________________ test_pipeline_generate_and_render ______________________
+
+    def test_pipeline_generate_and_render() -> None:
+        """Integration-like test: data processing pipeline feeding termgraph."""
+        raw_values = [10, 20, 15, 5]
+        labels = [f"Item-{i}" for i in range(len(raw_values))]
+    
+        # Simple normalization step
+        max_val = max(raw_values)
+        normalized = [[v / max_val * 10.0] for v in raw_values]
+    
+>       data = Data(normalized, labels)
+
+tests\Termgraph\resource_test.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <[AttributeError("'Data' object has no attribute 'labels'") raised in repr()] Data object at 0x2a46170b490>
+labels = [[5.0], [10.0], [7.5], [2.5]]
+series = ['Item-0', 'Item-1', 'Item-2', 'Item-3']
+
+    def __init__(self, labels, series):
+        if not isinstance(labels, (list, tuple)):
+            raise TypeError("labels must be a sequence")
+    
+        if not isinstance(series, (list, tuple)):
+            raise TypeError("series must be a sequence of sequences")
+    
+        # Basic sanity ---------------------------------------------------------
+        row_count = len(labels)
+        for s in series:
+            if len(s) != row_count:
+>               raise ValueError("every series must have the same length as labels")
+E               ValueError: every series must have the same length as labels
+
+generation\Termgraph\termgraph\data.py:33: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/resource_test.py::test_pipeline_generate_and_render - ...
+1 failed in 0.34s

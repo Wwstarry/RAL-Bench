@@ -1,0 +1,144 @@
+.....F.FF..F                                                             [100%]
+================================== FAILURES ===================================
+________________ test_easyid3_genre_and_albumartist_roundtrip _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-454/test_easyid3_genre_and_albumar0')
+
+    def test_easyid3_genre_and_albumartist_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common optional fields via EasyID3 (genre/albumartist)."""
+        audio_path = tmp_path / "genre_albumartist.mp3"
+    
+        tags = EasyID3()
+        tags["title"] = ["Tagged Song"]
+        tags["artist"] = ["Main Artist"]
+>       tags["albumartist"] = ["Album Artist"]
+
+tests\Mutagen\functional_test.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.easyid3.EasyID3 object at 0x00000205BD126C70>
+key = 'albumartist', value = ['Album Artist']
+
+    def __setitem__(self, key, value):
+        key = key.lower()
+        if key not in self._EASY_MAP:
+>           raise KeyError(f"EasyID3 key '{key}' not recognized")
+E           KeyError: "EasyID3 key 'albumartist' not recognized"
+
+generation\Mutagen\mutagen\easyid3.py:42: KeyError
+_______________ test_low_level_id3_frames_with_comment_and_apic _______________
+
+self = <mutagen.id3.ID3 object at 0x00000205BBB0AF40>, key = 0
+
+    def __getitem__(self, key):
+        try:
+>           return self.frames[key][0]
+E           IndexError: list index out of range
+
+generation\Mutagen\mutagen\id3.py:240: IndexError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-454/test_low_level_id3_frames_with0')
+
+    def test_low_level_id3_frames_with_comment_and_apic(tmp_path: Path) -> None:
+        """Use low-level ID3 frames to store text and embedded artwork."""
+        audio_path = tmp_path / "id3_frames.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Frame Title"))
+        tags.add(TPE1(encoding=3, text="Frame Artist"))
+        tags.add(
+            COMM(
+                encoding=3,
+                lang="eng",
+                desc="Comment",
+                text="This is a test comment.",
+            )
+        )
+    
+        image_data = b"\xff\xd8\xff\x00FAKEJPEGDATA"
+        tags.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=image_data,
+            )
+        )
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+    
+>       assert "TIT2" in loaded
+
+tests\Mutagen\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x00000205BBB0AF40>, key = 0
+
+    def __getitem__(self, key):
+        try:
+            return self.frames[key][0]
+        except (KeyError, IndexError):
+>           raise KeyError(f"No frame with ID '{key}'")
+E           KeyError: "No frame with ID '0'"
+
+generation\Mutagen\mutagen\id3.py:242: KeyError
+_______________________ test_id3_overwrite_title_frame ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-454/test_id3_overwrite_title_frame0')
+
+    def test_id3_overwrite_title_frame(tmp_path: Path) -> None:
+        """Overwrite an existing ID3 title frame and ensure the latest text remains."""
+        audio_path = tmp_path / "overwrite_title.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Old Title"))
+        tags.save(str(audio_path))
+    
+        tags2 = ID3(str(audio_path))
+        tags2["TIT2"].text = ["New Title"]
+>       tags2.save()
+
+tests\Mutagen\functional_test.py:285: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Mutagen\mutagen\id3.py:214: in save
+    all_frames_data += frame.serialize()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3._create_text_frame.<locals>.TextFrame object at 0x00000205BD127CA0>
+
+    def serialize(self):
+        name = _get_encoding_name(self.encoding)
+>       payload = self.encoding.to_bytes(1, 'big') + self.text.encode(name, errors='replace')
+E       AttributeError: 'list' object has no attribute 'encode'
+
+generation\Mutagen\mutagen\id3.py:57: AttributeError
+_______________ test_id3_text_frames_album_and_genre_roundtrip ________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-454/test_id3_text_frames_album_and0')
+
+    def test_id3_text_frames_album_and_genre_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common text frames (album/genre) using low-level ID3."""
+        audio_path = tmp_path / "album_genre.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Song X"))
+        tags.add(TALB(encoding=3, text="Album Y"))
+        tags.add(TCON(encoding=3, text="Jazz"))
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+>       assert loaded["TIT2"].text == ["Song X"]
+E       AssertionError: assert 'Song X' == ['Song X']
+E        +  where 'Song X' = <mutagen.id3._create_text_frame.<locals>.TextFrame object at 0x00000205BD101E80>.text
+
+tests\Mutagen\functional_test.py:346: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Mutagen/functional_test.py::test_easyid3_genre_and_albumartist_roundtrip
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_frames_with_comment_and_apic
+FAILED tests/Mutagen/functional_test.py::test_id3_overwrite_title_frame - Att...
+FAILED tests/Mutagen/functional_test.py::test_id3_text_frames_album_and_genre_roundtrip
+4 failed, 8 passed in 0.58s

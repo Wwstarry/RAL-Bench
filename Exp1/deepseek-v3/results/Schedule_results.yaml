@@ -1,0 +1,318 @@
+project_name: Schedule
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Schedule\schedule.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Schedule
+timestamp: '2025-12-31 15:24:54'
+functional_score: 0.0
+non_functional_score: 0.6775
+non_functional_subscores:
+  maintainability: 0.7709
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFFFFFFFFFFF                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      ________________________ test_basic_every_and_run_all _________________________\n\
+      \n    def test_basic_every_and_run_all() -> None:\n        \"\"\"every(...).seconds/minutes\
+      \ + run_all execute jobs.\"\"\"\n        _clear()\n        calls: List[str]\
+      \ = []\n    \n        def job1() -> None:\n            calls.append(\"job1\"\
+      )\n    \n        def job2() -> None:\n            calls.append(\"job2\")\n \
+      \   \n>       schedule.every(5).seconds.do(job1).tag(\"sec\", \"common\")\n\
+      E       AttributeError: 'Job' object has no attribute 'seconds'\n\ntests\\Schedule\\\
+      functional_test.py:97: AttributeError\n_________________________ test_tags_and_clear_by_tag\
+      \ __________________________\n\n    def test_tags_and_clear_by_tag() -> None:\n\
+      \        \"\"\"Jobs can be tagged, selected by tag, and cleared by tag.\"\"\"\
+      \n        _clear()\n        calls: List[str] = []\n    \n        def job_keep()\
+      \ -> None:\n            calls.append(\"keep\")\n    \n        def job_drop()\
+      \ -> None:\n            calls.append(\"drop\")\n    \n>       schedule.every().hour.do(job_keep).tag(\"\
+      keep\", \"group\")\nE       AttributeError: 'Job' object has no attribute 'hour'\n\
+      \ntests\\Schedule\\functional_test.py:121: AttributeError\n_____________________\
+      \ test_cancel_job_removes_single_job ______________________\n\n    def test_cancel_job_removes_single_job()\
+      \ -> None:\n        \"\"\"cancel_job removes a single job from the scheduler.\"\
+      \"\"\n        _clear()\n        calls: List[str] = []\n    \n        def job1()\
+      \ -> None:\n            calls.append(\"job1\")\n    \n        def job2() ->\
+      \ None:\n            calls.append(\"job2\")\n    \n>       j1 = schedule.every().day.do(job1)\n\
+      E       AttributeError: 'Job' object has no attribute 'day'\n\ntests\\Schedule\\\
+      functional_test.py:148: AttributeError\n__________________ test_repeat_decorator_registers_and_runs\
+      \ ___________________\n\n    def test_repeat_decorator_registers_and_runs()\
+      \ -> None:\n        \"\"\"@repeat(every(...)) schedules a function correctly\
+      \ and run_all triggers it.\"\"\"\n        _clear()\n        call_count = 0\n\
+      \    \n>       @schedule.repeat(schedule.every().seconds)\nE       AttributeError:\
+      \ module 'schedule' has no attribute 'repeat'\n\ntests\\Schedule\\functional_test.py:164:\
+      \ AttributeError\n_______________ test_run_pending_executes_due_job_without_sleep\
+      \ _______________\n\n    def test_run_pending_executes_due_job_without_sleep()\
+      \ -> None:\n        \"\"\"run_pending executes jobs that are due, without relying\
+      \ on real time waiting.\"\"\"\n        _clear()\n        calls: List[str] =\
+      \ []\n    \n        def job() -> None:\n            calls.append(\"ran\")\n\
+      \    \n>       j = schedule.every(10).seconds.do(job)\nE       AttributeError:\
+      \ 'Job' object has no attribute 'seconds'\n\ntests\\Schedule\\functional_test.py:184:\
+      \ AttributeError\n_______________ test_job_next_run_is_datetime_after_scheduling\
+      \ ________________\n\n    def test_job_next_run_is_datetime_after_scheduling()\
+      \ -> None:\n        \"\"\"A newly scheduled job should have a next_run datetime\
+      \ set.\"\"\"\n        _clear()\n    \n        def job() -> None:\n         \
+      \   return None\n    \n>       j = schedule.every().minute.do(job)\nE      \
+      \ AttributeError: 'Job' object has no attribute 'minute'\n\ntests\\Schedule\\\
+      functional_test.py:198: AttributeError\n______________ test_every_day_at_sets_time_component_in_next_run\
+      \ ______________\n\n    def test_every_day_at_sets_time_component_in_next_run()\
+      \ -> None:\n        \"\"\"Scheduling with .day.at('HH:MM') should include that\
+      \ time in the next_run.\"\"\"\n        _clear()\n    \n        def job() ->\
+      \ None:\n            return None\n    \n>       j = schedule.every().day.at(\"\
+      10:30\").do(job)\nE       AttributeError: 'Job' object has no attribute 'day'\n\
+      \ntests\\Schedule\\functional_test.py:210: AttributeError\n______________ test_weekday_scheduling_creates_job_and_next_run\
+      \ _______________\n\n    def test_weekday_scheduling_creates_job_and_next_run()\
+      \ -> None:\n        \"\"\"Weekday scheduling (e.g., monday) should create a\
+      \ job with next_run.\"\"\"\n        _clear()\n    \n        def job() -> None:\n\
+      \            return None\n    \n>       j = schedule.every().monday.at(\"09:00\"\
+      ).do(job)\nE       AttributeError: 'Job' object has no attribute 'monday'\n\n\
+      tests\\Schedule\\functional_test.py:224: AttributeError\n________________ test_every_to_creates_job_with_interval_range\
+      \ ________________\n\n    def test_every_to_creates_job_with_interval_range()\
+      \ -> None:\n        \"\"\"every(A).to(B).seconds should create a job and be\
+      \ runnable via run_all.\"\"\"\n        _clear()\n        calls: List[str] =\
+      \ []\n    \n        def job() -> None:\n            calls.append(\"x\")\n  \
+      \  \n>       j = schedule.every(2).to(5).seconds.do(job)\nE       AttributeError:\
+      \ 'Job' object has no attribute 'to'\n\ntests\\Schedule\\functional_test.py:239:\
+      \ AttributeError\n______________________ test_idle_seconds_returns_number _______________________\n\
+      \n    def test_idle_seconds_returns_number() -> None:\n        \"\"\"idle_seconds\
+      \ should return a numeric value when jobs exist.\"\"\"\n        _clear()\n \
+      \   \n        def job() -> None:\n            return None\n    \n>       schedule.every().hour.do(job)\n\
+      E       AttributeError: 'Job' object has no attribute 'hour'\n\ntests\\Schedule\\\
+      functional_test.py:253: AttributeError\n_____________________ test_get_jobs_by_tag_filters_subset\
+      \ _____________________\n\n    def test_get_jobs_by_tag_filters_subset() ->\
+      \ None:\n        \"\"\"get_jobs(tag) should return only jobs with that tag.\"\
+      \"\"\n        _clear()\n    \n        def a() -> None:\n            return None\n\
+      \    \n        def b() -> None:\n            return None\n    \n>       schedule.every().minute.do(a).tag(\"\
+      alpha\")\nE       AttributeError: 'Job' object has no attribute 'minute'\n\n\
+      tests\\Schedule\\functional_test.py:269: AttributeError\n______________________\
+      \ test_run_all_sets_last_run_on_job ______________________\n\n    def test_run_all_sets_last_run_on_job()\
+      \ -> None:\n        \"\"\"After running, last_run should be populated on the\
+      \ job in typical implementations.\"\"\"\n        _clear()\n    \n        def\
+      \ job() -> None:\n            return None\n    \n>       j = schedule.every().minute.do(job)\n\
+      E       AttributeError: 'Job' object has no attribute 'minute'\n\ntests\\Schedule\\\
+      functional_test.py:290: AttributeError\n=========================== short test\
+      \ summary info ===========================\nFAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all\
+      \ - Attr...\nFAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag\
+      \ - Attrib...\nFAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job\n\
+      FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs\n\
+      FAILED tests/Schedule/functional_test.py::test_run_pending_executes_due_job_without_sleep\n\
+      FAILED tests/Schedule/functional_test.py::test_job_next_run_is_datetime_after_scheduling\n\
+      FAILED tests/Schedule/functional_test.py::test_every_day_at_sets_time_component_in_next_run\n\
+      FAILED tests/Schedule/functional_test.py::test_weekday_scheduling_creates_job_and_next_run\n\
+      FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range\n\
+      FAILED tests/Schedule/functional_test.py::test_idle_seconds_returns_number -\
+      \ ...\nFAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset\n\
+      FAILED tests/Schedule/functional_test.py::test_run_all_sets_last_run_on_job\n\
+      12 failed in 0.64s\n"
+    elapsed_time_s: 1.953658
+    avg_memory_mb: 32.41
+    avg_cpu_percent: 95.8
+    passed: 0
+    failed: 12
+    skipped: 0
+    total: 12
+    score_inputs_passed: 0
+    score_inputs_failed: 12
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _______________________ test_schedule_performance_smoke _______________________\n\
+      \n    def test_schedule_performance_smoke() -> None:\n        \"\"\"Simple performance\
+      \ sanity check for the scheduler.\"\"\"\n>       avg = _measure_scheduler_run_all()\n\
+      \ntests\\Schedule\\performance_test.py:46: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nnum_jobs = 500, num_runs\
+      \ = 5\n\n    def _measure_scheduler_run_all(num_jobs: int = 500, num_runs: int\
+      \ = 5) -> float:\n        \"\"\"Register a number of jobs and call run_all several\
+      \ times.\"\"\"\n        schedule.clear()\n        counter = 0\n    \n      \
+      \  def job() -> None:\n            nonlocal counter\n            counter +=\
+      \ 1\n    \n        for _ in range(num_jobs):\n>           schedule.every().seconds.do(job)\n\
+      E           AttributeError: 'Job' object has no attribute 'seconds'\n\ntests\\\
+      Schedule\\performance_test.py:33: AttributeError\n===========================\
+      \ short test summary info ===========================\nFAILED tests/Schedule/performance_test.py::test_schedule_performance_smoke\
+      \ - ...\n1 failed in 0.37s\n"
+    elapsed_time_s: 1.651294
+    avg_memory_mb: 31.5
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.258654
+    score_inputs_actual_time_s: 1.651294
+  resource:
+    returncode: 1
+    stdout: "F                                                                   \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _____________________ test_scheduler_resource_usage_smoke _____________________\n\
+      \n    def test_scheduler_resource_usage_smoke() -> None:\n        \"\"\"\n \
+      \       Rough resource-usage sanity check for registering and running many jobs.\n\
+      \    \n        The goal is to exercise the scheduler with a moderate number\
+      \ of jobs and\n        sample memory and CPU usage, not to enforce a particular\
+      \ limit.\n        \"\"\"\n        proc = psutil.Process(os.getpid())\n    \n\
+      \        schedule.clear()\n        calls = 0\n    \n        def job() -> None:\n\
+      \            nonlocal calls\n            calls += 1\n    \n        # Register\
+      \ a moderate number of jobs\n        for _ in range(300):\n>           schedule.every().seconds.do(job)\n\
+      E           AttributeError: 'Job' object has no attribute 'seconds'\n\ntests\\\
+      Schedule\\resource_test.py:41: AttributeError\n=========================== short\
+      \ test summary info ===========================\nFAILED tests/Schedule/resource_test.py::test_scheduler_resource_usage_smoke\n\
+      1 failed in 0.44s\n"
+    elapsed_time_s: 1.831757
+    avg_memory_mb: 33.14
+    avg_cpu_percent: 98.2
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 33.42
+    score_inputs_baseline_cpu_pct: 76.1
+    score_inputs_actual_mem_mb: 33.14
+    score_inputs_actual_cpu_pct: 98.2
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.16s
+
+      '
+    elapsed_time_s: 1.565611
+    avg_memory_mb: 30.68
+    avg_cpu_percent: 97.9
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=1.0 total_loc=207.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.539524
+    avg_memory_mb: 31.42
+    avg_cpu_percent: 101.1
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 207.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.6983 files_scanned=1.0 total_loc=207.0 max_cc=15.0
+
+      .
+
+      1 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.47172
+    avg_memory_mb: 31.6
+    avg_cpu_percent: 97.7
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.6983
+      files_scanned: 1.0
+      total_loc: 207.0
+      max_cc: 15.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 6.4469
+    score_inputs_generated_mi_min: 21.6983
+    score_inputs_ratio_g_over_b: 3.365695140299989
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.258654
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.544915
+    resource_tests_total: 1
+    avg_memory_mb: 33.42
+    avg_cpu_percent: 76.1
+  functional:
+    functional_suite_time_s: 1.306884
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 1.417332
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 1.182637
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 732.0
+  maintainability:
+    maintainability_suite_time_s: 1.319653
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 6.4469
+      files_scanned: 1.0
+      total_loc: 732.0
+      max_cc: 25.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Schedule\pytest_logs

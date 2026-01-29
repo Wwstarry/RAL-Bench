@@ -1,0 +1,268 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_waltons_kmf_and_cox_integration _____________________
+
+self = <lifelines.fitters.coxph_fitter.CoxPHFitter object at 0x000002497FC05CD0>
+X = array([[ True],
+       [ True],
+       [ True],
+       [ True],
+       [ True],
+       [ True],
+       [ True],
+      ...alse],
+       [False],
+       [False],
+       [False],
+       [False],
+       [False],
+       [False],
+       [False]])
+T = array([ 6, 13, 13, 13, 19, 19, 19, 26, 26, 26, 26, 26, 33, 33, 40, 40, 40,
+       40,  6,  9,  9, 13, 13, 19, 19, 19, 19, 26, 26, 26, 26, 33, 33, 33,
+       33, 40, 40, 40, 40])
+E = array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+       1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+initial_beta = array([0.]), max_iter = 50, tol = 1e-09
+
+    def _newton_rhapson(self, X, T, E, initial_beta, max_iter=50, tol=1e-9):
+        n_features = X.shape[1]
+        beta = np.array(initial_beta, dtype=float)
+    
+        for i in range(max_iter):
+            risk_scores = np.exp(X @ beta)
+            unique_event_times = np.unique(T[E == 1])
+    
+            gradient = np.zeros(n_features)
+            hessian = np.zeros((n_features, n_features))
+            log_likelihood = 0.0
+    
+            for t in sorted(unique_event_times):
+                at_risk_mask = T >= t
+                event_mask = (T == t) & (E == 1)
+                d_i = np.sum(event_mask)
+    
+                if d_i == 0: continue
+    
+                risk_set_X = X[at_risk_mask]
+                risk_set_scores = risk_scores[at_risk_mask]
+    
+                S0 = np.sum(risk_set_scores)
+                if S0 == 0: continue
+    
+                S1 = np.sum(risk_set_X * risk_set_scores[:, np.newaxis], axis=0)
+                S2 = np.sum(np.einsum('ij,ik->ijk', risk_set_X, risk_set_X) * risk_set_scores[:, np.newaxis, np.newaxis], axis=0)
+    
+                event_X_sum = np.sum(X[event_mask], axis=0)
+    
+                log_likelihood += np.sum(X[event_mask] @ beta) - d_i * np.log(S0)
+                gradient += event_X_sum - d_i * (S1 / S0)
+                hessian -= d_i * ((S2 / S0) - np.outer(S1, S1) / (S0 ** 2))
+    
+            try:
+>               inv_hessian = linalg.inv(-hessian)
+
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\linalg\_basic.py:940: in inv
+    a1 = _asarray_validated(a, check_finite=check_finite)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\_util.py:321: in _asarray_validated
+    a = toarray(a)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = array([[nan]]), dtype = None, order = None
+
+    @set_module('numpy')
+    def asarray_chkfinite(a, dtype=None, order=None):
+        """Convert the input to an array, checking for NaNs or Infs.
+    
+        Parameters
+        ----------
+        a : array_like
+            Input data, in any form that can be converted to an array.  This
+            includes lists, lists of tuples, tuples, tuples of tuples, tuples
+            of lists and ndarrays.  Success requires no NaNs or Infs.
+        dtype : data-type, optional
+            By default, the data-type is inferred from the input data.
+        order : {'C', 'F', 'A', 'K'}, optional
+            Memory layout.  'A' and 'K' depend on the order of input array a.
+            'C' row-major (C-style),
+            'F' column-major (Fortran-style) memory representation.
+            'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise
+            'K' (keep) preserve input order
+            Defaults to 'C'.
+    
+        Returns
+        -------
+        out : ndarray
+            Array interpretation of `a`.  No copy is performed if the input
+            is already an ndarray.  If `a` is a subclass of ndarray, a base
+            class ndarray is returned.
+    
+        Raises
+        ------
+        ValueError
+            Raises ValueError if `a` contains NaN (Not a Number) or Inf (Infinity).
+    
+        See Also
+        --------
+        asarray : Create and array.
+        asanyarray : Similar function which passes through subclasses.
+        ascontiguousarray : Convert input to a contiguous array.
+        asfortranarray : Convert input to an ndarray with column-major
+                         memory order.
+        fromiter : Create an array from an iterator.
+        fromfunction : Construct an array by executing a function on grid
+                       positions.
+    
+        Examples
+        --------
+        Convert a list into an array.  If all elements are finite
+        ``asarray_chkfinite`` is identical to ``asarray``.
+    
+        >>> a = [1, 2]
+        >>> np.asarray_chkfinite(a, dtype=float)
+        array([1., 2.])
+    
+        Raises ValueError if array_like contains Nans or Infs.
+    
+        >>> a = [1, 2, np.inf]
+        >>> try:
+        ...     np.asarray_chkfinite(a)
+        ... except ValueError:
+        ...     print('ValueError')
+        ...
+        ValueError
+    
+        """
+        a = asarray(a, dtype=dtype, order=order)
+        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():
+>           raise ValueError(
+                "array must not contain infs or NaNs")
+E           ValueError: array must not contain infs or NaNs
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\numpy\lib\_function_base_impl.py:649: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_waltons_kmf_and_cox_integration() -> None:
+        """End-to-end integration test combining KMF and CoxPH on Waltons dataset."""
+        df = load_waltons()
+        kmf = KaplanMeierFitter()
+    
+        for name, group_df in df.groupby("group"):
+            kmf.fit(group_df["T"], group_df["E"], label=name)
+            sf = kmf.survival_function_
+            # Survival function should be non-increasing.
+            values = sf[name].values
+            for i in range(1, len(values)):
+                assert values[i] <= values[i - 1] + 1e-8
+    
+        # Now fit a Cox model on a regression-ready frame.
+        df_reg = _prepare_regression_frame()
+        cph = CoxPHFitter()
+>       cph.fit(df_reg, duration_col="duration", event_col="event")
+
+tests\Lifelines\resource_test.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:95: in fit
+    final_beta, final_hessian = self._newton_rhapson(X, T, E, initial_beta)
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:56: in _newton_rhapson
+    inv_hessian = linalg.pinv(-hessian)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\deprecation.py:213: in inner_f
+    return f(*args, **kwargs)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\linalg\_basic.py:1422: in pinv
+    a = _asarray_validated(a, check_finite=check_finite)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\scipy\_lib\_util.py:321: in _asarray_validated
+    a = toarray(a)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+a = array([[nan]]), dtype = None, order = None
+
+    @set_module('numpy')
+    def asarray_chkfinite(a, dtype=None, order=None):
+        """Convert the input to an array, checking for NaNs or Infs.
+    
+        Parameters
+        ----------
+        a : array_like
+            Input data, in any form that can be converted to an array.  This
+            includes lists, lists of tuples, tuples, tuples of tuples, tuples
+            of lists and ndarrays.  Success requires no NaNs or Infs.
+        dtype : data-type, optional
+            By default, the data-type is inferred from the input data.
+        order : {'C', 'F', 'A', 'K'}, optional
+            Memory layout.  'A' and 'K' depend on the order of input array a.
+            'C' row-major (C-style),
+            'F' column-major (Fortran-style) memory representation.
+            'A' (any) means 'F' if `a` is Fortran contiguous, 'C' otherwise
+            'K' (keep) preserve input order
+            Defaults to 'C'.
+    
+        Returns
+        -------
+        out : ndarray
+            Array interpretation of `a`.  No copy is performed if the input
+            is already an ndarray.  If `a` is a subclass of ndarray, a base
+            class ndarray is returned.
+    
+        Raises
+        ------
+        ValueError
+            Raises ValueError if `a` contains NaN (Not a Number) or Inf (Infinity).
+    
+        See Also
+        --------
+        asarray : Create and array.
+        asanyarray : Similar function which passes through subclasses.
+        ascontiguousarray : Convert input to a contiguous array.
+        asfortranarray : Convert input to an ndarray with column-major
+                         memory order.
+        fromiter : Create an array from an iterator.
+        fromfunction : Construct an array by executing a function on grid
+                       positions.
+    
+        Examples
+        --------
+        Convert a list into an array.  If all elements are finite
+        ``asarray_chkfinite`` is identical to ``asarray``.
+    
+        >>> a = [1, 2]
+        >>> np.asarray_chkfinite(a, dtype=float)
+        array([1., 2.])
+    
+        Raises ValueError if array_like contains Nans or Infs.
+    
+        >>> a = [1, 2, np.inf]
+        >>> try:
+        ...     np.asarray_chkfinite(a)
+        ... except ValueError:
+        ...     print('ValueError')
+        ...
+        ValueError
+    
+        """
+        a = asarray(a, dtype=dtype, order=order)
+        if a.dtype.char in typecodes['AllFloat'] and not np.isfinite(a).all():
+>           raise ValueError(
+                "array must not contain infs or NaNs")
+E           ValueError: array must not contain infs or NaNs
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\numpy\lib\_function_base_impl.py:649: ValueError
+============================== warnings summary ===============================
+tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Lifelines\lifelines\fitters\coxph_fitter.py:23: RuntimeWarning: overflow encountered in exp
+    risk_scores = np.exp(X @ beta)
+
+tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Lifelines\lifelines\fitters\coxph_fitter.py:49: RuntimeWarning: invalid value encountered in divide
+    gradient += event_X_sum - d_i * (S1 / S0)
+
+tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+  D:\桌面\RealAppCodeBench_generic_eval\generation\Lifelines\lifelines\fitters\coxph_fitter.py:50: RuntimeWarning: invalid value encountered in divide
+    hessian -= d_i * ((S2 / S0) - np.outer(S1, S1) / (S0 ** 2))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/resource_test.py::test_waltons_kmf_and_cox_integration
+1 failed, 3 warnings in 2.36s

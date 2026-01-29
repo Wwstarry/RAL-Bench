@@ -1,0 +1,483 @@
+FFFFFF                                                                   [100%]
+================================== FAILURES ===================================
+________________ test_dateutil_importable_and_parser_available ________________
+
+    @pytest.mark.timeout(10)
+    def test_dateutil_importable_and_parser_available():
+        """
+        Robustness 1: module should be importable and expose parser.parse.
+        """
+>       dateutil = _import_dateutil()
+
+tests\Dateutil\robustness_test.py:97: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\robustness_test.py:74: in _import_dateutil
+    import dateutil  # type: ignore
+generation\Dateutil\dateutil\__init__.py:22: in <module>
+    _module = import_module(f"{__name__}.{_name}")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+generation\Dateutil\dateutil\parser\__init__.py:31: in <module>
+    _ISO_RE = _re.compile(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:252: in compile
+    return _compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:304: in _compile
+    p = sre_compile.compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_compile.py:764: in compile
+    p = sre_parse.parse(p, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:948: in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source = <sre_parse.Tokenizer object at 0x000001F40A7C0430>
+state = <sre_parse.State object at 0x000001F40A7C04C0>, verbose = True
+nested = 7, first = False
+
+    def _parse(source, state, verbose, nested, first=False):
+        # parse a simple pattern
+        subpattern = SubPattern(state)
+    
+        # precompute constants into local variables
+        subpatternappend = subpattern.append
+        sourceget = source.get
+        sourcematch = source.match
+        _len = len
+        _ord = ord
+    
+        while True:
+    
+            this = source.next
+            if this is None:
+                break # end of pattern
+            if this in "|)":
+                break # end of subpattern
+            sourceget()
+    
+            if verbose:
+                # skip whitespace and comments
+                if this in WHITESPACE:
+                    continue
+                if this == "#":
+                    while True:
+                        this = sourceget()
+                        if this is None or this == "\n":
+                            break
+                    continue
+    
+            if this[0] == "\\":
+                code = _escape(source, this, state)
+                subpatternappend(code)
+    
+            elif this not in SPECIAL_CHARS:
+                subpatternappend((LITERAL, _ord(this)))
+    
+            elif this == "[":
+                here = source.tell() - 1
+                # character set
+                set = []
+                setappend = set.append
+    ##          if sourcematch(":"):
+    ##              pass # handle character classes
+                if source.next == '[':
+                    import warnings
+                    warnings.warn(
+                        'Possible nested set at position %d' % source.tell(),
+                        FutureWarning, stacklevel=nested + 6
+                    )
+                negate = sourcematch("^")
+                # check remaining characters
+                while True:
+                    this = sourceget()
+                    if this is None:
+                        raise source.error("unterminated character set",
+                                           source.tell() - here)
+                    if this == "]" and set:
+                        break
+                    elif this[0] == "\\":
+                        code1 = _class_escape(source, this)
+                    else:
+                        if set and this in '-&~|' and source.next == this:
+                            import warnings
+                            warnings.warn(
+                                'Possible set %s at position %d' % (
+                                    'difference' if this == '-' else
+                                    'intersection' if this == '&' else
+                                    'symmetric difference' if this == '~' else
+                                    'union',
+                                    source.tell() - 1),
+                                FutureWarning, stacklevel=nested + 6
+                            )
+                        code1 = LITERAL, _ord(this)
+                    if sourcematch("-"):
+                        # potential range
+                        that = sourceget()
+                        if that is None:
+                            raise source.error("unterminated character set",
+                                               source.tell() - here)
+                        if that == "]":
+                            if code1[0] is IN:
+                                code1 = code1[1][0]
+                            setappend(code1)
+                            setappend((LITERAL, _ord("-")))
+                            break
+                        if that[0] == "\\":
+                            code2 = _class_escape(source, that)
+                        else:
+                            if that == '-':
+                                import warnings
+                                warnings.warn(
+                                    'Possible set difference at position %d' % (
+                                        source.tell() - 2),
+                                    FutureWarning, stacklevel=nested + 6
+                                )
+                            code2 = LITERAL, _ord(that)
+                        if code1[0] != LITERAL or code2[0] != LITERAL:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        lo = code1[1]
+                        hi = code2[1]
+                        if hi < lo:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        setappend((RANGE, (lo, hi)))
+                    else:
+                        if code1[0] is IN:
+                            code1 = code1[1][0]
+                        setappend(code1)
+    
+                set = _uniq(set)
+                # XXX: <fl> should move set optimization to compiler!
+                if _len(set) == 1 and set[0][0] is LITERAL:
+                    # optimization
+                    if negate:
+                        subpatternappend((NOT_LITERAL, set[0][1]))
+                    else:
+                        subpatternappend(set[0])
+                else:
+                    if negate:
+                        set.insert(0, (NEGATE, None))
+                    # charmap optimization can't be added here because
+                    # global flags still are not known
+                    subpatternappend((IN, set))
+    
+            elif this in REPEAT_CHARS:
+                # repeat previous item
+                here = source.tell()
+                if this == "?":
+                    min, max = 0, 1
+                elif this == "*":
+                    min, max = 0, MAXREPEAT
+    
+                elif this == "+":
+                    min, max = 1, MAXREPEAT
+                elif this == "{":
+                    if source.next == "}":
+                        subpatternappend((LITERAL, _ord(this)))
+                        continue
+    
+                    min, max = 0, MAXREPEAT
+                    lo = hi = ""
+                    while source.next in DIGITS:
+                        lo += sourceget()
+                    if sourcematch(","):
+                        while source.next in DIGITS:
+                            hi += sourceget()
+                    else:
+                        hi = lo
+                    if not sourcematch("}"):
+                        subpatternappend((LITERAL, _ord(this)))
+                        source.seek(here)
+                        continue
+    
+                    if lo:
+                        min = int(lo)
+                        if min >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                    if hi:
+                        max = int(hi)
+                        if max >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                        if max < min:
+                            raise source.error("min repeat greater than max repeat",
+                                               source.tell() - here)
+                else:
+                    raise AssertionError("unsupported quantifier %r" % (char,))
+                # figure out which item to repeat
+                if subpattern:
+                    item = subpattern[-1:]
+                else:
+                    item = None
+                if not item or item[0][0] is AT:
+>                   raise source.error("nothing to repeat",
+                                       source.tell() - here + len(this))
+E                   re.error: nothing to repeat at position 159 (line 9, column 17)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:668: error
+__________________ test_dateutil_basic_parse_common_formats ___________________
+
+    @pytest.mark.timeout(10)
+    def test_dateutil_basic_parse_common_formats():
+        """
+        Robustness 2: parse a few common formats. Should return datetime without crashing.
+        """
+>       dateutil = _import_dateutil()
+
+tests\Dateutil\robustness_test.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\robustness_test.py:74: in _import_dateutil
+    import dateutil  # type: ignore
+generation\Dateutil\dateutil\__init__.py:22: in <module>
+    _module = import_module(f"{__name__}.{_name}")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+generation\Dateutil\dateutil\parser\__init__.py:31: in <module>
+    _ISO_RE = _re.compile(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:252: in compile
+    return _compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:304: in _compile
+    p = sre_compile.compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_compile.py:764: in compile
+    p = sre_parse.parse(p, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:948: in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:834: in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source = <sre_parse.Tokenizer object at 0x000001F40A96CF40>
+state = <sre_parse.State object at 0x000001F40A96CE20>, verbose = True
+nested = 7, first = False
+
+    def _parse(source, state, verbose, nested, first=False):
+        # parse a simple pattern
+        subpattern = SubPattern(state)
+    
+        # precompute constants into local variables
+        subpatternappend = subpattern.append
+        sourceget = source.get
+        sourcematch = source.match
+        _len = len
+        _ord = ord
+    
+        while True:
+    
+            this = source.next
+            if this is None:
+                break # end of pattern
+            if this in "|)":
+                break # end of subpattern
+            sourceget()
+    
+            if verbose:
+                # skip whitespace and comments
+                if this in WHITESPACE:
+                    continue
+                if this == "#":
+                    while True:
+                        this = sourceget()
+                        if this is None or this == "\n":
+                            break
+                    continue
+    
+            if this[0] == "\\":
+                code = _escape(source, this, state)
+                subpatternappend(code)
+    
+            elif this not in SPECIAL_CHARS:
+                subpatternappend((LITERAL, _ord(this)))
+    
+            elif this == "[":
+                here = source.tell() - 1
+                # character set
+                set = []
+                setappend = set.append
+    ##          if sourcematch(":"):
+    ##              pass # handle character classes
+                if source.next == '[':
+                    import warnings
+                    warnings.warn(
+                        'Possible nested set at position %d' % source.tell(),
+                        FutureWarning, stacklevel=nested + 6
+                    )
+                negate = sourcematch("^")
+                # check remaining characters
+                while True:
+                    this = sourceget()
+                    if this is None:
+                        raise source.error("unterminated character set",
+                                           source.tell() - here)
+                    if this == "]" and set:
+                        break
+                    elif this[0] == "\\":
+                        code1 = _class_escape(source, this)
+                    else:
+                        if set and this in '-&~|' and source.next == this:
+                            import warnings
+                            warnings.warn(
+                                'Possible set %s at position %d' % (
+                                    'difference' if this == '-' else
+                                    'intersection' if this == '&' else
+                                    'symmetric difference' if this == '~' else
+                                    'union',
+                                    source.tell() - 1),
+                                FutureWarning, stacklevel=nested + 6
+                            )
+                        code1 = LITERAL, _ord(this)
+                    if sourcematch("-"):
+                        # potential range
+                        that = sourceget()
+                        if that is None:
+                            raise source.error("unterminated character set",
+                                               source.tell() - here)
+                        if that == "]":
+                            if code1[0] is IN:
+                                code1 = code1[1][0]
+                            setappend(code1)
+                            setappend((LITERAL, _ord("-")))
+                            break
+                        if that[0] == "\\":
+                            code2 = _class_escape(source, that)
+                        else:
+                            if that == '-':
+                                import warnings
+                                warnings.warn(
+                                    'Possible set difference at position %d' % (
+                                        source.tell() - 2),
+                                    FutureWarning, stacklevel=nested + 6
+                                )
+                            code2 = LITERAL, _ord(that)
+                        if code1[0] != LITERAL or code2[0] != LITERAL:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        lo = code1[1]
+                        hi = code2[1]
+                        if hi < lo:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        setappend((RANGE, (lo, hi)))
+                    else:
+                        if code1[0] is IN:
+                            code1 = code1[1][0]
+                        setappend(code1)
+    
+                set = _uniq(set)
+                # XXX: <fl> should move set optimization to compiler!
+                if _len(set) == 1 and set[0][0] is LITERAL:
+                    # optimization
+                    if negate:
+                        subpatternappend((NOT_LITERAL, set[0][1]))
+                    else:
+                        subpatternappend(set[0])
+                else:
+                    if negate:
+                        set.insert(0, (NEGATE, None))
+                    # charmap optimization can't be added here because
+                    # global flags still are not known
+                    subpatternappend((IN, set))
+    
+            elif this in REPEAT_CHARS:
+                # repeat previous item
+                here = source.tell()
+                if this == "?":
+                    min, max = 0, 1
+                elif this == "*":
+                    min, max = 0, MAXREPEAT
+    
+                elif this == "+":
+                    min, max = 1, MAXREPEAT
+                elif this == "{":
+                    if source.next == "}":
+                        subpatternappend((LITERAL, _ord(this)))
+                        continue
+    
+                    min, max = 0, MAXREPEAT
+                    lo = hi = ""
+                    while source.next in DIGITS:
+                        lo += sourceget()
+                    if sourcematch(","):
+                        while source.next in DIGITS:
+                            hi += sourceget()
+                    else:
+                        hi = lo
+                    if not sourcematch("}"):
+                        subpatternappend((LITERAL, _ord(this)))
+                        source.seek(here)
+                        continue
+    
+                    if lo:
+                        min = int(lo)
+                        if min >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                    if hi:
+                        max = int(hi)
+                        if max >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                        if max < min:
+                            raise source.error("min repeat greater than max repeat",
+                                               source.tell() - here)
+                else:
+                    raise AssertionError("unsupported quantifier %r" % (char,))
+                # figure out which item to repeat
+                if subpattern:
+                    item = subpattern[-1:]
+                else:
+                    item = None
+                if not item or item[0][0] is AT:
+>                   raise source.error("nothing to repeat",
+                                       source.tell() - here + len(this))
+E                   re.error: nothing to repeat at position 159 (line 9, column 17)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:668: error
+_______________ test_dateutil_parse_invalid_string_fails_safely _______________
+
+    @pytest.mark.timeout(10)
+    def test_dateutil_parse_invalid_string_fails_safely():
+        """
+        Robustness 3: invalid date string should raise, or at least not crash/hang.
+        """
+>       dateutil = _import_dateutil()
+
+tests\Dateutil\robustness_test.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dateutil\robustness_test.py:74: in _import_dateutil
+    import dateutil  # type: ignore
+generation\Dateutil\dateutil\__init__.py:22: in <module>
+    _module = import_module(f"{__name__}.{_name}")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+generation\Dateutil\dateutil\parser\__init__.py:31: in <module>
+    _ISO_RE = _re.compile(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:252: in compile
+    return _compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:304: in _compile
+    p = sre_compile.compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_compile.py:764: in compile
+    p = sre_parse.parse(p, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:948: in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)

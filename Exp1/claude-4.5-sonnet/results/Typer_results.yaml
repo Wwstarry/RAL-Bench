@@ -1,0 +1,282 @@
+project_name: Typer
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Typer\typer.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Typer
+timestamp: '2025-12-31 14:09:42'
+functional_score: 0.25
+non_functional_score: 0.9846
+non_functional_subscores:
+  maintainability: 0.9585
+  security: 1.0
+  robustness: 1.0
+  performance: 1.0
+  resource: 0.996
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 1
+    stdout: "FFF..F.FFFFF                                                        \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      __________________________ test_simple_hello_command __________________________\n\
+      \n    def test_simple_hello_command() -> None:\n        app = _create_greeter_app()\n\
+      \        result = runner.invoke(app, [\"World\"])\n>       assert result.exit_code\
+      \ == 0\nE       assert 1 == 0\nE        +  where 1 = <typer.testing.Result object\
+      \ at 0x00000246BDAA1DC0>.exit_code\n\ntests\\Typer\\functional_test.py:199:\
+      \ AssertionError\n______________________ test_simple_hello_command_excited ______________________\n\
+      \n    def test_simple_hello_command_excited() -> None:\n        app = _create_greeter_app()\n\
+      \        # Safer ordering across Click versions: options before args.\n    \
+      \    result = runner.invoke(app, [\"--excited\", \"World\"])\n>       assert\
+      \ result.exit_code == 0\nE       assert 1 == 0\nE        +  where 1 = <typer.testing.Result\
+      \ object at 0x00000246BDAAF700>.exit_code\n\ntests\\Typer\\functional_test.py:207:\
+      \ AssertionError\n_______________ test_greeter_help_mentions_option_and_argument\
+      \ ________________\n\n    def test_greeter_help_mentions_option_and_argument()\
+      \ -> None:\n        app = _create_greeter_app()\n        result = runner.invoke(app,\
+      \ [\"--help\"])\n        assert result.exit_code == 0\n        out = result.stdout\n\
+      >       assert \"--excited\" in out\nE       AssertionError: assert '--excited'\
+      \ in 'Usage: [OPTIONS] COMMAND [ARGS]...\\n'\n\ntests\\Typer\\functional_test.py:216:\
+      \ AssertionError\n_____________________ test_todo_remove_then_list_updates ______________________\n\
+      \n    def test_todo_remove_then_list_updates() -> None:\n        app = _create_todo_app()\n\
+      \    \n        runner.invoke(app, [\"add\", \"Task 1\"])\n        runner.invoke(app,\
+      \ [\"add\", \"Task 2\"])\n    \n        r_remove = runner.invoke(app, [\"remove\"\
+      , \"1\"])\n>       assert r_remove.exit_code == 0\nE       assert 1 == 0\nE\
+      \        +  where 1 = <typer.testing.Result object at 0x00000246BDAA8CA0>.exit_code\n\
+      \ntests\\Typer\\functional_test.py:252: AssertionError\n_______________ test_subcommand_help_for_add_mentions_argument\
+      \ ________________\n\n    def test_subcommand_help_for_add_mentions_argument()\
+      \ -> None:\n        app = _create_todo_app()\n        result = runner.invoke(app,\
+      \ [\"add\", \"--help\"])\n        assert result.exit_code == 0\n        out\
+      \ = result.stdout\n>       assert \"TITLE\" in out or \"title\" in out\nE  \
+      \     AssertionError: assert ('TITLE' in 'Usage: [OPTIONS] COMMAND [ARGS]...\\\
+      n\\nCommands:\\n  add                  \\n  list                 \\n  remove\
+      \               \\n' or 'title' in 'Usage: [OPTIONS] COMMAND [ARGS]...\\n\\\
+      nCommands:\\n  add                  \\n  list                 \\n  remove  \
+      \             \\n')\n\ntests\\Typer\\functional_test.py:276: AssertionError\n\
+      ________________________ test_prompt_option_happy_path ________________________\n\
+      \n    def test_prompt_option_happy_path() -> None:\n        app = _create_prompt_app()\n\
+      \        # Now stable: \"greet\" always exists as a subcommand (multi-command\
+      \ app).\n        result = runner.invoke(app, [\"greet\"], input=\"Alice\\n\"\
+      )\n        assert result.exit_code == 0\n>       assert \"Hi Alice\" in result.stdout\n\
+      E       AssertionError: assert 'Hi Alice' in 'Hi <typer.params.ParamInfo object\
+      \ at 0x00000246BDAA7EB0>\\n'\nE        +  where 'Hi <typer.params.ParamInfo\
+      \ object at 0x00000246BDAA7EB0>\\n' = <typer.testing.Result object at 0x00000246BDAA7880>.stdout\n\
+      \ntests\\Typer\\functional_test.py:284: AssertionError\n________________________\
+      \ test_envvar_option_happy_path ________________________\n\nmonkeypatch = <_pytest.monkeypatch.MonkeyPatch\
+      \ object at 0x00000246BDAB2580>\n\n    def test_envvar_option_happy_path(monkeypatch:\
+      \ pytest.MonkeyPatch) -> None:\n        app = _create_env_app()\n        monkeypatch.setenv(\"\
+      APP_TOKEN\", \"abc123\")\n    \n        result = runner.invoke(app, [\"show\"\
+      ])\n        assert result.exit_code == 0\n>       assert \"TOKEN=abc123\" in\
+      \ result.stdout\nE       AssertionError: assert 'TOKEN=abc123' in 'TOKEN=Ellipsis\\\
+      n'\nE        +  where 'TOKEN=Ellipsis\\n' = <typer.testing.Result object at\
+      \ 0x00000246BDAB2610>.stdout\n\ntests\\Typer\\functional_test.py:293: AssertionError\n\
+      _____________ test_callback_global_option_affects_command_output ______________\n\
+      \n    def test_callback_global_option_affects_command_output() -> None:\n  \
+      \      app = _create_callback_app()\n    \n        r1 = runner.invoke(app, [\"\
+      run\"])\n        assert r1.exit_code == 0\n        assert \"running\" in r1.stdout\n\
+      \        assert \"verbose\" not in r1.stdout\n    \n        r2 = runner.invoke(app,\
+      \ [\"--verbose\", \"run\"])\n>       assert r2.exit_code == 0\nE       assert\
+      \ 2 == 0\nE        +  where 2 = <typer.testing.Result object at 0x00000246BDAAF2B0>.exit_code\n\
+      \ntests\\Typer\\functional_test.py:305: AssertionError\n____________________\
+      \ test_typed_arguments_and_float_option ____________________\n\n    def test_typed_arguments_and_float_option()\
+      \ -> None:\n        app = _create_types_app()\n        # Now stable: \"calc\"\
+      \ always exists as a subcommand (multi-command app).\n        r = runner.invoke(app,\
+      \ [\"calc\", \"2\", \"3\", \"--scale\", \"2.0\"])\n>       assert r.exit_code\
+      \ == 0\nE       assert 1 == 0\nE        +  where 1 = <typer.testing.Result object\
+      \ at 0x00000246BDB16250>.exit_code\n\ntests\\Typer\\functional_test.py:313:\
+      \ AssertionError\n=========================== short test summary info ===========================\n\
+      FAILED tests/Typer/functional_test.py::test_simple_hello_command - assert 1\
+      \ == 0\nFAILED tests/Typer/functional_test.py::test_simple_hello_command_excited\
+      \ - as...\nFAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument\n\
+      FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates -\
+      \ a...\nFAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument\n\
+      FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - Assert...\n\
+      FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - Assert...\n\
+      FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output\n\
+      FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option\n\
+      9 failed, 3 passed in 0.71s\n"
+    elapsed_time_s: 2.266948
+    avg_memory_mb: 32.85
+    avg_cpu_percent: 97.1
+    passed: 3
+    failed: 9
+    skipped: 0
+    total: 12
+    score_inputs_passed: 3
+    score_inputs_failed: 9
+    score_inputs_total: 12
+    score_inputs_returncode: 1
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 0
+    stdout: '.                                                                        [100%]
+
+      1 passed in 0.12s
+
+      '
+    elapsed_time_s: 1.60797
+    avg_memory_mb: 30.99
+    avg_cpu_percent: 97.9
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 1.64517
+    score_inputs_actual_time_s: 1.60797
+  resource:
+    returncode: 0
+    stdout: '..                                                                       [100%]
+
+      2 passed in 0.15s
+
+      '
+    elapsed_time_s: 1.737998
+    avg_memory_mb: 31.2
+    avg_cpu_percent: 100.0
+    passed: 2
+    failed: 0
+    skipped: 0
+    total: 2
+    score_inputs_passed: 2
+    score_inputs_failed: 0
+    score_inputs_total: 2
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 39.07
+    score_inputs_baseline_cpu_pct: 99.2
+    score_inputs_actual_mem_mb: 31.2
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '....                                                                     [100%]
+
+      4 passed in 0.18s
+
+      '
+    elapsed_time_s: 1.71939
+    avg_memory_mb: 31.03
+    avg_cpu_percent: 96.2
+    passed: 4
+    failed: 0
+    skipped: 0
+    total: 4
+    score_inputs_passed: 4
+    score_inputs_failed: 0
+    score_inputs_total: 4
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=5.0 total_loc=321.0
+
+      .
+
+      1 passed in 0.14s
+
+      '
+    elapsed_time_s: 1.674727
+    avg_memory_mb: 31.42
+    avg_cpu_percent: 97.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 5.0
+      total_loc: 321.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=21.7482 files_scanned=5.0 total_loc=321.0 max_cc=42.0
+
+      .
+
+      1 passed in 0.19s
+
+      '
+    elapsed_time_s: 1.703381
+    avg_memory_mb: 31.6
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 21.7482
+      files_scanned: 5.0
+      total_loc: 321.0
+      max_cc: 42.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.9413
+    score_inputs_generated_mi_min: 21.7482
+    score_inputs_ratio_g_over_b: 23.104430043556782
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 1.64517
+    performance_tests_total: 1
+  resource:
+    resource_suite_time_s: 2.053706
+    resource_tests_total: 2
+    avg_memory_mb: 39.07
+    avg_cpu_percent: 99.2
+  functional:
+    functional_suite_time_s: 2.016633
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 2.19185
+    robustness_tests_total: 4
+  security:
+    security_suite_time_s: 2.161153
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 16.0
+      total_loc: 4106.0
+  maintainability:
+    maintainability_suite_time_s: 2.28696
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.9413
+      files_scanned: 16.0
+      total_loc: 4106.0
+      max_cc: 30.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Typer\pytest_logs

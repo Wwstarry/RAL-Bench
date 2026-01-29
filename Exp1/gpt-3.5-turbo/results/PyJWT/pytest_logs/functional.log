@@ -1,0 +1,136 @@
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', kwargs = {}
+
+    def encode(payload, key, algorithm="HS256", **kwargs):
+        if algorithm != "HS256":
+>           raise NotImplementedError("Only HS256 algorithm is supported")
+E           NotImplementedError: Only HS256 algorithm is supported
+
+generation\PyJWT\jwt\api_jwt.py:34: NotImplementedError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:43: in encode
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000019309FD7940>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:43: in encode
+    payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x0000019309FED640>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - N...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.62s

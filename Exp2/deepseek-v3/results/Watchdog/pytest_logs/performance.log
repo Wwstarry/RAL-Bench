@@ -1,0 +1,37 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_watchdog_performance_smoke _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-306/test_watchdog_performance_smok0')
+
+    def test_watchdog_performance_smoke(tmp_path: Path) -> None:
+        """Smoke test to ensure the performance benchmark runs successfully."""
+>       metrics = run_watchdog_benchmark(tmp_path, n=40)
+
+tests\Watchdog\performance_test.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tmp = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-306/test_watchdog_performance_smok0')
+n = 40
+
+    def run_watchdog_benchmark(tmp: Path, n: int = 80) -> Dict[str, float]:
+        """Create n files and measure how many created events are observed."""
+        handler = _Counter()
+        obs = Observer()
+        obs.schedule(handler, str(tmp), recursive=False)
+    
+        start = time.perf_counter()
+        obs.start()
+    
+        for i in range(n):
+            (tmp / f"f{i}.txt").write_text("x")
+        time.sleep(0.3)
+    
+        obs.stop()
+>       obs.join(timeout=1)
+E       TypeError: join() got an unexpected keyword argument 'timeout'
+
+tests\Watchdog\performance_test.py:54: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Watchdog/performance_test.py::test_watchdog_performance_smoke - ...
+1 failed in 1.41s

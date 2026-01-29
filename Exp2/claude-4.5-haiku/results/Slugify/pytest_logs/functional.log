@@ -1,0 +1,30 @@
+.......F.F..                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+        assert result_default_sep.startswith("___")
+>       assert "this-is-a-test" in result_default_sep
+E       AssertionError: assert 'this-is-a-test' in '___thisisatest___'
+
+tests\Slugify\functional_test.py:174: AssertionError
+__________ test_lowercase_false_preserves_case_for_remaining_tokens ___________
+
+    def test_lowercase_false_preserves_case_for_remaining_tokens() -> None:
+        """lowercase=False should preserve original case for non-removed words."""
+        mixed = "thIs Has a stopword Stopword"
+        result = slugify(mixed, stopwords=["Stopword"], lowercase=False)
+    
+>       assert "thIs" in result
+E       AssertionError: assert 'thIs' in 'ths-as-a-stopword-topword'
+
+tests\Slugify\functional_test.py:200: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+FAILED tests/Slugify/functional_test.py::test_lowercase_false_preserves_case_for_remaining_tokens
+2 failed, 10 passed in 0.45s

@@ -1,0 +1,26 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_requests_resource_usage_smoke ______________________
+
+    def test_requests_resource_usage_smoke() -> None:
+>       m = run_requests_resource_probe(iterations=40)
+
+tests\Requests\resource_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+iterations = 40
+
+    def run_requests_resource_probe(iterations: int = 60) -> Dict[str, float]:
+        httpd, base_url = _start_server()
+        s = _new_session()
+        process = psutil.Process(os.getpid())
+        try:
+            # Warmup
+            for _ in range(10):
+>               r = s.get(base_url + "/ping", timeout=2.0)
+E               AttributeError: 'Session' object has no attribute 'get'
+
+tests\Requests\resource_test.py:84: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Requests/resource_test.py::test_requests_resource_usage_smoke - ...
+1 failed in 0.93s

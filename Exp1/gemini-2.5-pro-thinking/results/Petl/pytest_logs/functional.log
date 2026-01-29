@@ -1,0 +1,48 @@
+...ss.FsFsss                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_sort_descending_orders_values ______________________
+
+    def test_sort_descending_orders_values() -> None:
+        """Sort descending by a numeric field."""
+        _require_attr("sort")
+    
+        records = [
+            {"name": "A", "score": 10},
+            {"name": "B", "score": 30},
+            {"name": "C", "score": 20},
+        ]
+        table = petl.fromdicts(records, header=["name", "score"])
+    
+        # petl.sort supports reverse=True in typical implementations.
+>       sorted_tbl = petl.sort(table, "score", reverse=True)
+E       TypeError: sort() got an unexpected keyword argument 'reverse'
+
+tests\Petl\functional_test.py:278: TypeError
+___________________ test_tocsv_then_fromcsv_preserves_data ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-455/test_tocsv_then_fromcsv_preser0')
+
+    def test_tocsv_then_fromcsv_preserves_data(tmp_path: Path) -> None:
+        """Write a table to CSV and read it back, verifying header and row content."""
+        src = tmp_path / "roundtrip.csv"
+    
+        table = petl.fromdicts(
+            [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}],
+            header=["a", "b"],
+        )
+        petl.tocsv(table, str(src))
+        assert src.exists()
+    
+        table2 = petl.fromcsv(str(src))
+        rows = list(table2)
+    
+>       assert rows[0] == ("a", "b")
+E       AssertionError: assert ['a', 'b'] == ('a', 'b')
+E         
+E         Use -v to get more diff
+
+tests\Petl\functional_test.py:330: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Petl/functional_test.py::test_sort_descending_orders_values - Ty...
+FAILED tests/Petl/functional_test.py::test_tocsv_then_fromcsv_preserves_data
+2 failed, 4 passed, 6 skipped in 0.58s

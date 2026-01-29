@@ -1,0 +1,30 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_schedule_performance_smoke _______________________
+
+    def test_schedule_performance_smoke() -> None:
+        """Simple performance sanity check for the scheduler."""
+>       avg = _measure_scheduler_run_all()
+
+tests\Schedule\performance_test.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+num_jobs = 500, num_runs = 5
+
+    def _measure_scheduler_run_all(num_jobs: int = 500, num_runs: int = 5) -> float:
+        """Register a number of jobs and call run_all several times."""
+        schedule.clear()
+        counter = 0
+    
+        def job() -> None:
+            nonlocal counter
+            counter += 1
+    
+        for _ in range(num_jobs):
+>           schedule.every().seconds.do(job)
+E           AttributeError: 'function' object has no attribute 'do'
+
+tests\Schedule\performance_test.py:33: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/performance_test.py::test_schedule_performance_smoke - ...
+1 failed in 0.42s

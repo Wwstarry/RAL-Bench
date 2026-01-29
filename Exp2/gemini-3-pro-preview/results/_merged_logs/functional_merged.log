@@ -1,0 +1,2789 @@
+####################################################################################################
+# MODEL: gemini-3-pro-preview
+# NUM_PROJECT_LOGS: 31
+####################################################################################################
+
+==========================================================================================
+PROJECT: Astral
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Astral\pytest_logs\functional.log
+==========================================================================================
+...........                                                              [100%]
+11 passed in 0.23s
+
+==========================================================================================
+PROJECT: Cachetools
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Cachetools\pytest_logs\functional.log
+==========================================================================================
+.F...........                                                            [100%]
+================================== FAILURES ===================================
+__________________________ test_ttl_cache_expiration __________________________
+
+    def test_ttl_cache_expiration():
+        ttl_seconds = 0.2
+        cache = TTLCache(maxsize=10, ttl=ttl_seconds)
+    
+        cache["answer"] = 42
+        assert cache["answer"] == 42
+        assert "answer" in cache
+    
+        # Wait long enough for the entry to expire
+        time.sleep(ttl_seconds + 0.3)
+    
+        # After TTL has passed, the key should no longer be considered valid
+        # Implementations may clean up lazily, but membership and access
+        # must not behave as if the value is still present.
+>       assert "answer" not in cache
+E       AssertionError: assert 'answer' not in TTLCache([], maxsize=10, currsize=0)
+
+tests\Cachetools\functional_test.py:62: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cachetools/functional_test.py::test_ttl_cache_expiration - Asser...
+1 failed, 12 passed in 2.06s
+
+==========================================================================================
+PROJECT: Click
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Click\pytest_logs\functional.log
+==========================================================================================
+.FFFFFFFF.F                                                              [100%]
+================================== FAILURES ===================================
+________________________ test_boolean_flag_option_pair ________________________
+
+    def test_boolean_flag_option_pair():
+        @click.command()
+        @click.option("--flag/--no-flag", default=False)
+        def cli(flag: bool) -> None:
+            click.echo(f"FLAG={flag}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, ["--flag"])
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <Result exception>.exit_code
+
+tests\Click\functional_test.py:157: AssertionError
+_________________________ test_group_with_subcommands _________________________
+
+    def test_group_with_subcommands():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+>       @cli.command()
+E       AttributeError: 'Group' object has no attribute 'command'
+
+tests\Click\functional_test.py:170: AttributeError
+___________________ test_help_output_for_command_and_group ____________________
+
+    def test_help_output_for_command_and_group():
+        @click.group(help="Top level group")
+        def cli() -> None:
+            pass
+    
+>       @cli.command(help="Say hello")
+E       AttributeError: 'Group' object has no attribute 'command'
+
+tests\Click\functional_test.py:196: AttributeError
+____________________ test_get_current_context_propagation _____________________
+
+    def test_get_current_context_propagation():
+        @click.group()
+        @click.option("--config", type=str, default="default.cfg")
+        def cli(config: str) -> None:
+            ctx = click.get_current_context()
+            ctx.obj = {"config": config}
+    
+>       @cli.command()
+E       AttributeError: 'Group' object has no attribute 'command'
+
+tests\Click\functional_test.py:226: AttributeError
+_________________ test_command_exception_is_exposed_in_result _________________
+
+    def test_command_exception_is_exposed_in_result():
+        class CustomError(Exception):
+            pass
+    
+        @click.command()
+        def boom() -> None:
+            raise CustomError("explode")
+    
+        runner = CliRunner()
+        result = runner.invoke(boom, [])
+    
+        assert result.exit_code != 0
+>       assert isinstance(result.exception, CustomError)
+E       assert False
+E        +  where False = isinstance(NameError("name 'ClickException' is not defined"), <class 'functional_test.test_command_exception_is_exposed_in_result.<locals>.CustomError'>)
+E        +    where NameError("name 'ClickException' is not defined") = <Result exception>.exception
+
+tests\Click\functional_test.py:251: AssertionError
+_____________________ test_option_envvar_default_is_used ______________________
+
+    def test_option_envvar_default_is_used():
+        @click.command()
+        @click.option("--name", envvar="CLICK_TEST_NAME", default="fallback")
+        def cli(name: str) -> None:
+            click.echo(f"NAME={name}")
+    
+        runner = CliRunner()
+    
+        r1 = runner.invoke(cli, [])
+        assert r1.exit_code == 0
+        assert "NAME=fallback" in r1.output
+    
+        r2 = runner.invoke(cli, [], env={"CLICK_TEST_NAME": "fromenv"})
+        assert r2.exit_code == 0
+>       assert "NAME=fromenv" in r2.output
+E       AssertionError: assert 'NAME=fromenv' in 'NAME=fallback\nNAME=fallback\n'
+E        +  where 'NAME=fallback\nNAME=fallback\n' = <Result ok>.output
+
+tests\Click\functional_test.py:274: AssertionError
+________________ test_prompt_option_can_be_satisfied_via_input ________________
+
+    def test_prompt_option_can_be_satisfied_via_input():
+        @click.command()
+        @click.option("--token", prompt=True)
+        def cli(token: str) -> None:
+            click.echo(f"TOKEN={token}")
+    
+        runner = CliRunner()
+        r = runner.invoke(cli, [], input="secret-token\n")
+        assert r.exit_code == 0
+>       assert "TOKEN=secret-token" in r.output
+E       AssertionError: assert 'TOKEN=secret-token' in 'TOKEN=None\n'
+E        +  where 'TOKEN=None\n' = <Result ok>.output
+
+tests\Click\functional_test.py:286: AssertionError
+_______________ test_default_map_provides_default_option_value ________________
+
+    def test_default_map_provides_default_option_value():
+        @click.group()
+        def cli() -> None:
+            pass
+    
+>       @cli.command()
+E       AttributeError: 'Group' object has no attribute 'command'
+
+tests\Click\functional_test.py:294: AttributeError
+_____________ test_path_type_creates_writable_path_in_isolated_fs _____________
+
+    def test_path_type_creates_writable_path_in_isolated_fs():
+        @click.command()
+>       @click.option("--out", type=click.Path(dir_okay=False, writable=True))
+E       AttributeError: module 'click' has no attribute 'Path'
+
+tests\Click\functional_test.py:319: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Click/functional_test.py::test_boolean_flag_option_pair - assert...
+FAILED tests/Click/functional_test.py::test_group_with_subcommands - Attribut...
+FAILED tests/Click/functional_test.py::test_help_output_for_command_and_group
+FAILED tests/Click/functional_test.py::test_get_current_context_propagation
+FAILED tests/Click/functional_test.py::test_command_exception_is_exposed_in_result
+FAILED tests/Click/functional_test.py::test_option_envvar_default_is_used - A...
+FAILED tests/Click/functional_test.py::test_prompt_option_can_be_satisfied_via_input
+FAILED tests/Click/functional_test.py::test_default_map_provides_default_option_value
+FAILED tests/Click/functional_test.py::test_path_type_creates_writable_path_in_isolated_fs
+9 failed, 2 passed in 3.86s
+
+==========================================================================================
+PROJECT: Cmd2
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Cmd2\pytest_logs\functional.log
+==========================================================================================
+..FF..F.FF.                                                              [100%]
+================================== FAILURES ===================================
+_______________________ test_echo_arguments_and_parsing _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588A99400>
+
+    def test_echo_arguments_and_parsing(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, "echo_args one two three")
+>       assert "one two three" in output
+E       AssertionError: assert 'one two three' in '\n'
+
+tests\Cmd2\functional_test.py:276: AssertionError
+_______________________ test_echo_arguments_with_quotes _______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AA4EE0>
+
+    def test_echo_arguments_with_quotes(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, 'echo_args "hello world" two')
+>       assert "hello world two" in output
+E       AssertionError: assert 'hello world two' in '\n'
+
+tests\Cmd2\functional_test.py:283: AssertionError
+_____________________ test_unknown_command_reports_error ______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588B09CA0>
+
+    def test_unknown_command_reports_error(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        output = run_command(app, "this_command_does_not_exist")
+        low = output.lower()
+>       assert ("unknown" in low) or ("syntax" in low) or ("not found" in low) or (output.strip() != "")
+E       AssertionError: assert ('unknown' in '' or 'syntax' in '' or 'not found' in '' or '' != '')
+E        +  where '' = <built-in method strip of str object at 0x0000023585C44670>()
+E        +    where <built-in method strip of str object at 0x0000023585C44670> = ''.strip
+
+tests\Cmd2\functional_test.py:306: AssertionError
+---------------------------- Captured stderr call -----------------------------
+*** Unknown syntax: this_command_does_not_exist
+_____________________ test_multiple_commands_and_history ______________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023588AFCB20>
+
+    def test_multiple_commands_and_history(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        commands = ["greet Alice", "greet Bob", "history"]
+        output = run_commands(app, commands)
+>       assert "Hello Alice" in output
+E       AssertionError: assert 'Hello Alice' in ''
+
+tests\Cmd2\functional_test.py:321: AssertionError
+---------------------------- Captured stderr call -----------------------------
+*** Unknown syntax: history
+____________________ test_history_object_records_commands _____________________
+
+app = <functional_test._make_app_class.<locals>.SimpleApp object at 0x0000023587479EE0>
+
+    def test_history_object_records_commands(app: Optional[Any]) -> None:
+        if not _require_app(app):
+            return
+        _ = run_command(app, "greet Zoe")
+        hist = getattr(app, "history", None)
+>       assert hist is not None
+E       assert None is not None
+
+tests\Cmd2\functional_test.py:331: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_and_parsing - Asser...
+FAILED tests/Cmd2/functional_test.py::test_echo_arguments_with_quotes - Asser...
+FAILED tests/Cmd2/functional_test.py::test_unknown_command_reports_error - As...
+FAILED tests/Cmd2/functional_test.py::test_multiple_commands_and_history - As...
+FAILED tests/Cmd2/functional_test.py::test_history_object_records_commands - ...
+5 failed, 6 passed in 3.53s
+
+==========================================================================================
+PROJECT: Dataset
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Dataset\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+        db = create_in_memory_db()
+        table = db["users"]
+    
+>       table.insert({"name": "Alice", "age": 30, "country": "DE"})
+
+tests\Dataset\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA56113790>
+rows = [{'age': 30, 'country': 'DE', 'name': 'Alice'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: users
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+        db = create_in_memory_db()
+        table = db["accounts"]
+    
+        rows = [
+            {"account_id": 1, "owner": "Alice", "balance": 100.0, "currency": "EUR"},
+            {"account_id": 2, "owner": "Bob", "balance": 250.0, "currency": "USD"},
+        ]
+>       table.insert_many(rows)
+
+tests\Dataset\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617DB50>
+rows = [{'account_id': 1, 'balance': 100.0, 'currency': 'EUR', 'owner': 'Alice'}, {'account_id': 2, 'balance': 250.0, 'currency': 'USD', 'owner': 'Bob'}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: accounts
+
+generation\Dataset\dataset\table.py:138: OperationalError
+____________________ test_transactions_commit_and_rollback ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-308/test_transactions_commit_and_r0')
+
+    def test_transactions_commit_and_rollback(tmp_path: Path) -> None:
+        db_path = tmp_path / "tx_sample.db"
+        db_url = "sqlite:///%s" % str(db_path)
+        db = dataset.connect(db_url)
+        table = db["events"]
+    
+        db.begin()
+>       table.insert({"name": "committed", "category": "ok"})
+
+tests\Dataset\functional_test.py:203: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA56113E20>
+rows = [{'category': 'ok', 'name': 'committed'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: events
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_insert_many_returns_ids_and_count ____________________
+
+    def test_insert_many_returns_ids_and_count() -> None:
+        db = create_in_memory_db()
+        table = db["items"]
+    
+        rows = [{"name": "A"}, {"name": "B"}, {"name": "C"}]
+>       ret = table.insert_many(rows)
+
+tests\Dataset\functional_test.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5616BDF0>
+rows = [{'name': 'A'}, {'name': 'B'}, {'name': 'C'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: items
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+        db = create_in_memory_db()
+        table = db["t"]
+>       table.insert({"name": "only"})
+
+tests\Dataset\functional_test.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560D5E80>
+rows = [{'name': 'only'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: t
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+        db = create_in_memory_db()
+        table = db["nums"]
+        for i in range(10):
+>           table.insert({"n": i})
+
+tests\Dataset\functional_test.py:246: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617D700>, rows = [{'n': 0}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: nums
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_table_all_iteration_and_row_shape ____________________
+
+    def test_table_all_iteration_and_row_shape() -> None:
+        db = create_in_memory_db()
+        table = db["people"]
+>       table.insert({"name": "Alice", "age": 30})
+
+tests\Dataset\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA5617EA90>
+rows = [{'age': 30, 'name': 'Alice'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: people
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_______________________ test_delete_and_clear_all_rows ________________________
+
+    def test_delete_and_clear_all_rows() -> None:
+        """
+        Older dataset.Table may not expose truncate().
+        Clear a table and end at 0 rows without relying on result iteration for DML.
+        """
+        db = create_in_memory_db()
+        table = db["logs"]
+>       table.insert_many([{"kind": "a"}, {"kind": "b"}, {"kind": "b"}])
+
+tests\Dataset\functional_test.py:270: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560D15B0>
+rows = [{'kind': 'a'}, {'kind': 'b'}, {'kind': 'b'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: logs
+
+generation\Dataset\dataset\table.py:138: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+        db = create_in_memory_db()
+        table = db["to_drop"]
+>       table.insert({"x": 1})
+
+tests\Dataset\functional_test.py:299: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\table.py:100: in insert
+    return self.insert_many([row])
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA561879A0>, rows = [{'x': 1}]
+chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: to_drop
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_raw_sql_query_with_parameters ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-308/test_raw_sql_query_with_parame0')
+
+    def test_raw_sql_query_with_parameters(tmp_path: Path) -> None:
+        db_path = tmp_path / "param.db"
+        db = dataset.connect("sqlite:///%s" % str(db_path))
+        table = db["kv"]
+>       table.insert_many([{"k": "a", "v": 1}, {"k": "b", "v": 2}])
+
+tests\Dataset\functional_test.py:319: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA561B2610>
+rows = [{'k': 'a', 'v': 1}, {'k': 'b', 'v': 2}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: kv
+
+generation\Dataset\dataset\table.py:138: OperationalError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+        db = create_in_memory_db()
+        table = db["colors"]
+>       table.insert_many([{"c": "red"}, {"c": "red"}, {"c": "blue"}])
+
+tests\Dataset\functional_test.py:330: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.table.Table object at 0x000002BA560CEC40>
+rows = [{'c': 'red'}, {'c': 'red'}, {'c': 'blue'}], chunk_size = None
+
+    def insert_many(self, rows, chunk_size=None):
+        """
+        Insert multiple rows.
+        """
+        if not rows:
+            return
+    
+        # Normalize rows to dicts
+        rows = [dict(r) for r in rows]
+    
+        # 1. Ensure table exists based on the first row (or union of keys if we were fancy,
+        #    but standard dataset often just looks at what's coming in).
+        #    To be safe, we check schema against all keys in the batch.
+        all_keys = set()
+        for r in rows:
+            all_keys.update(r.keys())
+    
+        # Create a dummy row with all keys to ensure schema
+        dummy_schema_row = {k: rows[0].get(k) for k in all_keys}
+    
+        with self.db.lock:
+            self._ensure_table(dummy_schema_row)
+            self._ensure_columns(dummy_schema_row)
+    
+            # 2. Construct Insert SQL
+            # We use the first row to determine the parameterized query structure,
+            # but since we ensured columns for ALL keys, we can just use all_keys.
+            keys = list(all_keys)
+            placeholders = [f':{k}' for k in keys]
+            columns_sql = ", ".join(f'"{k}"' for k in keys)
+            values_sql = ", ".join(placeholders)
+    
+            sql = f'INSERT INTO "{self.name}" ({columns_sql}) VALUES ({values_sql})'
+    
+            cursor = self.db._conn.cursor()
+            try:
+>               cursor.executemany(sql, rows)
+E               sqlite3.OperationalError: no such table: colors
+
+generation\Dataset\dataset\table.py:138: OperationalError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_transactions_commit_and_rollback
+FAILED tests/Dataset/functional_test.py::test_insert_many_returns_ids_and_count
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_table_all_iteration_and_row_shape
+FAILED tests/Dataset/functional_test.py::test_delete_and_clear_all_rows - sql...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_raw_sql_query_with_parameters
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+11 failed in 54.44s
+
+==========================================================================================
+PROJECT: Fail2ban
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Fail2ban\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.05s
+
+==========================================================================================
+PROJECT: Folium
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Folium\pytest_logs\functional.log
+==========================================================================================
+........FF..                                                             [100%]
+================================== FAILURES ===================================
+_________________ test_008_geojson_style_function_serializes __________________
+
+    def test_008_geojson_style_function_serializes():
+        _prepend_import_path()
+        import folium
+    
+        gj = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "properties": {"style": "x"},
+                    "geometry": {"type": "Point", "coordinates": [0.0, 0.0]},
+                }
+            ],
+        }
+    
+        def style_fn(feature):
+            _ = feature
+            return {"color": "red", "weight": 2}
+    
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       folium.GeoJson(gj, style_function=style_fn).add_to(m)
+E       TypeError: __init__() got an unexpected keyword argument 'style_function'
+
+tests\Folium\functional_test.py:141: TypeError
+________________________ test_009_map_save_writes_html ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-309/test_009_map_save_writes_html0')
+
+    def test_009_map_save_writes_html(tmp_path: Path):
+        _prepend_import_path()
+        import folium
+    
+        out = tmp_path / "m.html"
+        m = folium.Map(location=[0, 0], zoom_start=2)
+>       m.save(str(out))
+E       AttributeError: 'Map' object has no attribute 'save'
+
+tests\Folium\functional_test.py:153: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Folium/functional_test.py::test_008_geojson_style_function_serializes
+FAILED tests/Folium/functional_test.py::test_009_map_save_writes_html - Attri...
+2 failed, 10 passed in 0.57s
+
+==========================================================================================
+PROJECT: Glances
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Glances\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.41s
+
+==========================================================================================
+PROJECT: Loguru
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Loguru\pytest_logs\functional.log
+==========================================================================================
+....F..FF..                                                              [100%]
+================================== FAILURES ===================================
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+        log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+    
+>       with log.contextualize(user="bob"):
+E       AttributeError: 'Logger' object has no attribute 'contextualize'
+
+tests\Loguru\functional_test.py:149: AttributeError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+        log, buf = make_buffer_logger(level="INFO", serialize=True)
+    
+        log.info("json-msg")
+    
+        raw_lines = _lines(buf)
+        assert len(raw_lines) >= 1
+    
+>       record = json.loads(raw_lines[-1])
+
+tests\Loguru\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:346: in loads
+    return _default_decoder.decode(s)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.decoder.JSONDecoder object at 0x000001FABAC3BCD0>
+s = 'INFO:json-msg', idx = 0
+
+    def raw_decode(self, s, idx=0):
+        """Decode a JSON document from ``s`` (a ``str`` beginning with
+        a JSON document) and return a 2-tuple of the Python
+        representation and the index in ``s`` where the document ended.
+    
+        This can be used to decode a JSON document from a string that may
+        have extraneous data at the end.
+    
+        """
+        try:
+            obj, end = self.scan_once(s, idx)
+        except StopIteration as err:
+>           raise JSONDecodeError("Expecting value", s, err.value) from None
+E           json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\decoder.py:355: JSONDecodeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+        log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+    
+>       patched = log.patch(lambda r: r["extra"].update({"patched": "yes"}))
+E       AttributeError: 'Logger' object has no attribute 'patch'
+
+tests\Loguru\functional_test.py:211: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+3 failed, 8 passed in 0.39s
+
+==========================================================================================
+PROJECT: Mailpile
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Mailpile\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Mailpile/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Mailpile\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Mailpile\functional_test.py:176: in <module>
+    from mailpile.safe_popen import PIPE, Popen, Safe_Pipe  # type: ignore
+E   ImportError: cannot import name 'PIPE' from 'mailpile.safe_popen' (D:\桌面\RealAppCodeBench_generic_eval\.converted\Mailpile\generated\mailpile\safe_popen.py)
+=========================== short test summary info ===========================
+ERROR tests/Mailpile/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.13s
+
+==========================================================================================
+PROJECT: Mitmproxy
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Mitmproxy\pytest_logs\functional.log
+==========================================================================================
+........FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+3 failed, 8 passed in 0.56s
+
+==========================================================================================
+PROJECT: Mutagen
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Mutagen\pytest_logs\functional.log
+==========================================================================================
+.....FFF...F                                                             [100%]
+================================== FAILURES ===================================
+________________ test_easyid3_genre_and_albumartist_roundtrip _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_easyid3_genre_and_albumar0')
+
+    def test_easyid3_genre_and_albumartist_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common optional fields via EasyID3 (genre/albumartist)."""
+        audio_path = tmp_path / "genre_albumartist.mp3"
+    
+        tags = EasyID3()
+        tags["title"] = ["Tagged Song"]
+        tags["artist"] = ["Main Artist"]
+>       tags["albumartist"] = ["Album Artist"]
+
+tests\Mutagen\functional_test.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.easyid3.EasyID3 object at 0x0000028C6EBFFEB0>
+key = 'albumartist', value = ['Album Artist']
+
+    def __setitem__(self, key, value):
+        frame_class = self._KEY_MAP.get(key)
+        if not frame_class:
+>           raise KeyError(f"Unknown EasyID3 key: {key}")
+E           KeyError: 'Unknown EasyID3 key: albumartist'
+
+generation\Mutagen\mutagen\easyid3.py:48: KeyError
+______________ test_low_level_id3_written_can_be_read_by_easyid3 ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_low_level_id3_written_can0')
+
+    def test_low_level_id3_written_can_be_read_by_easyid3(tmp_path: Path) -> None:
+        """Write low-level ID3 frames and read them back via EasyID3 fields."""
+        audio_path = tmp_path / "interop.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Interop Title"))
+        tags.add(TPE1(encoding=3, text="Interop Artist"))
+        tags.add(TALB(encoding=3, text="Interop Album"))
+        tags.save(str(audio_path))
+    
+        easy = EasyID3(str(audio_path))
+>       assert easy["title"] == ["Interop Title"]
+E       AssertionError: assert ['I', 'n', 't...'r', 'o', ...] == ['Interop Title']
+E         
+E         At index 0 diff: 'I' != 'Interop Title'
+E         Left contains 12 more items, first extra item: 'n'
+E         Use -v to get more diff
+
+tests\Mutagen\functional_test.py:216: AssertionError
+_______________ test_low_level_id3_frames_with_comment_and_apic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_low_level_id3_frames_with0')
+
+    def test_low_level_id3_frames_with_comment_and_apic(tmp_path: Path) -> None:
+        """Use low-level ID3 frames to store text and embedded artwork."""
+        audio_path = tmp_path / "id3_frames.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Frame Title"))
+        tags.add(TPE1(encoding=3, text="Frame Artist"))
+        tags.add(
+            COMM(
+                encoding=3,
+                lang="eng",
+                desc="Comment",
+                text="This is a test comment.",
+            )
+        )
+    
+        image_data = b"\xff\xd8\xff\x00FAKEJPEGDATA"
+        tags.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=image_data,
+            )
+        )
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+    
+>       assert "TIT2" in loaded
+
+tests\Mutagen\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x0000028C6EC05E20>, frame_id = 0
+
+    def __getitem__(self, frame_id):
+        frames = self._frames.get(frame_id)
+        if frames:
+            return frames[0]
+>       raise KeyError(frame_id)
+E       KeyError: 0
+
+generation\Mutagen\mutagen\id3.py:90: KeyError
+_______________ test_id3_text_frames_album_and_genre_roundtrip ________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_id3_text_frames_album_and0')
+
+    def test_id3_text_frames_album_and_genre_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common text frames (album/genre) using low-level ID3."""
+        audio_path = tmp_path / "album_genre.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Song X"))
+        tags.add(TALB(encoding=3, text="Album Y"))
+        tags.add(TCON(encoding=3, text="Jazz"))
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+>       assert loaded["TIT2"].text == ["Song X"]
+E       AssertionError: assert 'Song X' == ['Song X']
+E        +  where 'Song X' = <mutagen.id3.TIT2 object at 0x0000028C6EC99BB0>.text
+
+tests\Mutagen\functional_test.py:346: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Mutagen/functional_test.py::test_easyid3_genre_and_albumartist_roundtrip
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_written_can_be_read_by_easyid3
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_frames_with_comment_and_apic
+FAILED tests/Mutagen/functional_test.py::test_id3_text_frames_album_and_genre_roundtrip
+4 failed, 8 passed in 0.62s
+
+==========================================================================================
+PROJECT: Pendulum
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Pendulum\pytest_logs\functional.log
+==========================================================================================
+.....FFF.s.FF                                                            [100%]
+================================== FAILURES ===================================
+_____________________ test_formatting_with_custom_pattern _____________________
+
+    def test_formatting_with_custom_pattern() -> None:
+        """Verify formatting with a custom pattern is stable for a fixed datetime."""
+        dt = pendulum.datetime(2021, 12, 31, 23, 59, 58, tz="UTC")
+>       s = dt.format("YYYY/MM/DD HH:mm:ss")
+E       AttributeError: 'DateTime' object has no attribute 'format'
+
+tests\Pendulum\functional_test.py:136: AttributeError
+__________________________ test_start_of_end_of_day ___________________________
+
+    def test_start_of_end_of_day() -> None:
+        """Check start_of and end_of for a day boundary."""
+        dt = pendulum.datetime(2020, 5, 20, 13, 14, 15, tz="UTC")
+    
+>       sod = dt.start_of("day")
+E       AttributeError: 'DateTime' object has no attribute 'start_of'
+
+tests\Pendulum\functional_test.py:144: AttributeError
+_____________________ test_weekday_and_isoweekday_values ______________________
+
+    def test_weekday_and_isoweekday_values() -> None:
+        """Validate weekday values for a known date (2020-01-01 is Wednesday)."""
+>       dt = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:155: AttributeError
+________________________ test_diff_in_days_is_integer _________________________
+
+    def test_diff_in_days_is_integer() -> None:
+        """Compute diff in days between two dates."""
+>       a = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:207: AttributeError
+____________________ test_add_months_across_year_boundary _____________________
+
+    def test_add_months_across_year_boundary() -> None:
+        """Add months and verify year boundary transitions."""
+>       dt = pendulum.date(2019, 12, 15)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:217: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/functional_test.py::test_formatting_with_custom_pattern
+FAILED tests/Pendulum/functional_test.py::test_start_of_end_of_day - Attribut...
+FAILED tests/Pendulum/functional_test.py::test_weekday_and_isoweekday_values
+FAILED tests/Pendulum/functional_test.py::test_diff_in_days_is_integer - Attr...
+FAILED tests/Pendulum/functional_test.py::test_add_months_across_year_boundary
+5 failed, 7 passed, 1 skipped in 0.60s
+
+==========================================================================================
+PROJECT: Petl
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Petl\pytest_logs\functional.log
+==========================================================================================
+...ss..s.sss                                                             [100%]
+6 passed, 6 skipped in 0.23s
+
+==========================================================================================
+PROJECT: Pygments
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Pygments\pytest_logs\functional.log
+==========================================================================================
+Traceback (most recent call last):
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 188, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 147, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 111, in _get_module_details
+    __import__(pkg_name)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytest\__init__.py", line 8, in <module>
+    from _pytest._code import ExceptionInfo
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\__init__.py", line 5, in <module>
+    from .code import Code
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\code.py", line 44, in <module>
+    from _pytest._io import TerminalWriter
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\__init__.py", line 3, in <module>
+    from .terminalwriter import get_terminal_width
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\terminalwriter.py", line 15, in <module>
+    from pygments.lexer import Lexer
+ModuleNotFoundError: No module named 'pygments.lexer'
+
+==========================================================================================
+PROJECT: PyJWT
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\PyJWT\pytest_logs\functional.log
+==========================================================================================
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\__init__.py:10: in encode
+    return _jwt_global.encode(payload, key, algorithm, **kwargs)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <jwt.api_jwt.PyJWT object at 0x000002A15CF00FD0>
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', headers = None, json_encoder = None
+
+    def encode(self, payload, key, algorithm='HS256', headers=None, json_encoder=None):
+        # Prepare Header
+        header = {'typ': 'JWT', 'alg': algorithm}
+        if headers:
+            header.update(headers)
+    
+        # Serialize Header and Payload
+        # Use separators to match compact JSON representation (no spaces)
+        header_json = json.dumps(header, separators=(',', ':')).encode('utf-8')
+        payload_json = json.dumps(payload, separators=(',', ':')).encode('utf-8')
+    
+        header_b64 = self._base64url_encode(header_json)
+        payload_b64 = self._base64url_encode(payload_json)
+    
+        signing_input = f"{header_b64}.{payload_b64}".encode('ascii')
+    
+        # Sign
+        if algorithm == 'HS256':
+            if not key:
+                raise ValueError("Key is required for HS256")
+    
+            key_bytes = key.encode('utf-8') if isinstance(key, str) else key
+            signature = hmac.new(key_bytes, signing_input, hashlib.sha256).digest()
+            signature_b64 = self._base64url_encode(signature)
+        elif algorithm == 'none':
+            signature_b64 = ""
+        else:
+>           raise NotImplementedError(f"Algorithm {algorithm} not supported")
+E           NotImplementedError: Algorithm HS512 not supported
+
+generation\PyJWT\jwt\api_jwt.py:50: NotImplementedError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\__init__.py:10: in encode
+    return _jwt_global.encode(payload, key, algorithm, **kwargs)
+generation\PyJWT\jwt\api_jwt.py:32: in encode
+    payload_json = json.dumps(payload, separators=(',', ':')).encode('utf-8')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000002A15CF007C0>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\__init__.py:10: in encode
+    return _jwt_global.encode(payload, key, algorithm, **kwargs)
+generation\PyJWT\jwt\api_jwt.py:32: in encode
+    payload_json = json.dumps(payload, separators=(',', ':')).encode('utf-8')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000002A15D01F8E0>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - N...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.63s
+
+==========================================================================================
+PROJECT: PyPDF
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\PyPDF\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+>       _create_simple_pdf(pdf_path, num_pages=3)
+
+tests\PyPDF\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_create_and_read_blank_pdf0/simple.pdf')
+num_pages = 3
+
+    def _create_simple_pdf(path: Path, num_pages: int = 1) -> None:
+        """Create a simple PDF with the given number of blank pages."""
+        writer = PdfWriter()
+        # The first add_blank_page call requires explicit dimensions.
+        for i in range(num_pages):
+            if i == 0:
+                writer.add_blank_page(width=200, height=200)
+            else:
+>               writer.add_blank_page()
+E               TypeError: add_blank_page() missing 2 required positional arguments: 'width' and 'height'
+
+tests\PyPDF\functional_test.py:76: TypeError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+>       _create_simple_pdf(pdf_path, num_pages=1)
+
+tests\PyPDF\functional_test.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+>       _create_simple_pdf(pdf1, num_pages=1)
+
+tests\PyPDF\functional_test.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+>       _create_simple_pdf(src, num_pages=4)
+
+tests\PyPDF\functional_test.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_writer_add_page_preserves0/src.pdf')
+num_pages = 4
+
+    def _create_simple_pdf(path: Path, num_pages: int = 1) -> None:
+        """Create a simple PDF with the given number of blank pages."""
+        writer = PdfWriter()
+        # The first add_blank_page call requires explicit dimensions.
+        for i in range(num_pages):
+            if i == 0:
+                writer.add_blank_page(width=200, height=200)
+            else:
+>               writer.add_blank_page()
+E               TypeError: add_blank_page() missing 2 required positional arguments: 'width' and 'height'
+
+tests\PyPDF\functional_test.py:76: TypeError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:210: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+__________________________ test_encrypt_and_decrypt ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_encrypt_and_decrypt0')
+
+    def test_encrypt_and_decrypt(tmp_path: Path) -> None:
+        src = tmp_path / "plain.pdf"
+        enc = tmp_path / "encrypted.pdf"
+>       _create_simple_pdf(src, num_pages=2)
+
+tests\PyPDF\functional_test.py:233: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_encrypt_and_decrypt0/plain.pdf')
+num_pages = 2
+
+    def _create_simple_pdf(path: Path, num_pages: int = 1) -> None:
+        """Create a simple PDF with the given number of blank pages."""
+        writer = PdfWriter()
+        # The first add_blank_page call requires explicit dimensions.
+        for i in range(num_pages):
+            if i == 0:
+                writer.add_blank_page(width=200, height=200)
+            else:
+>               writer.add_blank_page()
+E               TypeError: add_blank_page() missing 2 required positional arguments: 'width' and 'height'
+
+tests\PyPDF\functional_test.py:76: TypeError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:256: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+>       _create_simple_pdf(src, num_pages=1)
+
+tests\PyPDF\functional_test.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyPDF\functional_test.py:78: in _create_simple_pdf
+    writer.write(fp)
+generation\PyPDF\pypdf\_writer.py:124: in write
+    page[NameObject("/Parent")] = self._root["/Pages"]
+generation\PyPDF\pypdf\generic.py:56: in __getitem__
+    return val.get_object()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = IndirectObject(1, 0)
+
+    def get_object(self):
+>       return self.pdf.get_object(self)
+E       AttributeError: 'PdfWriter' object has no attribute 'get_object'
+
+generation\PyPDF\pypdf\generic.py:36: AttributeError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+>       _create_simple_pdf(src, num_pages=3)
+
+tests\PyPDF\functional_test.py:361: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-315/test_clone_document_by_writing0/orig.pdf')
+num_pages = 3
+
+    def _create_simple_pdf(path: Path, num_pages: int = 1) -> None:
+        """Create a simple PDF with the given number of blank pages."""
+        writer = PdfWriter()
+        # The first add_blank_page call requires explicit dimensions.
+        for i in range(num_pages):
+            if i == 0:
+                writer.add_blank_page(width=200, height=200)
+            else:
+>               writer.add_blank_page()
+E               TypeError: add_blank_page() missing 2 required positional arguments: 'width' and 'height'
+
+tests\PyPDF\functional_test.py:76: TypeError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - TypeE...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - At...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - AttributeError: ...
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - AttributeError: 'Pd...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Attr...
+FAILED tests/PyPDF/functional_test.py::test_encrypt_and_decrypt - TypeError: ...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AttributeErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+11 failed, 1 skipped in 1.02s
+
+==========================================================================================
+PROJECT: Requests
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Requests\pytest_logs\functional.log
+==========================================================================================
+..........                                                               [100%]
+10 passed in 3.04s
+
+==========================================================================================
+PROJECT: Rich
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Rich\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.13s
+
+==========================================================================================
+PROJECT: Slugify
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Slugify\pytest_logs\functional.log
+==========================================================================================
+.......F....                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+        result_default_sep = slugify(text, regex_pattern=regex_pattern)
+        assert result_default_sep.startswith("___")
+>       assert "this-is-a-test" in result_default_sep
+E       AssertionError: assert 'this-is-a-test' in '___thisisatest___'
+
+tests\Slugify\functional_test.py:174: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+1 failed, 11 passed in 0.49s
+
+==========================================================================================
+PROJECT: Sqlmap
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Sqlmap\pytest_logs\functional.log
+==========================================================================================
+....F..FF                                                                [100%]
+================================== FAILURES ===================================
+_____________ test_005_version_runs_and_prints_version_like_token _____________
+
+    def test_005_version_runs_and_prints_version_like_token():
+        """
+        sqlmap --version may print a raw version token (e.g. 1.9.12.3#dev) and may also
+        print an 'exit' message. Do not require specific words like 'sqlmap'/'version'.
+        """
+        # --batch helps avoid interactive prompts on some builds, but keep tolerance regardless.
+        p = _run_cli(["--batch", "--version"], timeout_s=30)
+        out = _out(p)
+    
+        # Require a version-like token such as "1.9.12.3" optionally with suffix "#dev"
+>       assert re.search(r"\b\d+\.\d+(?:\.\d+){0,3}(?:#[a-z0-9]+)?\b", out) is not None
+E       AssertionError: assert None is not None
+E        +  where None = <function search at 0x000001EB89AA99D0>('\\b\\d+\\.\\d+(?:\\.\\d+){0,3}(?:#[a-z0-9]+)?\\b', '\nusage: sqlmap.py [-h] [--version] [-u url] [-v verbose]\nsqlmap.py: error: unrecognized arguments: --batch\n')
+E        +    where <function search at 0x000001EB89AA99D0> = re.search
+
+tests\Sqlmap\functional_test.py:80: AssertionError
+_____________ test_008_running_without_args_exits_or_prints_help ______________
+
+    def test_008_running_without_args_exits_or_prints_help():
+        p = _run_cli([], timeout_s=30)
+        out = (p.stdout + "\n" + p.stderr).strip()
+>       assert len(out) > 0
+E       AssertionError: assert 0 > 0
+E        +  where 0 = len('')
+
+tests\Sqlmap\functional_test.py:133: AssertionError
+__________ test_009_unicode_output_dir_argument_stable_in_help_mode ___________
+
+    def test_009_unicode_output_dir_argument_stable_in_help_mode():
+        root = _project_root()
+        out_dir = root / "generation" / "Sqlmap" / "tmp_输出"
+        out_dir.mkdir(parents=True, exist_ok=True)
+    
+        p = _run_cli(["-h", "--output-dir", str(out_dir)], timeout_s=30)
+>       assert p.returncode == 0
+E       AssertionError: assert 2 == 0
+E        +  where 2 = CompletedProcess(args=['C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\python.exe', 'D:\\桌面\\RealAppCod...p.py: error: unrecognized arguments: --output-dir D:\\桌面\\RealAppCodeBench_generic_eval\\generation\\Sqlmap\\tmp_输出\n').returncode
+
+tests\Sqlmap\functional_test.py:142: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Sqlmap/functional_test.py::test_005_version_runs_and_prints_version_like_token
+FAILED tests/Sqlmap/functional_test.py::test_008_running_without_args_exits_or_prints_help
+FAILED tests/Sqlmap/functional_test.py::test_009_unicode_output_dir_argument_stable_in_help_mode
+3 failed, 6 passed in 1.62s
+
+==========================================================================================
+PROJECT: SQLModel
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\SQLModel\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/SQLModel/functional_test.py ______________
+tests\SQLModel\functional_test.py:24: in <module>
+    from sqlmodel import (  # type: ignore  # noqa: E402
+generation\SQLModel\sqlmodel\__init__.py:197: in <module>
+    class SQLModel(BaseModel, metaclass=SQLModelMetaclass):
+generation\SQLModel\sqlmodel\__init__.py:115: in __new__
+    new_cls = super().__new__(cls, name, bases, class_dict, **kwargs)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pydantic\_internal\_model_construction.py:110: in __new__
+    config_wrapper = ConfigWrapper.for_model(bases, namespace, kwargs)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pydantic\_internal\_config.py:134: in for_model
+    raise PydanticUserError('"Config" and "model_config" cannot be used together', code='config-both')
+E   pydantic.errors.PydanticUserError: "Config" and "model_config" cannot be used together
+E   
+E   For further information visit https://errors.pydantic.dev/2.11/u/config-both
+=========================== short test summary info ===========================
+ERROR tests/SQLModel/functional_test.py - pydantic.errors.PydanticUserError: ...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.14s
+
+==========================================================================================
+PROJECT: Stegano
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Stegano\pytest_logs\functional.log
+==========================================================================================
+.F..........                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_lsb_hide_and_reveal_with_generator ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-318/test_lsb_hide_and_reveal_with_0')
+
+    def test_lsb_hide_and_reveal_with_generator(tmp_path: Path) -> None:
+        """lsb hide/reveal with a deterministic generator."""
+        _ensure_image_samples_exist()
+    
+        secret = "generator secret"
+        output = tmp_path / "lsb_generator.png"
+    
+        gen = generators.eratosthenes()
+>       encoded_img = lsb.hide(str(LENNA_PNG), secret, generator=gen)
+
+tests\Stegano\functional_test.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Stegano\stegano\lsb\lsb.py:56: in hide
+    for x, y in coords:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def mapped_generator():
+>       gen = generator()
+E       TypeError: 'generator' object is not callable
+
+generation\Stegano\stegano\lsb\lsb.py:41: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Stegano/functional_test.py::test_lsb_hide_and_reveal_with_generator
+1 failed, 11 passed in 1.78s
+
+==========================================================================================
+PROJECT: Tablib
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Tablib\pytest_logs\functional.log
+==========================================================================================
+.F..F...F..                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001E03EBEE7C0>, fmt = 'tsv'
+
+    def export(self, fmt):
+        if fmt == 'csv':
+            return _csv.export_set(self)
+        if fmt == 'json':
+            return _json.export_set(self)
+>       raise ValueError(f"Unsupported format {fmt}")
+E       ValueError: Unsupported format tsv
+
+generation\Tablib\tablib\core.py:73: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001E03EC67B20>, fmt = 'html'
+
+    def export(self, fmt):
+        if fmt == 'csv':
+            return _csv.export_set(self)
+        if fmt == 'json':
+            return _json.export_set(self)
+>       raise ValueError(f"Unsupported format {fmt}")
+E       ValueError: Unsupported format html
+
+generation\Tablib\tablib\core.py:73: ValueError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+3 failed, 8 passed in 0.56s
+
+==========================================================================================
+PROJECT: Tabulate
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Tabulate\pytest_logs\functional.log
+==========================================================================================
+.....F....F.                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+tabular_data = [['spam', 42], ['eggs', 451], ['bacon', 0]]
+headers = ['', 'item', 'qty'], tablefmt = 'github', floatfmt = 'g'
+numalign = 'default', stralign = 'default', missingval = ''
+showindex = 'default', disable_numparse = False, colalign = None
+
+    def tabulate(tabular_data, headers=(), tablefmt="simple", floatfmt=_DEFAULT_FLOATFMT,
+                 numalign="default", stralign="default", missingval=_DEFAULT_MISSINGVAL,
+                 showindex="default", disable_numparse=False, colalign=None):
+    
+        # 1. Normalize Data
+        rows, header_row = _normalize_tabular_data(tabular_data, headers, showindex)
+    
+        if not rows and not header_row:
+            return ""
+    
+        # 2. Resolve Table Format
+        if isinstance(tablefmt, TableFormat):
+            fmt = tablefmt
+        elif tablefmt in _formats:
+            fmt = _formats[tablefmt]
+        else:
+>           raise ValueError(f"Unknown table format: {tablefmt}")
+E           ValueError: Unknown table format: github
+
+generation\Tabulate\tabulate\core.py:144: ValueError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - Valu...
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+2 failed, 10 passed in 0.47s
+
+==========================================================================================
+PROJECT: Termgraph
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Termgraph\pytest_logs\functional.log
+==========================================================================================
+...........                                                              [100%]
+11 passed in 0.19s
+
+==========================================================================================
+PROJECT: TheFuck
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\TheFuck\pytest_logs\functional.log
+==========================================================================================
+.FFFFFFFFF..                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_002_import_no_command_rule_module ____________________
+
+    def test_002_import_no_command_rule_module() -> None:
+>       importlib.import_module("thefuck.rules.no_command")
+
+tests\TheFuck\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_____________ test_003_no_command_match_returns_bool_windows_like _____________
+
+    def test_003_no_command_match_returns_bool_windows_like() -> None:
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+______________ test_004_no_command_match_returns_bool_bash_like _______________
+
+    def test_004_no_command_match_returns_bool_bash_like() -> None:
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+______ test_005_no_command_like_rule_matches_at_least_one_typical_output ______
+
+    def test_005_no_command_like_rule_matches_at_least_one_typical_output() -> None:
+        """
+        Ensure the reference no_command rule actually matches a typical 'command not found' output.
+        We check both Windows and bash variants, and require at least one to match.
+        """
+>       match_fn, _ = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+___________ test_006_no_command_get_new_command_returns_string_like ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-319/test_006_no_command_get_new_co0')
+
+    def test_006_no_command_get_new_command_returns_string_like(tmp_path: Path) -> None:
+        """
+        get_new_command should return something string-like (or iterable of strings).
+        Do not require a specific suggestion yet.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+________ test_007_no_command_suggests_python_when_only_python_in_path _________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-319/test_007_no_command_suggests_p0')
+
+    def test_007_no_command_suggests_python_when_only_python_in_path(tmp_path: Path) -> None:
+        """
+        With PATH constrained to a directory containing only python.cmd,
+        the best correction for 'pythno' should include 'python' in the suggestion.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:184: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_______________ test_008_no_command_suggestion_is_deterministic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-319/test_008_no_command_suggestion0')
+
+    def test_008_no_command_suggestion_is_deterministic(tmp_path: Path) -> None:
+        """
+        Same input should yield same first suggestion in a controlled PATH.
+        """
+>       _, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:202: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_____________ test_009_no_command_does_not_crash_on_empty_output ______________
+
+    def test_009_no_command_does_not_crash_on_empty_output() -> None:
+>       match_fn, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:218: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+_________________ test_010_no_command_handles_unicode_output __________________
+
+    def test_010_no_command_handles_unicode_output() -> None:
+>       match_fn, get_new_fn = _import_no_command_rule()
+
+tests\TheFuck\functional_test.py:227: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\TheFuck\functional_test.py:42: in _import_no_command_rule
+    mod = importlib.import_module("thefuck.rules.no_command")
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+<frozen importlib._bootstrap>:1030: in _gcd_import
+    ???
+<frozen importlib._bootstrap>:1007: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'thefuck.rules.no_command'
+import_ = <function _gcd_import at 0x0000015472D81310>
+
+>   ???
+E   ModuleNotFoundError: No module named 'thefuck.rules.no_command'
+
+<frozen importlib._bootstrap>:984: ModuleNotFoundError
+=========================== short test summary info ===========================
+FAILED tests/TheFuck/functional_test.py::test_002_import_no_command_rule_module
+FAILED tests/TheFuck/functional_test.py::test_003_no_command_match_returns_bool_windows_like
+FAILED tests/TheFuck/functional_test.py::test_004_no_command_match_returns_bool_bash_like
+FAILED tests/TheFuck/functional_test.py::test_005_no_command_like_rule_matches_at_least_one_typical_output
+FAILED tests/TheFuck/functional_test.py::test_006_no_command_get_new_command_returns_string_like
+FAILED tests/TheFuck/functional_test.py::test_007_no_command_suggests_python_when_only_python_in_path
+FAILED tests/TheFuck/functional_test.py::test_008_no_command_suggestion_is_deterministic
+FAILED tests/TheFuck/functional_test.py::test_009_no_command_does_not_crash_on_empty_output
+FAILED tests/TheFuck/functional_test.py::test_010_no_command_handles_unicode_output
+9 failed, 3 passed in 0.78s
+
+==========================================================================================
+PROJECT: TinyDB
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\TinyDB\pytest_logs\functional.log
+==========================================================================================
+.F.FFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_multiple_tables_isolation ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_multiple_tables_isolation0')
+
+    def test_multiple_tables_isolation(tmp_path: Path) -> None:
+        """Data in different tables should be isolated."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "write code", "done": False})
+        tasks.insert({"title": "write tests", "done": False})
+        logs.insert({"event": "created_tasks"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:88: TypeError
+_________________________ test_where_helper_querying __________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_where_helper_querying0')
+
+    def test_where_helper_querying(tmp_path: Path) -> None:
+        """where('field') helper should build a working query for search()."""
+        db = _open_db(tmp_path)
+        db.insert({"name": "Alice", "city": "Tokyo"})
+        db.insert({"name": "Bob", "city": "Osaka"})
+    
+>       results = db.search(where("city") == "Tokyo")
+E       TypeError: 'Query' object is not callable
+
+tests\TinyDB\functional_test.py:128: TypeError
+______________________ test_get_returns_single_document _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_get_returns_single_docume0')
+
+    def test_get_returns_single_document(tmp_path: Path) -> None:
+        """get(query) should retrieve one matching document."""
+        db = _open_db(tmp_path)
+        User = Query()
+    
+        db.insert({"name": "Alice", "age": 30})
+        db.insert({"name": "Bob", "age": 25})
+    
+>       doc = db.get(User.name == "Bob")
+E       AttributeError: 'TinyDB' object has no attribute 'get'
+
+tests\TinyDB\functional_test.py:143: AttributeError
+________________________ test_insert_multiple_and_all _________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_insert_multiple_and_all0')
+
+    def test_insert_multiple_and_all(tmp_path: Path) -> None:
+        """insert_multiple should add several documents and return their ids."""
+        db = _open_db(tmp_path)
+    
+        docs = [
+            {"k": "a", "v": 1},
+            {"k": "b", "v": 2},
+            {"k": "c", "v": 3},
+        ]
+>       ids = db.insert_multiple(docs)
+E       AttributeError: 'TinyDB' object has no attribute 'insert_multiple'
+
+tests\TinyDB\functional_test.py:160: AttributeError
+___________________________ test_contains_and_count ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_contains_and_count0')
+
+    def test_contains_and_count(tmp_path: Path) -> None:
+        """contains and count should reflect stored data and queries."""
+        db = _open_db(tmp_path)
+        User = Query()
+    
+        db.insert({"name": "Alice", "age": 30})
+        db.insert({"name": "Bob", "age": 25})
+        db.insert({"name": "Charlie", "age": 35})
+    
+>       assert db.contains(User.name == "Alice") is True
+E       AttributeError: 'TinyDB' object has no attribute 'contains'
+
+tests\TinyDB\functional_test.py:180: AttributeError
+_____________________ test_persistence_reopen_and_search ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_persistence_reopen_and_se0')
+
+    def test_persistence_reopen_and_search(tmp_path: Path) -> None:
+        """Data should persist on disk and be readable after reopening."""
+        db_path = tmp_path / "persist.json"
+    
+        db1 = TinyDB(str(db_path))
+        db1.insert({"name": "Ada", "lang": "Python"})
+        db1.close()
+    
+        db2 = TinyDB(str(db_path))
+>       results = db2.search(where("name") == "Ada")
+E       TypeError: 'Query' object is not callable
+
+tests\TinyDB\functional_test.py:198: TypeError
+_________________ test_table_truncate_clears_only_that_table __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_table_truncate_clears_onl0')
+
+    def test_table_truncate_clears_only_that_table(tmp_path: Path) -> None:
+        """truncate on a table should clear its rows without affecting other tables."""
+        db = _open_db(tmp_path)
+    
+        tasks = db.table("tasks")
+        logs = db.table("logs")
+    
+        tasks.insert({"title": "t1"})
+        tasks.insert({"title": "t2"})
+        logs.insert({"event": "created"})
+    
+>       assert len(tasks) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:215: TypeError
+____________________________ test_update_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_update_by_doc_id0')
+
+    def test_update_by_doc_id(tmp_path: Path) -> None:
+        """update with doc_ids should modify the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        doc_id = table.insert({"name": "ItemA", "qty": 1})
+>       assert len(table) == 1
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:231: TypeError
+____________________________ test_remove_by_doc_id ____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_remove_by_doc_id0')
+
+    def test_remove_by_doc_id(tmp_path: Path) -> None:
+        """remove with doc_ids should delete the targeted document."""
+        db = _open_db(tmp_path)
+        table = db.table("items")
+    
+        id1 = table.insert({"name": "A"})
+        id2 = table.insert({"name": "B"})
+>       assert len(table) == 2
+E       TypeError: object of type 'Table' has no len()
+
+tests\TinyDB\functional_test.py:249: TypeError
+_________________ test_tables_listing_includes_created_tables _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-320/test_tables_listing_includes_c0')
+
+    def test_tables_listing_includes_created_tables(tmp_path: Path) -> None:
+        """tables() should include table names once they have stored data."""
+        db = _open_db(tmp_path)
+    
+        t1 = db.table("t1")
+        t2 = db.table("t2")
+        t1.insert({"x": 1})
+        t2.insert({"y": 2})
+    
+>       names = db.tables()
+E       AttributeError: 'TinyDB' object has no attribute 'tables'
+
+tests\TinyDB\functional_test.py:269: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/TinyDB/functional_test.py::test_multiple_tables_isolation - Type...
+FAILED tests/TinyDB/functional_test.py::test_where_helper_querying - TypeErro...
+FAILED tests/TinyDB/functional_test.py::test_get_returns_single_document - At...
+FAILED tests/TinyDB/functional_test.py::test_insert_multiple_and_all - Attrib...
+FAILED tests/TinyDB/functional_test.py::test_contains_and_count - AttributeEr...
+FAILED tests/TinyDB/functional_test.py::test_persistence_reopen_and_search - ...
+FAILED tests/TinyDB/functional_test.py::test_table_truncate_clears_only_that_table
+FAILED tests/TinyDB/functional_test.py::test_update_by_doc_id - TypeError: ob...
+FAILED tests/TinyDB/functional_test.py::test_remove_by_doc_id - TypeError: ob...
+FAILED tests/TinyDB/functional_test.py::test_tables_listing_includes_created_tables
+10 failed, 2 passed in 0.74s
+
+==========================================================================================
+PROJECT: Typer
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Typer\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_simple_hello_command __________________________
+
+    def test_simple_hello_command() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:197: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+______________________ test_simple_hello_command_excited ______________________
+
+    def test_simple_hello_command_excited() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:204: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+_______________ test_greeter_help_mentions_option_and_argument ________________
+
+    def test_greeter_help_mentions_option_and_argument() -> None:
+>       app = _create_greeter_app()
+
+tests\Typer\functional_test.py:212: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _create_greeter_app() -> typer.Typer:
+        """
+        Single-command style app (callback-only):
+          app NAME [--excited]
+        """
+        app = typer.Typer()
+    
+>       @app.callback(invoke_without_command=True)
+E       TypeError: callback() got an unexpected keyword argument 'invoke_without_command'
+
+tests\Typer\functional_test.py:70: TypeError
+_____________________ test_todo_list_empty_shows_no_tasks _____________________
+
+    def test_todo_list_empty_shows_no_tasks() -> None:
+        app = _create_todo_app()
+        r = runner.invoke(app, ["list"])
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D23ED60>.exit_code
+
+tests\Typer\functional_test.py:223: AssertionError
+___________________________ test_todo_add_and_list ____________________________
+
+    def test_todo_add_and_list() -> None:
+        app = _create_todo_app()
+    
+        r1 = runner.invoke(app, ["add", "Write tests"])
+        r2 = runner.invoke(app, ["add", "Review PRs"])
+    
+>       assert r1.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D293E20>.exit_code
+
+tests\Typer\functional_test.py:233: AssertionError
+_____________________ test_todo_remove_then_list_updates ______________________
+
+    def test_todo_remove_then_list_updates() -> None:
+        app = _create_todo_app()
+    
+        runner.invoke(app, ["add", "Task 1"])
+        runner.invoke(app, ["add", "Task 2"])
+    
+        r_remove = runner.invoke(app, ["remove", "1"])
+>       assert r_remove.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A19A0>.exit_code
+
+tests\Typer\functional_test.py:252: AssertionError
+_____________________ test_help_output_includes_commands ______________________
+
+    def test_help_output_includes_commands() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["--help"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A1760>.exit_code
+
+tests\Typer\functional_test.py:264: AssertionError
+_______________ test_subcommand_help_for_add_mentions_argument ________________
+
+    def test_subcommand_help_for_add_mentions_argument() -> None:
+        app = _create_todo_app()
+        result = runner.invoke(app, ["add", "--help"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D2A1370>.exit_code
+
+tests\Typer\functional_test.py:274: AssertionError
+________________________ test_prompt_option_happy_path ________________________
+
+    def test_prompt_option_happy_path() -> None:
+        app = _create_prompt_app()
+        # Now stable: "greet" always exists as a subcommand (multi-command app).
+>       result = runner.invoke(app, ["greet"], input="Alice\n")
+E       TypeError: invoke() got an unexpected keyword argument 'input'
+
+tests\Typer\functional_test.py:282: TypeError
+________________________ test_envvar_option_happy_path ________________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002597D228B80>
+
+    def test_envvar_option_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+        app = _create_env_app()
+        monkeypatch.setenv("APP_TOKEN", "abc123")
+    
+        result = runner.invoke(app, ["show"])
+>       assert result.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D228AC0>.exit_code
+
+tests\Typer\functional_test.py:292: AssertionError
+_____________ test_callback_global_option_affects_command_output ______________
+
+    def test_callback_global_option_affects_command_output() -> None:
+        app = _create_callback_app()
+    
+        r1 = runner.invoke(app, ["run"])
+        assert r1.exit_code == 0
+        assert "running" in r1.stdout
+        assert "verbose" not in r1.stdout
+    
+        r2 = runner.invoke(app, ["--verbose", "run"])
+>       assert r2.exit_code == 0
+E       assert 2 == 0
+E        +  where 2 = <typer.testing.Result object at 0x000002597D22FCA0>.exit_code
+
+tests\Typer\functional_test.py:305: AssertionError
+____________________ test_typed_arguments_and_float_option ____________________
+
+    def test_typed_arguments_and_float_option() -> None:
+        app = _create_types_app()
+        # Now stable: "calc" always exists as a subcommand (multi-command app).
+        r = runner.invoke(app, ["calc", "2", "3", "--scale", "2.0"])
+>       assert r.exit_code == 0
+E       assert 1 == 0
+E        +  where 1 = <typer.testing.Result object at 0x000002597D21A730>.exit_code
+
+tests\Typer\functional_test.py:313: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Typer/functional_test.py::test_simple_hello_command - TypeError:...
+FAILED tests/Typer/functional_test.py::test_simple_hello_command_excited - Ty...
+FAILED tests/Typer/functional_test.py::test_greeter_help_mentions_option_and_argument
+FAILED tests/Typer/functional_test.py::test_todo_list_empty_shows_no_tasks - ...
+FAILED tests/Typer/functional_test.py::test_todo_add_and_list - assert 1 == 0
+FAILED tests/Typer/functional_test.py::test_todo_remove_then_list_updates - a...
+FAILED tests/Typer/functional_test.py::test_help_output_includes_commands - a...
+FAILED tests/Typer/functional_test.py::test_subcommand_help_for_add_mentions_argument
+FAILED tests/Typer/functional_test.py::test_prompt_option_happy_path - TypeEr...
+FAILED tests/Typer/functional_test.py::test_envvar_option_happy_path - assert...
+FAILED tests/Typer/functional_test.py::test_callback_global_option_affects_command_output
+FAILED tests/Typer/functional_test.py::test_typed_arguments_and_float_option
+12 failed in 0.81s
+
+==========================================================================================
+PROJECT: Watchdog
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Watchdog\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Watchdog/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Watchdog\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Watchdog\functional_test.py:55: in <module>
+    from watchdog.events import (  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'PatternMatchingEventHandler' from 'watchdog.events' (D:\桌面\RealAppCodeBench_generic_eval\generation\Watchdog\watchdog\events.py)
+=========================== short test summary info ===========================
+ERROR tests/Watchdog/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.65s
+
+==========================================================================================
+PROJECT: Xmltodict
+LOG: D:\桌面\Exp1\gemini-3-pro-preview\results\Xmltodict\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 0.18s
+

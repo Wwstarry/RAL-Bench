@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+import sys
+import os
+import argparse
+import time
+
+# Ensure we can import fail2ban from the current directory structure
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from fail2ban.server.jail import Jail
+
+def main():
+    parser = argparse.ArgumentParser(description="Fail2Ban Server (Minimal)")
+    parser.add_argument("-b", "--background", action="store_true", help="Start in background (mock)")
+    args = parser.parse_args()
+
+    print("Server ready")
+    # In a real implementation, this would start the daemon loop.
+    # Here we just instantiate a Jail to prove the API works and exit safely.
+    
+    j = Jail("sshd")
+    j.start()
+    print(f"Jail {j.name} started: {j.is_alive()}")
+    j.stop()
+
+if __name__ == "__main__":
+    main()

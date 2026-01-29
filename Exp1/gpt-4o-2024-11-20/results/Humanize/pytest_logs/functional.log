@@ -1,0 +1,51 @@
+..F..F.F.Fsssss                                                          [100%]
+================================== FAILURES ===================================
+______________________________ test_naturalsize _______________________________
+
+    def test_naturalsize() -> None:
+>       assert humanize.naturalsize(1024) == "1.0 kB"
+E       AssertionError: assert '1.0 KB' == '1.0 kB'
+E         
+E         - 1.0 kB
+E         ?     ^
+E         + 1.0 KB
+E         ?     ^
+
+tests\Humanize\functional_test.py:107: AssertionError
+______________________ test_naturaltime_reference_point _______________________
+
+    def test_naturaltime_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        earlier = ref - timedelta(minutes=10)
+>       s = humanize.naturaltime(earlier, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:129: TypeError
+_________________________ test_naturalsize_binary_kib _________________________
+
+    def test_naturalsize_binary_kib() -> None:
+        s = humanize.naturalsize(1536, binary=True)
+        assert isinstance(s, str)
+        assert s
+        # Compatible across versions: "KiB" (common) or any case variant.
+>       assert ("KiB" in s) or ("kib" in s.lower())
+E       AssertionError: assert ('KiB' in '1.5 KB' or 'kib' in '1.5 kb')
+E        +  where '1.5 kb' = <built-in method lower of str object at 0x000002D06075B670>()
+E        +    where <built-in method lower of str object at 0x000002D06075B670> = '1.5 KB'.lower
+
+tests\Humanize\functional_test.py:148: AssertionError
+___________________ test_naturaltime_future_reference_point ___________________
+
+    def test_naturaltime_future_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        later = ref + timedelta(minutes=10)
+>       s = humanize.naturaltime(later, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:165: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_naturalsize - AssertionError: ...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_reference_point - ...
+FAILED tests/Humanize/functional_test.py::test_naturalsize_binary_kib - Asser...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_future_reference_point
+4 failed, 6 passed, 5 skipped in 0.37s

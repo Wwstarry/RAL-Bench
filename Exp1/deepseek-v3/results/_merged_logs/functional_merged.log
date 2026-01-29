@@ -1,0 +1,4362 @@
+####################################################################################################
+# MODEL: deepseek-v3
+# NUM_PROJECT_LOGS: 31
+####################################################################################################
+
+==========================================================================================
+PROJECT: Astral
+LOG: D:\桌面\Exp1\deepseek-v3\results\Astral\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+______________ ERROR collecting tests/Astral/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Astral\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Astral\functional_test.py:49: in <module>
+    from astral import LocationInfo, moon  # type: ignore
+generation\Astral\astral\__init__.py:3: in <module>
+    from astral import sun, moon
+E   ImportError: cannot import name 'moon' from partially initialized module 'astral' (most likely due to a circular import) (D:\桌面\RealAppCodeBench_generic_eval\generation\Astral\astral\__init__.py)
+=========================== short test summary info ===========================
+ERROR tests/Astral/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.54s
+
+==========================================================================================
+PROJECT: Cachetools
+LOG: D:\桌面\Exp1\deepseek-v3\results\Cachetools\pytest_logs\functional.log
+==========================================================================================
+.............                                                            [100%]
+13 passed in 1.67s
+
+==========================================================================================
+PROJECT: Celery
+LOG: D:\桌面\Exp1\deepseek-v3\results\Celery\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFF                                                               [100%]
+================================== FAILURES ===================================
+___________________ test_001_import_celery_and_core_symbols ___________________
+
+    def test_001_import_celery_and_core_symbols() -> None:
+        _ensure_celery_importable()
+        import celery  # noqa: F401
+    
+        from celery import Celery  # noqa: F401
+>       from celery import chain, chord, group, signature  # noqa: F401
+E       ImportError: cannot import name 'chain' from 'celery' (D:\桌面\RealAppCodeBench_generic_eval\generation\Celery\celery\__init__.py)
+
+tests\Celery\functional_test.py:61: ImportError
+______________ test_002_create_app_and_register_task_runs_delay _______________
+
+    def test_002_create_app_and_register_task_runs_delay() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+____ test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager ____
+
+    def test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+__________________ test_004_group_collects_results_in_order ___________________
+
+    def test_004_group_collects_results_in_order() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+____________________ test_005_chain_passes_previous_result ____________________
+
+    def test_005_chain_passes_previous_result() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+_______________ test_006_chord_runs_callback_over_group_results _______________
+
+    def test_006_chord_runs_callback_over_group_results() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:116: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+______________ test_007_task_exception_propagates_in_eager_mode _______________
+
+    def test_007_task_exception_propagates_in_eager_mode() -> None:
+        """
+        In some Celery versions/configs with task_always_eager=True and
+        task_eager_propagates=True, the exception is raised immediately during
+        delay()/apply_async() rather than on AsyncResult.get().
+    
+        This test accepts both correct behaviors:
+        - delay raises ValueError directly, OR
+        - delay returns a result whose .get() raises ValueError.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+_____________ test_008_disable_propagation_returns_failed_result ______________
+
+    def test_008_disable_propagation_returns_failed_result() -> None:
+        """
+        With task_eager_propagates=False:
+          - Some Celery builds still raise on get(..., propagate=True)
+          - get(..., propagate=False) may return None OR return the exception object
+        We accept both behaviors as long as the task is marked failed.
+        """
+>       app = _make_app()
+
+tests\Celery\functional_test.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+_______________ test_009_signature_freeze_has_id_and_task_name ________________
+
+    def test_009_signature_freeze_has_id_and_task_name() -> None:
+>       app = _make_app()
+
+tests\Celery\functional_test.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+____________ test_010_default_app_does_not_break_custom_app_usage _____________
+
+    def test_010_default_app_does_not_break_custom_app_usage() -> None:
+        """
+        Ensure that importing celery and using a custom app is not polluted by globals.
+        """
+>       app = _make_app("celery_test_app_2")
+
+tests\Celery\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'celery_test_app_2'
+
+    def _make_app(name: str = "celery_test_app"):
+        _ensure_celery_importable()
+        from celery import Celery
+    
+        app = Celery(
+            name,
+            broker="memory://",
+            backend="cache+memory://",
+            include=[],
+        )
+        # Pure local, synchronous execution: no broker/worker needed.
+>       app.conf.update(
+            task_always_eager=True,
+            task_eager_propagates=True,
+            task_store_eager_result=True,
+            result_backend="cache+memory://",
+            broker_url="memory://",
+            enable_utc=True,
+            timezone="UTC",
+            accept_content=["json"],
+            task_serializer="json",
+            result_serializer="json",
+        )
+E       TypeError: update() got an unexpected keyword argument 'task_always_eager'
+
+tests\Celery\functional_test.py:41: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Celery/functional_test.py::test_001_import_celery_and_core_symbols
+FAILED tests/Celery/functional_test.py::test_002_create_app_and_register_task_runs_delay
+FAILED tests/Celery/functional_test.py::test_003_apply_async_supports_kwargs_and_counts_down_ignored_in_eager
+FAILED tests/Celery/functional_test.py::test_004_group_collects_results_in_order
+FAILED tests/Celery/functional_test.py::test_005_chain_passes_previous_result
+FAILED tests/Celery/functional_test.py::test_006_chord_runs_callback_over_group_results
+FAILED tests/Celery/functional_test.py::test_007_task_exception_propagates_in_eager_mode
+FAILED tests/Celery/functional_test.py::test_008_disable_propagation_returns_failed_result
+FAILED tests/Celery/functional_test.py::test_009_signature_freeze_has_id_and_task_name
+FAILED tests/Celery/functional_test.py::test_010_default_app_does_not_break_custom_app_usage
+10 failed in 0.67s
+
+==========================================================================================
+PROJECT: Click
+LOG: D:\桌面\Exp1\deepseek-v3\results\Click\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_______________ ERROR collecting tests/Click/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Click\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Click\functional_test.py:128: in <module>
+    import click  # type: ignore  # noqa: E402
+generation\Click\click\__init__.py:15: in <module>
+    from .decorators import (
+E   ModuleNotFoundError: No module named 'click.decorators'
+=========================== short test summary info ===========================
+ERROR tests/Click/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 4.04s
+
+==========================================================================================
+PROJECT: Cmd2
+LOG: D:\桌面\Exp1\deepseek-v3\results\Cmd2\pytest_logs\functional.log
+==========================================================================================
+...........                                                              [100%]
+11 passed in 3.59s
+
+==========================================================================================
+PROJECT: Dataset
+LOG: D:\桌面\Exp1\deepseek-v3\results\Dataset\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_insert_and_query_basic_rows _______________________
+
+    def test_insert_and_query_basic_rows() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B5648CB80>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_______________________ test_update_upsert_and_indexes ________________________
+
+    def test_update_upsert_and_indexes() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B5651AEB0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+____________________ test_transactions_commit_and_rollback ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-296/test_transactions_commit_and_r0')
+
+    def test_transactions_commit_and_rollback(tmp_path: Path) -> None:
+        db_path = tmp_path / "tx_sample.db"
+        db_url = "sqlite:///%s" % str(db_path)
+>       db = dataset.connect(db_url)
+
+tests\Dataset\functional_test.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B56540FD0>
+url = 'sqlite:///C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-296\\test_transactions_commit_and_r0\\tx_sample.db'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+___________________ test_insert_many_returns_ids_and_count ____________________
+
+    def test_insert_many_returns_ids_and_count() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:219: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B5651DFA0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_____________________ test_find_one_missing_returns_none ______________________
+
+    def test_find_one_missing_returns_none() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:235: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B56447F10>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_______________________ test_find_order_by_limit_offset _______________________
+
+    def test_find_order_by_limit_offset() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:243: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B56509310>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+___________________ test_table_all_iteration_and_row_shape ____________________
+
+    def test_table_all_iteration_and_row_shape() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B564928E0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_______________________ test_delete_and_clear_all_rows ________________________
+
+    def test_delete_and_clear_all_rows() -> None:
+        """
+        Older dataset.Table may not expose truncate().
+        Clear a table and end at 0 rows without relying on result iteration for DML.
+        """
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B5650CC70>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+___________________ test_drop_table_removes_from_db_tables ____________________
+
+    def test_drop_table_removes_from_db_tables() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:297: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B56525BB0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_____________________ test_raw_sql_query_with_parameters ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-296/test_raw_sql_query_with_parame0')
+
+    def test_raw_sql_query_with_parameters(tmp_path: Path) -> None:
+        db_path = tmp_path / "param.db"
+>       db = dataset.connect("sqlite:///%s" % str(db_path))
+
+tests\Dataset\functional_test.py:317: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B5650DB20>
+url = 'sqlite:///C:\\Users\\86152\\AppData\\Local\\Temp\\pytest-of-86152\\pytest-296\\test_raw_sql_query_with_parame0\\param.db'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+_____________________ test_distinct_returns_unique_values _____________________
+
+    def test_distinct_returns_unique_values() -> None:
+>       db = create_in_memory_db()
+
+tests\Dataset\functional_test.py:328: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Dataset\functional_test.py:106: in create_in_memory_db
+    return dataset.connect("sqlite:///:memory:")
+generation\Dataset\dataset\database.py:52: in connect
+    return Database(url)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <dataset.database.Database object at 0x0000019B564AE9A0>
+url = 'sqlite:///:memory:'
+
+    def __init__(self, url: str):
+        self.url = url
+>       self.conn = sqlite3.connect(url)
+E       sqlite3.OperationalError: unable to open database file
+
+generation\Dataset\dataset\database.py:8: OperationalError
+=========================== short test summary info ===========================
+FAILED tests/Dataset/functional_test.py::test_insert_and_query_basic_rows - s...
+FAILED tests/Dataset/functional_test.py::test_update_upsert_and_indexes - sql...
+FAILED tests/Dataset/functional_test.py::test_transactions_commit_and_rollback
+FAILED tests/Dataset/functional_test.py::test_insert_many_returns_ids_and_count
+FAILED tests/Dataset/functional_test.py::test_find_one_missing_returns_none
+FAILED tests/Dataset/functional_test.py::test_find_order_by_limit_offset - sq...
+FAILED tests/Dataset/functional_test.py::test_table_all_iteration_and_row_shape
+FAILED tests/Dataset/functional_test.py::test_delete_and_clear_all_rows - sql...
+FAILED tests/Dataset/functional_test.py::test_drop_table_removes_from_db_tables
+FAILED tests/Dataset/functional_test.py::test_raw_sql_query_with_parameters
+FAILED tests/Dataset/functional_test.py::test_distinct_returns_unique_values
+11 failed in 4.16s
+
+==========================================================================================
+PROJECT: Fail2ban
+LOG: D:\桌面\Exp1\deepseek-v3\results\Fail2ban\pytest_logs\functional.log
+==========================================================================================
+...........F                                                             [100%]
+================================== FAILURES ===================================
+___________ test_012_fail2ban_regex_matches_simple_pattern_offline ____________
+
+    def test_012_fail2ban_regex_matches_simple_pattern_offline():
+        """
+        Offline-only functional check:
+        - Create a temp log with repeated failure lines.
+        - Run fail2ban-regex <LOG> <REGEX>
+        - Assert output indicates it processed lines and found matches.
+        """
+        base = _resolve_repo_root()
+        script = base / "bin" / "fail2ban-regex"
+    
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["PYTHONPATH"] = str(_resolve_repo_root()) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    
+        with tempfile.TemporaryDirectory(prefix="racb_fail2ban_") as td:
+            logp = Path(td) / "auth.log"
+            logp.write_text(
+                "\n".join(
+                    [
+                        "Failed password for invalid user root from 203.0.113.5 port 2222 ssh2",
+                        "Failed password for invalid user admin from 203.0.113.5 port 2223 ssh2",
+                        "Accepted password for user ok from 198.51.100.2 port 3333 ssh2",
+                        "Failed password for invalid user test from 203.0.113.9 port 4444 ssh2",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+    
+            # Use a very simple regex (do not rely on <HOST> substitutions).
+            regex = r"Failed password"
+            p = subprocess.run(
+                [sys.executable, str(script), str(logp), regex],
+                text=True,
+                input="",
+                capture_output=True,
+                timeout=30,
+                env=env,
+            )
+            out = _out(p)
+    
+            # Must not hang; and should show it processed lines.
+>           assert ("line" in out) or ("lines" in out)
+E           AssertionError: assert ('line' in 'error: file not found: failed password\n\n' or 'lines' in 'error: file not found: failed password\n\n')
+
+tests\Fail2ban\functional_test.py:246: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Fail2ban/functional_test.py::test_012_fail2ban_regex_matches_simple_pattern_offline
+1 failed, 11 passed in 1.24s
+
+==========================================================================================
+PROJECT: Glances
+LOG: D:\桌面\Exp1\deepseek-v3\results\Glances\pytest_logs\functional.log
+==========================================================================================
+............                                                             [100%]
+12 passed in 1.50s
+
+==========================================================================================
+PROJECT: Humanize
+LOG: D:\桌面\Exp1\deepseek-v3\results\Humanize\pytest_logs\functional.log
+==========================================================================================
+..FF.F.FFFsssss                                                          [100%]
+================================== FAILURES ===================================
+______________________________ test_naturalsize _______________________________
+
+    def test_naturalsize() -> None:
+>       assert humanize.naturalsize(1024) == "1.0 kB"
+E       AssertionError: assert '1.0 KB' == '1.0 kB'
+E         
+E         - 1.0 kB
+E         ?     ^
+E         + 1.0 KB
+E         ?     ^
+
+tests\Humanize\functional_test.py:107: AssertionError
+__________________________ test_precisedelta_numeric __________________________
+
+    def test_precisedelta_numeric() -> None:
+>       d = humanize.precisedelta(3661)  # seconds
+
+tests\Humanize\functional_test.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+delta = 3661, minimum_unit = 'seconds', format = '%0.2f'
+
+    def precisedelta(delta, minimum_unit='seconds', format='%0.2f'):
+        """Format a timedelta into a human-readable string with precision control."""
+        if not isinstance(delta, timedelta):
+>           raise TypeError("precisedelta() argument must be a timedelta")
+E           TypeError: precisedelta() argument must be a timedelta
+
+generation\Humanize\humanize\time.py:7: TypeError
+______________________ test_naturaltime_reference_point _______________________
+
+    def test_naturaltime_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        earlier = ref - timedelta(minutes=10)
+>       s = humanize.naturaltime(earlier, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:129: TypeError
+_________________________ test_naturalsize_binary_kib _________________________
+
+    def test_naturalsize_binary_kib() -> None:
+        s = humanize.naturalsize(1536, binary=True)
+        assert isinstance(s, str)
+        assert s
+        # Compatible across versions: "KiB" (common) or any case variant.
+>       assert ("KiB" in s) or ("kib" in s.lower())
+E       AssertionError: assert ('KiB' in '1.5 KB' or 'kib' in '1.5 kb')
+E        +  where '1.5 kb' = <built-in method lower of str object at 0x0000026A33DBBA30>()
+E        +    where <built-in method lower of str object at 0x0000026A33DBBA30> = '1.5 KB'.lower
+
+tests\Humanize\functional_test.py:148: AssertionError
+______________________ test_precisedelta_timedelta_input ______________________
+
+    def test_precisedelta_timedelta_input() -> None:
+        td = timedelta(days=2, hours=1, minutes=1, seconds=1)
+        s = humanize.precisedelta(td)
+        assert isinstance(s, str)
+        assert s
+>       assert "day" in s
+E       AssertionError: assert 'day' in '1 seconds'
+
+tests\Humanize\functional_test.py:156: AssertionError
+___________________ test_naturaltime_future_reference_point ___________________
+
+    def test_naturaltime_future_reference_point() -> None:
+        ref = datetime(2020, 1, 1, 12, 0, 0)
+        later = ref + timedelta(minutes=10)
+>       s = humanize.naturaltime(later, when=ref)
+E       TypeError: naturaltime() got an unexpected keyword argument 'when'
+
+tests\Humanize\functional_test.py:165: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Humanize/functional_test.py::test_naturalsize - AssertionError: ...
+FAILED tests/Humanize/functional_test.py::test_precisedelta_numeric - TypeErr...
+FAILED tests/Humanize/functional_test.py::test_naturaltime_reference_point - ...
+FAILED tests/Humanize/functional_test.py::test_naturalsize_binary_kib - Asser...
+FAILED tests/Humanize/functional_test.py::test_precisedelta_timedelta_input
+FAILED tests/Humanize/functional_test.py::test_naturaltime_future_reference_point
+6 failed, 4 passed, 5 skipped in 0.58s
+
+==========================================================================================
+PROJECT: Imageio
+LOG: D:\桌面\Exp1\deepseek-v3\results\Imageio\pytest_logs\functional.log
+==========================================================================================
+F.FFFFFFF.                                                               [100%]
+================================== FAILURES ===================================
+_________________ test_png_roundtrip_with_imread_and_imwrite __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_roundtrip_with_imread0')
+
+    def test_png_roundtrip_with_imread_and_imwrite(tmp_path: Path) -> None:
+        """Exercise a simple PNG roundtrip and verify image shape and data."""
+        img = _make_color_image()
+        path = tmp_path / "test.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape == img.shape
+E       assert (48, 3, 3) == (32, 48, 3)
+E         
+E         At index 0 diff: 48 != 32
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:90: AssertionError
+____________________ test_improps_and_immeta_basic_fields _____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_improps_and_immeta_basic_0')
+
+    def test_improps_and_immeta_basic_fields(tmp_path: Path) -> None:
+        """Check that improps and immeta expose basic metadata for a PNG image."""
+        img = _make_color_image(height=40, width=50)
+        path = tmp_path / "meta_test.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        props = iio.improps(path)
+>       assert tuple(props.shape) == img.shape
+E       assert (40, 50, 3, 3) == (40, 50, 3)
+E         
+E         Left contains one more item: 3
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:122: AssertionError
+_____________________ test_png_roundtrip_via_bytes_buffer _____________________
+
+    def test_png_roundtrip_via_bytes_buffer() -> None:
+        """Write PNG to in-memory bytes, then read back using extension."""
+        img = _make_color_image(height=20, width=31)
+    
+>       blob = iio.imwrite("<bytes>", img, extension=".png")
+E       TypeError: imwrite() got an unexpected keyword argument 'extension'
+
+tests\Imageio\functional_test.py:139: TypeError
+_____________ test_png_imiter_yields_single_frame_equal_to_image ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imiter_yields_single_0')
+
+    def test_png_imiter_yields_single_frame_equal_to_image(tmp_path: Path) -> None:
+        """For a single-image PNG, imiter should yield exactly one frame."""
+        img = _make_color_image(height=18, width=22)
+        path = tmp_path / "single.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        frames = list(iio.imiter(path))
+>       assert len(frames) == 1
+E       assert 18 == 1
+E        +  where 18 = len([array([[[157, 157, 157],\n        [193, 193, 193],\n        [255, 255, 255]],\n\n       [[178, 178, 178],\n        [141, 1...     [228, 228, 228]],\n\n       [[154, 154, 154],\n        [109, 109, 109],\n        [  6,   6,   6]]], dtype=uint8), ...])
+
+tests\Imageio\functional_test.py:159: AssertionError
+______________ test_png_imread_accepts_path_and_str_equivalently ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_png_imread_accepts_path_a0')
+
+    def test_png_imread_accepts_path_and_str_equivalently(tmp_path: Path) -> None:
+        """Read the same PNG via Path and str(path) and verify identical content."""
+        img = _make_color_image(height=25, width=27)
+        path = tmp_path / "path_vs_str.png"
+    
+        iio.imwrite(path, img)
+        assert path.exists()
+    
+        a = iio.imread(path)
+        b = iio.imread(str(path))
+    
+        assert isinstance(a, np.ndarray)
+        assert isinstance(b, np.ndarray)
+>       assert a.shape == b.shape == img.shape
+E       assert (27, 3, 3) == (25, 27, 3)
+E         
+E         At index 0 diff: 27 != 25
+E         Use -v to get more diff
+
+tests\Imageio\functional_test.py:178: AssertionError
+___________ test_gif_imread_returns_stack_with_expected_frame_count ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_returns_stack_0')
+
+    def test_gif_imread_returns_stack_with_expected_frame_count(tmp_path: Path) -> None:
+        """Reading a GIF via imread should produce a stack/sequence with the right number of frames."""
+        frames = _make_grayscale_frames(num_frames=5, height=20, width=21)
+        path = tmp_path / "stack.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+        loaded = iio.imread(path)
+        assert isinstance(loaded, np.ndarray)
+>       assert loaded.shape[0] == frames.shape[0]
+E       assert 20 == 5
+
+tests\Imageio\functional_test.py:194: AssertionError
+___________ test_gif_imread_index0_matches_first_imiter_frame_shape ___________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_gif_imread_index0_matches0')
+
+    def test_gif_imread_index0_matches_first_imiter_frame_shape(tmp_path: Path) -> None:
+        """Read first GIF frame using both index=0 and imiter; verify consistent spatial shape."""
+        frames = _make_grayscale_frames(num_frames=4, height=19, width=23)
+        path = tmp_path / "index0.gif"
+    
+        iio.imwrite(path, frames)
+        assert path.exists()
+    
+>       first_by_index = iio.imread(path, index=0)
+E       TypeError: imread() got an unexpected keyword argument 'index'
+
+tests\Imageio\functional_test.py:206: TypeError
+_______________________ test_imopen_write_then_read_png _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-299/test_imopen_write_then_read_pn0')
+
+    def test_imopen_write_then_read_png(tmp_path: Path) -> None:
+        """Use the v3 imopen context manager to write then read a PNG."""
+        img = _make_color_image(height=16, width=20)
+        path = tmp_path / "imopen.png"
+    
+>       with iio.imopen(path, "w") as f:
+E       AttributeError: module 'imageio.v3' has no attribute 'imopen'
+
+tests\Imageio\functional_test.py:221: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_with_imread_and_imwrite
+FAILED tests/Imageio/functional_test.py::test_improps_and_immeta_basic_fields
+FAILED tests/Imageio/functional_test.py::test_png_roundtrip_via_bytes_buffer
+FAILED tests/Imageio/functional_test.py::test_png_imiter_yields_single_frame_equal_to_image
+FAILED tests/Imageio/functional_test.py::test_png_imread_accepts_path_and_str_equivalently
+FAILED tests/Imageio/functional_test.py::test_gif_imread_returns_stack_with_expected_frame_count
+FAILED tests/Imageio/functional_test.py::test_gif_imread_index0_matches_first_imiter_frame_shape
+FAILED tests/Imageio/functional_test.py::test_imopen_write_then_read_png - At...
+8 failed, 2 passed in 1.19s
+
+==========================================================================================
+PROJECT: Lifelines
+LOG: D:\桌面\Exp1\deepseek-v3\results\Lifelines\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFFFFF                                                          [100%]
+================================== FAILURES ===================================
+______________________ test_kmf_on_small_manual_dataset _______________________
+
+    def test_kmf_on_small_manual_dataset() -> None:
+        """Basic sanity check for KaplanMeierFitter on a tiny dataset."""
+        durations, events = _toy_kmf_data()
+    
+        kmf = KaplanMeierFitter()
+>       kmf.fit(durations=durations, event_observed=events, label="test")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:84: TypeError
+_________________________ test_kmf_on_waltons_groups __________________________
+
+    def test_kmf_on_waltons_groups() -> None:
+        """Fit KMF on the Waltons dataset for two groups."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        control = df[df["group"] == "control"]
+        treated = df[df["group"] != "control"]
+    
+        kmf_control = KaplanMeierFitter()
+        kmf_treated = KaplanMeierFitter()
+    
+>       kmf_control.fit(control["T"], control["E"], label="control")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:105: TypeError
+____________________________ test_coxph_basic_fit _____________________________
+
+    def test_coxph_basic_fit() -> None:
+        """Fit a simple Cox proportional hazards model on a toy dataset."""
+        df = _toy_cox_df()
+    
+        cph = CoxPHFitter()
+        cph.fit(df, duration_col="duration", event_col="event")
+        summary = cph.summary
+    
+        assert "coef" in summary.columns
+        assert "se(coef)" in summary.columns
+>       assert "p" in summary.columns or "p" in "".join(summary.columns).lower()
+E       AssertionError: assert ('p' in Index(['coef', 'se(coef)'], dtype='object') or 'p' in 'coefse(coef)')
+E        +  where Index(['coef', 'se(coef)'], dtype='object') =                coef  se(coef)\nage       -0.042724  0.051458\ntreatment  0.593058  0.944088.columns
+E        +  and   'coefse(coef)' = <built-in method lower of str object at 0x000002397F8978F0>()
+E        +    where <built-in method lower of str object at 0x000002397F8978F0> = 'coefse(coef)'.lower
+E        +      where 'coefse(coef)' = <built-in method join of str object at 0x0000023948204670>(Index(['coef', 'se(coef)'], dtype='object'))
+E        +        where <built-in method join of str object at 0x0000023948204670> = ''.join
+E        +        and   Index(['coef', 'se(coef)'], dtype='object') =                coef  se(coef)\nage       -0.042724  0.051458\ntreatment  0.593058  0.944088.columns
+
+tests\Lifelines\functional_test.py:127: AssertionError
+____________________ test_kmf_predict_at_time_zero_is_one _____________________
+
+    def test_kmf_predict_at_time_zero_is_one() -> None:
+        """KMF predict at t=0 should be 1.0 for standard KM survival."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:140: TypeError
+________________ test_kmf_predict_is_non_increasing_over_time _________________
+
+    def test_kmf_predict_is_non_increasing_over_time() -> None:
+        """KMF predicted survival should not increase as time increases."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:148: TypeError
+________________ test_kmf_cumulative_density_is_non_decreasing ________________
+
+    def test_kmf_cumulative_density_is_non_decreasing() -> None:
+        """Cumulative density should be non-decreasing and within [0, 1]."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:169: TypeError
+__________________ test_kmf_event_table_has_standard_columns __________________
+
+    def test_kmf_event_table_has_standard_columns() -> None:
+        """KM event table should include standard bookkeeping columns."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:182: TypeError
+_____________ test_kmf_confidence_interval_matches_survival_index _____________
+
+    def test_kmf_confidence_interval_matches_survival_index() -> None:
+        """Confidence intervals should align with survival function index."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:191: TypeError
+___________ test_kmf_median_survival_time_is_within_duration_range ____________
+
+    def test_kmf_median_survival_time_is_within_duration_range() -> None:
+        """Median survival time should be within the observed duration range."""
+        durations, events = _toy_kmf_data()
+>       kmf = KaplanMeierFitter().fit(durations=durations, event_observed=events, label="km")
+E       TypeError: fit() got an unexpected keyword argument 'label'
+
+tests\Lifelines\functional_test.py:204: TypeError
+_________________ test_coxph_params_index_matches_covariates __________________
+
+    def test_coxph_params_index_matches_covariates() -> None:
+        """Cox model params_ should be indexed by covariate names."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       params = cph.params_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'params_'
+
+tests\Lifelines\functional_test.py:215: AttributeError
+___________ test_coxph_baseline_cumulative_hazard_is_non_decreasing ___________
+
+    def test_coxph_baseline_cumulative_hazard_is_non_decreasing() -> None:
+        """Baseline cumulative hazard should be non-decreasing over time."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       bch = cph.baseline_cumulative_hazard_
+E       AttributeError: 'CoxPHFitter' object has no attribute 'baseline_cumulative_hazard_'
+
+tests\Lifelines\functional_test.py:225: AttributeError
+__________ test_coxph_predict_partial_hazard_is_positive_and_varies ___________
+
+    def test_coxph_predict_partial_hazard_is_positive_and_varies() -> None:
+        """Partial hazards should be positive and reflect covariate differences."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x_low = pd.DataFrame({"age": [25], "treatment": [0]})
+        x_high = pd.DataFrame({"age": [55], "treatment": [1]})
+    
+>       h_low = float(cph.predict_partial_hazard(x_low).iloc[0])
+E       AttributeError: 'CoxPHFitter' object has no attribute 'predict_partial_hazard'
+
+tests\Lifelines\functional_test.py:240: AttributeError
+____________ test_coxph_predict_survival_function_shape_and_bounds ____________
+
+    def test_coxph_predict_survival_function_shape_and_bounds() -> None:
+        """Predict survival functions for two individuals; verify shape and bounds."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+        x = pd.DataFrame({"age": [30, 60], "treatment": [0, 1]})
+>       sf = cph.predict_survival_function(x)
+
+tests\Lifelines\functional_test.py:254: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Lifelines\lifelines\fitters\coxph_fitter.py:80: in predict_survival_function
+    cumulative_hazard = self._baseline_hazard['baseline_hazard'].cumsum() * risk_score
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\ops\common.py:76: in new_method
+    return method(self, other)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\arraylike.py:202: in __mul__
+    return self._arith_method(other, operator.mul)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\series.py:6135: in _arith_method
+    return base.IndexOpsMixin._arith_method(self, other, op)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\base.py:1382: in _arith_method
+    result = ops.arithmetic_op(lvalues, rvalues, op)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\ops\array_ops.py:283: in arithmetic_op
+    res_values = _na_arithmetic_op(left, right, op)  # type: ignore[arg-type]
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\ops\array_ops.py:218: in _na_arithmetic_op
+    result = func(left, right)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\computation\expressions.py:242: in evaluate
+    return _evaluate(op, op_str, a, b)  # type: ignore[misc]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+op = <built-in function mul>, op_str = '*'
+a = array([ 0.46172058,  1.31518588,  2.28390238,  3.60886592,  6.3867767 ,
+       10.16608587])
+b = array([0.27755601, 0.13940004])
+
+    def _evaluate_standard(op, op_str, a, b):
+        """
+        Standard evaluation.
+        """
+        if _TEST_MODE:
+            _store_test_result(False)
+>       return op(a, b)
+E       ValueError: operands could not be broadcast together with shapes (6,) (2,)
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pandas\core\computation\expressions.py:73: ValueError
+________________ test_coxph_concordance_index_in_unit_interval ________________
+
+    def test_coxph_concordance_index_in_unit_interval() -> None:
+        """Concordance index should lie in [0, 1] after fitting."""
+        df = _toy_cox_df()
+        cph = CoxPHFitter().fit(df, duration_col="duration", event_col="event")
+    
+>       c = float(cph.concordance_index_)
+E       AttributeError: 'CoxPHFitter' object has no attribute 'concordance_index_'
+
+tests\Lifelines\functional_test.py:269: AttributeError
+_____________ test_coxph_fit_on_waltons_with_binary_group_feature _____________
+
+    def test_coxph_fit_on_waltons_with_binary_group_feature() -> None:
+        """Fit CoxPH on Waltons dataset using a binary treated indicator derived from group."""
+        df = load_waltons()
+        assert {"T", "E", "group"}.issubset(df.columns)
+    
+        df2 = df.copy()
+        df2["treated"] = (df2["group"] != "control").astype(int)
+    
+        model_df = df2[["T", "E", "treated"]].rename(columns={"T": "duration", "E": "event"})
+    
+        cph = CoxPHFitter()
+        cph.fit(model_df, duration_col="duration", event_col="event")
+    
+>       coef = float(cph.params_.loc["treated"])
+E       AttributeError: 'CoxPHFitter' object has no attribute 'params_'
+
+tests\Lifelines\functional_test.py:286: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_small_manual_dataset
+FAILED tests/Lifelines/functional_test.py::test_kmf_on_waltons_groups - TypeE...
+FAILED tests/Lifelines/functional_test.py::test_coxph_basic_fit - AssertionEr...
+FAILED tests/Lifelines/functional_test.py::test_kmf_predict_at_time_zero_is_one
+FAILED tests/Lifelines/functional_test.py::test_kmf_predict_is_non_increasing_over_time
+FAILED tests/Lifelines/functional_test.py::test_kmf_cumulative_density_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_kmf_event_table_has_standard_columns
+FAILED tests/Lifelines/functional_test.py::test_kmf_confidence_interval_matches_survival_index
+FAILED tests/Lifelines/functional_test.py::test_kmf_median_survival_time_is_within_duration_range
+FAILED tests/Lifelines/functional_test.py::test_coxph_params_index_matches_covariates
+FAILED tests/Lifelines/functional_test.py::test_coxph_baseline_cumulative_hazard_is_non_decreasing
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_partial_hazard_is_positive_and_varies
+FAILED tests/Lifelines/functional_test.py::test_coxph_predict_survival_function_shape_and_bounds
+FAILED tests/Lifelines/functional_test.py::test_coxph_concordance_index_in_unit_interval
+FAILED tests/Lifelines/functional_test.py::test_coxph_fit_on_waltons_with_binary_group_feature
+15 failed in 3.76s
+
+==========================================================================================
+PROJECT: Loguru
+LOG: D:\桌面\Exp1\deepseek-v3\results\Loguru\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_basic_levels_and_formatting _______________________
+
+    def test_basic_levels_and_formatting() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+
+tests\Loguru\functional_test.py:98: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+____________________________ test_level_filtering _____________________________
+
+    def test_level_filtering() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="INFO")
+
+tests\Loguru\functional_test.py:112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'INFO'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+_______________________ test_log_method_with_level_name _______________________
+
+    def test_log_method_with_level_name() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG")
+
+tests\Loguru\functional_test.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+_______________________ test_bind_extra_renders_fields ________________________
+
+    def test_bind_extra_renders_fields() -> None:
+>       log, buf = make_buffer_logger(fmt="{level}:{message} user={extra[user]} req={extra[request_id]}")
+
+tests\Loguru\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message} user={extra[user]} req={extra[request_id]}'
+level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+____________________ test_contextualize_adds_extra_fields _____________________
+
+    def test_contextualize_adds_extra_fields() -> None:
+>       log, buf = make_buffer_logger(fmt="{message} user={extra[user]}")
+
+tests\Loguru\functional_test.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{message} user={extra[user]}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+__________________ test_multiple_sinks_receive_same_message ___________________
+
+    def test_multiple_sinks_receive_same_message() -> None:
+        buf1 = io.StringIO()
+        buf2 = io.StringIO()
+    
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:161: TypeError
+_______________________ test_add_file_sink_writes_lines _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-300/test_add_file_sink_writes_line0')
+
+    def test_add_file_sink_writes_lines(tmp_path: Path) -> None:
+        log_path = tmp_path / "loguru_test.log"
+    
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:178: TypeError
+______________ test_serialize_output_contains_message_and_level _______________
+
+    def test_serialize_output_contains_message_and_level() -> None:
+        # serialize=True should emit JSON per record into the sink
+>       log, buf = make_buffer_logger(level="INFO", serialize=True)
+
+tests\Loguru\functional_test.py:192: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'INFO'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+_____________________ test_patch_can_enrich_record_extra ______________________
+
+    def test_patch_can_enrich_record_extra() -> None:
+        # patch() lets us enrich record data in a typical usage pattern
+>       log, buf = make_buffer_logger(fmt="{message} patched={extra[patched]}")
+
+tests\Loguru\functional_test.py:209: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{message} patched={extra[patched]}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+________________ test_filter_callable_allows_subset_of_records ________________
+
+    def test_filter_callable_allows_subset_of_records() -> None:
+        def only_info(record) -> bool:
+            return record["level"].name == "INFO"
+    
+>       log, buf = make_buffer_logger(fmt="{level}:{message}", level="DEBUG", filter_=only_info)
+
+tests\Loguru\functional_test.py:223: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+fmt = '{level}:{message}', level = 'DEBUG'
+
+    def make_buffer_logger(
+        fmt: str = "{level}:{message}",
+        level: str = "DEBUG",
+        *,
+        colorize: bool = False,
+        serialize: bool = False,
+        filter_: Callable[..., bool] = None,
+    ) -> Tuple["logger.__class__", io.StringIO]:
+        """Create a logger configured with a single StringIO sink (happy-path)."""
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:81: TypeError
+____________________ test_time_and_level_in_default_format ____________________
+
+    def test_time_and_level_in_default_format() -> None:
+        # Default format should include some timestamp-like content, level, and message.
+        buf = io.StringIO()
+>       logger.remove()
+E       TypeError: remove() missing 1 required positional argument: 'sink_id'
+
+tests\Loguru\functional_test.py:237: TypeError
+=========================== short test summary info ===========================
+FAILED tests/Loguru/functional_test.py::test_basic_levels_and_formatting - Ty...
+FAILED tests/Loguru/functional_test.py::test_level_filtering - TypeError: rem...
+FAILED tests/Loguru/functional_test.py::test_log_method_with_level_name - Typ...
+FAILED tests/Loguru/functional_test.py::test_bind_extra_renders_fields - Type...
+FAILED tests/Loguru/functional_test.py::test_contextualize_adds_extra_fields
+FAILED tests/Loguru/functional_test.py::test_multiple_sinks_receive_same_message
+FAILED tests/Loguru/functional_test.py::test_add_file_sink_writes_lines - Typ...
+FAILED tests/Loguru/functional_test.py::test_serialize_output_contains_message_and_level
+FAILED tests/Loguru/functional_test.py::test_patch_can_enrich_record_extra - ...
+FAILED tests/Loguru/functional_test.py::test_filter_callable_allows_subset_of_records
+FAILED tests/Loguru/functional_test.py::test_time_and_level_in_default_format
+11 failed in 0.57s
+
+==========================================================================================
+PROJECT: Markdown
+LOG: D:\桌面\Exp1\deepseek-v3\results\Markdown\pytest_logs\functional.log
+==========================================================================================
+......F...sssssssss                                                      [100%]
+================================== FAILURES ===================================
+_________________ test_html_escaping_in_text_but_not_in_code __________________
+
+    def test_html_escaping_in_text_but_not_in_code() -> None:
+        src = textwrap.dedent(
+            """
+            Use <b>raw HTML</b> here.
+    
+            ```
+            literal <b> tag in code block
+            ```
+            """
+        )
+        html = markdown.markdown(src)
+        norm = normalize_html(html)
+    
+>       assert "<b>" in norm
+E       AssertionError: assert '<b>' in '<p>Use &lt;b&gt;raw HTML&lt;/b&gt; here.</p>\n<p>``` literal &lt;b&gt; tag in code block ```</p>'
+
+tests\Markdown\functional_test.py:209: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Markdown/functional_test.py::test_html_escaping_in_text_but_not_in_code
+1 failed, 9 passed, 9 skipped in 0.61s
+
+==========================================================================================
+PROJECT: Mitmproxy
+LOG: D:\桌面\Exp1\deepseek-v3\results\Mitmproxy\pytest_logs\functional.log
+==========================================================================================
+........FFF                                                              [100%]
+================================== FAILURES ===================================
+________________ test_009_proxy_mode_specs_mentions_ProxyMode _________________
+
+    def test_009_proxy_mode_specs_mentions_ProxyMode():
+        """
+        Anchor: mitmproxy.proxy.mode_specs is part of the CLI import chain.
+        Runtime import may require mitmproxy_rs; we assert the file contains ProxyMode constructs.
+        """
+        pkg = _mitmproxy_pkg_dir()
+        ms_py = pkg / "proxy" / "mode_specs.py"
+>       assert ms_py.is_file()
+E       AssertionError: assert False
+E        +  where False = is_file()
+E        +    where is_file = WindowsPath('D:/桌面/RealAppCodeBench_generic_eval/generation/Mitmproxy/mitmproxy/proxy/mode_specs.py').is_file
+
+tests\Mitmproxy\functional_test.py:156: AssertionError
+_________ test_010_conditional_import_http_module_depends_on_OpenSSL __________
+
+    def test_010_conditional_import_http_module_depends_on_OpenSSL():
+        """
+        Importing mitmproxy.http may require pyOpenSSL (OpenSSL module) through mitmproxy.certs.
+        If OpenSSL is installed, import must succeed.
+        If not installed, import must fail with ModuleNotFoundError mentioning OpenSSL.
+        """
+        _prepend_import_path()
+        have_openssl = _has_module("OpenSSL")
+        if have_openssl:
+            import mitmproxy.http  # noqa: F401
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               import mitmproxy.http  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:173: Failed
+_______ test_011_conditional_import_tools_main_depends_on_mitmproxy_rs ________
+
+    def test_011_conditional_import_tools_main_depends_on_mitmproxy_rs():
+        """
+        Importing mitmproxy.tools.main currently pulls in mitmproxy.proxy.mode_specs,
+        which imports mitmproxy_rs. If mitmproxy_rs is installed, import should succeed.
+        Otherwise, it should fail with ModuleNotFoundError mentioning mitmproxy_rs.
+        """
+        _prepend_import_path()
+        have_rs = _has_module("mitmproxy_rs")
+        if have_rs:
+            from mitmproxy.tools import main as tools_main  # noqa: F401
+            assert hasattr(tools_main, "mitmdump")
+        else:
+            with pytest.raises(ModuleNotFoundError) as ei:
+>               from mitmproxy.tools import main as tools_main  # noqa: F401
+E               Failed: DID NOT RAISE <class 'ModuleNotFoundError'>
+
+tests\Mitmproxy\functional_test.py:190: Failed
+=========================== short test summary info ===========================
+FAILED tests/Mitmproxy/functional_test.py::test_009_proxy_mode_specs_mentions_ProxyMode
+FAILED tests/Mitmproxy/functional_test.py::test_010_conditional_import_http_module_depends_on_OpenSSL
+FAILED tests/Mitmproxy/functional_test.py::test_011_conditional_import_tools_main_depends_on_mitmproxy_rs
+3 failed, 8 passed in 0.54s
+
+==========================================================================================
+PROJECT: Mutagen
+LOG: D:\桌面\Exp1\deepseek-v3\results\Mutagen\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.14s
+
+==========================================================================================
+PROJECT: Pendulum
+LOG: D:\桌面\Exp1\deepseek-v3\results\Pendulum\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFF.sFFF                                                            [100%]
+================================== FAILURES ===================================
+_____________________ test_parse_and_timezone_conversion ______________________
+
+cls = <class 'pendulum.datetime.DateTime'>, text = '2020-01-01T12:00:00+00:00'
+tz = None
+
+    @classmethod
+    def parse(cls, text, tz=None):
+        try:
+>           dt_naive = dt.datetime.strptime(text, '%Y-%m-%dT%H:%M:%S.%f')
+
+generation\Pendulum\pendulum\datetime.py:31: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:568: in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_string = '2020-01-01T12:00:00+00:00', format = '%Y-%m-%dT%H:%M:%S.%f'
+
+    def _strptime(data_string, format="%a %b %d %H:%M:%S %Y"):
+        """Return a 2-tuple consisting of a time struct and an int containing
+        the number of microseconds based on the input string and the
+        format string."""
+    
+        for index, arg in enumerate([data_string, format]):
+            if not isinstance(arg, str):
+                msg = "strptime() argument {} must be str, not {}"
+                raise TypeError(msg.format(index, type(arg)))
+    
+        global _TimeRE_cache, _regex_cache
+        with _cache_lock:
+            locale_time = _TimeRE_cache.locale_time
+            if (_getlang() != locale_time.lang or
+                time.tzname != locale_time.tzname or
+                time.daylight != locale_time.daylight):
+                _TimeRE_cache = TimeRE()
+                _regex_cache.clear()
+                locale_time = _TimeRE_cache.locale_time
+            if len(_regex_cache) > _CACHE_MAX_SIZE:
+                _regex_cache.clear()
+            format_regex = _regex_cache.get(format)
+            if not format_regex:
+                try:
+                    format_regex = _TimeRE_cache.compile(format)
+                # KeyError raised when a bad format is found; can be specified as
+                # \\, in which case it was a stray % but with a space after it
+                except KeyError as err:
+                    bad_directive = err.args[0]
+                    if bad_directive == "\\":
+                        bad_directive = "%"
+                    del err
+                    raise ValueError("'%s' is a bad directive in format '%s'" %
+                                        (bad_directive, format)) from None
+                # IndexError only occurs when the format string is "%"
+                except IndexError:
+                    raise ValueError("stray %% in format '%s'" % format) from None
+                _regex_cache[format] = format_regex
+        found = format_regex.match(data_string)
+        if not found:
+>           raise ValueError("time data %r does not match format %r" %
+                             (data_string, format))
+E           ValueError: time data '2020-01-01T12:00:00+00:00' does not match format '%Y-%m-%dT%H:%M:%S.%f'
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:349: ValueError
+
+During handling of the above exception, another exception occurred:
+
+cls = <class 'pendulum.datetime.DateTime'>, text = '2020-01-01T12:00:00+00:00'
+tz = None
+
+    @classmethod
+    def parse(cls, text, tz=None):
+        try:
+            dt_naive = dt.datetime.strptime(text, '%Y-%m-%dT%H:%M:%S.%f')
+        except ValueError:
+            try:
+>               dt_naive = dt.datetime.strptime(text, '%Y-%m-%dT%H:%M:%S')
+
+generation\Pendulum\pendulum\datetime.py:34: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:568: in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_string = '2020-01-01T12:00:00+00:00', format = '%Y-%m-%dT%H:%M:%S'
+
+    def _strptime(data_string, format="%a %b %d %H:%M:%S %Y"):
+        """Return a 2-tuple consisting of a time struct and an int containing
+        the number of microseconds based on the input string and the
+        format string."""
+    
+        for index, arg in enumerate([data_string, format]):
+            if not isinstance(arg, str):
+                msg = "strptime() argument {} must be str, not {}"
+                raise TypeError(msg.format(index, type(arg)))
+    
+        global _TimeRE_cache, _regex_cache
+        with _cache_lock:
+            locale_time = _TimeRE_cache.locale_time
+            if (_getlang() != locale_time.lang or
+                time.tzname != locale_time.tzname or
+                time.daylight != locale_time.daylight):
+                _TimeRE_cache = TimeRE()
+                _regex_cache.clear()
+                locale_time = _TimeRE_cache.locale_time
+            if len(_regex_cache) > _CACHE_MAX_SIZE:
+                _regex_cache.clear()
+            format_regex = _regex_cache.get(format)
+            if not format_regex:
+                try:
+                    format_regex = _TimeRE_cache.compile(format)
+                # KeyError raised when a bad format is found; can be specified as
+                # \\, in which case it was a stray % but with a space after it
+                except KeyError as err:
+                    bad_directive = err.args[0]
+                    if bad_directive == "\\":
+                        bad_directive = "%"
+                    del err
+                    raise ValueError("'%s' is a bad directive in format '%s'" %
+                                        (bad_directive, format)) from None
+                # IndexError only occurs when the format string is "%"
+                except IndexError:
+                    raise ValueError("stray %% in format '%s'" % format) from None
+                _regex_cache[format] = format_regex
+        found = format_regex.match(data_string)
+        if not found:
+            raise ValueError("time data %r does not match format %r" %
+                             (data_string, format))
+        if len(data_string) != found.end():
+>           raise ValueError("unconverted data remains: %s" %
+                              data_string[found.end():])
+E           ValueError: unconverted data remains: +00:00
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:352: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_parse_and_timezone_conversion() -> None:
+        """Parse an ISO string and convert between timezones."""
+>       dt_utc = pendulum.parse("2020-01-01T12:00:00+00:00")
+
+tests\Pendulum\functional_test.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:11: in parse
+    return DateTime.parse(text, tz=tz)
+generation\Pendulum\pendulum\datetime.py:36: in parse
+    dt_naive = dt.datetime.strptime(text, '%Y-%m-%d')
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:568: in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_string = '2020-01-01T12:00:00+00:00', format = '%Y-%m-%d'
+
+    def _strptime(data_string, format="%a %b %d %H:%M:%S %Y"):
+        """Return a 2-tuple consisting of a time struct and an int containing
+        the number of microseconds based on the input string and the
+        format string."""
+    
+        for index, arg in enumerate([data_string, format]):
+            if not isinstance(arg, str):
+                msg = "strptime() argument {} must be str, not {}"
+                raise TypeError(msg.format(index, type(arg)))
+    
+        global _TimeRE_cache, _regex_cache
+        with _cache_lock:
+            locale_time = _TimeRE_cache.locale_time
+            if (_getlang() != locale_time.lang or
+                time.tzname != locale_time.tzname or
+                time.daylight != locale_time.daylight):
+                _TimeRE_cache = TimeRE()
+                _regex_cache.clear()
+                locale_time = _TimeRE_cache.locale_time
+            if len(_regex_cache) > _CACHE_MAX_SIZE:
+                _regex_cache.clear()
+            format_regex = _regex_cache.get(format)
+            if not format_regex:
+                try:
+                    format_regex = _TimeRE_cache.compile(format)
+                # KeyError raised when a bad format is found; can be specified as
+                # \\, in which case it was a stray % but with a space after it
+                except KeyError as err:
+                    bad_directive = err.args[0]
+                    if bad_directive == "\\":
+                        bad_directive = "%"
+                    del err
+                    raise ValueError("'%s' is a bad directive in format '%s'" %
+                                        (bad_directive, format)) from None
+                # IndexError only occurs when the format string is "%"
+                except IndexError:
+                    raise ValueError("stray %% in format '%s'" % format) from None
+                _regex_cache[format] = format_regex
+        found = format_regex.match(data_string)
+        if not found:
+            raise ValueError("time data %r does not match format %r" %
+                             (data_string, format))
+        if len(data_string) != found.end():
+>           raise ValueError("unconverted data remains: %s" %
+                              data_string[found.end():])
+E           ValueError: unconverted data remains: T12:00:00+00:00
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\_strptime.py:352: ValueError
+____________________ test_datetime_arithmetic_and_duration ____________________
+
+    def test_datetime_arithmetic_and_duration() -> None:
+        """Basic arithmetic with pendulum.datetime and pendulum.duration."""
+>       base = pendulum.datetime(2021, 3, 15, 10, 30, 0, tz="UTC")
+
+tests\Pendulum\functional_test.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2021, month = 3, day = 15
+hour = 10, minute = 30, second = 0, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+_________________________ test_diff_for_humans_months _________________________
+
+    def test_diff_for_humans_months() -> None:
+        """Human-readable differences between two datetimes."""
+>       start = pendulum.datetime(2011, 8, 1, tz="UTC")
+
+tests\Pendulum\functional_test.py:103: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2011, month = 8, day = 1
+hour = 0, minute = 0, second = 0, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+_____________________ test_parse_date_only_to_date_string _____________________
+
+    def test_parse_date_only_to_date_string() -> None:
+        """Parse a date-only string and verify normalized date output."""
+        d = pendulum.parse("2020-02-29")
+        assert d.year == 2020
+        assert d.month == 2
+        assert d.day == 29
+>       assert d.to_date_string() == "2020-02-29"
+E       AttributeError: 'DateTime' object has no attribute 'to_date_string'
+
+tests\Pendulum\functional_test.py:121: AttributeError
+__________________ test_datetime_to_iso8601_string_roundtrip __________________
+
+    def test_datetime_to_iso8601_string_roundtrip() -> None:
+        """Create a datetime and verify ISO8601 string contains expected offset."""
+>       dt = pendulum.datetime(2020, 1, 1, 12, 0, 0, tz="UTC")
+
+tests\Pendulum\functional_test.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2020, month = 1, day = 1
+hour = 12, minute = 0, second = 0, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+_____________________ test_formatting_with_custom_pattern _____________________
+
+    def test_formatting_with_custom_pattern() -> None:
+        """Verify formatting with a custom pattern is stable for a fixed datetime."""
+>       dt = pendulum.datetime(2021, 12, 31, 23, 59, 58, tz="UTC")
+
+tests\Pendulum\functional_test.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2021, month = 12, day = 31
+hour = 23, minute = 59, second = 58, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+__________________________ test_start_of_end_of_day ___________________________
+
+    def test_start_of_end_of_day() -> None:
+        """Check start_of and end_of for a day boundary."""
+>       dt = pendulum.datetime(2020, 5, 20, 13, 14, 15, tz="UTC")
+
+tests\Pendulum\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2020, month = 5, day = 20
+hour = 13, minute = 14, second = 15, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+_____________________ test_weekday_and_isoweekday_values ______________________
+
+    def test_weekday_and_isoweekday_values() -> None:
+        """Validate weekday values for a known date (2020-01-01 is Wednesday)."""
+>       dt = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:155: AttributeError
+_____________________ test_in_timezone_preserves_instant ______________________
+
+    def test_in_timezone_preserves_instant() -> None:
+        """Converting timezones should preserve the instant (timestamp)."""
+>       dt_utc = pendulum.datetime(2020, 6, 1, 0, 0, 0, tz="UTC")
+
+tests\Pendulum\functional_test.py:198: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Pendulum\pendulum\__init__.py:8: in datetime
+    return DateTime(year, month, day, hour, minute, second, microsecond, tz=tz)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+cls = <class 'pendulum.datetime.DateTime'>, year = 2020, month = 6, day = 1
+hour = 0, minute = 0, second = 0, microsecond = 0, tz = Timezone('UTC')
+
+    def __new__(cls, year, month, day, hour=0, minute=0, second=0, microsecond=0, tz=None):
+        if tz is not None:
+            if isinstance(tz, str):
+                tz = Timezone(tz)
+            elif not isinstance(tz, (Timezone, FixedTimezone)):
+                raise ValueError('tz argument must be a timezone instance or string')
+    
+>       self = super().__new__(
+            cls, year, month, day, hour, minute, second, microsecond, tz
+        )
+E       TypeError: tzinfo argument must be None or of a tzinfo subclass, not type 'Timezone'
+
+generation\Pendulum\pendulum\datetime.py:53: TypeError
+________________________ test_diff_in_days_is_integer _________________________
+
+    def test_diff_in_days_is_integer() -> None:
+        """Compute diff in days between two dates."""
+>       a = pendulum.date(2020, 1, 1)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:207: AttributeError
+____________________ test_add_months_across_year_boundary _____________________
+
+    def test_add_months_across_year_boundary() -> None:
+        """Add months and verify year boundary transitions."""
+>       dt = pendulum.date(2019, 12, 15)
+E       AttributeError: module 'pendulum' has no attribute 'date'
+
+tests\Pendulum\functional_test.py:217: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/functional_test.py::test_parse_and_timezone_conversion
+FAILED tests/Pendulum/functional_test.py::test_datetime_arithmetic_and_duration
+FAILED tests/Pendulum/functional_test.py::test_diff_for_humans_months - TypeE...
+FAILED tests/Pendulum/functional_test.py::test_parse_date_only_to_date_string
+FAILED tests/Pendulum/functional_test.py::test_datetime_to_iso8601_string_roundtrip
+FAILED tests/Pendulum/functional_test.py::test_formatting_with_custom_pattern
+FAILED tests/Pendulum/functional_test.py::test_start_of_end_of_day - TypeErro...
+FAILED tests/Pendulum/functional_test.py::test_weekday_and_isoweekday_values
+FAILED tests/Pendulum/functional_test.py::test_in_timezone_preserves_instant
+FAILED tests/Pendulum/functional_test.py::test_diff_in_days_is_integer - Attr...
+FAILED tests/Pendulum/functional_test.py::test_add_months_across_year_boundary
+11 failed, 1 passed, 1 skipped in 20.68s
+
+==========================================================================================
+PROJECT: Petl
+LOG: D:\桌面\Exp1\deepseek-v3\results\Petl\pytest_logs\functional.log
+==========================================================================================
+.F.ss.FsFsss                                                             [100%]
+================================== FAILURES ===================================
+_____________________ test_fromdicts_addfield_and_select ______________________
+
+    def test_fromdicts_addfield_and_select() -> None:
+        """Validate fromdicts, addfield, and select with a small in-memory table."""
+        records = [
+            {"id": 1, "value": 10},
+            {"id": 2, "value": 20},
+            {"id": 3, "value": 30},
+            {"id": 4, "value": 40},
+        ]
+        table = petl.fromdicts(records, header=["id", "value"])
+    
+        table = petl.addfield(table, "double", lambda rec: int(rec["value"]) * 2)
+        table = petl.select(table, lambda rec: int(rec["double"]) >= 60)
+    
+>       result = _table_to_list_of_dicts(table)
+
+tests\Petl\functional_test.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Petl\functional_test.py:87: in _table_to_list_of_dicts
+    for row in iterator:
+generation\Petl\petl\transform\selects.py:12: in _select_rows
+    for row in it:
+generation\Petl\petl\transform\conversions.py:43: in _addfield_rows
+    new_value = func(row)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+rec = [1, 10]
+
+>   table = petl.addfield(table, "double", lambda rec: int(rec["value"]) * 2)
+E   TypeError: list indices must be integers or slices, not str
+
+tests\Petl\functional_test.py:165: TypeError
+_____________________ test_sort_descending_orders_values ______________________
+
+    def test_sort_descending_orders_values() -> None:
+        """Sort descending by a numeric field."""
+        _require_attr("sort")
+    
+        records = [
+            {"name": "A", "score": 10},
+            {"name": "B", "score": 30},
+            {"name": "C", "score": 20},
+        ]
+        table = petl.fromdicts(records, header=["name", "score"])
+    
+        # petl.sort supports reverse=True in typical implementations.
+>       sorted_tbl = petl.sort(table, "score", reverse=True)
+E       TypeError: sort() got an unexpected keyword argument 'reverse'
+
+tests\Petl\functional_test.py:278: TypeError
+___________________ test_tocsv_then_fromcsv_preserves_data ____________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-302/test_tocsv_then_fromcsv_preser0')
+
+    def test_tocsv_then_fromcsv_preserves_data(tmp_path: Path) -> None:
+        """Write a table to CSV and read it back, verifying header and row content."""
+        src = tmp_path / "roundtrip.csv"
+    
+        table = petl.fromdicts(
+            [{"a": 1, "b": "x"}, {"a": 2, "b": "y"}],
+            header=["a", "b"],
+        )
+        petl.tocsv(table, str(src))
+        assert src.exists()
+    
+        table2 = petl.fromcsv(str(src))
+        rows = list(table2)
+    
+>       assert rows[0] == ("a", "b")
+E       AssertionError: assert ['a', 'b'] == ('a', 'b')
+E         
+E         Use -v to get more diff
+
+tests\Petl\functional_test.py:330: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Petl/functional_test.py::test_fromdicts_addfield_and_select - Ty...
+FAILED tests/Petl/functional_test.py::test_sort_descending_orders_values - Ty...
+FAILED tests/Petl/functional_test.py::test_tocsv_then_fromcsv_preserves_data
+3 failed, 3 passed, 6 skipped in 0.61s
+
+==========================================================================================
+PROJECT: Pygments
+LOG: D:\桌面\Exp1\deepseek-v3\results\Pygments\pytest_logs\functional.log
+==========================================================================================
+Traceback (most recent call last):
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 188, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 147, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\runpy.py", line 111, in _get_module_details
+    __import__(pkg_name)
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\pytest\__init__.py", line 8, in <module>
+    from _pytest._code import ExceptionInfo
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\__init__.py", line 5, in <module>
+    from .code import Code
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_code\code.py", line 44, in <module>
+    from _pytest._io import TerminalWriter
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\__init__.py", line 3, in <module>
+    from .terminalwriter import get_terminal_width
+  File "C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\site-packages\_pytest\_io\terminalwriter.py", line 13, in <module>
+    import pygments
+  File "D:\桌面\RealAppCodeBench_generic_eval\generation\Pygments\pygments\__init__.py", line 3, in <module>
+    from pygments.lex import lex
+  File "D:\桌面\RealAppCodeBench_generic_eval\generation\Pygments\pygments\lex.py", line 4, in <module>
+    from pygments.token import Token
+  File "D:\桌面\RealAppCodeBench_generic_eval\generation\Pygments\pygments\token.py", line 18, in <module>
+    Token = _TokenType()
+  File "D:\桌面\RealAppCodeBench_generic_eval\generation\Pygments\pygments\token.py", line 5, in __init__
+    super(_TokenType, self).__init__(args)
+TypeError: object.__init__() takes exactly one argument (the instance to initialize)
+
+==========================================================================================
+PROJECT: PyJWT
+LOG: D:\桌面\Exp1\deepseek-v3\results\PyJWT\pytest_logs\functional.log
+==========================================================================================
+.F.FF...F.s                                                              [100%]
+================================== FAILURES ===================================
+_____________________ test_hs512_encode_decode_roundtrip ______________________
+
+    def test_hs512_encode_decode_roundtrip() -> None:
+        payload = {"scope": ["read", "write"], "active": True}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS512")
+
+tests\PyJWT\functional_test.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <jwt.api_jwt.PyJWT object at 0x000001A6350FFF10>
+payload = {'active': True, 'scope': ['read', 'write']}, key = 'secret'
+algorithm = 'HS512', kwargs = {}
+
+    def encode(self, payload, key, algorithm="HS256", **kwargs):
+        if algorithm not in self.algorithms:
+>           raise ValueError(f"Algorithm {algorithm} is not supported")
+E           ValueError: Algorithm HS512 is not supported
+
+generation\PyJWT\jwt\api_jwt.py:21: ValueError
+_______________ test_encode_decode_with_datetime_exp_in_future ________________
+
+    def test_encode_decode_with_datetime_exp_in_future() -> None:
+        exp_dt = _fixed_dt_utc(2099, 1, 1, 0, 0, 0)
+        payload = {"sub": "u-123", "exp": exp_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:30: in encode
+    payload_encoded = self._base64url_encode(json.dumps(payload, separators=(",", ":")).encode())
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000001A6351009A0>
+o = datetime.datetime(2099, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+________________ test_encode_decode_with_datetime_nbf_in_past _________________
+
+    def test_encode_decode_with_datetime_nbf_in_past() -> None:
+        nbf_dt = _fixed_dt_utc(2000, 1, 1, 0, 0, 0)
+        payload = {"feature": "enabled", "nbf": nbf_dt}
+>       decoded = _encode_decode(payload, key="secret", algorithm="HS256")
+
+tests\PyJWT\functional_test.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\PyJWT\functional_test.py:130: in _encode_decode
+    token = _normalize_token(jwt.encode(payload, key, algorithm=algorithm))
+generation\PyJWT\jwt\api_jwt.py:30: in encode
+    payload_encoded = self._base64url_encode(json.dumps(payload, separators=(",", ":")).encode())
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\__init__.py:234: in dumps
+    return cls(
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:199: in encode
+    chunks = self.iterencode(o, _one_shot=True)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:257: in iterencode
+    return _iterencode(o, 0)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <json.encoder.JSONEncoder object at 0x000001A63517BA60>
+o = datetime.datetime(2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+    
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+    
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+    
+        """
+>       raise TypeError(f'Object of type {o.__class__.__name__} '
+                        f'is not JSON serializable')
+E       TypeError: Object of type datetime is not JSON serializable
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\json\encoder.py:179: TypeError
+_____________ test_unverified_header_contains_alg_and_custom_kid ______________
+
+    def test_unverified_header_contains_alg_and_custom_kid() -> None:
+        payload = {"foo": "bar"}
+        key = "secret"
+        token = _normalize_token(jwt.encode(payload, key, algorithm="HS256", headers={"kid": "k1", "typ": "JWT"}))
+    
+>       header = jwt.get_unverified_header(token)
+E       AttributeError: module 'jwt' has no attribute 'get_unverified_header'
+
+tests\PyJWT\functional_test.py:210: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/PyJWT/functional_test.py::test_hs512_encode_decode_roundtrip - V...
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_exp_in_future
+FAILED tests/PyJWT/functional_test.py::test_encode_decode_with_datetime_nbf_in_past
+FAILED tests/PyJWT/functional_test.py::test_unverified_header_contains_alg_and_custom_kid
+4 failed, 6 passed, 1 skipped in 0.57s
+
+==========================================================================================
+PROJECT: PyPDF
+LOG: D:\桌面\Exp1\deepseek-v3\results\PyPDF\pytest_logs\functional.log
+==========================================================================================
+FFFFFF.FFFsF                                                             [100%]
+================================== FAILURES ===================================
+_______________________ test_create_and_read_blank_pdf ________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_create_and_read_blank_pdf0')
+
+    def test_create_and_read_blank_pdf(tmp_path: Path) -> None:
+        pdf_path = tmp_path / "simple.pdf"
+        _create_simple_pdf(pdf_path, num_pages=3)
+    
+        reader = PdfReader(str(pdf_path))
+>       assert len(reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05093FEB0>.pages
+
+tests\PyPDF\functional_test.py:137: AssertionError
+______________________ test_blank_page_has_expected_size ______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_blank_page_has_expected_s0')
+
+    def test_blank_page_has_expected_size(tmp_path: Path) -> None:
+        """The first blank page should have the width/height we set."""
+        pdf_path = tmp_path / "size.pdf"
+        _create_simple_pdf(pdf_path, num_pages=1)
+    
+        reader = PdfReader(str(pdf_path))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:146: IndexError
+_____________________________ test_merge_two_pdfs _____________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_merge_two_pdfs0')
+
+    def test_merge_two_pdfs(tmp_path: Path) -> None:
+        pdf1 = tmp_path / "p1.pdf"
+        pdf2 = tmp_path / "p2.pdf"
+        merged = tmp_path / "merged.pdf"
+    
+        _create_simple_pdf(pdf1, num_pages=1)
+        _create_simple_pdf(pdf2, num_pages=2)
+    
+        _write_pdf_with_pages([pdf1, pdf2], merged)
+    
+        merged_reader = PdfReader(str(merged))
+>       assert len(merged_reader.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05094E910>.pages
+
+tests\PyPDF\functional_test.py:165: AssertionError
+__________________ test_writer_add_page_preserves_page_count __________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_writer_add_page_preserves0')
+
+    def test_writer_add_page_preserves_page_count(tmp_path: Path) -> None:
+        """Add pages from a reader into a writer and verify count is preserved."""
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "dst.pdf"
+        _create_simple_pdf(src, num_pages=4)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 4
+E       assert 0 == 4
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E050950FA0>.pages
+
+tests\PyPDF\functional_test.py:183: AssertionError
+______________________________ test_rotate_page _______________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_rotate_page0')
+
+    def test_rotate_page(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        rotated = tmp_path / "rotated.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:192: IndexError
+_______________________ test_rotate_preserves_page_size _______________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_rotate_preserves_page_siz0')
+
+    def test_rotate_preserves_page_size(tmp_path: Path) -> None:
+        """Rotating a blank page should keep a valid mediabox size."""
+        src = tmp_path / "src_size.pdf"
+        rotated = tmp_path / "rot_size.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+>       page = reader.pages[0]
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:213: IndexError
+_____________ test_encrypted_pdf_allows_page_access_after_decrypt _____________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_encrypted_pdf_allows_page0')
+
+    def test_encrypted_pdf_allows_page_access_after_decrypt(tmp_path: Path) -> None:
+        """After decrypting, basic page access should succeed and page size is valid."""
+        src = tmp_path / "plain2.pdf"
+        enc = tmp_path / "encrypted2.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:260: IndexError
+___________________________ test_metadata_roundtrip ___________________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_metadata_roundtrip0')
+
+    def test_metadata_roundtrip(tmp_path: Path) -> None:
+        src = tmp_path / "src.pdf"
+        dst = tmp_path / "meta.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+    
+        writer.add_metadata(
+            {
+                "/Title": "PyPDF Benchmark Document",
+                "/Author": "RealAppCodeBench",
+            }
+        )
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+        meta = reader2.metadata
+        assert meta is not None
+>       assert meta.get("/Title") == "PyPDF Benchmark Document"
+E       AssertionError: assert 'Document Title' == 'PyPDF Benchmark Document'
+E         
+E         - PyPDF Benchmark Document
+E         + Document Title
+
+tests\PyPDF\functional_test.py:298: AssertionError
+___________________ test_metadata_multiple_fields_roundtrip ___________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_metadata_multiple_fields_0')
+
+    def test_metadata_multiple_fields_roundtrip(tmp_path: Path) -> None:
+        """Add several info dict fields and ensure they can be read back."""
+        src = tmp_path / "src_info.pdf"
+        dst = tmp_path / "info.pdf"
+        _create_simple_pdf(src, num_pages=1)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+>       writer.add_page(reader.pages[0])
+E       IndexError: list index out of range
+
+tests\PyPDF\functional_test.py:310: IndexError
+_________________ test_clone_document_by_writing_reader_pages _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-303/test_clone_document_by_writing0')
+
+    def test_clone_document_by_writing_reader_pages(tmp_path: Path) -> None:
+        """Clone a document by copying pages and verify page count matches."""
+        src = tmp_path / "orig.pdf"
+        dst = tmp_path / "clone.pdf"
+        _create_simple_pdf(src, num_pages=3)
+    
+        reader = PdfReader(str(src))
+        writer = PdfWriter()
+        for p in reader.pages:
+            writer.add_page(p)
+    
+        with dst.open("wb") as fp:
+            writer.write(fp)
+    
+        reader2 = PdfReader(str(dst))
+>       assert len(reader2.pages) == 3
+E       assert 0 == 3
+E        +  where 0 = len([])
+E        +    where [] = <pypdf._reader.PdfReader object at 0x000001E05093F8B0>.pages
+
+tests\PyPDF\functional_test.py:372: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/PyPDF/functional_test.py::test_create_and_read_blank_pdf - asser...
+FAILED tests/PyPDF/functional_test.py::test_blank_page_has_expected_size - In...
+FAILED tests/PyPDF/functional_test.py::test_merge_two_pdfs - assert 0 == 3
+FAILED tests/PyPDF/functional_test.py::test_writer_add_page_preserves_page_count
+FAILED tests/PyPDF/functional_test.py::test_rotate_page - IndexError: list in...
+FAILED tests/PyPDF/functional_test.py::test_rotate_preserves_page_size - Inde...
+FAILED tests/PyPDF/functional_test.py::test_encrypted_pdf_allows_page_access_after_decrypt
+FAILED tests/PyPDF/functional_test.py::test_metadata_roundtrip - AssertionErr...
+FAILED tests/PyPDF/functional_test.py::test_metadata_multiple_fields_roundtrip
+FAILED tests/PyPDF/functional_test.py::test_clone_document_by_writing_reader_pages
+10 failed, 1 passed, 1 skipped in 0.74s
+
+==========================================================================================
+PROJECT: Requests
+LOG: D:\桌面\Exp1\deepseek-v3\results\Requests\pytest_logs\functional.log
+==========================================================================================
+..........                                                               [100%]
+10 passed in 2.18s
+
+==========================================================================================
+PROJECT: Rich
+LOG: D:\桌面\Exp1\deepseek-v3\results\Rich\pytest_logs\functional.log
+==========================================================================================
+
+1 skipped in 0.17s
+
+==========================================================================================
+PROJECT: Schedule
+LOG: D:\桌面\Exp1\deepseek-v3\results\Schedule\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+________________________ test_basic_every_and_run_all _________________________
+
+    def test_basic_every_and_run_all() -> None:
+        """every(...).seconds/minutes + run_all execute jobs."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+>       schedule.every(5).seconds.do(job1).tag("sec", "common")
+E       AttributeError: 'Job' object has no attribute 'seconds'
+
+tests\Schedule\functional_test.py:97: AttributeError
+_________________________ test_tags_and_clear_by_tag __________________________
+
+    def test_tags_and_clear_by_tag() -> None:
+        """Jobs can be tagged, selected by tag, and cleared by tag."""
+        _clear()
+        calls: List[str] = []
+    
+        def job_keep() -> None:
+            calls.append("keep")
+    
+        def job_drop() -> None:
+            calls.append("drop")
+    
+>       schedule.every().hour.do(job_keep).tag("keep", "group")
+E       AttributeError: 'Job' object has no attribute 'hour'
+
+tests\Schedule\functional_test.py:121: AttributeError
+_____________________ test_cancel_job_removes_single_job ______________________
+
+    def test_cancel_job_removes_single_job() -> None:
+        """cancel_job removes a single job from the scheduler."""
+        _clear()
+        calls: List[str] = []
+    
+        def job1() -> None:
+            calls.append("job1")
+    
+        def job2() -> None:
+            calls.append("job2")
+    
+>       j1 = schedule.every().day.do(job1)
+E       AttributeError: 'Job' object has no attribute 'day'
+
+tests\Schedule\functional_test.py:148: AttributeError
+__________________ test_repeat_decorator_registers_and_runs ___________________
+
+    def test_repeat_decorator_registers_and_runs() -> None:
+        """@repeat(every(...)) schedules a function correctly and run_all triggers it."""
+        _clear()
+        call_count = 0
+    
+>       @schedule.repeat(schedule.every().seconds)
+E       AttributeError: module 'schedule' has no attribute 'repeat'
+
+tests\Schedule\functional_test.py:164: AttributeError
+_______________ test_run_pending_executes_due_job_without_sleep _______________
+
+    def test_run_pending_executes_due_job_without_sleep() -> None:
+        """run_pending executes jobs that are due, without relying on real time waiting."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("ran")
+    
+>       j = schedule.every(10).seconds.do(job)
+E       AttributeError: 'Job' object has no attribute 'seconds'
+
+tests\Schedule\functional_test.py:184: AttributeError
+_______________ test_job_next_run_is_datetime_after_scheduling ________________
+
+    def test_job_next_run_is_datetime_after_scheduling() -> None:
+        """A newly scheduled job should have a next_run datetime set."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:198: AttributeError
+______________ test_every_day_at_sets_time_component_in_next_run ______________
+
+    def test_every_day_at_sets_time_component_in_next_run() -> None:
+        """Scheduling with .day.at('HH:MM') should include that time in the next_run."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().day.at("10:30").do(job)
+E       AttributeError: 'Job' object has no attribute 'day'
+
+tests\Schedule\functional_test.py:210: AttributeError
+______________ test_weekday_scheduling_creates_job_and_next_run _______________
+
+    def test_weekday_scheduling_creates_job_and_next_run() -> None:
+        """Weekday scheduling (e.g., monday) should create a job with next_run."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().monday.at("09:00").do(job)
+E       AttributeError: 'Job' object has no attribute 'monday'
+
+tests\Schedule\functional_test.py:224: AttributeError
+________________ test_every_to_creates_job_with_interval_range ________________
+
+    def test_every_to_creates_job_with_interval_range() -> None:
+        """every(A).to(B).seconds should create a job and be runnable via run_all."""
+        _clear()
+        calls: List[str] = []
+    
+        def job() -> None:
+            calls.append("x")
+    
+>       j = schedule.every(2).to(5).seconds.do(job)
+E       AttributeError: 'Job' object has no attribute 'to'
+
+tests\Schedule\functional_test.py:239: AttributeError
+______________________ test_idle_seconds_returns_number _______________________
+
+    def test_idle_seconds_returns_number() -> None:
+        """idle_seconds should return a numeric value when jobs exist."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       schedule.every().hour.do(job)
+E       AttributeError: 'Job' object has no attribute 'hour'
+
+tests\Schedule\functional_test.py:253: AttributeError
+_____________________ test_get_jobs_by_tag_filters_subset _____________________
+
+    def test_get_jobs_by_tag_filters_subset() -> None:
+        """get_jobs(tag) should return only jobs with that tag."""
+        _clear()
+    
+        def a() -> None:
+            return None
+    
+        def b() -> None:
+            return None
+    
+>       schedule.every().minute.do(a).tag("alpha")
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:269: AttributeError
+______________________ test_run_all_sets_last_run_on_job ______________________
+
+    def test_run_all_sets_last_run_on_job() -> None:
+        """After running, last_run should be populated on the job in typical implementations."""
+        _clear()
+    
+        def job() -> None:
+            return None
+    
+>       j = schedule.every().minute.do(job)
+E       AttributeError: 'Job' object has no attribute 'minute'
+
+tests\Schedule\functional_test.py:290: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Schedule/functional_test.py::test_basic_every_and_run_all - Attr...
+FAILED tests/Schedule/functional_test.py::test_tags_and_clear_by_tag - Attrib...
+FAILED tests/Schedule/functional_test.py::test_cancel_job_removes_single_job
+FAILED tests/Schedule/functional_test.py::test_repeat_decorator_registers_and_runs
+FAILED tests/Schedule/functional_test.py::test_run_pending_executes_due_job_without_sleep
+FAILED tests/Schedule/functional_test.py::test_job_next_run_is_datetime_after_scheduling
+FAILED tests/Schedule/functional_test.py::test_every_day_at_sets_time_component_in_next_run
+FAILED tests/Schedule/functional_test.py::test_weekday_scheduling_creates_job_and_next_run
+FAILED tests/Schedule/functional_test.py::test_every_to_creates_job_with_interval_range
+FAILED tests/Schedule/functional_test.py::test_idle_seconds_returns_number - ...
+FAILED tests/Schedule/functional_test.py::test_get_jobs_by_tag_filters_subset
+FAILED tests/Schedule/functional_test.py::test_run_all_sets_last_run_on_job
+12 failed in 0.64s
+
+==========================================================================================
+PROJECT: Slugify
+LOG: D:\桌面\Exp1\deepseek-v3\results\Slugify\pytest_logs\functional.log
+==========================================================================================
+.......F..F.                                                             [100%]
+================================== FAILURES ===================================
+________________ test_regex_pattern_allows_underscore_prefixes ________________
+
+    def test_regex_pattern_allows_underscore_prefixes() -> None:
+        """Custom regex_pattern can allow underscores to remain."""
+        text = "___This is a test___"
+        regex_pattern = r"[^-a-z0-9_]+"
+    
+>       result_default_sep = slugify(text, regex_pattern=regex_pattern)
+
+tests\Slugify\functional_test.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+text = '___this is a test___', allow_unicode = False, max_length = None
+word_boundary = False, separator = '-', regex_pattern = '[^-a-z0-9_]+'
+stopwords = None, lowercase = True, replacements = None, kwargs = {}
+
+    def slugify(
+        text: str,
+        allow_unicode: bool = False,
+        max_length: Optional[int] = None,
+        word_boundary: bool = False,
+        separator: str = '-',
+        regex_pattern: Optional[Pattern] = None,
+        stopwords: Optional[List[str]] = None,
+        lowercase: bool = True,
+        replacements: Optional[List[List[str]]] = None,
+        **kwargs
+    ) -> str:
+        """
+        Convert text to a URL-friendly slug.
+    
+        Args:
+            text: Input text to slugify
+            allow_unicode: Allow unicode characters in the slug
+            max_length: Maximum length of the slug
+            word_boundary: Truncate at word boundary when max_length is reached
+            separator: Separator character (default: '-')
+            regex_pattern: Custom regex pattern for character filtering
+            stopwords: List of words to remove from the slug
+            lowercase: Convert to lowercase (default: True)
+            replacements: List of [pattern, replacement] pairs for custom replacements
+            **kwargs: Additional arguments (ignored for compatibility)
+    
+        Returns:
+            Slugified string
+        """
+        if text is None:
+            return ""
+    
+        # Apply custom replacements first
+        if replacements:
+            for pattern, replacement in replacements:
+                text = re.sub(pattern, replacement, text)
+    
+        # Normalize unicode
+        text = unicodedata.normalize('NFKC', str(text))
+    
+        # Handle unicode characters
+        if allow_unicode:
+            # Keep unicode characters, remove unwanted ones
+            text = re.sub(r'[^\w\s\-_]', '', text, flags=re.UNICODE)
+        else:
+            # Transliterate unicode characters to ASCII
+            text = _transliterate_unicode(text)
+            # Remove non-ASCII characters
+            text = re.sub(r'[^\w\s\-]', '', text)
+    
+        # Convert to lowercase if requested
+        if lowercase:
+            text = text.lower()
+    
+        # Remove stopwords
+        if stopwords is not None:
+            text = _remove_stopwords(text, stopwords)
+    
+        # Apply custom regex pattern if provided
+        if regex_pattern is not None:
+>           text = regex_pattern.sub('', text)
+E           AttributeError: 'str' object has no attribute 'sub'
+
+generation\Slugify\slugify\slugify.py:115: AttributeError
+___________________ test_replacements_apply_before_slugging ___________________
+
+    def test_replacements_apply_before_slugging() -> None:
+        """replacements should transform substrings before final slug is produced."""
+        text = "C# is not C++"
+>       result = slugify(text, replacements=[["C#", "Csharp"], ["C++", "Cpp"]])
+
+tests\Slugify\functional_test.py:208: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Slugify\slugify\slugify.py:90: in slugify
+    text = re.sub(pattern, replacement, text)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:210: in sub
+    return _compile(pattern, flags).sub(repl, string, count)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:304: in _compile
+    p = sre_compile.compile(pattern, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_compile.py:764: in compile
+    p = sre_parse.parse(p, flags)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:948: in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:443: in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+source = <sre_parse.Tokenizer object at 0x0000028A0F249FD0>
+state = <sre_parse.State object at 0x0000028A0F249880>, verbose = 0, nested = 1
+first = True
+
+    def _parse(source, state, verbose, nested, first=False):
+        # parse a simple pattern
+        subpattern = SubPattern(state)
+    
+        # precompute constants into local variables
+        subpatternappend = subpattern.append
+        sourceget = source.get
+        sourcematch = source.match
+        _len = len
+        _ord = ord
+    
+        while True:
+    
+            this = source.next
+            if this is None:
+                break # end of pattern
+            if this in "|)":
+                break # end of subpattern
+            sourceget()
+    
+            if verbose:
+                # skip whitespace and comments
+                if this in WHITESPACE:
+                    continue
+                if this == "#":
+                    while True:
+                        this = sourceget()
+                        if this is None or this == "\n":
+                            break
+                    continue
+    
+            if this[0] == "\\":
+                code = _escape(source, this, state)
+                subpatternappend(code)
+    
+            elif this not in SPECIAL_CHARS:
+                subpatternappend((LITERAL, _ord(this)))
+    
+            elif this == "[":
+                here = source.tell() - 1
+                # character set
+                set = []
+                setappend = set.append
+    ##          if sourcematch(":"):
+    ##              pass # handle character classes
+                if source.next == '[':
+                    import warnings
+                    warnings.warn(
+                        'Possible nested set at position %d' % source.tell(),
+                        FutureWarning, stacklevel=nested + 6
+                    )
+                negate = sourcematch("^")
+                # check remaining characters
+                while True:
+                    this = sourceget()
+                    if this is None:
+                        raise source.error("unterminated character set",
+                                           source.tell() - here)
+                    if this == "]" and set:
+                        break
+                    elif this[0] == "\\":
+                        code1 = _class_escape(source, this)
+                    else:
+                        if set and this in '-&~|' and source.next == this:
+                            import warnings
+                            warnings.warn(
+                                'Possible set %s at position %d' % (
+                                    'difference' if this == '-' else
+                                    'intersection' if this == '&' else
+                                    'symmetric difference' if this == '~' else
+                                    'union',
+                                    source.tell() - 1),
+                                FutureWarning, stacklevel=nested + 6
+                            )
+                        code1 = LITERAL, _ord(this)
+                    if sourcematch("-"):
+                        # potential range
+                        that = sourceget()
+                        if that is None:
+                            raise source.error("unterminated character set",
+                                               source.tell() - here)
+                        if that == "]":
+                            if code1[0] is IN:
+                                code1 = code1[1][0]
+                            setappend(code1)
+                            setappend((LITERAL, _ord("-")))
+                            break
+                        if that[0] == "\\":
+                            code2 = _class_escape(source, that)
+                        else:
+                            if that == '-':
+                                import warnings
+                                warnings.warn(
+                                    'Possible set difference at position %d' % (
+                                        source.tell() - 2),
+                                    FutureWarning, stacklevel=nested + 6
+                                )
+                            code2 = LITERAL, _ord(that)
+                        if code1[0] != LITERAL or code2[0] != LITERAL:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        lo = code1[1]
+                        hi = code2[1]
+                        if hi < lo:
+                            msg = "bad character range %s-%s" % (this, that)
+                            raise source.error(msg, len(this) + 1 + len(that))
+                        setappend((RANGE, (lo, hi)))
+                    else:
+                        if code1[0] is IN:
+                            code1 = code1[1][0]
+                        setappend(code1)
+    
+                set = _uniq(set)
+                # XXX: <fl> should move set optimization to compiler!
+                if _len(set) == 1 and set[0][0] is LITERAL:
+                    # optimization
+                    if negate:
+                        subpatternappend((NOT_LITERAL, set[0][1]))
+                    else:
+                        subpatternappend(set[0])
+                else:
+                    if negate:
+                        set.insert(0, (NEGATE, None))
+                    # charmap optimization can't be added here because
+                    # global flags still are not known
+                    subpatternappend((IN, set))
+    
+            elif this in REPEAT_CHARS:
+                # repeat previous item
+                here = source.tell()
+                if this == "?":
+                    min, max = 0, 1
+                elif this == "*":
+                    min, max = 0, MAXREPEAT
+    
+                elif this == "+":
+                    min, max = 1, MAXREPEAT
+                elif this == "{":
+                    if source.next == "}":
+                        subpatternappend((LITERAL, _ord(this)))
+                        continue
+    
+                    min, max = 0, MAXREPEAT
+                    lo = hi = ""
+                    while source.next in DIGITS:
+                        lo += sourceget()
+                    if sourcematch(","):
+                        while source.next in DIGITS:
+                            hi += sourceget()
+                    else:
+                        hi = lo
+                    if not sourcematch("}"):
+                        subpatternappend((LITERAL, _ord(this)))
+                        source.seek(here)
+                        continue
+    
+                    if lo:
+                        min = int(lo)
+                        if min >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                    if hi:
+                        max = int(hi)
+                        if max >= MAXREPEAT:
+                            raise OverflowError("the repetition number is too large")
+                        if max < min:
+                            raise source.error("min repeat greater than max repeat",
+                                               source.tell() - here)
+                else:
+                    raise AssertionError("unsupported quantifier %r" % (char,))
+                # figure out which item to repeat
+                if subpattern:
+                    item = subpattern[-1:]
+                else:
+                    item = None
+                if not item or item[0][0] is AT:
+                    raise source.error("nothing to repeat",
+                                       source.tell() - here + len(this))
+                if item[0][0] in _REPEATCODES:
+>                   raise source.error("multiple repeat",
+                                       source.tell() - here + len(this))
+E                   re.error: multiple repeat at position 2
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\sre_parse.py:671: error
+=========================== short test summary info ===========================
+FAILED tests/Slugify/functional_test.py::test_regex_pattern_allows_underscore_prefixes
+FAILED tests/Slugify/functional_test.py::test_replacements_apply_before_slugging
+2 failed, 10 passed in 0.61s
+
+==========================================================================================
+PROJECT: SQLModel
+LOG: D:\桌面\Exp1\deepseek-v3\results\SQLModel\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/SQLModel/functional_test.py ______________
+tests\SQLModel\functional_test.py:24: in <module>
+    from sqlmodel import (  # type: ignore  # noqa: E402
+generation\SQLModel\sqlmodel\__init__.py:26: in <module>
+    class Field(PydanticField):
+E   TypeError: function() argument 'code' must be code, not str
+=========================== short test summary info ===========================
+ERROR tests/SQLModel/functional_test.py - TypeError: function() argument 'cod...
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.86s
+
+==========================================================================================
+PROJECT: Tablib
+LOG: D:\桌面\Exp1\deepseek-v3\results\Tablib\pytest_logs\functional.log
+==========================================================================================
+.F..F...F.F                                                              [100%]
+================================== FAILURES ===================================
+__________________ test_dataset_export_import_tsv_roundtrip ___________________
+
+    def test_dataset_export_import_tsv_roundtrip() -> None:
+        """TSV export/import should preserve shape and values (type-coercion tolerant)."""
+        if not _format_supported("tsv"):
+            pytest.skip("tsv format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       tsv_text = data.export("tsv")
+
+tests\Tablib\functional_test.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001AECEAAF610>, fmt = 'tsv'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            return self.csv
+        elif fmt == 'json':
+            return self.json
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: tsv
+
+generation\Tablib\tablib\core.py:120: ValueError
+__________________ test_dataset_insert_and_pop_row_semantics __________________
+
+    def test_dataset_insert_and_pop_row_semantics() -> None:
+        """Dataset should support inserting and popping rows (list-like usage)."""
+        data = tablib.Dataset(headers=("id", "name"))
+        data.append((1, "a"))
+        data.append((3, "c"))
+    
+        # Insert a missing middle row.
+>       data.insert(1, (2, "b"))
+E       AttributeError: 'Dataset' object has no attribute 'insert'
+
+tests\Tablib\functional_test.py:233: AttributeError
+______________ test_dataset_export_html_contains_table_structure ______________
+
+    def test_dataset_export_html_contains_table_structure() -> None:
+        """HTML export (if available) should include a table-like structure and headers."""
+        if not _format_supported("html"):
+            pytest.skip("html format not available in this tablib build")
+    
+        data = _build_sample_dataset()
+>       html = data.export("html")
+
+tests\Tablib\functional_test.py:292: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <tablib.core.Dataset object at 0x000001AECEAB0A90>, fmt = 'html'
+
+    def export(self, fmt: str) -> str:
+        """Export dataset to specified format."""
+        if fmt == 'csv':
+            return self.csv
+        elif fmt == 'json':
+            return self.json
+        else:
+>           raise ValueError(f"Unsupported format: {fmt}")
+E           ValueError: Unsupported format: html
+
+generation\Tablib\tablib\core.py:120: ValueError
+_________________ test_databook_add_sheet_and_iteration_order _________________
+
+    def test_databook_add_sheet_and_iteration_order() -> None:
+        """Databook should allow adding sheets and preserve the order in iteration."""
+        s1 = tablib.Dataset((1, "x"), headers=("id", "val"))
+        s1.title = "S1"
+        s2 = tablib.Dataset((2, "y"), headers=("id", "val"))
+        s2.title = "S2"
+    
+        book = tablib.Databook([s1])
+    
+        if hasattr(book, "add_sheet"):
+            book.add_sheet(s2)  # type: ignore[attr-defined]
+        else:
+            # Fallback: reconstruct via the public constructor (still normal usage).
+            book = tablib.Databook([s1, s2])
+    
+        assert book.size == 2
+    
+        sheets = _iter_databook_sheets(book)
+        assert len(sheets) == 2
+        assert sheets[0].title == "S1"
+        assert sheets[1].title == "S2"
+>       assert sheets[0][0] == (1, "x")
+E       AssertionError: assert ('1', 'x') == (1, 'x')
+E         
+E         At index 0 diff: '1' != 1
+E         Use -v to get more diff
+
+tests\Tablib\functional_test.py:365: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Tablib/functional_test.py::test_dataset_export_import_tsv_roundtrip
+FAILED tests/Tablib/functional_test.py::test_dataset_insert_and_pop_row_semantics
+FAILED tests/Tablib/functional_test.py::test_dataset_export_html_contains_table_structure
+FAILED tests/Tablib/functional_test.py::test_databook_add_sheet_and_iteration_order
+4 failed, 7 passed in 0.52s
+
+==========================================================================================
+PROJECT: Tabulate
+LOG: D:\桌面\Exp1\deepseek-v3\results\Tabulate\pytest_logs\functional.log
+==========================================================================================
+..FFFF.FFFFF                                                             [100%]
+================================== FAILURES ===================================
+___________________ test_headers_firstrow_and_simple_format ___________________
+
+    def test_headers_firstrow_and_simple_format() -> None:
+        table = [
+            ["Name", "Age"],
+            ["Alice", 24],
+            ["Bob", 19],
+        ]
+    
+>       output = tabulate(table, headers="firstrow", tablefmt="simple")
+
+tests\Tabulate\functional_test.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:175: in tabulate
+    row = [format_spec["sep_char"] * width for width in widths]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000018C07DAE8E0>
+
+>   row = [format_spec["sep_char"] * width for width in widths]
+E   KeyError: 'sep_char'
+
+generation\Tabulate\tabulate\core.py:175: KeyError
+___________________ test_headers_keys_on_dict_of_iterables ____________________
+
+    def test_headers_keys_on_dict_of_iterables() -> None:
+        table = {
+            "Name": ["Alice", "Bob"],
+            "Age": [24, 19],
+        }
+    
+>       output = tabulate(table, headers="keys")
+
+tests\Tabulate\functional_test.py:134: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:149: in tabulate
+    if any(re.search(r"^-?\d+\.\d+$", cell) for cell in col):
+generation\Tabulate\tabulate\core.py:149: in <genexpr>
+    if any(re.search(r"^-?\d+\.\d+$", cell) for cell in col):
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+pattern = '^-?\\d+\\.\\d+$', string = 24, flags = 0
+
+    def search(pattern, string, flags=0):
+        """Scan through string looking for a match to the pattern, returning
+        a Match object, or None if no match was found."""
+>       return _compile(pattern, flags).search(string)
+E       TypeError: expected string or bytes-like object
+
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\re.py:201: TypeError
+___________________________ test_showindex_variants ___________________________
+
+    def test_showindex_variants() -> None:
+        table = [
+            ["F", 24],
+            ["M", 19],
+        ]
+    
+        out_true = tabulate(table, showindex=True)
+        lines_true = _lines(out_true)
+        assert any(line.lstrip().startswith("0") for line in lines_true)
+>       assert any(line.lstrip().startswith("1") for line in lines_true)
+E       assert False
+E        +  where False = any(<generator object test_showindex_variants.<locals>.<genexpr> at 0x0000018C07E36F20>)
+
+tests\Tabulate\functional_test.py:154: AssertionError
+________________________ test_github_and_grid_formats _________________________
+
+    def test_github_and_grid_formats() -> None:
+        table = [
+            ["item", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+            ["bacon", 0],
+        ]
+    
+>       out_github = tabulate(table[1:], headers=table[0], tablefmt="github")
+
+tests\Tabulate\functional_test.py:170: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:175: in tabulate
+    row = [format_spec["sep_char"] * width for width in widths]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000018C07EBC490>
+
+>   row = [format_spec["sep_char"] * width for width in widths]
+E   KeyError: 'sep_char'
+
+generation\Tabulate\tabulate\core.py:175: KeyError
+_____________________ test_missingval_renders_placeholder _____________________
+
+    def test_missingval_renders_placeholder() -> None:
+        rows = [
+            ["Alice", None],
+            ["Bob", "ok"],
+        ]
+>       output = tabulate(rows, headers=["name", "status"], tablefmt="plain", missingval="N/A")
+E       TypeError: tabulate() got an unexpected keyword argument 'missingval'
+
+tests\Tabulate\functional_test.py:207: TypeError
+__________________ test_floatfmt_controls_numeric_rendering ___________________
+
+    def test_floatfmt_controls_numeric_rendering() -> None:
+        rows = [
+            ["pi", 3.14159],
+            ["e", 2.71828],
+        ]
+>       output = tabulate(rows, headers=["name", "value"], tablefmt="plain", floatfmt=".2f")
+
+tests\Tabulate\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:177: in tabulate
+    formatted_row = _format_row(
+generation\Tabulate\tabulate\core.py:87: in _format_row
+    aligned_lines = _align_column(cell_lines, align, width)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+column = ['value'], align = 'decimal', minwidth = 7
+
+    def _align_column(
+        column: List[str], align: Optional[str], minwidth: int = 0
+    ) -> List[str]:
+        """Align all cells in a column according to the specified alignment."""
+        if not column:
+            return column
+    
+        if align is None:
+            return column
+    
+        max_len = max(len(cell) for cell in column)
+        max_len = max(max_len, minwidth)
+    
+        aligned = []
+        for cell in column:
+            if align == "left":
+                aligned.append(cell.ljust(max_len))
+            elif align == "right":
+                aligned.append(cell.rjust(max_len))
+            elif align == "center":
+                aligned.append(cell.center(max_len))
+            elif align == "decimal":
+                parts = re.split(r"(\d+\.\d+)", cell)
+>               aligned.append(parts[0].ljust(max_len - len(parts[1])) + parts[1])
+E               IndexError: list index out of range
+
+generation\Tabulate\tabulate\core.py:47: IndexError
+_______________ test_disable_numparse_preserves_numeric_strings _______________
+
+    def test_disable_numparse_preserves_numeric_strings() -> None:
+        rows = [
+            ["code", "value"],
+            ["A", "001"],
+            ["B", "010"],
+        ]
+>       output = tabulate(rows[1:], headers=rows[0], tablefmt="plain", disable_numparse=True)
+E       TypeError: tabulate() got an unexpected keyword argument 'disable_numparse'
+
+tests\Tabulate\functional_test.py:236: TypeError
+______________________ test_maxcolwidths_wraps_long_text ______________________
+
+    def test_maxcolwidths_wraps_long_text() -> None:
+        long_text = "alpha beta gamma delta epsilon zeta"
+        rows = [
+            ["id", "note"],
+            [1, long_text],
+            [2, "short"],
+        ]
+>       output = tabulate(
+            rows[1:],
+            headers=rows[0],
+            tablefmt="simple",
+            maxcolwidths=[None, 10],
+        )
+E       TypeError: tabulate() got an unexpected keyword argument 'maxcolwidths'
+
+tests\Tabulate\functional_test.py:251: TypeError
+___________________ test_pipe_format_has_pipes_and_headers ____________________
+
+    def test_pipe_format_has_pipes_and_headers() -> None:
+        rows = [
+            ["name", "qty"],
+            ["spam", 42],
+            ["eggs", 451],
+        ]
+>       output = tabulate(rows[1:], headers=rows[0], tablefmt="pipe")
+
+tests\Tabulate\functional_test.py:274: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Tabulate\tabulate\core.py:175: in tabulate
+    row = [format_spec["sep_char"] * width for width in widths]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+.0 = <list_iterator object at 0x0000018C07DC2520>
+
+>   row = [format_spec["sep_char"] * width for width in widths]
+E   KeyError: 'sep_char'
+
+generation\Tabulate\tabulate\core.py:175: KeyError
+=========================== short test summary info ===========================
+FAILED tests/Tabulate/functional_test.py::test_headers_firstrow_and_simple_format
+FAILED tests/Tabulate/functional_test.py::test_headers_keys_on_dict_of_iterables
+FAILED tests/Tabulate/functional_test.py::test_showindex_variants - assert False
+FAILED tests/Tabulate/functional_test.py::test_github_and_grid_formats - KeyE...
+FAILED tests/Tabulate/functional_test.py::test_missingval_renders_placeholder
+FAILED tests/Tabulate/functional_test.py::test_floatfmt_controls_numeric_rendering
+FAILED tests/Tabulate/functional_test.py::test_disable_numparse_preserves_numeric_strings
+FAILED tests/Tabulate/functional_test.py::test_maxcolwidths_wraps_long_text
+FAILED tests/Tabulate/functional_test.py::test_pipe_format_has_pipes_and_headers
+9 failed, 3 passed in 0.66s
+
+==========================================================================================
+PROJECT: Termgraph
+LOG: D:\桌面\Exp1\deepseek-v3\results\Termgraph\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFF                                                              [100%]
+================================== FAILURES ===================================
+______________________ test_simple_horizontal_bar_chart _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209EEE80>
+
+    def test_simple_horizontal_bar_chart(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B", "C"]
+        values = [[3], [5], [2]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Test Chart", width=20, format="{:>5.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD209EEFD0>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Test Chart
+[3]: 
+_____________________ test_stacked_chart_multiple_series ______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD20A4FA90>
+
+    def test_stacked_chart_multiple_series(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["X", "Y"]
+        values = [[1, 2], [3, 4]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stacked Chart", width=30, format="{:>4.1f}")
+    
+        chart = StackedChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:111: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001AD20A4F9A0>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stacked Chart
+[1, 2]: 
+_______________________ test_bar_chart_object_interface _______________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209E4400>
+
+    def test_bar_chart_object_interface(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["D", "E"]
+        values = [[4], [1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Bars", width=10, format="{:>4.1f}")
+    
+        chart = BarChart(data, args)
+>       chart.draw()
+
+tests\Termgraph\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD209E4340>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Bars
+[4]: 
+___________________ test_bar_chart_respects_no_values_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209E8D60>
+
+    def test_bar_chart_respects_no_values_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[2], [7]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Values", width=12, no_values=True, format="{:>5.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:142: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD209E8B20>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Values
+[2]: 
+___________________ test_bar_chart_respects_no_labels_flag ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209E2B20>
+
+    def test_bar_chart_respects_no_labels_flag(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["L1", "L2", "L3"]
+        values = [[1], [2], [3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="No Labels", width=10, no_labels=True, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:158: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD209E28E0>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+No Labels
+__________________ test_bar_chart_suffix_appended_to_values ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD20A60C10>
+
+    def test_bar_chart_suffix_appended_to_values(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["CPU", "RAM"]
+        values = [[12.5], [7.0]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Suffix", width=18, suffix="%", format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD20A60F10>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Suffix
+[12.5]: 
+___________ test_bar_chart_custom_format_changes_numeric_rendering ____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD20A778E0>
+
+    def test_bar_chart_custom_format_changes_numeric_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["P", "Q"]
+        values = [[3.14159], [2.71828]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Fmt", width=20, format="{:>6.2f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:191: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD20A77B80>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Fmt
+[3.14159]: 
+____________________ test_stacked_chart_renders_all_labels ____________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD20A54940>
+
+    def test_stacked_chart_renders_all_labels(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["S1", "S2", "S3"]
+        values = [[1, 1], [2, 1], [1, 3]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack Labels", width=25, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001AD20A54BB0>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack Labels
+[1, 1]: 
+____________ test_stacked_chart_no_values_still_renders_structure _____________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209E4C70>
+
+    def test_stacked_chart_no_values_still_renders_structure(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["A", "B"]
+        values = [[1, 2, 3], [3, 2, 1]]
+    
+        data = Data(values, labels)
+        args = _make_args(title="Stack No Values", width=30, no_values=True, format="{:>4.1f}")
+    
+>       StackedChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:222: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.StackedChart object at 0x000001AD209E4880>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Stack No Values
+[1, 2, 3]: 
+__________________ test_title_none_does_not_break_rendering ___________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD209D0370>
+
+    def test_title_none_does_not_break_rendering(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["U", "V"]
+        values = [[4], [6]]
+    
+        data = Data(values, labels)
+        args = _make_args(title=None, width=15, format="{:>4.1f}")
+    
+>       BarChart(data, args).draw()
+
+tests\Termgraph\functional_test.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD209C0700>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+[4]: 
+________________ test_width_parameter_affects_output_presence _________________
+
+capsys = <_pytest.capture.CaptureFixture object at 0x000001AD20A72BB0>
+
+    def test_width_parameter_affects_output_presence(capsys: pytest.CaptureFixture[str]) -> None:
+        labels = ["W"]
+        values = [[9]]
+    
+        data = Data(values, labels)
+    
+        args_narrow = _make_args(title="Narrow", width=5, format="{:>4.1f}")
+>       BarChart(data, args_narrow).draw()
+
+tests\Termgraph\functional_test.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+generation\Termgraph\termgraph\charts.py:14: in draw
+    self._draw_horizontal()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <termgraph.charts.BarChart object at 0x000001AD20A72B20>
+
+    def _draw_horizontal(self):
+        if self.args.title:
+            print(self.args.title)
+    
+        max_value = max(max(series) for series in self.data.data) if self.data.data else 0
+        if max_value == 0:
+            max_value = 1
+    
+        for i, label in enumerate(self.data.labels):
+            if not self.args.no_labels:
+                print(f"{label}: ", end="")
+    
+            values = [series[i] for series in self.data.data]
+>           total = sum(values)
+E           TypeError: unsupported operand type(s) for +: 'int' and 'str'
+
+generation\Termgraph\termgraph\charts.py:29: TypeError
+---------------------------- Captured stdout call -----------------------------
+Narrow
+[9]: 
+=========================== short test summary info ===========================
+FAILED tests/Termgraph/functional_test.py::test_simple_horizontal_bar_chart
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_multiple_series
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_object_interface - ...
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_values_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_respects_no_labels_flag
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_suffix_appended_to_values
+FAILED tests/Termgraph/functional_test.py::test_bar_chart_custom_format_changes_numeric_rendering
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_renders_all_labels
+FAILED tests/Termgraph/functional_test.py::test_stacked_chart_no_values_still_renders_structure
+FAILED tests/Termgraph/functional_test.py::test_title_none_does_not_break_rendering
+FAILED tests/Termgraph/functional_test.py::test_width_parameter_affects_output_presence
+11 failed in 25.60s
+
+==========================================================================================
+PROJECT: Typer
+LOG: D:\桌面\Exp1\deepseek-v3\results\Typer\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_______________ ERROR collecting tests/Typer/functional_test.py _______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Typer\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Typer\functional_test.py:53: in <module>
+    import typer  # type: ignore  # noqa: E402
+generation\Typer\typer\__init__.py:8: in <module>
+    from . import testing
+generation\Typer\typer\testing.py:5: in <module>
+    from ..core import Typer
+E   ImportError: attempted relative import beyond top-level package
+=========================== short test summary info ===========================
+ERROR tests/Typer/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.63s
+
+==========================================================================================
+PROJECT: Watchdog
+LOG: D:\桌面\Exp1\deepseek-v3\results\Watchdog\pytest_logs\functional.log
+==========================================================================================
+
+=================================== ERRORS ====================================
+_____________ ERROR collecting tests/Watchdog/functional_test.py ______________
+ImportError while importing test module 'D:\桌面\RealAppCodeBench_generic_eval\tests\Watchdog\functional_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\86152\AppData\Local\Programs\Python\Python39\lib\importlib\__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests\Watchdog\functional_test.py:55: in <module>
+    from watchdog.events import (  # type: ignore  # noqa: E402
+E   ImportError: cannot import name 'PatternMatchingEventHandler' from 'watchdog.events' (D:\桌面\RealAppCodeBench_generic_eval\generation\Watchdog\watchdog\events.py)
+=========================== short test summary info ===========================
+ERROR tests/Watchdog/functional_test.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.59s
+
+==========================================================================================
+PROJECT: Xmltodict
+LOG: D:\桌面\Exp1\deepseek-v3\results\Xmltodict\pytest_logs\functional.log
+==========================================================================================
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+__________________________ test_parse_simple_element __________________________
+
+    def test_parse_simple_element() -> None:
+        """Parsing a simple XML element should produce the expected dict."""
+        xml = "<root><message>Hello</message></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271FFFC8E50>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x00000271817BFF10>
+parser = <pyexpat.xmlparser object at 0x00000271FFFAF340>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+____________________ test_parse_repeated_elements_as_list _____________________
+
+    def test_parse_repeated_elements_as_list() -> None:
+        """Repeated child elements should be represented as a list."""
+        xml = "<root><item>1</item><item>2</item><item>3</item></root>"
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271817AFE50>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x00000271FFFD89D0>
+parser = <pyexpat.xmlparser object at 0x000002718180B1C0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+_______________________ test_parse_attributes_and_text ________________________
+
+    def test_parse_attributes_and_text() -> None:
+        """Attributes and text content should be exposed using @attr and #text keys."""
+        xml = '<user id="123">Alice</user>'
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271FFFF2040>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x00000271817BEBE0>
+parser = <pyexpat.xmlparser object at 0x000002718180B040>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+___________________ test_unparse_roundtrip_basic_structure ____________________
+
+    def test_unparse_roundtrip_basic_structure() -> None:
+        """unparse() followed by parse() should preserve the logical structure."""
+        original = {
+            "root": {
+                "item": [
+                    {"@id": "1", "#text": "A"},
+                    {"@id": "2", "#text": "B"},
+                ]
+            }
+        }
+    
+        xml = _unparse(original)
+>       round_tripped = _parse(xml)
+
+tests\Xmltodict\functional_test.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x0000027181801D30>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x00000271FFFF0730>
+parser = <pyexpat.xmlparser object at 0x0000027181807B80>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+_____________________ test_namespace_prefix_is_preserved ______________________
+
+    def test_namespace_prefix_is_preserved() -> None:
+        """Namespace prefixes in element names should be preserved in dict keys."""
+        xml = """
+        <root xmlns:x="http://example.com/x">
+            <x:item>value</x:item>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x0000027181801EE0>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x000002718180D4F0>
+parser = <pyexpat.xmlparser object at 0x00000271FFFF55E0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+_________________________ test_parse_nested_structure _________________________
+
+    def test_parse_nested_structure() -> None:
+        """Nested XML elements should map to nested dict structures."""
+        xml = """
+        <root>
+            <user>
+                <name>Ada</name>
+                <address>
+                    <city>London</city>
+                    <country>UK</country>
+                </address>
+            </user>
+        </root>
+        """
+>       data = _parse(xml)
+
+tests\Xmltodict\functional_test.py:150: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271FFFF2280>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x000002718183A7F0>
+parser = <pyexpat.xmlparser object at 0x00000271FFFF57C0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+__________________ test_force_list_option_for_single_element __________________
+
+    def test_force_list_option_for_single_element() -> None:
+        """force_list should allow representing a single child as a list when supported."""
+        xml = "<root><item>1</item></root>"
+    
+        # Prefer a targeted force_list that is common in xmltodict.
+>       data = _parse(xml, force_list=("item",))
+
+tests\Xmltodict\functional_test.py:161: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271FFFF23A0>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x0000027181828370>
+parser = <pyexpat.xmlparser object at 0x00000271FFFAF820>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+    
+>       parser.ParseFile(xml_input)
+E       TypeError: read() did not return a bytes object (type=str)
+
+generation\Xmltodict\xmltodict.py:54: TypeError
+_____________ test_custom_attr_prefix_and_cdata_key_if_supported ______________
+
+    def test_custom_attr_prefix_and_cdata_key_if_supported() -> None:
+        """attr_prefix / cdata_key customization should reflect in output when supported."""
+        xml = '<user id="7">Bob</user>'
+    
+>       data = _parse(xml, attr_prefix="$", cdata_key="text")
+
+tests\Xmltodict\functional_test.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\Xmltodict\functional_test.py:62: in _parse
+    return xmltodict.parse(xml, **filtered)  # type: ignore[arg-type]
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+xml_input = <_io.StringIO object at 0x00000271FFFF2040>, encoding = None
+expat = <module 'xml.parsers.expat' from 'C:\\Users\\86152\\AppData\\Local\\Programs\\Python\\Python39\\lib\\xml\\parsers\\expat.py'>
+process_namespaces = False, namespace_separator = ':', disable_entities = True
+kwargs = {}, handler = <xmltodict._DictSAXHandler object at 0x0000027181823EE0>
+parser = <pyexpat.xmlparser object at 0x0000027181807FA0>
+
+    def parse(xml_input, encoding=None, expat=expat, process_namespaces=False,
+              namespace_separator=':', disable_entities=True, **kwargs):
+        """
+        Parse the given XML input and convert it into a dictionary.
+    
+        :param xml_input: XML string or file-like object
+        :param encoding: XML encoding (default: autodetect)
+        :param expat: expat parser to use
+        :param process_namespaces: whether to process namespaces
+        :param namespace_separator: namespace separator character
+        :param disable_entities: whether to disable entity expansion
+        :return: dictionary representation of XML
+        """
+        if isinstance(xml_input, basestring):
+            xml_input = StringIO(xml_input)
+    
+        handler = _DictSAXHandler(
+            process_namespaces=process_namespaces,
+            namespace_separator=namespace_separator,
+            **kwargs
+        )
+    
+        parser = expat.ParserCreate(encoding, namespace_separator if process_namespaces else '')
+    
+        if disable_entities:
+            try:
+                # Disable entity expansion to prevent XML bomb attacks
+                parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            except AttributeError:
+                # Python 2.6 and earlier don't have this method
+                pass
+    
+        parser.StartElementHandler = handler.start_element
+        parser.EndElementHandler = handler.end_element
+        parser.CharacterDataHandler = handler.characters
+

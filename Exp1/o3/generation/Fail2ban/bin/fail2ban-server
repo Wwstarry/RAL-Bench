@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+"""
+A no-op stub of the original ``fail2ban-server`` executable.
+
+Real Fail2Ban starts a background daemon and manipulates firewall rules – we
+obviously *don't* do that here.  For testing purposes we only expose a helpful
+CLI that refuses to start a daemon.
+"""
+import sys
+import textwrap
+
+HELP = textwrap.dedent(
+    """\
+    fail2ban-server (stub)
+    ----------------------
+
+    This is *NOT* the real Fail2Ban server.  It exists solely so that
+    unit-tests which rely on its presence can import/exec it safely.
+
+    Supported commands:
+        --help        Show this message and exit (default).
+        --version     Display the stub version.
+    """
+)
+
+def main() -> None:
+    if "--version" in sys.argv:
+        print("fail2ban-server 0.0.0-stub")
+        return
+    # Always print help
+    print(HELP)
+
+if __name__ == "__main__":
+    main()

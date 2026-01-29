@@ -1,0 +1,57 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________________ test_many_datetime_operations ________________________
+
+    def test_many_datetime_operations() -> None:
+        """
+        Exercise many datetime operations to give the benchmark
+        something non-trivial to time.
+        """
+        base = pendulum.datetime(2020, 1, 1, 0, 0, 0, tz="UTC")
+        results: list[str] = []
+    
+        start_time = time.perf_counter()
+    
+        for i in range(2000):
+>           dt = base.add(minutes=i)
+
+tests\Pendulum\performance_test.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = DateTime(2020, 1, 1, 0, 0, tzinfo=Timezone('UTC')), years = 0, months = 0
+weeks = 0, days = 0, hours = 0, minutes = 0, seconds = 0, microseconds = 0
+
+    def add(
+        self,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+        microseconds: int = 0,
+    ) -> DateTime:
+        """
+        Adds a duration to the datetime.
+        """
+        dt = self
+        if years:
+            dt = _add_months(dt, years * MONTHS_PER_YEAR)
+        if months:
+            dt = _add_months(dt, months)
+    
+>       duration = dt.timedelta(
+            weeks=weeks,
+            days=days,
+            hours=hours,
+            minutes=minutes,
+            seconds=seconds,
+            microseconds=microseconds,
+        )
+E       AttributeError: 'DateTime' object has no attribute 'timedelta'
+
+generation\Pendulum\pendulum\datetime.py:80: AttributeError
+=========================== short test summary info ===========================
+FAILED tests/Pendulum/performance_test.py::test_many_datetime_operations - At...
+1 failed in 0.45s

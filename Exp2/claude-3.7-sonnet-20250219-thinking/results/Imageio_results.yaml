@@ -1,0 +1,454 @@
+project_name: Imageio
+task_file: D:\桌面\RealAppCodeBench_generic_eval\tasks\Imageio\imageio.yaml
+generated_repo: D:\桌面\RealAppCodeBench_generic_eval\generation\Imageio
+timestamp: '2026-01-01 18:50:51'
+functional_score: 0.0
+non_functional_score: 0.4
+non_functional_subscores:
+  maintainability: 0.0
+  security: 1.0
+  robustness: 1.0
+  performance: 0.0
+  resource: 0.0
+non_functional_weights:
+  maintainability: 0.36
+  security: 0.24
+  robustness: 0.16
+  performance: 0.12
+  resource: 0.12
+results:
+  functional:
+    returncode: 124
+    stdout: "FFFFFFFFFF                                                          \
+      \     [100%]\n================================== FAILURES ===================================\n\
+      _________________ test_png_roundtrip_with_imread_and_imwrite __________________\n\
+      \ntmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_png_roundtrip_with_imread0')\n\
+      \n    def test_png_roundtrip_with_imread_and_imwrite(tmp_path: Path) -> None:\n\
+      \        \"\"\"Exercise a simple PNG roundtrip and verify image shape and data.\"\
+      \"\"\n        img = _make_color_image()\n        path = tmp_path / \"test.png\"\
+      \n    \n>       iio.imwrite(path, img)\n\ntests\\Imageio\\functional_test.py:85:\
+      \ \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _\nrepositories\\Imageio\\imageio\\v3.py:139: in imwrite\n    with imopen(\n\
+      _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _\n\nuri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_png_roundtrip_with_imread0/test.png')\n\
+      io_mode = 'w', plugin = None, extension = None, format_hint = None\nlegacy_mode\
+      \ = False, kwargs = {}\nrequest = <imageio.core.request.Request object at 0x000001F6CDA6F3A0>\n\
+      source = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_png_roundtrip_with_imread0/test.png')\n\
+      \n    def imopen(\n        uri,\n        io_mode,\n        *,\n        plugin=None,\n\
+      \        extension=None,\n        format_hint=None,\n        legacy_mode=False,\n\
+      \        **kwargs,\n    ):\n        \"\"\"Open an ImageResource.\n    \n   \
+      \     .. warning::\n            This warning is for pypy users. If you are not\
+      \ using a context manager,\n            remember to deconstruct the returned\
+      \ plugin to avoid leaking the file\n            handle to an unclosed file.\n\
+      \    \n        Parameters\n        ----------\n        uri : str or pathlib.Path\
+      \ or bytes or file or Request\n            The :doc:`ImageResource <../../user_guide/requests>`\
+      \ to load the\n            image from.\n        io_mode : str\n            The\
+      \ mode in which the file is opened. Possible values are::\n    \n          \
+      \      ``r`` - open the file for reading\n                ``w`` - open the file\
+      \ for writing\n    \n            Depreciated since v2.9:\n            A second\
+      \ character can be added to give the reader a hint on what\n            the\
+      \ user expects. This will be ignored by new plugins and will\n            only\
+      \ have an effect on legacy plugins. Possible values are::\n    \n          \
+      \      ``i`` for a single image,\n                ``I`` for multiple images,\n\
+      \                ``v`` for a single volume,\n                ``V`` for multiple\
+      \ volumes,\n                ``?`` for don't care\n    \n        plugin : str,\
+      \ Plugin, or None\n            The plugin to use. If set to None imopen will\
+      \ perform a\n            search for a matching plugin. If not None, this takes\
+      \ priority over\n            the provided format hint.\n        extension :\
+      \ str\n            If not None, treat the provided ImageResource as if it had\
+      \ the given\n            extension. This affects the order in which backends\
+      \ are considered, and\n            when writing this may also influence the\
+      \ format used when encoding.\n        format_hint : str\n            Deprecated.\
+      \ Use `extension` instead.\n        legacy_mode : bool\n            If true\
+      \ use the v2 behavior when searching for a suitable\n            plugin. This\
+      \ will ignore v3 plugins and will check ``plugin``\n            against known\
+      \ extensions if no plugin with the given name can be found.\n        **kwargs\
+      \ : Any\n            Additional keyword arguments will be passed to the plugin\
+      \ upon\n            construction.\n    \n        Notes\n        -----\n    \
+      \    Registered plugins are controlled via the ``known_plugins`` dict in\n \
+      \       ``imageio.config``.\n    \n        Passing a ``Request`` as the uri\
+      \ is only supported if ``legacy_mode``\n        is ``True``. In this case ``io_mode``\
+      \ is ignored.\n    \n        Using the kwarg ``format_hint`` does not enforce\
+      \ the given format. It merely\n        provides a `hint` to the selection process\
+      \ and plugin. The selection\n        processes uses this hint for optimization;\
+      \ however, a plugin's decision how\n        to read a ImageResource will - typically\
+      \ - still be based on the content of\n        the resource.\n    \n    \n  \
+      \      Examples\n        --------\n    \n        >>> import imageio.v3 as iio\n\
+      \        >>> with iio.imopen(\"/path/to/image.png\", \"r\") as file:\n     \
+      \   >>>     im = file.read()\n    \n        >>> with iio.imopen(\"/path/to/output.jpg\"\
+      , \"w\") as file:\n        >>>     file.write(im)\n    \n        \"\"\"\n  \
+      \  \n        if isinstance(uri, Request) and legacy_mode:\n            warnings.warn(\n\
+      \                \"`iio.core.Request` is a low-level object and using it\"\n\
+      \                \" directly as input to `imopen` is discouraged. This will\
+      \ raise\"\n                \" an exception in ImageIO v3.\",\n             \
+      \   DeprecationWarning,\n                stacklevel=2,\n            )\n    \n\
+      \            request = uri\n            uri = request.raw_uri\n            io_mode\
+      \ = request.mode.io_mode\n            request.format_hint = format_hint\n  \
+      \      else:\n            request = Request(uri, io_mode, format_hint=format_hint,\
+      \ extension=extension)\n    \n        source = \"<bytes>\" if isinstance(uri,\
+      \ bytes) else uri\n    \n        # fast-path based on plugin\n        # (except\
+      \ in legacy mode)\n        if plugin is not None:\n            if isinstance(plugin,\
+      \ str):\n                try:\n                    config = known_plugins[plugin]\n\
+      \                except KeyError:\n                    request.finish()\n  \
+      \                  raise ValueError(\n                        f\"`{plugin}`\
+      \ is not a registered plugin name.\"\n                    ) from None\n    \n\
+      \                def loader(request, **kwargs):\n                    return\
+      \ config.plugin_class(request, **kwargs)\n    \n            else:\n    \n  \
+      \              def loader(request, **kwargs):\n                    return plugin(request,\
+      \ **kwargs)\n    \n            try:\n                return loader(request,\
+      \ **kwargs)\n            except InitializationError as class_specific:\n   \
+      \             err_from = class_specific\n                err_type = RuntimeError\
+      \ if legacy_mode else IOError\n                err_msg = f\"`{plugin}` can not\
+      \ handle the given uri.\"\n            except ImportError:\n               \
+      \ err_from = None\n                err_type = ImportError\n                err_msg\
+      \ = (\n                    f\"The `{config.name}` plugin is not installed. \"\
+      \n                    f\"Use `pip install imageio[{config.install_name}]` to\
+      \ install it.\"\n                )\n            except Exception as generic_error:\n\
+      \                err_from = generic_error\n                err_type = IOError\n\
+      \                err_msg = f\"An unknown error occurred while initializing plugin\
+      \ `{plugin}`.\"\n    \n            request.finish()\n            raise err_type(err_msg)\
+      \ from err_from\n    \n        # fast-path based on format_hint\n        if\
+      \ request.format_hint is not None:\n            for candidate_format in known_extensions[format_hint]:\n\
+      \                for plugin_name in candidate_format.priority:\n           \
+      \         config = known_plugins[plugin_name]\n    \n                    try:\n\
+      \                        candidate_plugin = config.plugin_class\n          \
+      \          except ImportError:\n                        # not installed\n  \
+      \                      continue\n    \n                    try:\n          \
+      \              plugin_instance = candidate_plugin(request, **kwargs)\n     \
+      \               except InitializationError:\n                        # file\
+      \ extension doesn't match file type\n                        continue\n    \n\
+      \                    return plugin_instance\n            else:\n           \
+      \     resource = (\n                    \"<bytes>\" if isinstance(request.raw_uri,\
+      \ bytes) else request.raw_uri\n                )\n                warnings.warn(f\"\
+      `{resource}` can not be opened as a `{format_hint}` file.\")\n    \n       \
+      \ # fast-path based on file extension\n        if request.extension in known_extensions:\n\
+      \            for candidate_format in known_extensions[request.extension]:\n\
+      \                for plugin_name in candidate_format.priority:\n           \
+      \         config = known_plugins[plugin_name]\n    \n                    try:\n\
+      \                        candidate_plugin = config.plugin_class\n          \
+      \          except ImportError:\n                        # not installed\n  \
+      \                      continue\n    \n                    try:\n          \
+      \              plugin_instance = candidate_plugin(request, **kwargs)\n     \
+      \               except InitializationError:\n                        # file\
+      \ extension doesn't match file type\n                        continue\n    \n\
+      \                    return plugin_instance\n    \n        # error out for read-only\
+      \ special targets\n        # this is hacky; can we come up with a better solution\
+      \ for this?\n        if request.mode.io_mode == IOMode.write:\n            if\
+      \ isinstance(uri, str) and uri.startswith(SPECIAL_READ_URIS):\n            \
+      \    request.finish()\n                err_type = ValueError if legacy_mode\
+      \ else IOError\n                err_msg = f\"`{source}` is read-only.\"\n  \
+      \              raise err_type(err_msg)\n    \n        # error out for directories\n\
+      \        # this is a bit hacky and should be cleaned once we decide\n      \
+      \  # how to gracefully handle DICOM\n        if request._uri_type == URI_FILENAME\
+      \ and Path(request.raw_uri).is_dir():\n            request.finish()\n      \
+      \      err_type = ValueError if legacy_mode else IOError\n            err_msg\
+      \ = (\n                \"ImageIO does not generally support reading folders.\
+      \ \"\n                \"Limited support may be available via specific plugins.\
+      \ \"\n                \"Specify the plugin explicitly using the `plugin` kwarg,\
+      \ e.g. `plugin='DICOM'`\"\n            )\n            raise err_type(err_msg)\n\
+      \    \n        # close the current request here and use fresh/new ones while\
+      \ trying each\n        # plugin This is slow (means potentially reopening a\
+      \ resource several\n        # times), but should only happen rarely because\
+      \ this is the fallback if all\n        # else fails.\n        request.finish()\n\
+      \    \n        # fallback option: try all plugins\n        for config in known_plugins.values():\n\
+      \            # each plugin gets its own request\n            request = Request(uri,\
+      \ io_mode, format_hint=format_hint)\n    \n            try:\n              \
+      \  plugin_instance = config.plugin_class(request, **kwargs)\n            except\
+      \ InitializationError:\n                continue\n            except ImportError:\n\
+      \                continue\n            else:\n                return plugin_instance\n\
+      \    \n        err_type = ValueError if legacy_mode else IOError\n        err_msg\
+      \ = f\"Could not find a backend to open `{source}`` with iomode `{io_mode}`.\"\
+      \n    \n        # check if a missing plugin could help\n        if request.extension\
+      \ in known_extensions:\n            missing_plugins = list()\n    \n       \
+      \     formats = known_extensions[request.extension]\n            plugin_names\
+      \ = [\n                plugin for file_format in formats for plugin in file_format.priority\n\
+      \            ]\n            for name in plugin_names:\n                config\
+      \ = known_plugins[name]\n    \n                try:\n                    config.plugin_class\n\
+      \                    continue\n                except ImportError:\n       \
+      \             missing_plugins.append(config)\n    \n            if len(missing_plugins)\
+      \ > 0:\n                install_candidates = \"\\n\".join(\n               \
+      \     [\n                        (\n                            f\"  {config.name}:\
+      \  \"\n                            f\"pip install imageio[{config.install_name}]\"\
+      \n                        )\n                        for config in missing_plugins\n\
+      \                    ]\n                )\n                err_msg += (\n  \
+      \                  \"\\nBased on the extension, the following plugins might\
+      \ add capable backends:\\n\"\n                    f\"{install_candidates}\"\n\
+      \                )\n    \n        request.finish()\n>       raise err_type(err_msg)\n\
+      E       OSError: Could not find a backend to open `C:\\Users\\86152\\AppData\\\
+      Local\\Temp\\pytest-of-86152\\pytest-437\\test_png_roundtrip_with_imread0\\\
+      test.png`` with iomode `w`.\nE       Based on the extension, the following plugins\
+      \ might add capable backends:\nE         pillow:  pip install imageio[pillow]\n\
+      E         PNG-PIL:  pip install imageio[pillow]\nE         PNG-FI:  pip install\
+      \ imageio[freeimage]\nE         ITK:  pip install imageio[simpleitk]\nE    \
+      \     pyav:  pip install imageio[pyav]\nE         opencv:  pip install imageio[opencv]\n\
+      \nrepositories\\Imageio\\imageio\\core\\imopen.py:281: OSError\n__________________\
+      \ test_gif_multiframe_roundtrip_with_imiter __________________\n\ntmp_path =\
+      \ WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_gif_multiframe_roundtrip_0')\n\
+      \n    def test_gif_multiframe_roundtrip_with_imiter(tmp_path: Path) -> None:\n\
+      \        \"\"\"Write a small animated GIF and iterate frames using imiter.\"\
+      \"\"\n        frames = _make_grayscale_frames(num_frames=6, height=24, width=24)\n\
+      \        path = tmp_path / \"anim.gif\"\n    \n>       iio.imwrite(path, frames)\n\
+      \ntests\\Imageio\\functional_test.py:100: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\nrepositories\\Imageio\\imageio\\\
+      v3.py:139: in imwrite\n    with imopen(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\
+      \ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _\n\nuri = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_gif_multiframe_roundtrip_0/anim.gif')\n\
+      io_mode = 'w', plugin = None, extension = None, format_hint = None\nlegacy_mode\
+      \ = False, kwargs = {}\nrequest = <imageio.core.request.Request object at 0x000001F6CE31B9A0>\n\
+      source = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-437/test_gif_multiframe_roundtrip_0/anim.gif')\n\
+      \n    def imopen(\n        uri,\n        io_mode,\n        *,\n        plugin=None,\n\
+      \        extension=None,\n        format_hint=None,\n        legacy_mode=False,\n\
+      \        **kwargs,\n    ):\n        \"\"\"Open an ImageResource.\n    \n   \
+      \     .. warning::\n            This warning is for pypy users. If you are not\
+      \ using a context manager,\n            remember to deconstruct the returned\
+      \ plugin to avoid leaking the file\n            handle to an unclosed file.\n\
+      \    \n        Parameters\n        ----------\n        uri : str or pathlib.Path\
+      \ or bytes or file or Request\n            The :doc:`ImageResource <../../user_guide/requests>`\
+      \ to load the\n            image from.\n        io_mode : str\n            The\
+      \ mode in which the file is opened. Possible values are::\n    \n          \
+      \      ``r`` - open the file for reading\n                ``w`` - open the file\
+      \ for writing\n    \n            Depreciated since v2.9:\n            A second\
+      \ character can be added to give the reader a hint on what\n            the\
+      \ user expects. This will be ignored by new plugins and will\n            only\
+      \ have an effect on legacy plugins. Possible values are::\n    \n          \
+      \      ``i`` for a single image,\n                ``I`` for multiple images,\n\
+      \                ``v`` for a single volume,\n                ``V`` for multiple\
+      \ volumes,\n                ``?`` for don't care\n    \n        plugin : str,\
+      \ Plugin, or None\n            The plugin to use. If set to None imopen will\
+      \ perform a\n            search for a matching plugin. If not None, this takes\
+      \ priority over\n            the provided format hint.\n        extension :\
+      \ str\n            If not None, treat the provided ImageResource as if it had\
+      \ the given\n            extension. This affects the order in which backends\
+      \ are considered, and\n            when writing this may also influence the\
+      \ format used when encoding.\n        format_hint : str\n            Deprecated.\
+      \ Use `extension` instead.\n        legacy_mode : bool\n            If true\
+      \ use the v2 behavior when searching for a suitable\n            plugin. This\
+      \ will ignore v3 plugins and will check ``plugin``\n            against known\
+      \ extensions if no plugin with the given name can be found.\n        **kwargs\
+      \ : Any\n            Additional keyword arguments will be passed to the plugin\
+      \ upon\n            construction.\n    \n        Notes\n        -----\n    \
+      \    Registered plugins are controlled via the ``known_plugins`` dict in\n \
+      \       ``imageio.config``.\n    \n        Passing a ``Request`` as the uri\
+      \ is only supported if ``legacy_mode``\n        is ``True``. In this case ``io_mode``\
+      \ is ignored.\n    \n        Using the kwarg ``format_hint`` does not enforce\
+      \ the given format. It merely\n        provides a `hint` to the selection process\
+      \ and plugin. The selection\n        processes uses this hint for optimization;\
+      \ however, a plugin's decision how\n        to read a ImageResource will - typically\
+      \ - still be based on the content of\n        the resource.\n    \n    \n  \
+      \      Examples\n        --------\n    \n        >>> import imageio.v3 as iio\n\
+      \        >>> with iio.imopen(\"/path/to/image.png\", \"r\") as file:\n     \
+      \   >>>     im = file.read()\n    \n        >>> with iio.imopen(\"/path/to/output.jpg\"\
+      , \"w\") as file:\n        >>>     file.write(im)\n    \n        \"\"\"\n  \
+      \  \n        if isinstance(uri, Request) and legacy_mode:\n            warnings.warn(\n\
+      \                \"`iio.core.Request` is a low-level object and using it\"\n\
+      \                \" directly as input to `imopen` is discouraged. This will\
+      \ raise\"\n                \" an exception in ImageIO v3.\",\n             \
+      \   DeprecationWarning,\n                stacklevel=2,\n            )\n    \n\
+      \            request = uri\n            uri = request.raw_uri\n            io_mode\
+      \ = request.mode.io_mode\n            request.format_hint = format_hint\n  \
+      \      else:\n            request = Request(uri, io_mode, format_hint=format_hint,\
+      \ extension=extension)\n    \n        source = \"<bytes>\" if isinstance(uri,\
+      \ bytes) else uri\n    \n        # fast-path based on plugin\n        # (except\
+      \ in legacy mode)\n        if plugin is not None:\n            if isinstance(plugin,\
+      \ str):\n                try:\n                    config = known_plugins[plugin]\n\
+      \                except KeyError:\n                    request.finish()\n  \
+      \                  raise ValueError(\n                        f\"`{plugin}`\
+      \ is not a registered plugin name.\"\n                    ) from None\n    \n\
+      \                def loader(request, **kwargs):\n                    return\
+      \ config.plugin_class(request, **kwargs)\n    \n            else:\n    \n  \
+      \              def loader(request, **kwargs):\n                    return plugin(request,\
+      \ **kwargs)\n    \n            try:\n                return loader(request,\
+      \ **kwargs)\n            except InitializationError as class_specific:\n   \
+      \             err_from = class_specific\n                err_type = RuntimeError\
+      \ if legacy_mode else IOError\n                err_msg = f\"`{plugin}` can not\
+      \ handle the given uri.\"\n            except ImportError:\n               \
+      \ err_from = None\n                err_type = ImportError\n"
+    elapsed_time_s: 60.057415
+    avg_memory_mb: 45.57
+    avg_cpu_percent: 0.22
+    passed: 0
+    failed: 1
+    skipped: 0
+    total: 1
+    timeout: true
+    score_inputs_passed: 0
+    score_inputs_failed: 1
+    score_inputs_total: 1
+    score_inputs_returncode: 124
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - functional_suite_time_s
+    - functional_tests_total
+  performance:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _____________ ERROR collecting tests/Imageio/performance_test.py ______________\n\
+      tests\\Imageio\\performance_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/performance_test.py\
+      \ - RuntimeError: Unsupported IMAGEIO_T...\n!!!!!!!!!!!!!!!!!!! Interrupted:\
+      \ 1 error during collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.66s\n"
+    elapsed_time_s: 1.851143
+    avg_memory_mb: 43.79
+    avg_cpu_percent: 99.1
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - performance_suite_time_s
+    - performance_tests_total
+    score_inputs_baseline_time_s: 2.827932
+    score_inputs_actual_time_s: 1.851143
+  resource:
+    returncode: 2
+    stdout: "\n=================================== ERRORS ====================================\n\
+      _______________ ERROR collecting tests/Imageio/resource_test.py _______________\n\
+      tests\\Imageio\\resource_test.py:20: in <module>\n    raise RuntimeError(f\"\
+      Unsupported IMAGEIO_TARGET value: {TARGET_ENV}\")\nE   RuntimeError: Unsupported\
+      \ IMAGEIO_TARGET value: generated\n=========================== short test summary\
+      \ info ===========================\nERROR tests/Imageio/resource_test.py - RuntimeError:\
+      \ Unsupported IMAGEIO_TARG...\n!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during\
+      \ collection !!!!!!!!!!!!!!!!!!!!\n1 error in 0.65s\n"
+    elapsed_time_s: 1.8221
+    avg_memory_mb: 44.01
+    avg_cpu_percent: 100.0
+    passed: 0
+    failed: 0
+    skipped: 0
+    total: 1
+    score_inputs_passed: 0
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 2
+    score_inputs_failed_suite: true
+    score_inputs_baseline_keys:
+    - avg_cpu_percent
+    - avg_memory_mb
+    - resource_suite_time_s
+    - resource_tests_total
+    score_inputs_baseline_mem_mb: 49.3
+    score_inputs_baseline_cpu_pct: 100.0
+    score_inputs_actual_mem_mb: 44.01
+    score_inputs_actual_cpu_pct: 100.0
+  robustness:
+    returncode: 0
+    stdout: '...                                                                      [100%]
+
+      3 passed in 0.30s
+
+      '
+    elapsed_time_s: 1.495703
+    avg_memory_mb: 40.16
+    avg_cpu_percent: 100.0
+    passed: 3
+    failed: 0
+    skipped: 0
+    total: 3
+    score_inputs_passed: 3
+    score_inputs_failed: 0
+    score_inputs_total: 3
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - robustness_suite_time_s
+    - robustness_tests_total
+  security:
+    returncode: 0
+    stdout: 'SECURITY_METRICS high_risk_count=0.0 files_scanned=1.0 total_loc=2.0
+
+      .
+
+      1 passed in 0.09s
+
+      '
+    elapsed_time_s: 1.246344
+    avg_memory_mb: 30.96
+    avg_cpu_percent: 100.0
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 1.0
+      total_loc: 2.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - metrics
+    - security_suite_time_s
+    - security_tests_total
+    score_inputs_baseline_high_risk_count: 0.0
+    score_inputs_generated_high_risk_count: 0.0
+  maintainability:
+    returncode: 0
+    stdout: 'MAINT_METRICS mi_min=84.2425 files_scanned=1.0 total_loc=2.0 max_cc=1.0
+
+      .
+
+      1 passed in 0.10s
+
+      '
+    elapsed_time_s: 1.32657
+    avg_memory_mb: 31.25
+    avg_cpu_percent: 97.5
+    passed: 1
+    failed: 0
+    skipped: 0
+    total: 1
+    metrics:
+      mi_min: 84.2425
+      files_scanned: 1.0
+      total_loc: 2.0
+      max_cc: 1.0
+    score_inputs_passed: 1
+    score_inputs_failed: 0
+    score_inputs_total: 1
+    score_inputs_returncode: 0
+    score_inputs_failed_suite: false
+    score_inputs_baseline_keys:
+    - maintainability_suite_time_s
+    - maintainability_tests_total
+    - metrics
+    score_inputs_baseline_mi_min: 0.0
+    score_inputs_generated_mi_min: 84.2425
+baseline_metrics:
+  performance:
+    performance_suite_time_s: 2.827932
+    performance_tests_total: 2
+  resource:
+    resource_suite_time_s: 5.63166
+    resource_tests_total: 2
+    avg_memory_mb: 49.3
+    avg_cpu_percent: 100.0
+  functional:
+    functional_suite_time_s: 2.306904
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 2.034907
+    robustness_tests_total: 3
+  security:
+    security_suite_time_s: 1.977626
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+  maintainability:
+    maintainability_suite_time_s: 3.158483
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 49.0
+      total_loc: 26366.0
+      max_cc: 217.0
+pytest_logs_dir: D:\桌面\RealAppCodeBench_generic_eval\results\Imageio\pytest_logs

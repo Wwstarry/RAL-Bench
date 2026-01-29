@@ -1,0 +1,126 @@
+.....FFF...F                                                             [100%]
+================================== FAILURES ===================================
+________________ test_easyid3_genre_and_albumartist_roundtrip _________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_easyid3_genre_and_albumar0')
+
+    def test_easyid3_genre_and_albumartist_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common optional fields via EasyID3 (genre/albumartist)."""
+        audio_path = tmp_path / "genre_albumartist.mp3"
+    
+        tags = EasyID3()
+        tags["title"] = ["Tagged Song"]
+        tags["artist"] = ["Main Artist"]
+>       tags["albumartist"] = ["Album Artist"]
+
+tests\Mutagen\functional_test.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.easyid3.EasyID3 object at 0x0000028C6EBFFEB0>
+key = 'albumartist', value = ['Album Artist']
+
+    def __setitem__(self, key, value):
+        frame_class = self._KEY_MAP.get(key)
+        if not frame_class:
+>           raise KeyError(f"Unknown EasyID3 key: {key}")
+E           KeyError: 'Unknown EasyID3 key: albumartist'
+
+generation\Mutagen\mutagen\easyid3.py:48: KeyError
+______________ test_low_level_id3_written_can_be_read_by_easyid3 ______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_low_level_id3_written_can0')
+
+    def test_low_level_id3_written_can_be_read_by_easyid3(tmp_path: Path) -> None:
+        """Write low-level ID3 frames and read them back via EasyID3 fields."""
+        audio_path = tmp_path / "interop.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Interop Title"))
+        tags.add(TPE1(encoding=3, text="Interop Artist"))
+        tags.add(TALB(encoding=3, text="Interop Album"))
+        tags.save(str(audio_path))
+    
+        easy = EasyID3(str(audio_path))
+>       assert easy["title"] == ["Interop Title"]
+E       AssertionError: assert ['I', 'n', 't...'r', 'o', ...] == ['Interop Title']
+E         
+E         At index 0 diff: 'I' != 'Interop Title'
+E         Left contains 12 more items, first extra item: 'n'
+E         Use -v to get more diff
+
+tests\Mutagen\functional_test.py:216: AssertionError
+_______________ test_low_level_id3_frames_with_comment_and_apic _______________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_low_level_id3_frames_with0')
+
+    def test_low_level_id3_frames_with_comment_and_apic(tmp_path: Path) -> None:
+        """Use low-level ID3 frames to store text and embedded artwork."""
+        audio_path = tmp_path / "id3_frames.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Frame Title"))
+        tags.add(TPE1(encoding=3, text="Frame Artist"))
+        tags.add(
+            COMM(
+                encoding=3,
+                lang="eng",
+                desc="Comment",
+                text="This is a test comment.",
+            )
+        )
+    
+        image_data = b"\xff\xd8\xff\x00FAKEJPEGDATA"
+        tags.add(
+            APIC(
+                encoding=3,
+                mime="image/jpeg",
+                type=3,
+                desc="Cover",
+                data=image_data,
+            )
+        )
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+    
+>       assert "TIT2" in loaded
+
+tests\Mutagen\functional_test.py:255: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <mutagen.id3.ID3 object at 0x0000028C6EC05E20>, frame_id = 0
+
+    def __getitem__(self, frame_id):
+        frames = self._frames.get(frame_id)
+        if frames:
+            return frames[0]
+>       raise KeyError(frame_id)
+E       KeyError: 0
+
+generation\Mutagen\mutagen\id3.py:90: KeyError
+_______________ test_id3_text_frames_album_and_genre_roundtrip ________________
+
+tmp_path = WindowsPath('C:/Users/86152/AppData/Local/Temp/pytest-of-86152/pytest-313/test_id3_text_frames_album_and0')
+
+    def test_id3_text_frames_album_and_genre_roundtrip(tmp_path: Path) -> None:
+        """Roundtrip common text frames (album/genre) using low-level ID3."""
+        audio_path = tmp_path / "album_genre.mp3"
+    
+        tags = ID3()
+        tags.add(TIT2(encoding=3, text="Song X"))
+        tags.add(TALB(encoding=3, text="Album Y"))
+        tags.add(TCON(encoding=3, text="Jazz"))
+        tags.save(str(audio_path))
+    
+        loaded = ID3(str(audio_path))
+>       assert loaded["TIT2"].text == ["Song X"]
+E       AssertionError: assert 'Song X' == ['Song X']
+E        +  where 'Song X' = <mutagen.id3.TIT2 object at 0x0000028C6EC99BB0>.text
+
+tests\Mutagen\functional_test.py:346: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/Mutagen/functional_test.py::test_easyid3_genre_and_albumartist_roundtrip
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_written_can_be_read_by_easyid3
+FAILED tests/Mutagen/functional_test.py::test_low_level_id3_frames_with_comment_and_apic
+FAILED tests/Mutagen/functional_test.py::test_id3_text_frames_album_and_genre_roundtrip
+4 failed, 8 passed in 0.62s
