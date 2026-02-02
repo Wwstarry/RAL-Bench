@@ -8,7 +8,7 @@ RAL-Bench is an **application-level** benchmark that asks a simple but under-exp
 ![Construction pipeline](pic/construction_pipeline.png)
 
 ### Evaluation pipeline
-![Evaluation pipeline](pic/evaluation_pipeline.png)
+![Evaluation pipeline](pic\evaluation_pipline.png)
 
 ---
 
