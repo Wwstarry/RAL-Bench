@@ -1,0 +1,1506 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RAL-Bench</title>
+  <link rel="icon" href="assets/favicon.png" type="image/png" sizes="32x32">
+
+  <!-- Bulma -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+<style>
+  :root{
+    --bg: #ffffff;
+    --fg: #111827;
+    --muted: #6b7280;
+
+    /* accent for corresponding */
+    --accent: #7a45c9;      /* deep purple */
+    --accent2: #80c4db;     /* neon cyan */
+    --rule: #e5e7eb;        /* light gray divider */
+
+    /* ===== Pills theme (light blue fill + blue-purple border) ===== */
+    --pill-bg: rgba(219, 234, 254, .60); /* light blue */
+    --pill-bg-strong: rgba(219, 234, 254, .78);
+    --pill-text: #0f172a;
+
+    --pill-grad1: #7a45c9;  /* purple */
+    --pill-grad2: #3b82f6;  /* blue */
+    --pill-shadow: rgba(30, 64, 175, .14);
+  }
+
+  html { background: var(--bg); }
+
+  /* 全站字体：Times New Roman（含 Bulma 组件） */
+  body, button, input, select, textarea {
+    font-family: "Times New Roman", Times, serif !important;
+    color: var(--fg);
+  }
+
+  /* Bulma size tweak */
+  .title.is-1 { font-size: 3rem; }
+
+  /* Cyber gradient animated title */
+  .vj-hero-title-cyber {
+    background-image: linear-gradient(
+      120deg,
+      #a41e61,
+      #9e289e,
+      #7a45c9,
+      #80c4db,
+      #5dd3bb,
+      #e3ca66
+    );
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+
+    font-weight: 800;
+    letter-spacing: .5px;
+    animation: vjCyberSweep 6s ease-in-out infinite;
+  }
+
+  @keyframes vjCyberSweep {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .vj-hero-title-cyber { animation: none; }
+  }
+
+  /* Hero background & spacing */
+  .hero.is-ralbench {
+    padding: 4.5rem 1.25rem 2.8rem;
+    background:
+      radial-gradient(1000px 400px at 50% -10%, rgba(125,211,252,.35), transparent 60%),
+      radial-gradient(800px 360px at 15% 10%, rgba(217,70,239,.20), transparent 55%),
+      radial-gradient(800px 360px at 85% 20%, rgba(34,211,238,.18), transparent 55%),
+      #fff;
+  }
+
+  /* --- Publication meta (authors / affiliations / contacts) --- */
+  .publication-authors,
+  .publication-affiliations,
+  .publication-contacts {
+    font-family: "Times New Roman", Times, serif !important;
+  }
+
+  .publication-authors {
+    margin-top: 1.15rem;
+    font-weight: 600;
+    line-height: 1.65;
+  }
+
+  .publication-affiliations,
+  .publication-contacts {
+    margin-top: 0.45rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  /* authors layout */
+  .author-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 0.8rem;
+  }
+
+  .author {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+  }
+
+  .author sup {
+    font-size: 0.75em;
+    vertical-align: super;
+    margin-left: 0.06em;
+    color: rgba(107,114,128,.95);
+    font-weight: 600;
+  }
+
+  /* Better-looking corresponding marker */
+  .corr-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.15em;
+    padding: 0 .48em;
+    border-radius: 999px;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: .2px;
+    line-height: 1;
+    color: #ffffff;
+    background-image: linear-gradient(120deg, var(--accent), var(--accent2));
+    box-shadow: 0 6px 18px rgba(122,69,201,.18);
+    transform: translateY(-1px);
+  }
+
+  .meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 0.9rem;
+  }
+
+  /* Corresponding line styling */
+  .publication-contacts {
+    margin-top: 0.7rem;
+  }
+
+  .corr-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.22rem 0.65rem;
+    border-radius: 12px;
+    background: rgba(122,69,201,.06);
+    border: 1px solid rgba(122,69,201,.14);
+  }
+
+  .corr-label {
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .corr-email {
+    color: #0f172a;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(122,69,201,.55);
+    transition: 160ms ease;
+  }
+
+  .corr-email:hover {
+    color: var(--accent);
+    text-decoration-color: rgba(122,69,201,.95);
+  }
+
+  @media (max-width: 480px) {
+    .publication-authors { margin-top: 0.95rem; }
+    .author-list { gap: 0.4rem 0.65rem; }
+    .corr-line { padding: 0.25rem 0.55rem; }
+  }
+
+  /* --- Full-width gray divider --- */
+  .page-divider {
+    width: 100vw;
+    height: 1px;
+    background: var(--rule);
+    margin: 0;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+  }
+
+  /* Main body spacing */
+  .main-content {
+    padding: 2.2rem 0 3.5rem;
+    background: #fff;
+  }
+
+  /* 关键：正文块从 1/5 到 4/5（即宽度 60%，左侧偏移 20%） */
+  .reading-block {
+    width: 60vw;
+    margin-left: 20vw;
+    margin-right: 20vw;
+  }
+
+  /* 小屏幕兜底：不要挤得太窄 */
+  @media (max-width: 900px) {
+    .reading-block {
+      width: min(92vw, 760px);
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+  }
+
+  /* 左对齐的 section 标题与段落 */
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: .2px;
+    margin-bottom: 0.75rem;
+    text-align: left;
+  }
+
+  .section-title-sub {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: .2px;
+    margin-top: 1.2rem;
+    margin-bottom: 0.6rem;
+    text-align: left;
+  }
+
+  .section-paragraph {
+    color: #111827;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    text-align: left;
+    margin-bottom: 0.95rem;
+  }
+
+  /* 让段落开头的小标题更像论文体例 */
+  .para-lead {
+    font-weight: 800;
+    color: #111827;
+  }
+
+  /* --- Figure block (IMAGE) --- */
+  figure.paper-figure{
+    margin: 1.0rem 0 1.1rem;
+    padding: 0.6rem;
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .figure-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    background: #fafafa;
+  }
+
+  figcaption.figure-caption{
+    margin-top: 0.6rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.55;
+    text-align: left;
+  }
+
+  .paper-figure.is-half .figure-img{
+    width: 50%;
+    margin: 0 auto;     /* 居中 */
+  }
+  .paper-figure.is-half{
+    padding: 0.75rem;
+  }
+
+  .equation{
+    display: block;
+    margin: 0.7rem 0 0.95rem;
+    padding: 0.55rem 0.9rem;
+    text-align: center;
+    border-left: 3px solid rgba(122,69,201,.35);
+    background: rgba(122,69,201,.04);
+    border-radius: 10px;
+    color: #0f172a;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  .equation .sym{
+    font-weight: 800;
+    letter-spacing: .2px;
+  }
+  .equation code{
+    background: transparent;
+    padding: 0;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 1.05rem;
+  }
+
+  /* ===== Pills: centered, light-blue fill, blue-purple gradient border ===== */
+  .hero-links-wrap{
+    margin-bottom: 1.5rem;
+    margin-top: -1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-links{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.9rem 1.0rem;
+  }
+
+  .hero-pill{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+
+    padding: 0.72rem 1.15rem;
+    border-radius: 999px;
+
+    /* 渐变边框：双背景 + background-clip */
+    border: 3px solid transparent;
+    background-image:
+      linear-gradient(var(--pill-bg), var(--pill-bg)),
+      linear-gradient(120deg, var(--pill-grad1), var(--pill-grad2));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+
+    color: var(--pill-text);
+    font-weight: 700;
+    text-decoration: none;
+
+    box-shadow: 0 10px 26px var(--pill-shadow);
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease, background-image 180ms ease;
+  }
+
+  .hero-pill:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(30,64,175,.20);
+    filter: saturate(1.05);
+    background-image:
+      linear-gradient(var(--pill-bg-strong), var(--pill-bg-strong)),
+      linear-gradient(120deg, var(--pill-grad1), var(--pill-grad2));
+  }
+
+  .hero-pill:active{
+    transform: translateY(0px);
+  }
+
+  .hero-pill:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.22), 0 14px 34px rgba(30,64,175,.20);
+  }
+
+  /* icon 容器：用图片时保持对齐 */
+  .pill-icon{
+    width: 1.25em;
+    height: 1.25em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  /* 你的 assets 图片 icon */
+  .pill-icon-img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  @media (max-width: 480px){
+    .hero-pill{
+      padding: 0.62rem 0.95rem;
+      gap: 0.48rem;
+    }
+  }
+
+ /* ===== Leaderboard (gray/white + blue-purple gradient) ===== */
+:root{
+  --lb-bg: #ffffff;
+  --lb-surface: #ffffff;
+  --lb-ink: #0f172a;
+  --lb-muted: #64748b;
+
+  --lb-line: rgba(15, 23, 42, .08);
+  --lb-line-2: rgba(15, 23, 42, .12);
+
+  /* blue-purple gradient */
+  --lb-g1: #4f46e5;   /* indigo */
+  --lb-g2: #2563eb;   /* blue */
+  --lb-g3: #7c3aed;   /* violet */
+
+  /* soft fill */
+  --lb-soft: rgba(37, 99, 235, .10);
+  --lb-soft-2: rgba(124, 58, 237, .10);
+  --lb-ring: rgba(79, 70, 229, .28);
+}
+
+.leaderboard-wrap{
+  margin-top: 1.4rem;
+}
+
+/* toolbar */
+.lb-toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content: space-between;
+  gap: .75rem 1rem;
+  margin: .75rem 0 1rem;
+}
+
+.lb-left, .lb-right{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap: .6rem .8rem;
+}
+
+.lb-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  padding:.40rem .70rem;
+  border-radius: 999px;
+  border: 1px solid var(--lb-line-2);
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,250,252,.92));
+  color: var(--lb-ink);
+  font-weight: 800;
+  font-size: .95rem;
+  box-shadow: 0 8px 22px rgba(15,23,42,.06);
+}
+
+.lb-select, .lb-input{
+  border-radius: 999px;
+  border: 1px solid var(--lb-line-2);
+  background: rgba(248,250,252,.92);
+  padding: .52rem .95rem;
+  font-family: "Times New Roman", Times, serif;
+  font-weight: 700;
+  color: var(--lb-ink);
+  outline:none;
+  box-shadow: 0 10px 26px rgba(15,23,42,.05);
+}
+
+.lb-input{ min-width: 240px; }
+
+.lb-select:focus, .lb-input:focus{
+  border-color: var(--lb-ring);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.18), 0 10px 26px rgba(15,23,42,.06);
+}
+
+/* main card */
+.lb-card{
+  border: 1px solid var(--lb-line);
+  border-radius: 16px;
+  background: var(--lb-surface);
+  box-shadow: 0 24px 60px rgba(15,23,42,.08);
+
+  /* ✅ 不裁掉表格，让它在需要时横向滚动 */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* table */
+/* .lb-table{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .98rem;
+} */
+
+/* gradient header like your screenshot */
+/* .lb-table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: .85rem .70rem;
+  text-align:center;
+  font-weight: 900;
+  letter-spacing: .2px;
+  color: #ffffff;
+  cursor: pointer;
+  user-select:none;
+  white-space: nowrap;
+
+  background: linear-gradient(90deg, var(--lb-g1), var(--lb-g2), var(--lb-g3));
+  border-bottom: 1px solid rgba(255,255,255,.18);
+} */
+
+/* ===== Continuous gradient header row (single piece) ===== */
+
+.lb-table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .98rem;
+
+  /* ✅ 保持 auto layout，但给一个整体最小宽度，避免被挤得列分配很怪 */
+  min-width: 920px;
+}
+
+
+/* ✅ sticky 放在 thead（更稳定），渐变仍然画在 tr（仍然连续） */
+.lb-table thead{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.lb-table thead tr{
+  background: linear-gradient(90deg, var(--lb-g1), var(--lb-g2), var(--lb-g3));
+}
+
+
+/* 2) th 自己不再画背景，保持透明，文字白色 */
+.lb-table thead th{
+  background: transparent !important;
+  color: #ffffff;
+  padding: .85rem .70rem;
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: .2px;
+  white-space: nowrap;
+
+  /* 去掉任何会切割渐变的效果 */
+  box-shadow: none !important;
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+
+/* 3) 如果你之前做了“header cell 分隔阴影”，一定要禁用 */
+.lb-table thead th + th{
+  box-shadow: none !important;
+}
+
+/* 4) 只用细线做列分隔（可选，不会切割渐变太明显） */
+.lb-table thead th{
+  border-right: 1px solid rgba(255,255,255,.10);
+}
+.lb-table thead th:last-child{
+  border-right: none;
+}
+
+/* ✅ fixed layout 下要配 overflow 才不会挤爆 */
+.lb-table td:nth-child(2){
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ✅ 让 model 名称在窄屏时用省略号，不去挤爆其他列 */
+
+
+/* ✅ 让 Model 列更宽：不再人为限制 model 文本宽度 */
+.lb-model{
+  display: inline-block;
+  max-width: none;
+  vertical-align: bottom;
+}
+
+/* ✅ Model 列占更多空间：用 ch 作为相对单位（不是固定像素） */
+.lb-table th:nth-child(2),
+/* ✅ Model 列不截断 */
+.lb-table td:nth-child(2){
+  overflow: visible;
+  text-overflow: clip;
+}
+
+
+
+
+
+/* 
+.lb-table thead th:first-child{ width: 64px; } */
+.lb-table thead th:nth-child(2){ text-align:left; }
+
+/* subtle divider between header cells */
+/* .lb-table thead th + th{
+  box-shadow: inset 1px 0 0 rgba(255,255,255,.10);
+} */
+
+/* body rows */
+.lb-table tbody td{
+  border-bottom: 1px solid rgba(15,23,42,.06);
+  padding: .78rem .70rem;
+  text-align:center;
+  vertical-align: middle;
+  background: #ffffff;
+}
+
+.lb-table tbody tr:nth-child(even) td{
+  background: rgba(248,250,252,.85);  /* light gray stripe */
+}
+
+.lb-table tbody td:nth-child(2){ text-align:left; }
+
+/* rank */
+.lb-rank{
+  font-weight: 900;
+  color: rgba(79,70,229,.95);
+  font-variant-numeric: tabular-nums;
+}
+
+/* model cell */
+.lb-model{
+  font-weight: 900;
+  color: var(--lb-ink);
+}
+.lb-provider{
+  font-weight: 800;
+  color: rgba(100,116,139,.95);
+  margin-left:.45rem;
+}
+
+/* numeric cells */
+.lb-score{
+  font-variant-numeric: tabular-nums;
+  color: rgba(15,23,42,.92);
+}
+
+/* best highlight: subtle gradient pill, not loud */
+.lb-best{
+  font-weight: 900;
+  color: rgba(79,70,229,.98);
+}
+.lb-best::after{
+  content:"";
+  display:block;
+  height: 0;
+}
+
+/* hover row */
+.lb-table tbody tr:hover td{
+  background: linear-gradient(90deg, rgba(79,70,229,.08), rgba(37,99,235,.06), rgba(124,58,237,.08));
+  transition: 140ms ease;
+}
+
+/* ✅ 把左侧彩条挂在“第一列 td”上（稳定），不要碰 tr */
+.lb-table tbody td:first-child{
+  position: relative;
+}
+
+.lb-table tbody td:first-child::before{
+  content:"";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+}
+
+
+/* provider colors */
+tr.p-gemini  td:first-child::before{ background: rgba(37,99,235,.75); }
+tr.p-openai  td:first-child::before{ background: rgba(79,70,229,.75); }
+tr.p-claude  td:first-child::before{ background: rgba(124,58,237,.70); }
+tr.p-deepseek td:first-child::before{ background: rgba(15,23,42,.45); }
+
+.lb-table{
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .98rem;
+
+  /* ✅ 让表格按内容撑开（从而在 .lb-card 内横向滚动） */
+  width: max-content;
+  min-width: 100%;
+
+  table-layout: auto; /* 默认就是 auto，写上更明确 */
+}
+
+
+/* note */
+.lb-note{
+  color: var(--lb-muted);
+  font-size: .95rem;
+  margin-top: .70rem;
+  line-height: 1.6;
+}
+
+/* responsive */
+@media (max-width: 980px){
+  .lb-input{ min-width: 180px; }
+  .lb-table{ font-size: .92rem; }
+  .lb-table thead th, .lb-table tbody td{ padding: .62rem .55rem; }
+}
+
+/* ===== Citation (polished) ===== */
+.rb-citation{
+  margin-top: 2.1rem;
+}
+
+.rb-cite-hint{
+  color: var(--muted);
+  margin: .2rem 0 .9rem;
+}
+
+/* Outer card: subtle glass + gradient border */
+.rb-cite-card{
+  position: relative;
+  border-radius: 18px;
+  padding: 0;                 /* header + body handle padding */
+  background: rgba(255,255,255,.78);
+  box-shadow: 0 26px 70px rgba(15,23,42,.10);
+  overflow: hidden;
+}
+
+/* gradient border via pseudo element */
+.rb-cite-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  padding: 2px;               /* border thickness */
+  border-radius: 18px;
+  background: linear-gradient(120deg, var(--lb-g1), var(--lb-g2), var(--lb-g3));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events:none;
+}
+
+/* ===== Header: solid gradient bar ===== */
+.rb-cite-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: .85rem .95rem;
+
+  /* ✅ 实心渐变 */
+  background: linear-gradient(90deg, var(--lb-g1), var(--lb-g2), var(--lb-g3));
+
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Tag on dark header: glassy but readable */
+.rb-cite-tag{
+  display:inline-flex;
+  align-items:center;
+  gap: .45rem;
+  padding: .34rem .72rem;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: .92rem;
+  letter-spacing: .2px;
+
+  /* ✅ 适配深色背景 */
+  color: #ffffff;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.26);
+  box-shadow: 0 10px 26px rgba(0,0,0,.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.rb-cite-tag::before{
+  content:"";
+  width: .55rem;
+  height: .55rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.90);
+  box-shadow: 0 8px 18px rgba(0,0,0,.18);
+}
+
+/* Copy button on dark header: bright pill */
+.rb-cite-copy{
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 999px;
+  padding: .44rem .95rem;
+  font-family: "Times New Roman", Times, serif;
+  font-weight: 900;
+  letter-spacing: .15px;
+
+  /* ✅ 白底按钮+深色字，和渐变 header 形成强对比 */
+  color: #0f172a;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+.rb-cite-copy:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.22);
+  filter: saturate(1.03);
+}
+.rb-cite-copy:active{
+  transform: translateY(0px);
+}
+
+
+/* Code area: looks like a modern code block */
+.rb-cite-pre{
+  margin: 0;
+  padding: .95rem 1.0rem 1.05rem;
+  background:
+    linear-gradient(180deg, rgba(248,250,252,.85), rgba(241,245,249,.78));
+  overflow: auto;
+
+  /* nicer scrollbar on webkit */
+  scrollbar-color: rgba(100,116,139,.45) rgba(148,163,184,.18);
+  border-radius: 0 0 18px 18px;
+}
+
+/* code typography */
+.rb-cite-pre code{
+  display:block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: .98rem;
+  line-height: 1.65;
+  color: rgba(15,23,42,.88);
+  white-space: pre;      /* keep formatting */
+}
+
+/* Optional: subtle inner highlight line */
+.rb-cite-pre{
+  border-top: 1px solid rgba(15,23,42,.06);
+}
+
+/* Responsive */
+@media (max-width: 640px){
+  .rb-cite-head{ padding: .68rem .75rem; }
+  .rb-cite-pre{ padding: .85rem .8rem .95rem; }
+  .rb-cite-pre code{ font-size: .92rem; }
+}
+
+html { scroll-behavior: smooth; }
+
+
+</style>
+
+</head>
+
+<body>
+  <section class="hero is-ralbench">
+    <div class="container has-text-centered">
+      <h1 class="title is-1 vj-hero-title-cyber">
+        Beyond Runnable: Are LLMs Ready for Application-Level Functional Correctness and Non-Functional Quality Attributes?
+      </h1>
+
+      <!-- Authors (row 1) -->
+      <div class="publication-authors is-size-5">
+        <div class="author-list">
+          <span class="author">Ruwei Pan<sup>1,3</sup></span>
+          <span class="author">Yakun Zhang<sup>2</sup></span>
+          <span class="author">Qingyuan Liang<sup>3</sup></span>
+          <span class="author">Yueheng Zhu<sup>1,3</sup></span>
+          <span class="author">Chao Liu<sup>1</sup></span>
+          <span class="author">Lu Zhang<sup>3</sup><span class="corr-badge" title="Corresponding author">✉</span></span>
+          <span class="author">Hongyu Zhang<sup>1</sup><span class="corr-badge" title="Corresponding author">✉</span></span>
+        </div>
+      </div>
+
+      <!-- Affiliations (row 2) -->
+      <div class="publication-affiliations is-size-6">
+        <div class="meta-line">
+          <span><sup>1</sup>Chongqing University</span>
+          <span><sup>2</sup>Harbin Institute of Technology (Shenzhen)</span>
+          <span><sup>3</sup>Peking University</span>
+        </div>
+      </div>
+
+      <!-- Contacts (row 3): ONLY corresponding -->
+      <div class="publication-contacts is-size-6">
+        <div class="meta-line">
+          <span class="corr-line">
+            <span class="corr-label">Corresponding to:</span>
+            <a class="corr-email" href="mailto:panruwei666@gmail.com">panruwei666@gmail.com</a>
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== REPLACE: hero link pills (no blue bg, icons from assets) ===== -->
+<div class="hero-links-wrap">
+  <div class="hero-links">
+    <a class="hero-pill" href="https://arxiv.org/abs/XXXX.XXXXX" target="_blank" rel="noopener noreferrer">
+      <span class="pill-icon">
+        <img class="pill-icon-img" src="assets/arxiv-logomark-small@2x.png" alt="arXiv">
+      </span>
+      <span>arXiv</span>
+    </a>
+
+    <a class="hero-pill" href="assets/RAL-Bench.pdf" target="_blank" rel="noopener noreferrer">
+      <span class="pill-icon">
+        <img class="pill-icon-img" src="assets/pdf.png" alt="PDF">
+      </span>
+      <span>PDF</span>
+    </a>
+
+    <a class="hero-pill" href="https://github.com/Wwstarry/RAL-Bench" target="_blank" rel="noopener noreferrer">
+      <span class="pill-icon">
+        <img class="pill-icon-img" src="assets/github.png" alt="Code">
+      </span>
+      <span>Code</span>
+    </a>
+
+    <a class="hero-pill" href="https://anonymous.4open.science/r/RAL-Bench" target="_blank" rel="noopener noreferrer">
+      <span class="pill-icon">
+        <img class="pill-icon-img" src="assets/Hugging Face.png" alt="RAL-Bench">
+      </span>
+      <span>RAL-Bench</span>
+    </a>
+
+    <a class="hero-pill" href="#leaderboard">
+
+      <span class="pill-icon">
+        <img class="pill-icon-img" src="assets/leaderboard.png" alt="Leaderboard">
+      </span>
+      <span>Leaderboard</span>
+    </a>
+  </div>
+</div>
+
+
+
+
+
+
+  <!-- Full-width gray horizontal rule -->
+  <div class="page-divider" aria-hidden="true"></div>
+
+  <!-- Main body starts here -->
+  <main class="main-content">
+    <div class="reading-block">
+      <h2 class="section-title">RAL-Bench</h2>
+
+      <h2 class="section-title-sub">Overview</h2>
+      <p class="section-paragraph">
+        We introduce RAL-Bench to quantitatively evaluate the ability of LLMs to perform application-level code generation.
+        RAL-Bench comprises over 450 functional and non-functional evaluation points derived from 38 real projects and covers seven distinct real-world usage scenarios (e.g., Data and Security).
+        These projects are sourced from actively maintained GitHub repositories with an average popularity of more than 1,000 stars, ensuring that they are widely used and vetted by the open-source community.
+        Each project provides clearly specified functional requirements and measurable non-functional quality attributes (e.g., efficiency and security).
+        Moreover, none of the projects are drawn from existing code generation benchmarks or public evaluation suites, which helps mitigate potential benchmark contamination and data leakage for LLMs.
+        RAL-Bench is iteratively reviewed to minimize requirement ambiguity and to ensure that all manually designed test cases are precise, suitable, and executable for rigorous evaluation.
+      </p>
+
+      <h2 class="section-title-sub">Benchmark Construction</h2>
+
+      <figure class="paper-figure" id="fig-construction-pipeline">
+        <img
+          class="figure-img"
+          src="assets/construction pipeline_01.png"
+          alt="Overall construction pipeline of RAL-Bench."
+          loading="lazy"
+        />
+        <figcaption class="figure-caption">
+          <strong>Figure 1.</strong> Executable benchmark construction pipeline for RAL-Bench: task curation, requirement derivation,
+          system test construction, and large-scale evaluation.
+        </figcaption>
+      </figure>
+
+      <p class="section-paragraph">
+        We develop an executable benchmark construction pipeline to curate real-world tasks, derive natural-language requirements,
+        build executable system test suites, and evaluate generated repositories at scale, as shown in Figure 1.
+      </p>
+
+      <!-- IMAGE Figure inserted BETWEEN two paragraphs -->
+      <!-- 把 src="assets/figures/construction-pipeline.png" 改成你真实的图片路径（png/jpg/webp 都可以） -->
+
+
+      <p class="section-paragraph">
+        <span class="para-lead">Reference Repository Selection.</span>
+        We begin by selecting well-established GitHub projects as reference repositories, each with clearly documented functionality and active real-world use.
+        For every chosen project, we pin a specific commit and snapshot its codebase within our evaluation framework.
+        We treat this pinned snapshot as the ground-truth implementation because it is a stable, widely adopted application-level project.
+      </p>
+
+      <!-- ===================== NEW: Benchmark Construction (full text continuation) ===================== -->
+<!-- 直接把这一段粘贴到你现有的 Benchmark Construction 小节后面（即 Reference Repository Selection 段落之后） -->
+
+<p class="section-paragraph">
+  <span class="para-lead">Natural-Language Requirement Distillation.</span>
+  Given a reference repository, we distill a natural-language requirement description (NL requirement) from its README and source code.
+  First, we synthesize a concise requirement description that summarizes the project’s core intent.
+  Second, we deliberately phrase the requirement to mirror how developers articulate intent in practice.
+  It takes the form of a single, highly compressed request, such as <em>implement a pure Python steganography library</em>.
+  Third, the requirement specifies what the application should do and how it is expected to be used.
+  However, it intentionally avoids prescribing a concrete project layout or implementation strategy.
+  Under this setting, LLMs must expand a terse intent into a fully structured, executable project and infer the architecture, dependencies,
+  and non-functional considerations without further guidance.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">System Test Generation.</span>
+  Next, we construct system test suites for each task, consisting of black-box functional tests and non-functional tests (e.g., efficiency and security).
+  Functional tests aim to exercise diverse functional requirements derived from real-world projects.
+  Non-functional tests assess key non-functional quality attributes via static analysis and controlled runtime checks.
+  Each candidate test case is first executed against the corresponding reference repository.
+  If a test fails on the reference implementation, we deem it invalid and discard it.
+  We retain only test cases that pass on the reference repository.
+  This filtering ensures a sound test oracle and guarantees that the suite can be executed end-to-end in a fully automated pipeline.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Baseline Metric Collection.</span>
+  We run the non-functional test suite on the reference repository to collect baseline metrics for each task.
+  These statistics are stored alongside the task configuration and later used when evaluating generated repositories.
+  This enables fair and consistent comparisons across models and tasks.
+</p>
+
+
+<!-- ===================== NEW: Metric Design ===================== -->
+<h2 class="section-title-sub">Metric Design</h2>
+
+<p class="section-paragraph">
+  We evaluate application-level code generation using two complementary metrics: functional correctness and non-functional quality attributes.
+</p>
+
+<p class="section-paragraph">
+  <u><strong>Functional correctness.</strong></u>
+  The functional score of functional correctness is defined as the functional test pass rate, computed as the number of passed tests divided by the total number of tests for each task.
+</p>
+
+<p class="section-paragraph">
+  <u><strong>Non-functional quality attributes.</strong></u>
+  Following the ISO/IEC 25010 quality model, we additionally assess five non-functional dimensions that are critical in practice:
+  maintainability, security, robustness, efficiency, and resource usage.
+</p>
+
+<p class="section-paragraph">
+  <strong>(1) Maintainability.</strong>
+  Maintainability is measured by the lower-bound Maintainability Index (MI) from static analysis.
+  We operationalize maintainability using MI as a static proxy for structural complexity.
+  Higher MI generally reflects lower structural complexity and therefore improved maintainability.
+  Let <em>g</em> and <em>b</em> denote the MI lower bounds of the generated code and the reference implementation, respectively.
+  To avoid hard saturation when directly using <em>g/b</em>, we apply a smooth compression function:
+</p>
+
+<!-- 公式用原生 HTML（不依赖 LaTeX 渲染）；若你后续接入 MathJax，可把这里替换成 LaTeX -->
+<div class="equation" aria-label="Maintainability scoring function">
+  <span class="sym">M</span> = <span style="white-space:nowrap;">(g/b)</span> / <span style="white-space:nowrap;">(1 + g/b)</span>.
+</div>
+
+<p class="section-paragraph">
+  <strong>(2) Security.</strong>
+  Security is quantified by the number of high-risk issues reported by static security analysis.
+  Let <em>g</em> and <em>b</em> denote the number of high-risk findings in the generated code and the reference implementation, respectively.
+  We compute a reference-aligned inverse ratio with smoothing:
+</p>
+
+<div class="equation" aria-label="Security scoring function">
+  <span class="sym">S</span> = min(1, <span style="white-space:nowrap;">(b + 1)/(g + 1)</span>).
+</div>
+
+<p class="section-paragraph">
+  <strong>(3) Robustness.</strong>
+  Robustness is evaluated using a dedicated robustness test suite targeting invalid, boundary, and unexpected inputs.
+  Let <em>passed</em> and <em>total</em> denote the number of passed tests and the total number of robustness tests.
+  The robustness score is defined as:
+</p>
+
+<div class="equation" aria-label="Robustness scoring function">
+  <span class="sym">Rb</span> = <span style="white-space:nowrap;">passed/total</span>.
+</div>
+
+<p class="section-paragraph">
+  <strong>(4) Efficiency.</strong>
+  Efficiency is measured from the runtime statistics of the <em>efficiency suite</em>, using the elapsed execution time reported by the suite.
+  Let <em>T<sub>gen</sub></em> and <em>T<sub>ref</sub></em> denote the efficiency-suite execution times of the generated code and the reference implementation, respectively.
+  If the efficiency suite fails to execute successfully (e.g., failed tests), we set <strong>E</strong> = 0; otherwise:
+</p>
+
+<div class="equation" aria-label="Efficiency scoring function">
+  <span class="sym">E</span> = min(1, <span style="white-space:nowrap;">T<sub>ref</sub>/T<sub>gen</sub></span>).
+</div>
+
+<p class="section-paragraph">
+  <strong>(5) Resource usage.</strong>
+  Resource usage is measured using a <em>dedicated resource suite</em>.
+  During execution, we sample resident set size (RSS) memory usage and CPU utilization of the <code>pytest</code> subprocess and its child processes.
+  We then compute the average memory (MB) and average CPU utilization (%) over the run.
+  Let <em>M<sub>gen</sub>, C<sub>gen</sub></em> and <em>M<sub>ref</sub>, C<sub>ref</sub></em> denote the corresponding averages for the generated code and the reference implementation.
+  If the resource suite fails to execute successfully (e.g., failed tests), we set <strong>Ru</strong> = 0.
+  Otherwise, we compute reference-aligned ratios and average memory and CPU when both are available:
+</p>
+
+<div class="equation" aria-label="Resource usage scoring function">
+  <span class="sym">Ru</span> =
+  0.5 · ( min(1, <span style="white-space:nowrap;">M<sub>ref</sub>/M<sub>gen</sub></span>) + min(1, <span style="white-space:nowrap;">C<sub>ref</sub>/C<sub>gen</sub></span>) )
+  <span style="white-space:nowrap;">(CPU available)</span>;<br/>
+  <span class="sym">Ru</span> = min(1, <span style="white-space:nowrap;">M<sub>ref</sub>/M<sub>gen</sub></span>) <span style="white-space:nowrap;">(memory only)</span>.
+</div>
+
+<p class="section-paragraph">
+  To reflect the fact that non-functional quality attributes correspond to qualitatively different engineering risks
+  (e.g., security vulnerabilities and efficiency regressions), we determine attribute weights using the Analytic Hierarchy Process (AHP).
+  We ground the relative importance ordering on Botchway et al., who apply AHP to expert questionnaires and report maintainability and security as the highest-priority quality attributes,
+  followed by robustness and efficiency.
+  Based on this ordering, we construct a pairwise comparison matrix using the standard Saaty scale.
+  We compute the normalized principal eigenvector to obtain the weight vector and verify consistency using the AHP consistency ratio (CR).
+  In our setting, CR = 0.030 (&lt; 0.1), indicating an acceptable level of consistency.
+  The full AHP derivation (matrix, eigenvector solution, CI/RI/CR) is documented in
+  <a href="https://anonymous.4open.science/r/RAL-Bench" target="_blank" rel="noopener noreferrer" class="corr-email">our anonymous repository</a>
+  for reproducibility.
+</p>
+
+<p class="section-paragraph">
+  The non-functional score aggregates five normalized quality dimensions using a weighted sum:
+</p>
+
+<div class="equation" aria-label="Overall non-functional score">
+  <span class="sym">NF</span> = 0.36·M + 0.24·S + 0.16·Rb + 0.12·E + 0.12·Ru.
+</div>
+
+<p class="section-paragraph">
+  This non-functional score provides a more reliable and discriminative measure of the practical quality of generated applications, beyond functional correctness.
+  In Section 3.2, we show that it is both discriminative across LLMs and stable under reruns.
+</p>
+
+
+<!-- ===================== NEW: Evaluation Pipeline ===================== -->
+<h2 class="section-title-sub">Evaluation Pipeline</h2>
+
+
+<figure class="paper-figure is-half" id="fig-eval-pipeline">
+  <img
+    class="figure-img"
+    src="assets/evaluation pipeline_01.png"
+    alt="Evaluation pipeline overview."
+    loading="lazy"
+  />
+  <figcaption class="figure-caption">
+    <strong>Figure 2.</strong> Evaluation pipeline overview.
+  </figcaption>
+</figure>
+
+
+<p class="section-paragraph">
+  We evaluate application-level code generation with an end-to-end pipeline, as illustrated in the evaluation workflow (Figure 2).
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Input.</span>
+  First, for each target project, we provide the LLM with a concise natural-language requirement that captures the core functionality to be implemented.
+  To ensure strict interface alignment and avoid evaluation artifacts caused by mismatched entry points, we also provide the reference repository’s expected module and package surface,
+  guiding the model to generate a repository that conforms to the same API boundary.
+  Given this requirement and the interface constraints, the LLM generates a complete repository from scratch.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Functional Correctness via System Tests.</span>
+  We then evaluate functional correctness using system test suites.
+  Specifically, we execute functional tests against the generated repository and compute the functional score as the pass ratio across all functional test cases,
+  which directly measures whether the generated application behavior matches the reference implementation’s intended functionality.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">The Role of Interface Constraints.</span>
+  On <span style="font-variant: small-caps;">Stegano</span> with GPT-5.2, omitting the interface specification yields a functional score of 0.1667.
+  Providing the interface specification increases the score to 0.6667.
+  Inspecting the corresponding failure cases shows that this improvement primarily stems from alleviating test-interface mismatches
+  (e.g., incorrect entry points or module paths) rather than from failing to satisfy the task requirements.
+  As a result, the evaluation more accurately reflects the LLM’s ability to produce an executable repository that satisfies the end-to-end functional requirements.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Non-functional Measurement.</span>
+  Beyond functional correctness, we further assess non-functional quality attributes by running a set of tests and analyses that produce measurable signals used by our scoring functions.
+  These include execution time for efficiency (e.g., <em>elapsed_time_s</em>), resource utilization statistics (e.g., <em>avg_memory_mb</em> and <em>avg_cpu_percent</em>),
+  static security findings (e.g., the number of high-risk issues <em>high_risk_count</em>), and maintainability indicators (e.g., the minimum maintainability index <em>mi_min</em>).
+  For robustness, we define it as the system’s ability to remain stable under stress and edge-case execution paths.
+  We quantify robustness using the pass ratio on our robustness-oriented test suite.
+  A higher score indicates the generated project remains stable under stress and edge-case execution paths.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Reference-normalized Scoring.</span>
+  Because different projects have very different scales, we compute a per-project baseline by running the non-functional suite on the reference repository.
+  We then score each generated repository by comparing its non-functional metrics against this baseline, making results comparable across projects.
+  Concretely, for efficiency, resource usage, security, and maintainability, we first run the same measurement pipeline on the reference repository to obtain a task-specific baseline for each dimension.
+  We then evaluate the generated repository under the same environment and normalize each raw measurement against its baseline using fixed, dimension-specific rules,
+  yielding a score in [0, 1].
+  A higher score indicates closer-to-reference (or better-than-reference) behavior on that dimension.
+  The exact scoring rules and normalization functions are defined in Section 2.3.
+</p>
+
+<p class="section-paragraph">
+  <span class="para-lead">Aggregation and Outputs.</span>
+  Finally, we aggregate the five non-functional dimension scores into an overall non-functional index using an AHP-derived weight vector.
+  This produces a weighted assessment of non-functional quality attributes that emphasizes practically important attributes while remaining consistent across projects.
+  The pipeline outputs both the functional score and the non-functional score, together with the per-dimension breakdown
+  (maintainability, security, robustness, efficiency, and resource usage), enabling the subsequent analyses to localize bottlenecks.
+</p>
+
+  <!-- Full-width gray horizontal rule -->
+  <div class="page-divider" aria-hidden="true"></div>
+
+
+<div class="leaderboard-wrap" id="leaderboard">
+  <h2 class="section-title">Leaderboard</h2>
+
+  <div class="lb-toolbar">
+    <div class="lb-left">
+      <span class="lb-chip">Sort by:
+        <strong id="lbSortKeyText" style="margin-left:.25rem;">Non-func.</strong>
+      </span>
+
+      <select class="lb-select" id="lbSplit">
+        <option value="base">Base Models</option>
+
+        <option value="thinking">Thinking Models</option>
+        <option value="all" selected>All</option>
+
+      </select>
+
+      <select class="lb-select" id="lbMetric">
+        <option value="func" selected>Func.</option>
+        <option value="nonfunc">Non-func.</option>
+        <option value="maint">Maint.</option>
+        <option value="sec">Sec.</option>
+        <option value="robust">Robust.</option>
+        <option value="eff">Eff.</option>
+        <option value="res">Res.</option>
+      </select>
+
+      <select class="lb-select" id="lbProvider">
+        <option value="all" selected>All providers</option>
+        <option value="Google">Google</option>
+        <option value="OpenAI">OpenAI</option>
+        <option value="Anthropic">Anthropic</option>
+        <option value="DeepSeek">DeepSeek</option>
+      </select>
+    </div>
+
+    <div class="lb-right">
+      <input class="lb-input" id="lbSearch" placeholder="Search model name…" />
+    </div>
+  </div>
+
+<div class="lb-card">
+  <table class="lb-table" id="lbTable">
+    <!-- ✅ 固定列宽：防止错位 -->
+    <!-- <colgroup>
+      <col class="c-rank">
+      <col class="c-model">
+      <col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num">
+      <col class="c-num"><col class="c-num"><col class="c-num">
+    </colgroup> -->
+
+    <thead>
+      <tr>
+        <th data-key="rank">#</th>
+        <th data-key="model">Model</th>
+        <th data-key="func">Func.</th>
+        <th data-key="nonfunc">Non-func.</th>
+        <th data-key="maint">Maint.</th>
+        <th data-key="sec">Sec.</th>
+        <th data-key="robust">Robust.</th>
+        <th data-key="eff">Eff.</th>
+        <th data-key="res">Res.</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+
+</div>
+
+  <!-- Full-width gray horizontal rule -->
+  <div class="page-divider" aria-hidden="true"></div>
+
+
+<!-- ===== Citation ===== -->
+<section class="rb-citation" id="citation">
+  <h2 class="section-title">Citation</h2>
+
+  <p class="section-paragraph rb-cite-hint">
+    If you use RAL-Bench in your research, please cite:
+  </p>
+
+  <div class="rb-cite-card">
+    <div class="rb-cite-head">
+      <span class="rb-cite-tag">BibTeX</span>
+      <button class="rb-cite-copy" id="rbCopyBib" type="button">Copy</button>
+    </div>
+
+    <pre class="rb-cite-pre" id="rbBibTex"><code>@article{pan2026ralbench,
+  title   = {Beyond Runnable: Are LLMs Ready for Application-Level Functional Correctness and Non-Functional Quality Attributes?},
+  author  = {Pan, Ruwei and Zhang, Yakun and Liang, Qingyuan and Zhu, Yueheng and Liu, Chao and Zhang, Lu and Zhang, Hongyu},
+  journal = {arXiv preprint arXiv:XXXX.XXXXX},
+  year    = {2026}
+}</code></pre>
+  </div>
+</section>
+
+
+
+    </div>
+  </main>
+</body>
+
+<script>
+  const BASE_MODELS = [
+    { model:"Gemini-2.5-Pro", provider:"Google", func:27.63, nonfunc:35.15, maint:26.27, sec:54.39, robust:41.39, eff:24.84, res:25.28, split:"base" },
+    { model:"Gemini-3-Pro-preview", provider:"Google", func:43.86, nonfunc:50.57, maint:31.50, sec:76.75, robust:66.36, eff:43.69, res:41.23, split:"base" },
+
+    { model:"GPT-3.5-Turbo", provider:"OpenAI", func:29.76, nonfunc:55.08, maint:36.92, sec:97.37, robust:79.62, eff:29.80, res:17.57, split:"base" },
+    { model:"GPT-4o-2024-11-20", provider:"OpenAI", func:27.48, nonfunc:57.59, maint:37.50, sec:96.05, robust:84.07, eff:35.54, res:27.71, split:"base" },
+    { model:"GPT-4-Turbo", provider:"OpenAI", func:36.42, nonfunc:58.13, maint:34.90, sec:97.37, robust:78.32, eff:42.24, res:38.31, split:"base" },
+    { model:"GPT-5-2025-08-07", provider:"OpenAI", func:38.50, nonfunc:57.51, maint:33.84, sec:94.74, robust:77.02, eff:41.81, res:43.73, split:"base" },
+    { model:"GPT-5.2", provider:"OpenAI", func:41.81, nonfunc:57.05, maint:33.90, sec:92.11, robust:77.19, eff:42.79, res:43.83, split:"base" },
+
+    { model:"Claude-Haiku-4.5-20251001", provider:"Anthropic", func:34.74, nonfunc:56.40, maint:34.52, sec:97.37, robust:79.66, eff:37.19, res:28.32, split:"base" },
+    { model:"Claude-Sonnet-4.5", provider:"Anthropic", func:39.32, nonfunc:49.64, maint:30.19, sec:84.21, robust:66.93, eff:31.50, res:33.94, split:"base" },
+
+    { model:"DeepSeek-V3-0324", provider:"DeepSeek", func:24.37, nonfunc:46.34, maint:32.29, sec:81.58, robust:65.89, eff:22.90, res:15.36, split:"base" },
+    { model:"DeepSeek-V3.2", provider:"DeepSeek", func:29.92, nonfunc:51.26, maint:36.07, sec:89.47, robust:63.49, eff:26.91, res:28.46, split:"base" },
+  ];
+
+  const THINKING_MODELS = [
+    { model:"Gemini-2.5-Pro-Thinking", provider:"Google", func:43.44, nonfunc:56.09, maint:34.80, sec:89.47, robust:75.16, eff:42.68, res:41.15, split:"thinking" },
+
+    { model:"GPT-o1", provider:"OpenAI", func:33.88, nonfunc:55.44, maint:37.44, sec:92.11, robust:74.07, eff:36.35, res:30.37, split:"thinking" },
+    { model:"GPT-o3-2025-04-16", provider:"OpenAI", func:30.27, nonfunc:55.44, maint:35.01, sec:96.05, robust:73.60, eff:35.89, res:30.80, split:"thinking" },
+
+    { model:"Claude-3.7-Sonnet-Thinking", provider:"Anthropic", func:27.34, nonfunc:52.94, maint:37.29, sec:92.11, robust:63.34, eff:30.65, res:29.95, split:"thinking" },
+
+    { model:"DeepSeek-R1", provider:"DeepSeek", func:16.23, nonfunc:27.95, maint:12.36, sec:56.84, robust:38.42, eff:18.57, res:12.36, split:"thinking" },
+  ];
+
+  const ALL_MODELS = [...BASE_MODELS, ...THINKING_MODELS];
+
+  const providerClass = (p) => {
+    if(p === "Google") return "p-gemini";
+    if(p === "OpenAI") return "p-openai";
+    if(p === "Anthropic") return "p-claude";
+    if(p === "DeepSeek") return "p-deepseek";
+    return "";
+  };
+
+  const fmt = (x) => Number.isFinite(x) ? x.toFixed(2) : "-";
+
+  const state = {
+    split: "all",
+    metric: "func",
+    provider: "all",
+    search: "",
+    sortKey: "func",
+    sortDir: "desc",
+  };
+
+
+  function getData(){
+    let data = ALL_MODELS.slice();
+
+    if(state.split !== "all"){
+      data = data.filter(d => d.split === state.split);
+    }
+    if(state.provider !== "all"){
+      data = data.filter(d => d.provider === state.provider);
+    }
+    if(state.search.trim()){
+      const q = state.search.trim().toLowerCase();
+      data = data.filter(d => d.model.toLowerCase().includes(q));
+    }
+    return data;
+  }
+
+  function computeBestByMetric(rows){
+    // best per visible column set (excluding model/provider/rank)
+    const keys = ["func","nonfunc","maint","sec","robust","eff","res"];
+    const best = {};
+    keys.forEach(k => {
+      let m = -Infinity;
+      rows.forEach(r => { if(Number.isFinite(r[k])) m = Math.max(m, r[k]); });
+      best[k] = m;
+    });
+    return best;
+  }
+
+  function render(){
+    const tbody = document.querySelector("#lbTable tbody");
+    let rows = getData();
+
+    // sort
+    const key = state.sortKey;
+    const dir = state.sortDir === "asc" ? 1 : -1;
+    rows.sort((a,b)=>{
+      const va = Number.isFinite(a[key]) ? a[key] : -Infinity;
+      const vb = Number.isFinite(b[key]) ? b[key] : -Infinity;
+      if(va === vb) return a.model.localeCompare(b.model);
+      return (va - vb) * dir;
+    });
+
+    // rank + best
+    const best = computeBestByMetric(rows);
+
+    tbody.innerHTML = "";
+    rows.forEach((r, idx) => {
+      const tr = document.createElement("tr");
+      tr.className = providerClass(r.provider);
+
+      const isBest = (k) => Number.isFinite(r[k]) && Math.abs(r[k] - best[k]) < 1e-9;
+
+      tr.innerHTML = `
+        <td class="lb-rank">${idx+1}</td>
+        <td>
+          <span class="lb-model">${r.model}</span>
+          <span class="lb-provider">(${r.provider})</span>
+        </td>
+        <td class="lb-score ${isBest("func") ? "lb-best":""}">${fmt(r.func)}</td>
+        <td class="lb-score ${isBest("nonfunc") ? "lb-best":""}">${fmt(r.nonfunc)}</td>
+        <td class="lb-score ${isBest("maint") ? "lb-best":""}">${fmt(r.maint)}</td>
+        <td class="lb-score ${isBest("sec") ? "lb-best":""}">${fmt(r.sec)}</td>
+        <td class="lb-score ${isBest("robust") ? "lb-best":""}">${fmt(r.robust)}</td>
+        <td class="lb-score ${isBest("eff") ? "lb-best":""}">${fmt(r.eff)}</td>
+        <td class="lb-score ${isBest("res") ? "lb-best":""}">${fmt(r.res)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("lbSortKeyText").textContent =
+      (state.sortKey === "nonfunc") ? "Non-func." :
+      (state.sortKey === "func") ? "Func." :
+      state.sortKey[0].toUpperCase() + state.sortKey.slice(1);
+  }
+
+  // toolbar bindings
+  document.getElementById("lbSplit").addEventListener("change", (e)=>{
+    state.split = e.target.value;
+    render();
+  });
+  document.getElementById("lbMetric").addEventListener("change", (e)=>{
+    state.metric = e.target.value;
+    state.sortKey = state.metric; // metric selector also sets sort
+    state.sortDir = "desc";
+    render();
+  });
+  document.getElementById("lbProvider").addEventListener("change", (e)=>{
+    state.provider = e.target.value;
+    render();
+  });
+  document.getElementById("lbSearch").addEventListener("input", (e)=>{
+    state.search = e.target.value;
+    render();
+  });
+
+  // click header sorting
+  document.querySelectorAll("#lbTable thead th").forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const k = th.getAttribute("data-key");
+      if(!k || k === "rank" || k === "model") return;
+      if(state.sortKey === k){
+        state.sortDir = (state.sortDir === "desc") ? "asc" : "desc";
+      }else{
+        state.sortKey = k;
+        state.sortDir = "desc";
+      }
+      render();
+    });
+  });
+
+  // initial render
+  render();
+
+  // Copy BibTeX
+const copyBtn = document.getElementById("rbCopyBib");
+if(copyBtn){
+  copyBtn.addEventListener("click", async () => {
+    const txt = document.getElementById("rbBibTex")?.innerText || "";
+    try{
+      await navigator.clipboard.writeText(txt);
+      copyBtn.textContent = "Copied!";
+      setTimeout(()=> copyBtn.textContent = "Copy", 1200);
+    }catch(e){
+      copyBtn.textContent = "Failed";
+      setTimeout(()=> copyBtn.textContent = "Copy", 1200);
+    }
+  });
+}
+
+</script>
+
+
+</html>
