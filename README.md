@@ -1,4 +1,4 @@
-# Beyond Runnable: Are LLMs Ready for Application-Level Functional Correctness and Non-functional Quality?
+# RAL-Bench
 
 RAL-Bench is an **application-level** benchmark that asks a simple but under-explored question:
 
