@@ -17,9 +17,9 @@ RAL-Bench is an **application-level** benchmark that asks a simple but under-exp
 This repository contains the full artifact for RAL-Bench, including reference projects, task configs, system tests, and the end-to-end evaluation pipeline.
 
 **Core contributions:**
-- **Study:** We are the first to systematically analyze the evaluation gap between existing code benchmarks and the requirements of real-world application development. Our study also opens up a new research direction for precisely and rigorously evaluating application-level code generation.
-- **Approach:** We propose RAL-Bench, a benchmark and evaluation framework for application-level code generation grounded in real-world GitHub repositories. For each task, we extract a concise natural-language requirement from a high-quality reference project and construct black-box system tests covering both functional correctness and key non-functional quality attributes. We execute all candidate tests on the reference repository and retain only those that pass, ensuring a sound test oracle and end-to-end executability. Functional score is computed as the system test pass rate. Non-functional quality is measured along five ISO/IEC 25010-inspired dimensions and aggregated using an AHP-derived weight vector with per-dimension diagnostics. In addition, baseline non-functional metrics are collected on the reference repository to enable baseline-normalized scoring.
-- **Results:** We comprehensively evaluate 16 LLMs (standard and thinking) under zero-shot settings with greedy decoding. First, we find that functional correctness is the dominant bottleneck: under our requirement-driven, reference-validated black-box system tests, no LLM surpasses a 45\% functional pass rate. Second, although non-functional scores are generally higher, they cannot offset functional failures. Third, our failure-pattern dataset comprises 446 successfully generated repositories and over 4,500 test-case execution logs. It shows that failures are dominated by Requirement–Implementation Mismatch and Non-functional Quality Failures (82.8\% combined), whereas Executability \& Dependency Failures account for 17.2\%. Fourth, we quantify cost. Thinking LLMs are more expensive on average, yet they do not yield consistent functional improvements. This suggests that higher-cost “thinking” does not yet translate into effective reasoning for application-level generation。 Finally, the results show that when tasks scale to the application level, mainstream code generation strategies are no longer effective.
+- We define application-level repository generation as a benchmark setting where a model generates a complete repository from a concise natural-language requirement and an expected public module/package surface. The generated repository is evaluated through installation, import, execution, and black-box system tests.
+- We present RAL-Bench, a benchmark built from real GitHub projects with reference-validated executable tests. It measures tested functional behavior and reports separate non-functional quality signals, including maintainability, security risk, robustness, efficiency, and resource usage.
+- We evaluate 16 frontier LLMs under a controlled zero-shot, single-turn setting. The results show that functional behavior remains the main bottleneck, and that per-dimension non-functional scores reveal additional differences among generated repositories.
 
 ---
 
@@ -80,5 +80,4 @@ $env:OPENAI_BASE_URL="your_base_url"
 ```powershell
 python -m evaluation.run_all_benchmarks --model <model>
 ```
-
 
