@@ -30,7 +30,7 @@ def _build_sample_source(lines: int = 200) -> str:
     return "\n".join(base.format(i=i) for i in range(lines))
 
 
-def run_pygments_performance_benchmark(iterations: int = 50, lines: int = 200) -> dict[str, float]:
+def run_pygments_efficiency_benchmark(iterations: int = 50, lines: int = 200) -> dict[str, float]:
     """Run repeated highlighting on synthetic Python source and measure time."""
     code = _build_sample_source(lines=lines)
     lexer = PythonLexer()
@@ -54,9 +54,9 @@ def run_pygments_performance_benchmark(iterations: int = 50, lines: int = 200) -
     }
 
 
-def test_pygments_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_pygments_performance_benchmark(iterations=10, lines=100)
+def test_pygments_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_pygments_efficiency_benchmark(iterations=10, lines=100)
 
     assert metrics["iterations"] == 10.0
     assert metrics["lines"] == 100.0

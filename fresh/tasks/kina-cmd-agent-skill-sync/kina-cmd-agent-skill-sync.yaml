@@ -1,0 +1,106 @@
+task_id: kina-cmd-agent-skill-sync
+domain: fresh
+difficulty: medium
+description: 'Implement agent-skill-sync''s documented conservative A/B/C/D classification:
+  portable text with no unavailable dependencies is A, another agent''s image_gen
+  vocabulary is C, and every result carries a human-readable reason without mutating
+  the source file.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import skillsync.classifier
+
+  Required path: skillsync/classifier.py
+
+  - function classify(skill, config)
+
+  - function classify_all(skills, config)
+
+
+  Semantic cases: a plain portable SKILL.md classifies A with no missing dependencies;
+  a SKILL.md referencing image_gen classifies C and its reason names image_gen.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: skillsync/classifier.py
+reference_repository: ./fresh/cache/kina-cmd-agent-skill-sync
+generated_repository: ./fresh/generation/kina-cmd-agent-skill-sync
+package:
+  name: skillsync
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/kina-cmd-agent-skill-sync/functional_test.py
+  robustness: ./fresh/tests/kina-cmd-agent-skill-sync/robustness_test.py
+  efficiency: ./fresh/tests/kina-cmd-agent-skill-sync/efficiency_test.py
+  resource: ./fresh/tests/kina-cmd-agent-skill-sync/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.839963
+    functional_tests_total: 5
+  robustness:
+    robustness_suite_time_s: 0.892489
+    robustness_tests_total: 5
+  efficiency:
+    efficiency_suite_time_s: 0.795719
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.812509
+    resource_tests_total: 1
+    avg_memory_mb: 41.2
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.817994
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 12.0
+      total_loc: 1344.0
+  maintainability:
+    maintainability_suite_time_s: 0.837101
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 19.2066
+      files_scanned: 12.0
+      total_loc: 1344.0
+      max_cc: 23.0
+provenance:
+  repository: kina-cmd/agent-skill-sync
+  source_url: https://github.com/kina-cmd/agent-skill-sync
+  created_at: '2026-09-12T01:50:30Z'
+  pinned_commit: 975b219eb387298d83ef1b94c8be687658b6b8d9
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: skillsync.classifier
+    module_root: .
+    source_file: skillsync/classifier.py
+    symbols:
+    - name: classify
+      kind: function
+      signature: (skill, config)
+    - name: classify_all
+      kind: function
+      signature: (skills, config)
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: a plain portable SKILL.md classifies
+      A with no missing dependencies; a SKILL.md referencing image_gen classifies
+      C and its reason names image_gen.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: The A/B/C/D migration taxonomy; Classification is heuristic
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

@@ -1,43 +1,38 @@
 task_id: petl_core_etl_pipeline
 domain: data
 difficulty: medium
-description: "Implement a pure Python lightweight ETL (Extract–Transform–Load) library\
-  \ that is\nAPI-compatible with the core functionality of the reference Petl project\
-  \ as exercised\nby the test suite. The generated repository must:\n\n- Provide a\
-  \ top-level `petl` package importable as `import petl`, organized so that\n  at\
-  \ minimum the following modules exist:\n    * petl\n    * petl/io/csv\n    * petl/transform/conversions\n\
-  \    * petl/transform/selects\n    * petl/transform/sort\n    * petl/transform/joins\n\
-  \n- Implement lazy table semantics where ETL operators return new table wrappers\
-  \ without\n  materializing the data until iterated.\n\n- Expose the key public API\
-  \ functions used by the test suite, including:\n    * CSV I/O:\n        - `petl.fromcsv(path)`\
-  \ → returns a table\n        - `petl.tocsv(table, path)` → writes rows to CSV\n\
-  \    * In-memory table construction:\n        - `petl.fromdicts(records, header=[...])`\n\
-  \    * Column conversion:\n        - `petl.convert(table, field, func)`\n    * Row\
-  \ filtering:\n        - `petl.select(table, predicate)`\n        - `petl.selectge(table,\
-  \ field, threshold)`\n        - `petl.selectgt(table, field, threshold)`\n    *\
-  \ Sorting:\n        - `petl.sort(table, field)`\n    * Field creation:\n       \
-  \ - `petl.addfield(table, fieldname, func)`\n    * Joins:\n        - `petl.join(left,\
-  \ right, key='id')`\n\n- Table protocol required by the tests:\n    * A table is\
-  \ an iterable where the first row is the header and the remaining rows\n      are\
-  \ data rows.\n    * Pipelines such as `fromcsv(...) → convert → select → sort →\
-  \ tocsv` are valid and\n      must compose correctly.\n    * Joins must produce\
-  \ a header row including all participating fields, and each\n      resulting row\
-  \ must contain combined values for the join key.\n\n- Efficiency expectations (black-box):\n\
-  \    * `performance_test` must complete within the expected time on bulk CSV and\n\
-  \      in-memory pipelines.\n    * Table evaluation should be lazy; full materialization\
-  \ only happens when the\n      table is converted to a list or written through `tocsv`.\n\
-  \n- Resource expectations:\n    * The memory footprint of repeated CSV and fromdicts\
-  \ pipelines must remain below\n      the coarse upper bound enforced by the tests\
-  \ (no unbounded caching of rows).\n"
+description: "Implement a pure Python lightweight ETL (Extract–Transform–Load) library that is\nAPI-compatible\
+  \ with the core functionality of the reference Petl project as exercised\nby the test suite. The generated\
+  \ repository must:\n\n- Provide a top-level `petl` package importable as `import petl`, organized so\
+  \ that\n  at minimum the following modules exist:\n    * petl\n    * petl/io/csv\n    * petl/transform/conversions\n\
+  \    * petl/transform/selects\n    * petl/transform/sort\n    * petl/transform/joins\n\n- Implement\
+  \ lazy table semantics where ETL operators return new table wrappers without\n  materializing the data\
+  \ until iterated.\n\n- Expose the key public API functions used by the test suite, including:\n    *\
+  \ CSV I/O:\n        - `petl.fromcsv(path)` → returns a table\n        - `petl.tocsv(table, path)` →\
+  \ writes rows to CSV\n    * In-memory table construction:\n        - `petl.fromdicts(records, header=[...])`\n\
+  \    * Column conversion:\n        - `petl.convert(table, field, func)`\n    * Row filtering:\n    \
+  \    - `petl.select(table, predicate)`\n        - `petl.selectge(table, field, threshold)`\n       \
+  \ - `petl.selectgt(table, field, threshold)`\n    * Sorting:\n        - `petl.sort(table, field)`\n\
+  \    * Field creation:\n        - `petl.addfield(table, fieldname, func)`\n    * Joins:\n        - `petl.join(left,\
+  \ right, key='id')`\n\n- Table protocol required by the tests:\n    * A table is an iterable where the\
+  \ first row is the header and the remaining rows\n      are data rows.\n    * Pipelines such as `fromcsv(...)\
+  \ → convert → select → sort → tocsv` are valid and\n      must compose correctly.\n    * Joins must\
+  \ produce a header row including all participating fields, and each\n      resulting row must contain\
+  \ combined values for the join key.\n\n- Efficiency expectations (black-box):\n    * `efficiency_test`\
+  \ must complete within the expected time on bulk CSV and\n      in-memory pipelines.\n    * Table evaluation\
+  \ should be lazy; full materialization only happens when the\n      table is converted to a list or\
+  \ written through `tocsv`.\n\n- Resource expectations:\n    * The memory footprint of repeated CSV and\
+  \ fromdicts pipelines must remain below\n      the coarse upper bound enforced by the tests (no unbounded\
+  \ caching of rows).\n"
 interfaces:
   type: LIB
   language: python
   entry_point: petl/__init__.py
 reference_repository: ./repositories/Petl
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 2.294684
-    performance_tests_total: 2
+  efficiency:
+    efficiency_suite_time_s: 2.294684
+    efficiency_tests_total: 2
   resource:
     resource_suite_time_s: 2.52548
     resource_tests_total: 2
@@ -66,7 +61,7 @@ baseline_metrics:
       max_cc: 33.0
 test_suite:
   functional: ./tests/Petl/functional_test.py
-  performance: ./tests/Petl/performance_test.py
+  efficiency: ./tests/Petl/efficiency_test.py
   resource: ./tests/Petl/resource_test.py
   robustness: ./tests/Petl/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -78,8 +73,8 @@ package:
 files:
 - path: petl/__init__.py
   role: package_init
-  description: Public entry point; exposes fromcsv, fromdicts, convert, select, addfield,
-    sort, join, and tocsv.
+  description: Public entry point; exposes fromcsv, fromdicts, convert, select, addfield, sort, join,
+    and tocsv.
 - path: petl/io/csv.py
   role: csv_io_impl
   description: Implements fromcsv and tocsv based on lazy iterator wrappers.
@@ -95,3 +90,67 @@ files:
 - path: petl/transform/joins.py
   role: joins_impl
   description: Implements join(left, right, key) to lazily combine rows from two tables.
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - import petl
+
+
+  Referenced package attributes:
+
+  - petl.addfield
+
+  - petl.convert
+
+  - petl.cut
+
+  - petl.distinct
+
+  - petl.fromcsv
+
+  - petl.fromdicts
+
+  - petl.head
+
+  - petl.join
+
+  - petl.leftjoin
+
+  - petl.recordlookup
+
+  - petl.rename
+
+  - petl.select
+
+  - petl.selecteq
+
+  - petl.selectge
+
+  - petl.selectgt
+
+  - petl.selectin
+
+  - petl.sort
+
+  - petl.stack
+
+  - petl.tocsv
+
+
+  Required module/file paths:
+
+  - petl/__init__.py
+
+  - petl/io/csv.py
+
+  - petl/transform/conversions.py
+
+  - petl/transform/selects.py
+
+  - petl/transform/sort.py
+
+  - petl/transform/joins.py
+
+  '

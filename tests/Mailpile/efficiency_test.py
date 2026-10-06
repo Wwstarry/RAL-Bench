@@ -125,7 +125,7 @@ def _racb_as_vcardline_py3(self):  # type: ignore
 _vcard_mod.VCardLine.as_vcardline = _racb_as_vcardline_py3  # type: ignore
 
 
-def run_mailpile_performance_benchmark(iterations: int = 2000) -> Dict[str, float]:
+def run_mailpile_efficiency_benchmark(iterations: int = 2000) -> Dict[str, float]:
     """Time repeated VCard line serialization (representative pure-Python workload)."""
 
     vcl = VCardLine(name="bogus", value=("B" * 100) + "C")
@@ -142,8 +142,8 @@ def run_mailpile_performance_benchmark(iterations: int = 2000) -> Dict[str, floa
     }
 
 
-def test_mailpile_performance_smoke() -> None:
-    metrics = run_mailpile_performance_benchmark(iterations=500)
+def test_mailpile_efficiency_smoke() -> None:
+    metrics = run_mailpile_efficiency_benchmark(iterations=500)
     assert metrics["iterations"] == 500.0
     assert metrics["total_time_seconds"] >= 0.0
     assert metrics["calls_per_second"] >= 0.0

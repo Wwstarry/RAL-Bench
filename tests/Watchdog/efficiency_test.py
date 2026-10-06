@@ -61,8 +61,8 @@ def run_watchdog_benchmark(tmp: Path, n: int = 80) -> Dict[str, float]:
     }
 
 
-def test_watchdog_performance_smoke(tmp_path: Path) -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
+def test_watchdog_efficiency_smoke(tmp_path: Path) -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
     metrics = run_watchdog_benchmark(tmp_path, n=40)
     assert metrics["events_recorded"] >= 1.0
     assert metrics["total_time_s"] >= 0.0

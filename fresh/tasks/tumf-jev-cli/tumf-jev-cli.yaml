@@ -1,0 +1,182 @@
+task_id: tumf-jev-cli
+domain: fresh
+difficulty: medium
+description: 'Implement Jev CLI''s offline input normalization and provider configuration:
+  parse --json-state, split KEY=DESCRIPTION criteria, preserve an explicit custom
+  endpoint, expose documented provider model defaults, and reject malformed JSON or
+  criterion pairs before any network call.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import jev_cli
+
+  Required path: src/jev_cli/__init__.py
+
+  - object annotations
+
+  - object Path
+
+  - object Any
+
+  - class CliError
+
+  - function masked_getpass(prompt)
+
+  - function api_key(provider)
+
+  - function set_api_key(provider)
+
+  - function install_skills(global_install, claude, cwd, home)
+
+  - function read_text(value)
+
+  - function state_value(value, force_json)
+
+  - function split_pair(value)
+
+  - function load_request(path)
+
+  - function provider_request(payload, provider)
+
+  - function normalize_response(result, provider)
+
+  - function provider_endpoint(provider, override)
+
+  - function provider_model(provider)
+
+  - constant INSTALL_MARKER = ''.jev-cli-managed''
+
+
+  Semantic cases: state_value(''{"message":"today"}'', True) returns the corresponding
+  mapping; split_pair(''billing=Payment issue'') returns that exact pair; official/vercel/openrouter
+  models are jev-latest, typesafe-ai/jev, and typesafe/jev-1.13; malformed values
+  raise CLI input errors.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/jev_cli/__init__.py
+reference_repository: ./fresh/cache/tumf-jev-cli
+generated_repository: ./fresh/generation/tumf-jev-cli
+package:
+  name: jev_cli
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/tumf-jev-cli/functional_test.py
+  robustness: ./fresh/tests/tumf-jev-cli/robustness_test.py
+  efficiency: ./fresh/tests/tumf-jev-cli/efficiency_test.py
+  resource: ./fresh/tests/tumf-jev-cli/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.876553
+    functional_tests_total: 19
+  robustness:
+    robustness_suite_time_s: 0.897345
+    robustness_tests_total: 19
+  efficiency:
+    efficiency_suite_time_s: 0.902441
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.911476
+    resource_tests_total: 1
+    avg_memory_mb: 42.14
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.918656
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 3.0
+      total_loc: 652.0
+  maintainability:
+    maintainability_suite_time_s: 0.949154
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 10.2584
+      files_scanned: 6.0
+      total_loc: 1462.0
+      max_cc: 15.0
+provenance:
+  repository: tumf/jev-cli
+  source_url: https://github.com/tumf/jev-cli
+  created_at: '2026-09-17T23:45:29Z'
+  pinned_commit: be6d6a2a82db74a20cbed689c73e9eb280620f16
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: jev_cli
+    module_root: src
+    source_file: src/jev_cli/__init__.py
+    symbols:
+    - name: annotations
+      kind: object
+      signature: ''
+    - name: Path
+      kind: object
+      signature: ''
+    - name: Any
+      kind: object
+      signature: ''
+    - name: CliError
+      kind: class
+      signature: class
+    - name: masked_getpass
+      kind: function
+      signature: (prompt)
+    - name: api_key
+      kind: function
+      signature: (provider)
+    - name: set_api_key
+      kind: function
+      signature: (provider)
+    - name: install_skills
+      kind: function
+      signature: (global_install, claude, cwd, home)
+    - name: read_text
+      kind: function
+      signature: (value)
+    - name: state_value
+      kind: function
+      signature: (value, force_json)
+    - name: split_pair
+      kind: function
+      signature: (value)
+    - name: load_request
+      kind: function
+      signature: (path)
+    - name: provider_request
+      kind: function
+      signature: (payload, provider)
+    - name: normalize_response
+      kind: function
+      signature: (result, provider)
+    - name: provider_endpoint
+      kind: function
+      signature: (provider, override)
+    - name: provider_model
+      kind: function
+      signature: (provider)
+    constants:
+      INSTALL_MARKER: .jev-cli-managed
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: state_value(''{"message":"today"}'',
+      True) returns the corresponding mapping; split_pair(''billing=Payment issue'')
+      returns that exact pair; official/vercel/openrouter models are jev-latest, typesafe-ai/jev,
+      and typesafe/jev-1.13; malformed values raise CLI input errors.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Authentication provider table; JSON state; Batch questions; Exit codes
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

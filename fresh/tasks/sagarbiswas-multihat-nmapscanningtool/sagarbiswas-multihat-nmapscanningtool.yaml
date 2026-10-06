@@ -1,0 +1,98 @@
+task_id: sagarbiswas-multihat-nmapscanningtool
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of SagarBiswas-MultiHAT/NmapScanningTool. The repository must provide
+  importable module `nmap_scanning_tool` at `src/nmap_scanning_tool/__init__.py` and
+  expose the declared public names: entrypoint. Imports must be deterministic, unknown
+  attributes must raise AttributeError, and public callables must support Python signature
+  introspection. No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import nmap_scanning_tool
+
+  Required path: src/nmap_scanning_tool/__init__.py
+
+  - object entrypoint
+
+  Additional documented module: nmap_scanning_tool.validation
+
+  - function validate_target(target)
+
+  - function validate_ports(ports)
+
+  - function validate_custom_args(custom_args)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/nmap_scanning_tool/__init__.py
+reference_repository: ./fresh/cache/sagarbiswas-multihat-nmapscanningtool
+generated_repository: ./fresh/generation/sagarbiswas-multihat-nmapscanningtool
+package:
+  name: nmap_scanning_tool
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/sagarbiswas-multihat-nmapscanningtool/functional_test.py
+  robustness: ./fresh/tests/sagarbiswas-multihat-nmapscanningtool/robustness_test.py
+  efficiency: ./fresh/tests/sagarbiswas-multihat-nmapscanningtool/efficiency_test.py
+  resource: ./fresh/tests/sagarbiswas-multihat-nmapscanningtool/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.826165
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 0.900704
+    robustness_tests_total: 10
+  efficiency:
+    efficiency_suite_time_s: 0.821723
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.857036
+    resource_tests_total: 1
+    avg_memory_mb: 41.03
+    avg_cpu_percent: 4.2
+  security:
+    security_suite_time_s: 0.825299
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 9.0
+      total_loc: 506.0
+  maintainability:
+    maintainability_suite_time_s: 0.81435
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.4306
+      files_scanned: 15.0
+      total_loc: 723.0
+      max_cc: 13.0
+provenance:
+  repository: SagarBiswas-MultiHAT/NmapScanningTool
+  source_url: https://github.com/SagarBiswas-MultiHAT/NmapScanningTool
+  created_at: '2026-09-01T12:21:02Z'
+  pinned_commit: f84d437a3d2c71afcd6eac049f3902a9d49d084f
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: nmap_scanning_tool
+    module_root: src
+    source_file: src/nmap_scanning_tool/__init__.py
+    symbols:
+    - name: entrypoint
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - source: README.md#input-examples
+    normal: normalize documented IP, hostname, port-list, range, and custom argument
+      inputs
+    state: validation returns immutable normalized strings and tuples without running
+      Nmap
+    boundary: empty or malformed targets and ports outside 1-65535 raise ValidationError
+  independent_review: pending

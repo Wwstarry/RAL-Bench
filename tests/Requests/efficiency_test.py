@@ -51,7 +51,7 @@ def run_requests_prepare_benchmark(iterations: int = 5000) -> Dict[str, float]:
     }
 
 
-def test_requests_performance_smoke() -> None:
+def test_requests_efficiency_smoke() -> None:
     m = run_requests_prepare_benchmark(iterations=1000)
     assert m["iterations"] == 1000.0
     assert m["total_time_seconds"] >= 0.0

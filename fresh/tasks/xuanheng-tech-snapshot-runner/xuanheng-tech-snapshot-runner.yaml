@@ -1,0 +1,141 @@
+task_id: xuanheng-tech-snapshot-runner
+domain: fresh
+difficulty: medium
+description: 'Implement Snapshot Runner''s published CLI contract, not aliases: contract
+  version 3 names exactly branch-review, diff-audit, read, repo-status, and test-triage,
+  with frozen snapshot/summary/evidence schema versions and documented summary bounds.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import snapshot_runner.artifact
+
+  Required path: snapshot_runner/artifact.py
+
+  - function active_repository_root(repository_root)
+
+  - class SnapshotArtifact
+
+  - function snapshot_output_root(target_repo)
+
+  - constant SNAPSHOT_PUBLISH_DURABILITY_ERROR = ''snapshot published but snapshot-store
+  durability sync failed''
+
+  - constant STATE_HOME_MISSING_ERROR = ''state home must already exist as a private
+  directory''
+
+  - constant SNAPSHOT_META_SCHEMA_VERSION = 2
+
+  - constant SUMMARY_SCHEMA_VERSION = 2
+
+  - constant EVIDENCE_SCHEMA_VERSION = 1
+
+  - constant SUMMARY_TEXT_LIMIT = 256
+
+  - constant SUMMARY_WARNING_LIMIT = 5
+
+
+  Semantic cases: tool_cli_contract.json uses command_invocation ''snapshot-runner
+  <command>'', contract_version 3, and the five documented subcommands; snapshot metadata/summary/evidence
+  versions are 2/2/1 and summary limits are 256 characters and 5 warnings.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: snapshot_runner/artifact.py
+reference_repository: ./fresh/cache/xuanheng-tech-snapshot-runner
+generated_repository: ./fresh/generation/xuanheng-tech-snapshot-runner
+package:
+  name: snapshot_runner
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/xuanheng-tech-snapshot-runner/functional_test.py
+  robustness: ./fresh/tests/xuanheng-tech-snapshot-runner/robustness_test.py
+  efficiency: ./fresh/tests/xuanheng-tech-snapshot-runner/efficiency_test.py
+  resource: ./fresh/tests/xuanheng-tech-snapshot-runner/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.96382
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 0.960415
+    robustness_tests_total: 6
+  efficiency:
+    efficiency_suite_time_s: 0.834737
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.801528
+    resource_tests_total: 1
+    avg_memory_mb: 43.62
+    avg_cpu_percent: 2.2
+  security:
+    security_suite_time_s: 0.815942
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 9.0
+      total_loc: 10528.0
+  maintainability:
+    maintainability_suite_time_s: 1.152999
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 9.0
+      total_loc: 10528.0
+      max_cc: 94.0
+provenance:
+  repository: xuanheng-tech/snapshot-runner
+  source_url: https://github.com/xuanheng-tech/snapshot-runner
+  created_at: '2026-09-07T14:45:17Z'
+  pinned_commit: 766d7f8a651f6b6fe1d266099a2dcf9cf599f058
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: snapshot_runner.artifact
+    module_root: .
+    source_file: snapshot_runner/artifact.py
+    symbols:
+    - name: active_repository_root
+      kind: function
+      signature: (repository_root)
+    - name: SnapshotArtifact
+      kind: class
+      signature: class
+    - name: snapshot_output_root
+      kind: function
+      signature: (target_repo)
+    constants:
+      SNAPSHOT_PUBLISH_DURABILITY_ERROR: snapshot published but snapshot-store durability
+        sync failed
+      STATE_HOME_MISSING_ERROR: state home must already exist as a private directory
+      SNAPSHOT_META_SCHEMA_VERSION: 2
+      SUMMARY_SCHEMA_VERSION: 2
+      EVIDENCE_SCHEMA_VERSION: 1
+      SUMMARY_TEXT_LIMIT: 256
+      SUMMARY_WARNING_LIMIT: 5
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: tool_cli_contract.json uses command_invocation
+      ''snapshot-runner <command>'', contract_version 3, and the five documented subcommands;
+      snapshot metadata/summary/evidence versions are 2/2/1 and summary limits are
+      256 characters and 5 warnings.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Public interface and contract; Artifacts and determinism
+    - path: tool_cli_contract.json
+      section: contract_version 3 and primary_command.subcommands
+    limitation: The public boundary is the sole console script plus tool_cli_contract.json;
+      existing artifact-module probes are retained only for compatibility and are
+      not treated as the documented primary interface.
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

@@ -1,0 +1,95 @@
+task_id: utk2103-jev-studio
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of utk2103/jev-studio. The repository must provide importable module `jev_studio`
+  at `jev_studio/__init__.py` and expose the declared public names: annotations. Imports
+  must be deterministic, unknown attributes must raise AttributeError, and public
+  callables must support Python signature introspection. No network service may be
+  required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import jev_studio
+
+  Required path: jev_studio/__init__.py
+
+  - object annotations
+
+  Additional documented module: jev_studio.instructions
+
+  - function resolve_mode(requested)
+
+  - function build_instructions(requested)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: jev_studio/__init__.py
+reference_repository: ./fresh/cache/utk2103-jev-studio
+generated_repository: ./fresh/generation/utk2103-jev-studio
+package:
+  name: jev_studio
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/utk2103-jev-studio/functional_test.py
+  robustness: ./fresh/tests/utk2103-jev-studio/robustness_test.py
+  efficiency: ./fresh/tests/utk2103-jev-studio/efficiency_test.py
+  resource: ./fresh/tests/utk2103-jev-studio/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.939442
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 0.880533
+    robustness_tests_total: 4
+  efficiency:
+    efficiency_suite_time_s: 0.889821
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.877306
+    resource_tests_total: 1
+    avg_memory_mb: 40.95
+    avg_cpu_percent: 2.0
+  security:
+    security_suite_time_s: 1.068312
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 15.0
+      total_loc: 3291.0
+  maintainability:
+    maintainability_suite_time_s: 1.0699
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 15.0
+      total_loc: 3291.0
+      max_cc: 32.0
+provenance:
+  repository: utk2103/jev-studio
+  source_url: https://github.com/utk2103/jev-studio
+  created_at: '2026-09-19T19:22:03Z'
+  pinned_commit: aac8d80a211bf8185373140411d41c082852cc88
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: jev_studio
+    module_root: .
+    source_file: jev_studio/__init__.py
+    symbols:
+    - name: annotations
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - source: README.md#the-mcp-server-jev-studio
+    normal: normalize lite, full, and ultra modes and return the matching instruction
+      text
+    state: repeated mode resolution and instruction building are deterministic
+    boundary: empty and unknown modes fall back to full
+  independent_review: pending

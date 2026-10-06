@@ -1,35 +1,31 @@
 task_id: dateutil
 domain: system
 difficulty: medium
-description: "Implement a pure Python datetime utility library that is API-compatible\
-  \ with\nthe core parts of the reference python-dateutil project under\n./repositories/dateutil.\
-  \ The generated repository must:\n\n- Provide a top-level \"dateutil\" package importable\
-  \ with `import dateutil`.\n\n- Match the key public API surface used by the test\
-  \ suite, including at least:\n    * dateutil.parser.parse for parsing a wide range\
-  \ of date and datetime\n      string formats into datetime objects, including ISO-8601\
-  \ and\n      human-friendly formats.\n    * dateutil.relativedelta.relativedelta\
-  \ for performing calendar-aware\n      arithmetic between date or datetime objects\
-  \ (e.g., months, years, days).\n    * dateutil.rrule.rrule and related constants\
-  \ (such as DAILY, WEEKLY and\n      weekday specifiers like MO, TU, WE, TH, FR)\
-  \ for generating recurrence\n      sequences of datetimes.\n    * dateutil.tz (including\
-  \ tz.UTC and tz.gettz) for working with time zone\n      aware datetime objects\
-  \ and converting between time zones.\n\n- Correctly handle timezone-aware datetimes,\
-  \ including conversions between\n  different time zones using tz.gettz and tz.UTC,\
-  \ for the scenarios exercised\n  by the tests.\n\n- Produce stable and reasonable\
-  \ recurrence schedules when using rrule with\n  weekly and daily rules and byweekday\
-  \ filters, matching the reference\n  behaviour for the tested patterns.\n\n- Ensure\
-  \ that parser.parse accepts the string formats used in the tests and\n  returns\
-  \ datetime objects with appropriate tzinfo, with equivalent strings\n  parsing to\
-  \ equal instants.\n\n- Behave in a way that allows the same black-box tests used\
-  \ for the reference\n  repository to run successfully on the generated repository,\
-  \ including the\n  exact public API names, module layout, and observable behaviour\
-  \ for parser,\n  relativedelta, rrule and tz operations covered by the tests.\n"
+description: "Implement a pure Python datetime utility library that is API-compatible with\nthe core parts\
+  \ of the reference python-dateutil project under\n./repositories/dateutil. The generated repository\
+  \ must:\n\n- Provide a top-level \"dateutil\" package importable with `import dateutil`.\n\n- Match\
+  \ the key public API surface used by the test suite, including at least:\n    * dateutil.parser.parse\
+  \ for parsing a wide range of date and datetime\n      string formats into datetime objects, including\
+  \ ISO-8601 and\n      human-friendly formats.\n    * dateutil.relativedelta.relativedelta for performing\
+  \ calendar-aware\n      arithmetic between date or datetime objects (e.g., months, years, days).\n \
+  \   * dateutil.rrule.rrule and related constants (such as DAILY, WEEKLY and\n      weekday specifiers\
+  \ like MO, TU, WE, TH, FR) for generating recurrence\n      sequences of datetimes.\n    * dateutil.tz\
+  \ (including tz.UTC and tz.gettz) for working with time zone\n      aware datetime objects and converting\
+  \ between time zones.\n\n- Correctly handle timezone-aware datetimes, including conversions between\n\
+  \  different time zones using tz.gettz and tz.UTC, for the scenarios exercised\n  by the tests.\n\n\
+  - Produce stable and reasonable recurrence schedules when using rrule with\n  weekly and daily rules\
+  \ and byweekday filters, matching the reference\n  behaviour for the tested patterns.\n\n- Ensure that\
+  \ parser.parse accepts the string formats used in the tests and\n  returns datetime objects with appropriate\
+  \ tzinfo, with equivalent strings\n  parsing to equal instants.\n\n- Behave in a way that allows the\
+  \ same black-box tests used for the reference\n  repository to run successfully on the generated repository,\
+  \ including the\n  exact public API names, module layout, and observable behaviour for parser,\n  relativedelta,\
+  \ rrule and tz operations covered by the tests.\n"
 reference_repository: ./repositories/dateutil
 generated_repository: ./generation/Dateutil
 test_suite:
   functional:
   - ./tests/Dateutil/functional_test.py
-  performance: ./tests/Dateutil/performance_test.py
+  efficiency: ./tests/Dateutil/efficiency_test.py
   resource: ./tests/Dateutil/resource_test.py
   robustness: ./tests/Dateutil/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -42,9 +38,9 @@ package:
   name: dateutil
   root_dir: .
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 1.285375
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 1.285375
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 1.234135
     resource_tests_total: 2
@@ -71,3 +67,54 @@ baseline_metrics:
       files_scanned: 37.0
       total_loc: 14362.0
       max_cc: 96.0
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - from dateutil import parser
+
+  - from dateutil import tz
+
+  - from dateutil.relativedelta import relativedelta
+
+  - from dateutil.rrule import DAILY
+
+  - from dateutil.rrule import FR
+
+  - from dateutil.rrule import MO
+
+  - from dateutil.rrule import MONTHLY
+
+  - from dateutil.rrule import TH
+
+  - from dateutil.rrule import TU
+
+  - from dateutil.rrule import WE
+
+  - from dateutil.rrule import WEEKLY
+
+  - from dateutil.rrule import rrule
+
+  - import dateutil
+
+
+  Referenced package attributes:
+
+  - dateutil.parser
+
+  - dateutil.parser.parse
+
+  - dateutil.relativedelta
+
+  - dateutil.relativedelta.relativedelta
+
+  - dateutil.tz
+
+  - dateutil.tz.UTC
+
+  - dateutil.tz.gettz
+
+  - dateutil.tz.tzoffset
+
+  '

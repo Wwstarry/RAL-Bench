@@ -27,7 +27,7 @@ import markdown  # type: ignore  # noqa: E402
 
 
 def _build_corpus() -> list[str]:
-    """Build a small synthetic corpus of Markdown documents for performance tests.
+    """Build a small synthetic corpus of Markdown documents for efficiency tests.
 
     The corpus mixes headings, lists, code blocks, blockquotes and links in order
     to exercise a representative subset of the Markdown implementation.
@@ -70,8 +70,8 @@ def _build_corpus() -> list[str]:
     return docs
 
 
-def run_markdown_performance_benchmark() -> dict[str, float]:
-    """Run a simple performance benchmark over a synthetic Markdown corpus.
+def run_markdown_efficiency_benchmark() -> dict[str, float]:
+    """Run a simple efficiency benchmark over a synthetic Markdown corpus.
 
     Returns a dictionary with total time, total characters processed and
     derived throughput (characters per second). This function is intended
@@ -96,14 +96,14 @@ def run_markdown_performance_benchmark() -> dict[str, float]:
     }
 
 
-def test_markdown_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark can run without errors.
+def test_markdown_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark can run without errors.
 
     The actual non-functional comparison between reference and generated
     repositories should be done by the external benchmark harness using
-    the metrics returned by run_markdown_performance_benchmark().
+    the metrics returned by run_markdown_efficiency_benchmark().
     """
-    metrics = run_markdown_performance_benchmark()
+    metrics = run_markdown_efficiency_benchmark()
     # Basic sanity checks: values should be non-negative and time > 0.
     assert metrics["num_documents"] > 0
     assert metrics["total_chars"] > 0

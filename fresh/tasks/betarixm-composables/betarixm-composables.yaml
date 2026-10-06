@@ -1,0 +1,88 @@
+task_id: betarixm-composables
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of betarixm/composables. The repository must provide importable module
+  `composables.agent.protocols` at `packages/composables/composables/agent/protocols.py`
+  and expose the declared public names: Agent. Imports must be deterministic, unknown
+  attributes must raise AttributeError, and public callables must support Python signature
+  introspection. Agent is abstract until `interact` is implemented; each call returns
+  an async action generator receiving observations through `asend`, and concurrent
+  interactions on the same agent keep independent state.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import composables.agent.protocols
+
+  Required path: packages/composables/composables/agent/protocols.py
+
+  - class Agent
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: packages/composables/composables/agent/protocols.py
+reference_repository: ./fresh/cache/betarixm-composables
+generated_repository: ./fresh/generation/betarixm-composables
+package:
+  name: composables
+  root_dir: packages/composables
+test_suite:
+  functional: ./fresh/tests/betarixm-composables/functional_test.py
+  robustness: ./fresh/tests/betarixm-composables/robustness_test.py
+  efficiency: ./fresh/tests/betarixm-composables/efficiency_test.py
+  resource: ./fresh/tests/betarixm-composables/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.858166
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 0.818907
+    robustness_tests_total: 4
+  efficiency:
+    efficiency_suite_time_s: 0.875511
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.844165
+    resource_tests_total: 1
+    avg_memory_mb: 40.64
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.814108
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 10.0
+      total_loc: 70.0
+  maintainability:
+    maintainability_suite_time_s: 0.749522
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 46.654
+      files_scanned: 7.0
+      total_loc: 118.0
+      max_cc: 3.0
+provenance:
+  repository: betarixm/composables
+  source_url: https://github.com/betarixm/composables
+  created_at: '2026-09-12T09:10:30Z'
+  pinned_commit: 07cfcedab3778eaf1c20b2bf64bf5614406d1098
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: composables.agent.protocols
+    module_root: packages/composables
+    source_file: packages/composables/composables/agent/protocols.py
+    symbols:
+    - name: Agent
+      kind: class
+      signature: class
+    constants: {}
+  semantic_cases:
+  - evidence: packages/composables/README.md "Agent"
+    covers: action/observation exchange, independent interaction state, abstract contract
+      boundary

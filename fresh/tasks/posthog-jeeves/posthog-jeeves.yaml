@@ -1,0 +1,129 @@
+task_id: posthog-jeeves
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of PostHog/jeeves. The repository must provide importable module `inference.api`
+  at `inference/api.py` and expose the declared public names: parse_options, parse_question,
+  parse_request, r2, choice_confidence, score_confidence, answer, response, MAX_OPTIONS,
+  MODEL_ID. Imports must be deterministic, unknown attributes must raise AttributeError,
+  and public callables must support Python signature introspection. No network service
+  may be required by these tested behaviors. Parse the documented Jev request shape,
+  preserve question order, produce exact answer dictionaries, and reject missing state,
+  empty questions, empty choice criteria, and unknown options.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import inference.api
+
+  Required path: inference/api.py
+
+  - function parse_options(raw, defaults)
+
+  - function parse_question(qid, raw)
+
+  - function parse_request(body, defaults)
+
+  - function r2(x)
+
+  - function choice_confidence(p)
+
+  - function score_confidence(p)
+
+  - function answer(q, p)
+
+  - function response(record, model, opts, results, tok, latency_ms)
+
+  - constant MAX_OPTIONS = 255
+
+  - constant MODEL_ID = ''jeeves-latest''
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: inference/api.py
+reference_repository: ./fresh/cache/posthog-jeeves
+generated_repository: ./fresh/generation/posthog-jeeves
+package:
+  name: inference
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/posthog-jeeves/functional_test.py
+  robustness: ./fresh/tests/posthog-jeeves/robustness_test.py
+  efficiency: ./fresh/tests/posthog-jeeves/efficiency_test.py
+  resource: ./fresh/tests/posthog-jeeves/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.856692
+    functional_tests_total: 12
+  robustness:
+    robustness_suite_time_s: 0.845134
+    robustness_tests_total: 11
+  efficiency:
+    efficiency_suite_time_s: 0.819595
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.826574
+    resource_tests_total: 1
+    avg_memory_mb: 41.71
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.849941
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 12.0
+      total_loc: 1264.0
+  maintainability:
+    maintainability_suite_time_s: 0.889713
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 5.2924
+      files_scanned: 11.0
+      total_loc: 1264.0
+      max_cc: 40.0
+provenance:
+  repository: PostHog/jeeves
+  source_url: https://github.com/PostHog/jeeves
+  created_at: '2026-09-29T09:56:47Z'
+  pinned_commit: 3f948dec68187ed3ced9152ed3d84b73e498665c
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: inference.api
+    module_root: .
+    source_file: inference/api.py
+    symbols:
+    - name: parse_options
+      kind: function
+      signature: (raw, defaults)
+    - name: parse_question
+      kind: function
+      signature: (qid, raw)
+    - name: parse_request
+      kind: function
+      signature: (body, defaults)
+    - name: r2
+      kind: function
+      signature: (x)
+    - name: choice_confidence
+      kind: function
+      signature: (p)
+    - name: score_confidence
+      kind: function
+      signature: (p)
+    - name: answer
+      kind: function
+      signature: (q, p)
+    - name: response
+      kind: function
+      signature: (record, model, opts, results, tok, latency_ms)
+    constants:
+      MAX_OPTIONS: 255
+      MODEL_ID: jeeves-latest
+  semantic_cases:
+  - evidence: README.md, "Then send a request in Jev's format" and response example
+    covers: request parsing, exact choice response, invalid request and option boundaries

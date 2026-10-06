@@ -1,0 +1,116 @@
+task_id: nousergon-evidence-review
+domain: fresh
+difficulty: medium
+description: 'Implement the retained, cross-platform measured-badge boundary for Evidence
+  Review: emit deterministic coverage/license/Python badge payloads only after reproducible
+  clean-install verification and reject absent coverage. The main evidence_review
+  runtime is documented for macOS/Linux and is not treated as executable on this Windows
+  reference host.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import badges
+
+  Required path: scripts/badges.py
+
+  - function payloads(coverage, package)
+
+  - function main()
+
+
+  Semantic cases: payloads rounds measured Python coverage to two decimals, selects
+  brightgreen at >=90%, and carries sourceSha into every badge; incomplete package
+  verification or zero measured statements raises ValueError. Scope limitation: this
+  task validates the public CI badge boundary, not the POSIX-only browser runtime.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: scripts/badges.py
+reference_repository: ./fresh/cache/nousergon-evidence-review
+generated_repository: ./fresh/generation/nousergon-evidence-review
+package:
+  name: badges
+  root_dir: scripts
+test_suite:
+  functional: ./fresh/tests/nousergon-evidence-review/functional_test.py
+  robustness: ./fresh/tests/nousergon-evidence-review/robustness_test.py
+  efficiency: ./fresh/tests/nousergon-evidence-review/efficiency_test.py
+  resource: ./fresh/tests/nousergon-evidence-review/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.80134
+    functional_tests_total: 5
+  robustness:
+    robustness_suite_time_s: 0.86473
+    robustness_tests_total: 5
+  efficiency:
+    efficiency_suite_time_s: 0.807716
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.796439
+    resource_tests_total: 1
+    avg_memory_mb: 40.77
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.785204
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 10.0
+      total_loc: 1917.0
+  maintainability:
+    maintainability_suite_time_s: 1.104454
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 9.8978
+      files_scanned: 25.0
+      total_loc: 3825.0
+      max_cc: 55.0
+provenance:
+  repository: nousergon/evidence-review
+  source_url: https://github.com/nousergon/evidence-review
+  created_at: '2026-10-04T18:49:44Z'
+  pinned_commit: 0d071b54a88df8ea9f88fbe058cf3cc1bed194e2
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: badges
+    module_root: scripts
+    source_file: scripts/badges.py
+    symbols:
+    - name: payloads
+      kind: function
+      signature: (coverage, package)
+    - name: main
+      kind: function
+      signature: ()
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: payloads rounds measured Python
+      coverage to two decimals, selects brightgreen at >=90%, and carries sourceSha
+      into every badge; incomplete package verification or zero measured statements
+      raises ValueError. Scope limitation: this task validates the public CI badge
+      boundary, not the POSIX-only browser runtime.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Badges; How do I verify it?
+    - path: SPEC.md
+      section: Public boundary; Acceptance
+    limitation: The documented application package imports fcntl and the README supports
+      macOS/Linux; on the Windows benchmark host only the documented delivery/badge
+      boundary is executable.
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

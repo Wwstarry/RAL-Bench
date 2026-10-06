@@ -41,8 +41,8 @@ def _measure_scheduler_run_all(num_jobs: int = 500, num_runs: int = 5) -> float:
     return statistics.mean(timings)
 
 
-def test_schedule_performance_smoke() -> None:
-    """Simple performance sanity check for the scheduler."""
+def test_schedule_efficiency_smoke() -> None:
+    """Simple efficiency sanity check for the scheduler."""
     avg = _measure_scheduler_run_all()
     print(f"Average run_all duration over many jobs: {avg:.6f}s")
     assert avg > 0.0

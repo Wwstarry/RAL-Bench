@@ -38,7 +38,7 @@ def _make_color_image(height: int = 64, width: int = 64) -> np.ndarray:
     return rng.integers(0, 256, size=(height, width, 3), dtype=np.uint8)
 
 
-def test_bulk_png_write_read_performance(tmp_path: Path) -> None:
+def test_bulk_png_write_read_efficiency(tmp_path: Path) -> None:
     """Measure the time to write and read many small PNG images."""
     num_images = 40
     paths: List[Path] = []
@@ -57,11 +57,11 @@ def test_bulk_png_write_read_performance(tmp_path: Path) -> None:
 
     elapsed = time.perf_counter() - start
 
-    # Generous bound; actual performance will be captured in baseline metrics.
+    # Generous bound; actual efficiency will be captured in baseline metrics.
     assert elapsed < 20.0
 
 
-def test_animated_gif_roundtrip_performance(tmp_path: Path) -> None:
+def test_animated_gif_roundtrip_efficiency(tmp_path: Path) -> None:
     """Measure the time to write and read an animated GIF with many frames."""
     num_frames = 40
     rng = np.random.default_rng(7)

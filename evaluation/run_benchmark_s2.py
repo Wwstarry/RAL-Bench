@@ -101,13 +101,12 @@ def call_model(prompt: str, model: str) -> str:
             {"role": "system", "content": "You are a helpful code generator."},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.2,
     )
     return (resp.choices[0].message.content or "").strip()
 
 
 # ----------------------------
-# prompts (M3)
+# prompts (S2)
 # ----------------------------
 def build_dependency_prompt(task: Dict[str, Any]) -> str:
     desc = (task.get("description") or "").strip()
@@ -183,16 +182,16 @@ Each <file:...> block MUST contain the complete content of that file.
 def pip_install_requirements(repo_root: Path, timeout_s: int = 900) -> bool:
     req = repo_root / "requirements.txt"
     if not req.exists():
-        print("[M3] No requirements.txt found, skip pip install.")
+        print("[S2] No requirements.txt found, skip pip install.")
         return True
 
-    log_path = repo_root / "_m3_pip_install.log"
+    log_path = repo_root / "_s2_pip_install.log"
     cmd = [sys.executable, "-m", "pip", "install", "-r", str(req)]
     env = os.environ.copy()
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     env["PIP_NO_INPUT"] = "1"
 
-    print(f"[M3] Installing dependencies: {cmd}")
+    print(f"[S2] Installing dependencies: {cmd}")
     try:
         p = subprocess.run(
             cmd,
@@ -205,31 +204,31 @@ def pip_install_requirements(repo_root: Path, timeout_s: int = 900) -> bool:
         )
         save_text(log_path, p.stdout or "")
         ok = (p.returncode == 0)
-        print(f"[M3] pip install returncode={p.returncode}, log={log_path}")
+        print(f"[S2] pip install returncode={p.returncode}, log={log_path}")
         return ok
     except subprocess.TimeoutExpired:
         save_text(log_path, "pip install TIMEOUT\n")
-        print(f"[M3] pip install TIMEOUT, log={log_path}")
+        print(f"[S2] pip install TIMEOUT, log={log_path}")
         return False
     except Exception as e:
         save_text(log_path, f"pip install ERROR: {e}\n")
-        print(f"[M3] pip install ERROR: {e}, log={log_path}")
+        print(f"[S2] pip install ERROR: {e}, log={log_path}")
         return False
 
 
 # ----------------------------
-# generation (M3)
+# generation (S2)
 # ----------------------------
 def generate_code_with_model_m3(task: Dict[str, Any], output_repo: Path, model: str, requirements_txt: str) -> None:
     prompt = build_code_prompt_with_dep_hint(task, requirements_txt)
-    print("[M3] Calling model to generate repository code...")
+    print("[S2] Calling model to generate repository code...")
     raw = call_model(prompt, model=model)
 
-    save_text(output_repo / "_m3_raw_model_output.txt", raw)
+    save_text(output_repo / "_s2_raw_model_output.txt", raw)
 
     blocks = parse_file_blocks(raw)
     if not blocks:
-        raise ValueError(f"Model output did not contain any <file:name=...> blocks. Saved: {output_repo / '_m3_raw_model_output.txt'}")
+        raise ValueError(f"Model output did not contain any <file:name=...> blocks. Saved: {output_repo / '_s2_raw_model_output.txt'}")
 
     # 防止模型覆盖我们自动生成的依赖文件（确保“生成依赖→安装→测试”链路稳定）
     skip_names = {"requirements.txt", "pyproject.toml", "setup.py", "setup.cfg"}
@@ -237,9 +236,14 @@ def generate_code_with_model_m3(task: Dict[str, Any], output_repo: Path, model: 
     for rel_path, content in blocks:
         rel_path = rel_path.lstrip("/\\")
         if rel_path in skip_names:
-            print(f"[M3] Skip writing {rel_path} (managed by M3 pipeline).")
+            print(f"[S2] Skip writing {rel_path} (managed by S2 pipeline).")
             continue
-        dst = output_repo / rel_path
+        rel = Path(rel_path)
+        if rel.is_absolute() or ".." in rel.parts:
+            raise ValueError(f"Unsafe model output path: {rel_path}")
+        dst = (output_repo.resolve() / rel).resolve()
+        if output_repo.resolve() not in dst.parents:
+            raise ValueError(f"Unsafe model output path: {rel_path}")
         save_text(dst, content)
         print(f"Saved file: {dst}")
 
@@ -253,8 +257,8 @@ def main() -> None:
     parser.add_argument("--skip-install", action="store_true", help="Skip pip install even if requirements.txt exists")
 
     # 输出隔离（默认不覆盖 baseline）
-    parser.add_argument("--generated-root", default="generation_m3", type=str)
-    parser.add_argument("--results-root", default="results_m3", type=str)
+    parser.add_argument("--generated-root", default="generation_s2", type=str)
+    parser.add_argument("--results-root", default="results_s2", type=str)
 
     args = parser.parse_args()
 
@@ -267,23 +271,23 @@ def main() -> None:
 
     if not args.skip_generation:
         # Stage-1: 生成依赖列表
-        print("[M3] Stage-1: generating requirements.txt ...")
+        print("[S2] Stage-1: generating requirements.txt ...")
         dep_prompt = build_dependency_prompt(task)
         raw_req = call_model(dep_prompt, model=args.model)
         req_txt = parse_requirements(raw_req)
 
-        save_text(generated_repo / "_m3_requirements_raw.txt", raw_req)
+        save_text(generated_repo / "_s2_requirements_raw.txt", raw_req)
         save_text(generated_repo / "requirements.txt", req_txt + ("\n" if req_txt else ""))
 
         # Stage-2: 安装依赖
         if not args.skip_install:
             ok = pip_install_requirements(generated_repo)
-            save_text(generated_repo / "_m3_install_status.txt", f"ok={ok}\n")
+            save_text(generated_repo / "_s2_install_status.txt", f"ok={ok}\n")
         else:
-            print("[M3] Skip pip install by --skip-install")
+            print("[S2] Skip pip install by --skip-install")
 
         # Stage-3: 生成仓库代码（带依赖提示）
-        print("[M3] Stage-3: generating code with dependency hint ...")
+        print("[S2] Stage-3: generating code with dependency hint ...")
         generate_code_with_model_m3(task, generated_repo, args.model, req_txt)
 
     else:

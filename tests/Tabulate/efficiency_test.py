@@ -18,8 +18,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from tabulate import tabulate  # type: ignore  # noqa: E402
 
 
-def test_large_table_formatting_performance():
-    # Build a moderately large table to exercise performance.
+def test_large_table_formatting_efficiency():
+    # Build a moderately large table to exercise efficiency.
     rows = [
         [f"row-{i}", i, i * 0.1234, f"value-{i % 10}"]
         for i in range(2000)

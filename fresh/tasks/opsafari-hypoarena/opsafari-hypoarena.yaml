@@ -1,0 +1,185 @@
+task_id: opsafari-hypoarena
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of OpSafari/hypoarena. The repository must provide importable module `hypoarena.agents`
+  at `src/hypoarena/agents.py` and expose the declared public names: AgentRequest,
+  AgentResponse, Usage, count_words, DiscoveryAgent, BaseAgent, quality_tier, ScriptedAgent,
+  ReplayEntry, ReplayAgent, TranscriptTurn, replay_transcript, transcript_statement,
+  merge_usage, usage_summary, RecordingAgent, NO_PROGRESS_MARKER, FOCUSED_SUFFIX,
+  MECHANISTIC_SUFFIX, VAGUE_PROPOSAL. Imports must be deterministic, unknown attributes
+  must raise AttributeError, and public callables must support Python signature introspection.
+  No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import hypoarena.agents
+
+  Required path: src/hypoarena/agents.py
+
+  - class AgentRequest
+
+  - class AgentResponse
+
+  - class Usage
+
+  - function count_words(text)
+
+  - class DiscoveryAgent
+
+  - class BaseAgent
+
+  - function quality_tier(quality)
+
+  - class ScriptedAgent
+
+  - class ReplayEntry
+
+  - class ReplayAgent
+
+  - class TranscriptTurn
+
+  - function replay_transcript(agent, proposal_prompt, context, rounds)
+
+  - function transcript_statement(turns)
+
+  - function merge_usage(*usages)
+
+  - function usage_summary(agents)
+
+  - class RecordingAgent
+
+  - constant NO_PROGRESS_MARKER = ''(unchanged)''
+
+  - constant FOCUSED_SUFFIX = '' when assayed in the same population''
+
+  - constant MECHANISTIC_SUFFIX = '' when assayed in the same population, quantified
+  by dose response''
+
+  - constant VAGUE_PROPOSAL = ''an intervention is associated with an outcome''
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/hypoarena/agents.py
+reference_repository: ./fresh/cache/opsafari-hypoarena
+generated_repository: ./fresh/generation/opsafari-hypoarena
+package:
+  name: hypoarena
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/opsafari-hypoarena/functional_test.py
+  robustness: ./fresh/tests/opsafari-hypoarena/robustness_test.py
+  efficiency: ./fresh/tests/opsafari-hypoarena/efficiency_test.py
+  resource: ./fresh/tests/opsafari-hypoarena/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.889522
+    functional_tests_total: 24
+  robustness:
+    robustness_suite_time_s: 0.86296
+    robustness_tests_total: 20
+  efficiency:
+    efficiency_suite_time_s: 0.779694
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.803861
+    resource_tests_total: 1
+    avg_memory_mb: 41.68
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 1.057806
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 33.0
+      total_loc: 12210.0
+  maintainability:
+    maintainability_suite_time_s: 1.973322
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 267.0
+      total_loc: 26833.0
+      max_cc: 26.0
+provenance:
+  repository: OpSafari/hypoarena
+  source_url: https://github.com/OpSafari/hypoarena
+  created_at: '2026-09-30T03:35:45Z'
+  pinned_commit: 09b8dd0b93f8cef273bb412e288f942dad1de03e
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: hypoarena.agents
+    module_root: src
+    source_file: src/hypoarena/agents.py
+    symbols:
+    - name: AgentRequest
+      kind: class
+      signature: class
+    - name: AgentResponse
+      kind: class
+      signature: class
+    - name: Usage
+      kind: class
+      signature: class
+    - name: count_words
+      kind: function
+      signature: (text)
+    - name: DiscoveryAgent
+      kind: class
+      signature: class
+    - name: BaseAgent
+      kind: class
+      signature: class
+    - name: quality_tier
+      kind: function
+      signature: (quality)
+    - name: ScriptedAgent
+      kind: class
+      signature: class
+    - name: ReplayEntry
+      kind: class
+      signature: class
+    - name: ReplayAgent
+      kind: class
+      signature: class
+    - name: TranscriptTurn
+      kind: class
+      signature: class
+    - name: replay_transcript
+      kind: function
+      signature: (agent, proposal_prompt, context, rounds)
+    - name: transcript_statement
+      kind: function
+      signature: (turns)
+    - name: merge_usage
+      kind: function
+      signature: (*usages)
+    - name: usage_summary
+      kind: function
+      signature: (agents)
+    - name: RecordingAgent
+      kind: class
+      signature: class
+    constants:
+      NO_PROGRESS_MARKER: (unchanged)
+      FOCUSED_SUFFIX: ' when assayed in the same population'
+      MECHANISTIC_SUFFIX: ' when assayed in the same population, quantified by dose
+        response'
+      VAGUE_PROPOSAL: an intervention is associated with an outcome
+  semantic_cases:
+  - id: quality_tiers
+    evidence: docs/agents.md#scriptedagent
+    covers: exact vague/focused/mechanistic mapping and repetition
+  - id: usage_merge
+    evidence: docs/agents.md#requests-and-responses
+    covers: calls, token totals, and per-task state accumulation
+  - id: quality_and_task_bounds
+    evidence: docs/agents.md#scriptedagent
+    covers: out-of-range quality and unsupported task rejection
+  independent_review: pending

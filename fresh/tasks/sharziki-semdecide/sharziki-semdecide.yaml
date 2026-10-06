@@ -1,0 +1,98 @@
+task_id: sharziki-semdecide
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of sharziki/semdecide. The repository must provide importable module `reflex_guard`
+  at `src/reflex_guard/__init__.py` and expose the declared public names: Decision,
+  decide. Imports must be deterministic, unknown attributes must raise AttributeError,
+  and public callables must support Python signature introspection. No network service
+  may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import reflex_guard
+
+  Required path: src/reflex_guard/__init__.py
+
+  - object Decision
+
+  - object decide
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/reflex_guard/__init__.py
+reference_repository: ./fresh/cache/sharziki-semdecide
+generated_repository: ./fresh/generation/sharziki-semdecide
+package:
+  name: reflex_guard
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/sharziki-semdecide/functional_test.py
+  robustness: ./fresh/tests/sharziki-semdecide/robustness_test.py
+  efficiency: ./fresh/tests/sharziki-semdecide/efficiency_test.py
+  resource: ./fresh/tests/sharziki-semdecide/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.798971
+    functional_tests_total: 6
+  robustness:
+    robustness_suite_time_s: 0.872902
+    robustness_tests_total: 6
+  efficiency:
+    efficiency_suite_time_s: 0.830852
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.848513
+    resource_tests_total: 1
+    avg_memory_mb: 40.63
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.91307
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 10.0
+      total_loc: 568.0
+  maintainability:
+    maintainability_suite_time_s: 0.856586
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 18.6937
+      files_scanned: 11.0
+      total_loc: 821.0
+      max_cc: 41.0
+provenance:
+  repository: sharziki/semdecide
+  source_url: https://github.com/sharziki/semdecide
+  created_at: '2026-09-16T17:24:18Z'
+  pinned_commit: 33cf5c03c50e02e59df3f3ea81f0650f6b791545
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: reflex_guard
+    module_root: src
+    source_file: src/reflex_guard/__init__.py
+    symbols:
+    - name: Decision
+      kind: object
+      signature: ''
+    - name: decide
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - id: allow_policy
+    evidence: README.md#guard-an-opinionated-agent-safety-recipe
+    covers: exact low-risk authorized route and reason
+  - id: block_and_escalate_policy
+    evidence: README.md#exit-codes
+    covers: secret exposure block and ambiguous target escalation
+  - id: incomplete_signal_map
+    evidence: docs/spec/semdecide.md
+    covers: missing required decision signals
+  independent_review: pending

@@ -14,22 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 TEST_TYPES: List[str] = [
     "functional",
-    "performance",
+    "efficiency",
     "resource",
     "robustness",
     "security",
     "maintainability",
 ]
 
-NON_FUNCTIONAL_WEIGHTS: Dict[str, float] = {
-    "maintainability": 0.36,
-    "security": 0.24,
-    "robustness": 0.16,
-    "performance": 0.12,
-    "resource": 0.12,
-}
-
-_NON_TYPES: List[str] = ["maintainability", "security", "robustness", "performance", "resource"]
+_NON_TYPES: List[str] = ["maintainability", "security", "robustness", "efficiency", "resource"]
 
 REPO_ROOT_ENV = "RACB_REPO_ROOT"
 PKG_NAME_ENV = "RACB_PACKAGE_NAME"
@@ -38,6 +30,14 @@ PKG_NAME_ENV = "RACB_PACKAGE_NAME"
 def load_task_config(task_file: Path) -> Dict[str, Any]:
     with open(task_file, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def _display_path(path: Path) -> str:
+    """Return an artifact-relative path so result files never expose a local identity."""
+    try:
+        return path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.name
 
 
 def _resolve_test_path(project_name: str, test_path: str) -> Path:
@@ -162,6 +162,7 @@ def _run_pytest_with_sampling_and_stream(
 ) -> Dict[str, Any]:
     env = os.environ.copy()
     env.update(extra_env)
+    env["PYTHONUTF8"] = "1"
 
     existing_pp = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(repo_root) + (os.pathsep + existing_pp if existing_pp else "")
@@ -425,8 +426,8 @@ def calculate_score(test_type: str, test_result: Dict[str, Any], baseline_metric
         test_result["score_inputs_ratio_g_over_b"] = ratio
         return _smooth_compress_ratio(ratio)
 
-    if test_type == "performance":
-        baseline_time = _get_baseline_metric(baseline_for_type, "performance_suite_time_s")
+    if test_type == "efficiency":
+        baseline_time = _get_baseline_metric(baseline_for_type, "efficiency_suite_time_s")
         actual_time = _as_float(test_result.get("elapsed_time_s"))
 
         test_result["score_inputs_baseline_time_s"] = baseline_time
@@ -529,29 +530,18 @@ def run_all_tests(task_file: Path, generated_repo: Path, output_file: Path) -> D
 
     functional_score = float(scores.get("functional", 0.0) or 0.0)
 
-    nf_weight_sum = sum(float(NON_FUNCTIONAL_WEIGHTS.get(t, 0.0) or 0.0) for t in _NON_TYPES)
-    if nf_weight_sum <= 0.0:
-        non_functional_score = 0.0
-    else:
-        non_functional_score = sum(
-            float(NON_FUNCTIONAL_WEIGHTS.get(t, 0.0) or 0.0) * float(scores.get(t, 0.0) or 0.0)
-            for t in _NON_TYPES
-        ) / nf_weight_sum
-
     non_functional_subscores = {t: round(float(scores.get(t, 0.0) or 0.0), 4) for t in _NON_TYPES}
 
     output = {
         "project_name": project_name,
-        "task_file": str(task_file),
-        "generated_repo": str(generated_repo),
+        "task_file": _display_path(task_file),
+        "generated_repo": _display_path(generated_repo),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "functional_score": round(functional_score, 4),
-        "non_functional_score": round(float(non_functional_score), 4),
         "non_functional_subscores": non_functional_subscores,
-        "non_functional_weights": NON_FUNCTIONAL_WEIGHTS,
         "results": results,
         "baseline_metrics": baseline_metrics,
-        "pytest_logs_dir": str(logs_dir),
+        "pytest_logs_dir": _display_path(logs_dir),
     }
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -560,9 +550,8 @@ def run_all_tests(task_file: Path, generated_repo: Path, output_file: Path) -> D
 
     print(f"Wrote results to: {output_file}")
     print(f"Functional score: {functional_score:.4f}")
-    print(f"Non-functional score: {float(non_functional_score):.4f}")
-    print("Non-functional subscores:")
-    for k in ["maintainability", "security", "robustness", "performance", "resource"]:
+    print("Non-functional diagnostic scores:")
+    for k in ["maintainability", "security", "robustness", "efficiency", "resource"]:
         if k in non_functional_subscores:
             print(f"  {k}: {float(non_functional_subscores[k]):.4f}")
 

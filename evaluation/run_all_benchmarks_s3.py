@@ -3,22 +3,23 @@ import subprocess
 import yaml
 import csv
 import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS_DIR = ROOT / "tasks"
-RESULTS_DIR_DEFAULT = ROOT / "results_m4"
+RESULTS_DIR_DEFAULT = ROOT / "results_s3"
 
 
 def find_all_tasks():
     return sorted(TASKS_DIR.glob("*/**/*.yaml"))
 
 
-def run_single_task(task_yaml: Path, model_name: str, skip_generation: bool, generated_root: str, results_root: str, use_task_generated_repo: bool) -> bool:
+def run_single_task(task_yaml: Path, model_name: str, skip_generation: bool, generated_root: str, results_root: str) -> bool:
     cmd = [
-        "python",
+        sys.executable,
         "-m",
-        "evaluation.run_benchmark_m4",
+        "evaluation.run_benchmark_s3",
         "--task",
         str(task_yaml),
         "--generated-root",
@@ -29,9 +30,6 @@ def run_single_task(task_yaml: Path, model_name: str, skip_generation: bool, gen
 
     if skip_generation:
         cmd.append("--skip-generation")
-
-    if use_task_generated_repo:
-        cmd.append("--use-task-generated-repo")
 
     env = os.environ.copy()
     env["RACB_MODEL"] = model_name
@@ -53,7 +51,6 @@ def load_result_or_default(project: str, results_dir: Path) -> dict:
         print(f"[WARN] Result file not found for {project}, using zero scores")
         return {
             "functional_score": 0.0,
-            "non_functional_score": 0.0,
             "scores": {},
             "non_functional_subscores": {},
         }
@@ -71,12 +68,12 @@ def _f(x, default=0.0) -> float:
         return float(default)
 
 
-def main(model_name: str, skip_generation: bool, generated_root: str, results_root: str, use_task_generated_repo: bool):
+def main(model_name: str, skip_generation: bool, generated_root: str, results_root: str):
     results_dir = (ROOT / results_root).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
 
     suffix = "eval_only" if skip_generation else "gen_and_eval"
-    csv_path = results_dir / f"{model_name}__m4__{suffix}.csv"
+    csv_path = results_dir / f"{model_name}__s3__{suffix}.csv"
 
     fieldnames = [
         "model",
@@ -84,11 +81,10 @@ def main(model_name: str, skip_generation: bool, generated_root: str, results_ro
         "strategy",
         "project",
         "functional_score",
-        "non_functional_score",
         "maintainability",
         "security",
         "robustness",
-        "performance",
+        "efficiency",
         "resource",
     ]
 
@@ -97,9 +93,9 @@ def main(model_name: str, skip_generation: bool, generated_root: str, results_ro
     for task_yaml in find_all_tasks():
         project = task_yaml.parent.name
         mode_str = "eval_only" if skip_generation else "gen_and_eval"
-        print(f"\n=== Running {project} (M4 | {mode_str}) ===")
+        print(f"\n=== Running {project} (S3 | {mode_str}) ===")
 
-        run_single_task(task_yaml, model_name, skip_generation, generated_root, results_root, use_task_generated_repo)
+        run_single_task(task_yaml, model_name, skip_generation, generated_root, results_root)
 
         result = load_result_or_default(project, results_dir)
 
@@ -114,14 +110,13 @@ def main(model_name: str, skip_generation: bool, generated_root: str, results_ro
         rows.append({
             "model": model_name,
             "mode": mode_str,
-            "strategy": "m4",
+            "strategy": "s3",
             "project": project,
             "functional_score": _f(result.get("functional_score"), 0.0),
-            "non_functional_score": _f(result.get("non_functional_score"), 0.0),
             "maintainability": get_sub("maintainability"),
             "security": get_sub("security"),
             "robustness": get_sub("robustness"),
-            "performance": get_sub("performance"),
+            "efficiency": get_sub("efficiency"),
             "resource": get_sub("resource"),
         })
 
@@ -130,7 +125,7 @@ def main(model_name: str, skip_generation: bool, generated_root: str, results_ro
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\nAll M4 results written to: {csv_path}")
+    print(f"\nAll S3 results written to: {csv_path}")
 
 
 if __name__ == "__main__":
@@ -138,12 +133,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True)
     parser.add_argument("--skip-generation", action="store_true")
 
-    # 与 run_benchmark_m4 保持一致的默认隔离目录
-    parser.add_argument("--generated-root", default="generation_m4")
-    parser.add_argument("--results-root", default="results_m4")
-
-    # 如你确实想沿用 YAML 里的 generated_repository（会覆盖 baseline），显式打开
-    parser.add_argument("--use-task-generated-repo", action="store_true")
+    parser.add_argument("--generated-root", default="generation_s3")
+    parser.add_argument("--results-root", default="results_s3")
 
     args = parser.parse_args()
-    main(args.model, args.skip_generation, args.generated_root, args.results_root, args.use_task_generated_repo)
+    main(args.model, args.skip_generation, args.generated_root, args.results_root)

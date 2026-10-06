@@ -24,14 +24,14 @@ from tinydb import TinyDB, Query  # type: ignore  # noqa: E402
 from tinydb.storages import MemoryStorage  # type: ignore  # noqa: E402
 
 
-def run_tinydb_performance_benchmark(
+def run_tinydb_efficiency_benchmark(
     num_docs: int = 5000,
     iterations: int = 10,
 ) -> Dict[str, float]:
     """
     Populate an in-memory TinyDB and run repeated queries.
 
-    This serves as a black-box performance workload: the benchmark
+    This serves as a black-box efficiency workload: the benchmark
     can be re-used by the evaluation harness without modification.
     """
     db = TinyDB(storage=MemoryStorage)
@@ -74,9 +74,9 @@ def run_tinydb_performance_benchmark(
     }
 
 
-def test_tinydb_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_tinydb_performance_benchmark(num_docs=2000, iterations=5)
+def test_tinydb_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_tinydb_efficiency_benchmark(num_docs=2000, iterations=5)
     assert metrics["total_time_seconds"] > 0.0
     assert metrics["queries_per_second"] > 0.0
     assert metrics["docs_per_second"] > 0.0

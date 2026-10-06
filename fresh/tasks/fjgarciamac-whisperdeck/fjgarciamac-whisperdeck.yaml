@@ -1,0 +1,110 @@
+task_id: fjgarciamac-whisperdeck
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of FjgarciaMac/WhisperDeck. The repository must provide importable module
+  `whisperdeck.audio` at `whisperdeck/audio.py` and expose the declared public names:
+  AudioError, load_wav, duration_seconds, trim, rms_levels. Imports must be deterministic,
+  unknown attributes must raise AttributeError, and public callables must support
+  Python signature introspection. No network service may be required by these tested
+  behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import whisperdeck.audio
+
+  Required path: whisperdeck/audio.py
+
+  - class AudioError
+
+  - function load_wav(path)
+
+  - function duration_seconds(path)
+
+  - function trim(path, out_path, start_s, end_s)
+
+  - function rms_levels(path, window_s)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: whisperdeck/audio.py
+reference_repository: ./fresh/cache/fjgarciamac-whisperdeck
+generated_repository: ./fresh/generation/fjgarciamac-whisperdeck
+package:
+  name: whisperdeck
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/fjgarciamac-whisperdeck/functional_test.py
+  robustness: ./fresh/tests/fjgarciamac-whisperdeck/robustness_test.py
+  efficiency: ./fresh/tests/fjgarciamac-whisperdeck/efficiency_test.py
+  resource: ./fresh/tests/fjgarciamac-whisperdeck/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.858575
+    functional_tests_total: 8
+  robustness:
+    robustness_suite_time_s: 0.864472
+    robustness_tests_total: 8
+  efficiency:
+    efficiency_suite_time_s: 0.836999
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.865522
+    resource_tests_total: 1
+    avg_memory_mb: 40.69
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.73967
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 10.0
+      total_loc: 288.0
+  maintainability:
+    maintainability_suite_time_s: 0.802172
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 38.1576
+      files_scanned: 10.0
+      total_loc: 288.0
+      max_cc: 7.0
+provenance:
+  repository: FjgarciaMac/WhisperDeck
+  source_url: https://github.com/FjgarciaMac/WhisperDeck
+  created_at: '2026-09-10T06:50:24Z'
+  pinned_commit: e83b229501e8c87303b9a252e797008bdf8073fc
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: whisperdeck.audio
+    module_root: .
+    source_file: whisperdeck/audio.py
+    symbols:
+    - name: AudioError
+      kind: class
+      signature: class
+    - name: load_wav
+      kind: function
+      signature: (path)
+    - name: duration_seconds
+      kind: function
+      signature: (path)
+    - name: trim
+      kind: function
+      signature: (path, out_path, start_s, end_s)
+    - name: rms_levels
+      kind: function
+      signature: (path, window_s)
+    constants: {}
+  semantic_cases:
+  - source: README.md
+    normal: load PCM WAV samples, compute duration and RMS windows, and trim a time
+      interval
+    state: trimming creates a new valid WAV with the expected duration
+    boundary: missing files and non-16-bit PCM raise AudioError
+  independent_review: pending

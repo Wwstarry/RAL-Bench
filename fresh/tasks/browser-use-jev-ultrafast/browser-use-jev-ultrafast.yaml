@@ -1,0 +1,99 @@
+task_id: browser-use-jev-ultrafast
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of browser-use/jev-ultrafast. The repository must provide importable module
+  `jev_ultrafast` at `jev_ultrafast/__init__.py` and expose the declared public names:
+  Agent, Browser. Imports must be deterministic, unknown attributes must raise AttributeError,
+  and public callables must support Python signature introspection. No network service
+  may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import jev_ultrafast
+
+  Required path: jev_ultrafast/__init__.py
+
+  - object Agent
+
+  - object Browser
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: jev_ultrafast/__init__.py
+reference_repository: ./fresh/cache/browser-use-jev-ultrafast
+generated_repository: ./fresh/generation/browser-use-jev-ultrafast
+package:
+  name: jev_ultrafast
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/browser-use-jev-ultrafast/functional_test.py
+  robustness: ./fresh/tests/browser-use-jev-ultrafast/robustness_test.py
+  efficiency: ./fresh/tests/browser-use-jev-ultrafast/efficiency_test.py
+  resource: ./fresh/tests/browser-use-jev-ultrafast/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 2.078464
+    functional_tests_total: 5
+  robustness:
+    robustness_suite_time_s: 2.162209
+    robustness_tests_total: 5
+  efficiency:
+    efficiency_suite_time_s: 2.07993
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 2.214876
+    resource_tests_total: 1
+    avg_memory_mb: 50.54
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.796074
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 663.0
+  maintainability:
+    maintainability_suite_time_s: 0.827278
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 21.1738
+      files_scanned: 6.0
+      total_loc: 663.0
+      max_cc: 30.0
+provenance:
+  repository: browser-use/jev-ultrafast
+  source_url: https://github.com/browser-use/jev-ultrafast
+  created_at: '2026-09-16T21:30:12Z'
+  pinned_commit: 1231850a0bf1a0c0341fe408ef1668dbbfdfac46
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: jev_ultrafast
+    module_root: .
+    source_file: jev_ultrafast/__init__.py
+    symbols:
+    - name: Agent
+      kind: object
+      signature: ''
+    - name: Browser
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - id: agent_initialization
+    evidence: README.md#use-the-library
+    covers: goal normalization and ready-state initialization with an injected browser
+      boundary
+  - id: repeatable_initial_state
+    evidence: README.md#the-action-space
+    covers: empty history and zero plan index before any action
+  - id: empty_goal
+    evidence: README.md#use-the-library
+    covers: invalid task rejected before browser creation
+  independent_review: pending

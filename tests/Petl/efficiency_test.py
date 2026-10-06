@@ -50,8 +50,8 @@ def _generate_large_csv(path: Path, num_rows: int = 20000) -> None:
             writer.writerow([i, group, value])
 
 
-def test_bulk_csv_pipeline_performance(tmp_path: Path) -> None:
-    """Measure performance of a CSV-based ETL pipeline on a larger dataset."""
+def test_bulk_csv_pipeline_efficiency(tmp_path: Path) -> None:
+    """Measure efficiency of a CSV-based ETL pipeline on a larger dataset."""
     source_csv = tmp_path / "input.csv"
     output_csv = tmp_path / "output.csv"
 
@@ -71,8 +71,8 @@ def test_bulk_csv_pipeline_performance(tmp_path: Path) -> None:
     assert elapsed < 15.0
 
 
-def test_large_fromdicts_addfield_pipeline_performance() -> None:
-    """Measure performance of fromdicts/addfield/select/materialization pipeline."""
+def test_large_fromdicts_addfield_pipeline_efficiency() -> None:
+    """Measure efficiency of fromdicts/addfield/select/materialization pipeline."""
     records: List[Dict[str, Any]] = []
     for i in range(25000):
         records.append(

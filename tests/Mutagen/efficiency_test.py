@@ -34,11 +34,11 @@ from mutagen.easyid3 import EasyID3  # type: ignore[import]
 from mutagen.id3 import ID3, TIT2  # type: ignore[import]
 
 
-def test_bulk_easyid3_write_and_read_performance(tmp_path: Path) -> None:
+def test_bulk_easyid3_write_and_read_efficiency(tmp_path: Path) -> None:
     """
     Create and read many tag-only MP3 files using EasyID3 to measure throughput.
 
-    This test is a coarse performance check with a generous upper bound so that
+    This test is a coarse efficiency check with a generous upper bound so that
     it is stable across different machines while still providing a baseline.
     """
     num_files = 150
@@ -51,7 +51,7 @@ def test_bulk_easyid3_write_and_read_performance(tmp_path: Path) -> None:
         tags = EasyID3()
         tags["title"] = [f"Song {idx}"]
         tags["artist"] = [f"Artist {idx % 10}"]
-        tags["album"] = ["Performance Album"]
+        tags["album"] = ["Efficiency Album"]
         tags["tracknumber"] = [str(idx + 1)]
         tags.save(str(path))
         paths.append(path)
@@ -65,7 +65,7 @@ def test_bulk_easyid3_write_and_read_performance(tmp_path: Path) -> None:
     assert elapsed < 20.0
 
 
-def test_repeated_id3_updates_performance(tmp_path: Path) -> None:
+def test_repeated_id3_updates_efficiency(tmp_path: Path) -> None:
     """
     Repeatedly update ID3 text frames on a single file and ensure it is fast enough.
     """

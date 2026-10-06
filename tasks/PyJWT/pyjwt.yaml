@@ -1,35 +1,31 @@
 task_id: pyjwt
 domain: security
 difficulty: medium
-description: "Implement a pure Python JSON Web Token (JWT) library that is API-compatible\n\
-  with the core parts of the reference PyJWT project. The generated repository must:\n\
-  \n- Provide the package structure required by the test suite, including:\n    *\
-  \ jwt\n    * jwt.api_jwt\n    * jwt.exceptions\n\n- Expose the high-level APIs used\
-  \ by the tests on the top-level jwt package:\n    * jwt.encode(payload, key, algorithm=\"\
-  HS256\", **kwargs)\n    * jwt.decode(token, key, algorithms=[\"HS256\"], options=None,\
-  \ leeway=0, **kwargs)\n\n- Implement HS256-based signing and verification so that:\n\
-  \    * encode() produces a compact JWT string with header, payload and signature.\n\
-  \    * decode() verifies the HMAC signature when a key and algorithms=[\"HS256\"\
-  ] are provided.\n    * decoding with a wrong key raises jwt.InvalidSignatureError.\n\
-  \    * decoding without specifying algorithms when verification is expected raises\
-  \ jwt.DecodeError.\n\n- Provide the standard exception types re-exported from jwt.exceptions\
-  \ and used by the tests,\n  including at least:\n    * jwt.ExpiredSignatureError\n\
-  \    * jwt.InvalidSignatureError\n    * jwt.DecodeError\n\n- Support the \"exp\"\
-  \ (expiration) claim and verification options as exercised in the tests:\n    *\
-  \ tokens with an expired \"exp\" must raise jwt.ExpiredSignatureError when verify_exp=True.\n\
-  \    * the \"leeway\" parameter must allow slightly expired tokens to still be accepted.\n\
-  \n- Behave in a way that allows all black-box tests under ./tests/PyJWT/ to run\n\
-  \  successfully on the generated implementation using HS256 without requiring\n\
-  \  external cryptography libraries.\n"
+description: "Implement a pure Python JSON Web Token (JWT) library that is API-compatible\nwith the core\
+  \ parts of the reference PyJWT project. The generated repository must:\n\n- Provide the package structure\
+  \ required by the test suite, including:\n    * jwt\n    * jwt.api_jwt\n    * jwt.exceptions\n\n- Expose\
+  \ the high-level APIs used by the tests on the top-level jwt package:\n    * jwt.encode(payload, key,\
+  \ algorithm=\"HS256\", **kwargs)\n    * jwt.decode(token, key, algorithms=[\"HS256\"], options=None,\
+  \ leeway=0, **kwargs)\n\n- Implement HS256-based signing and verification so that:\n    * encode() produces\
+  \ a compact JWT string with header, payload and signature.\n    * decode() verifies the HMAC signature\
+  \ when a key and algorithms=[\"HS256\"] are provided.\n    * decoding with a wrong key raises jwt.InvalidSignatureError.\n\
+  \    * decoding without specifying algorithms when verification is expected raises jwt.DecodeError.\n\
+  \n- Provide the standard exception types re-exported from jwt.exceptions and used by the tests,\n  including\
+  \ at least:\n    * jwt.ExpiredSignatureError\n    * jwt.InvalidSignatureError\n    * jwt.DecodeError\n\
+  \n- Support the \"exp\" (expiration) claim and verification options as exercised in the tests:\n   \
+  \ * tokens with an expired \"exp\" must raise jwt.ExpiredSignatureError when verify_exp=True.\n    *\
+  \ the \"leeway\" parameter must allow slightly expired tokens to still be accepted.\n\n- Behave in a\
+  \ way that allows all black-box tests under ./tests/PyJWT/ to run\n  successfully on the generated implementation\
+  \ using HS256 without requiring\n  external cryptography libraries.\n"
 interfaces:
   type: LIB
   language: python
   entry_point: jwt/__init__.py
 reference_repository: ./repositories/PyJWT
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 1.272328
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 1.272328
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 1.374763
     resource_tests_total: 3
@@ -58,7 +54,7 @@ baseline_metrics:
       max_cc: 19.0
 test_suite:
   functional: ./tests/PyJWT/functional_test.py
-  performance: ./tests/PyJWT/performance_test.py
+  efficiency: ./tests/PyJWT/efficiency_test.py
   resource: ./tests/PyJWT/resource_test.py
   robustness: ./tests/PyJWT/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -77,3 +73,31 @@ files:
 - path: jwt/exceptions.py
   role: jwt_exceptions
   description: Defines JWT-related exception classes used by the tests.
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - import jwt
+
+
+  Referenced package attributes:
+
+  - jwt.decode
+
+  - jwt.decode_complete
+
+  - jwt.encode
+
+  - jwt.get_unverified_header
+
+
+  Required module/file paths:
+
+  - jwt/__init__.py
+
+  - jwt/api_jwt.py
+
+  - jwt/exceptions.py
+
+  '

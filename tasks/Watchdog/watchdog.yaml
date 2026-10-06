@@ -1,27 +1,25 @@
 task_id: watchdog
 domain: system
 difficulty: medium
-description: "Implement a pure Python filesystem monitoring library that is API-compatible\n\
-  with the core parts of the reference watchdog project. The generated repository\
-  \ must:\n\n- Provide the package structure required by the test suite, including:\n\
-  \    * watchdog\n    * watchdog.observers\n    * watchdog.events\n\n- Implement\
-  \ the Observer class with:\n    * schedule(handler, path, recursive)\n    * start(),\
-  \ stop(), join()\n    * correct dispatching of filesystem events for created, modified\
-  \ and deleted files.\n\n- Implement FileSystemEventHandler with overridable event\
-  \ callbacks used by the tests,\n  including on_created, on_modified and on_deleted.\n\
-  \n- Support non-recursive and recursive directory monitoring as exercised in the\
-  \ test suite,\n  so that events from files created in subdirectories are observed\
-  \ when recursive=True.\n\n- Behave in a way that allows all black-box tests under\
-  \ ./tests/Watchdog/ to run\n  successfully on the generated implementation.\n"
+description: "Implement a pure Python filesystem monitoring library that is API-compatible\nwith the core\
+  \ parts of the reference watchdog project. The generated repository must:\n\n- Provide the package structure\
+  \ required by the test suite, including:\n    * watchdog\n    * watchdog.observers\n    * watchdog.events\n\
+  \n- Implement the Observer class with:\n    * schedule(handler, path, recursive)\n    * start(), stop(),\
+  \ join()\n    * correct dispatching of filesystem events for created, modified and deleted files.\n\n\
+  - Implement FileSystemEventHandler with overridable event callbacks used by the tests,\n  including\
+  \ on_created, on_modified and on_deleted.\n\n- Support non-recursive and recursive directory monitoring\
+  \ as exercised in the test suite,\n  so that events from files created in subdirectories are observed\
+  \ when recursive=True.\n\n- Behave in a way that allows all black-box tests under ./tests/Watchdog/\
+  \ to run\n  successfully on the generated implementation.\n"
 interfaces:
   type: LIB
   language: python
   entry_point: watchdog/__init__.py
 reference_repository: ./repositories/watchdog
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 2.112658
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 2.112658
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 2.079845
     resource_tests_total: 1
@@ -50,7 +48,7 @@ baseline_metrics:
       max_cc: 30.0
 test_suite:
   functional: ./tests/Watchdog/functional_test.py
-  performance: ./tests/Watchdog/performance_test.py
+  efficiency: ./tests/Watchdog/efficiency_test.py
   resource: ./tests/Watchdog/resource_test.py
   robustness: ./tests/Watchdog/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -72,3 +70,26 @@ files:
 - path: watchdog/observers/api.py
   role: observer_api
   description: Defines the Observer class and scheduling logic.
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - from watchdog.events import FileSystemEventHandler
+
+  - from watchdog.events import PatternMatchingEventHandler
+
+  - from watchdog.observers import Observer
+
+
+  Required module/file paths:
+
+  - watchdog/__init__.py
+
+  - watchdog/events.py
+
+  - watchdog/observers/__init__.py
+
+  - watchdog/observers/api.py
+
+  '

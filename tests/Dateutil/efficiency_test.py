@@ -36,7 +36,7 @@ def _sample_datetime_strings() -> List[str]:
     ]
 
 
-def run_dateutil_performance_benchmark(
+def run_dateutil_efficiency_benchmark(
     iterations: int = 100, rrule_span_days: int = 365
 ) -> dict[str, float]:
     """Run repeated parsing and recurrence generation and measure total time."""
@@ -78,9 +78,9 @@ def run_dateutil_performance_benchmark(
     }
 
 
-def test_dateutil_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_dateutil_performance_benchmark(iterations=10, rrule_span_days=30)
+def test_dateutil_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_dateutil_efficiency_benchmark(iterations=10, rrule_span_days=30)
     assert metrics["iterations"] == 10.0
     assert metrics["parse_calls"] > 0.0
     assert metrics["rrule_events"] > 0.0

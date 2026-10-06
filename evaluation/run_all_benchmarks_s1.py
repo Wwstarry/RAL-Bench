@@ -3,6 +3,7 @@ import subprocess
 import yaml
 import csv
 import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,9 +18,9 @@ def run_single_task(task_yaml: Path, model_name: str, skip_generation: bool,
                     generated_root: str, results_root: str,
                     agent_timeout_s: int, always_fix_once: bool) -> bool:
     cmd = [
-        "python",
+        sys.executable,
         "-m",
-        "evaluation.run_benchmark_m1",
+        "evaluation.run_benchmark_s1",
         "--task",
         str(task_yaml),
         "--generated-root",
@@ -49,7 +50,6 @@ def load_result_or_default(project: str, results_dir: Path) -> dict:
     rf = results_dir / f"{project}_results.yaml"
     if not rf.exists():
         print(f"[WARN] Result file not found for {project}, using zero scores")
-        return {"functional_score": 0.0, "non_functional_score": 0.0, "scores": {}, "non_functional_subscores": {}}
     with open(rf, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
@@ -65,8 +65,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
     parser.add_argument("--skip-generation", action="store_true")
-    parser.add_argument("--generated-root", default="generation_m1")
-    parser.add_argument("--results-root", default="results_m1")
+    parser.add_argument("--generated-root", default="generation_s1")
+    parser.add_argument("--results-root", default="results_s1")
     parser.add_argument("--agent-timeout-s", type=int, default=180)
     parser.add_argument("--always-fix-once", action="store_true")
     args = parser.parse_args()
@@ -75,12 +75,11 @@ def main():
     results_dir.mkdir(parents=True, exist_ok=True)
 
     suffix = "eval_only" if args.skip_generation else "gen_and_eval"
-    csv_path = results_dir / f"{args.model}__m1__{suffix}.csv"
+    csv_path = results_dir / f"{args.model}__s1__{suffix}.csv"
 
     fieldnames = [
         "model", "mode", "strategy", "project",
-        "functional_score", "non_functional_score",
-        "maintainability", "security", "robustness", "performance", "resource",
+        "maintainability", "security", "robustness", "efficiency", "resource",
     ]
 
     rows = []
@@ -109,14 +108,13 @@ def main():
         rows.append({
             "model": args.model,
             "mode": mode_str,
-            "strategy": "m1",
+            "strategy": "s1",
             "project": project,
             "functional_score": _f(result.get("functional_score"), 0.0),
-            "non_functional_score": _f(result.get("non_functional_score"), 0.0),
             "maintainability": get_sub("maintainability"),
             "security": get_sub("security"),
             "robustness": get_sub("robustness"),
-            "performance": get_sub("performance"),
+            "efficiency": get_sub("efficiency"),
             "resource": get_sub("resource"),
         })
 

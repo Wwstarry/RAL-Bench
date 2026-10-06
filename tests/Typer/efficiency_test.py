@@ -28,7 +28,7 @@ runner = CliRunner()
 
 
 def _create_noop_app() -> typer.Typer:
-    """Create a very simple Typer app for performance measurements."""
+    """Create a very simple Typer app for efficiency measurements."""
     app = typer.Typer()
 
     @app.command()
@@ -39,8 +39,8 @@ def _create_noop_app() -> typer.Typer:
     return app
 
 
-def run_typer_performance_benchmark(iterations: int = 200) -> dict[str, float]:
-    """Run a basic performance benchmark over many CLI invocations.
+def run_typer_efficiency_benchmark(iterations: int = 200) -> dict[str, float]:
+    """Run a basic efficiency benchmark over many CLI invocations.
 
     Functional correctness is validated separately in functional tests.
     Here we only measure how long it takes to invoke a simple command
@@ -53,7 +53,7 @@ def run_typer_performance_benchmark(iterations: int = 200) -> dict[str, float]:
         # For a single-command Typer app with no parameters, invoking it
         # with an empty argument list is sufficient to execute the command.
         _ = runner.invoke(app, [])
-        # We intentionally do not check exit codes here; performance tests
+        # We intentionally do not check exit codes here; efficiency tests
         # should not be responsible for functional validation.
     t1 = time.perf_counter()
 
@@ -65,9 +65,9 @@ def run_typer_performance_benchmark(iterations: int = 200) -> dict[str, float]:
     }
 
 
-def test_typer_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_typer_performance_benchmark(iterations=50)
+def test_typer_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_typer_efficiency_benchmark(iterations=50)
     # Basic sanity checks: the benchmark should run and report non-negative values.
     assert metrics["iterations"] == 50.0
     assert metrics["total_time_seconds"] >= 0.0

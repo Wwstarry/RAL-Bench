@@ -22,7 +22,7 @@ import click  # type: ignore  # noqa: E402
 from click.testing import CliRunner  # type: ignore  # noqa: E402
 
 
-def test_many_invocations_performance():
+def test_many_invocations_efficiency():
     @click.command()
     @click.option("--count", type=int, default=1)
     @click.argument("name")

@@ -1,0 +1,96 @@
+task_id: feder-cr-dots
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of feder-cr/dots. The repository must provide importable module `dots.cli`
+  at `src/dots/cli.py` and expose the declared public names: main, SUBCOMMAND. Imports
+  must be deterministic, unknown attributes must raise AttributeError, and public
+  callables must support Python signature introspection. No network service may be
+  required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import dots.cli
+
+  Required path: src/dots/cli.py
+
+  - function main(argv)
+
+  - constant SUBCOMMAND = ''ui''
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/dots/cli.py
+reference_repository: ./fresh/cache/feder-cr-dots
+generated_repository: ./fresh/generation/feder-cr-dots
+package:
+  name: dots
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/feder-cr-dots/functional_test.py
+  robustness: ./fresh/tests/feder-cr-dots/robustness_test.py
+  efficiency: ./fresh/tests/feder-cr-dots/efficiency_test.py
+  resource: ./fresh/tests/feder-cr-dots/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.859413
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 0.833986
+    robustness_tests_total: 4
+  efficiency:
+    efficiency_suite_time_s: 0.803912
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.811517
+    resource_tests_total: 1
+    avg_memory_mb: 41.08
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.808687
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 3.0
+      total_loc: 16.0
+  maintainability:
+    maintainability_suite_time_s: 0.831254
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 37.5409
+      files_scanned: 4.0
+      total_loc: 71.0
+      max_cc: 2.0
+provenance:
+  repository: feder-cr/dots
+  source_url: https://github.com/feder-cr/dots
+  created_at: '2026-09-29T23:06:00Z'
+  pinned_commit: 2ff9848c1c8a80460d89242d97beacf23dff05ca
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: dots.cli
+    module_root: src
+    source_file: src/dots/cli.py
+    symbols:
+    - name: main
+      kind: function
+      signature: (argv)
+    constants:
+      SUBCOMMAND: ui
+  semantic_cases:
+  - id: ui_forwarding
+    evidence: README.md#how-it-works
+    covers: exact ui subcommand and argument forwarding
+  - id: caller_input_stability
+    evidence: README.md#how-it-works
+    covers: repeat call does not mutate caller argv
+  - id: deferred_dependency
+    evidence: README.md#run-it
+    covers: backend is loaded only when main is invoked
+  independent_review: pending

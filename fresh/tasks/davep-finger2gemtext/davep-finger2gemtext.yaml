@@ -1,0 +1,128 @@
+task_id: davep-finger2gemtext
+domain: fresh
+difficulty: medium
+description: 'Implement finger2gemtext''s documented single-function conversion boundary:
+  a finger response string deterministically produces a Gemtext string, preserving
+  plain text and empty input, and non-string inputs are rejected.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import finger2gemtext
+
+  Required path: src/finger2gemtext/__init__.py
+
+  - object version
+
+  - object AvailableServicesFilter
+
+  - object finger_to_gemtext
+
+  - object FingerFilter
+
+  - object UserListFilter
+
+
+  Semantic cases: finger_to_gemtext(''A plain finger response'') returns that exact
+  string; empty input returns empty output; repeated conversion is deterministic;
+  None is outside the documented string input domain and raises.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/finger2gemtext/__init__.py
+reference_repository: ./fresh/cache/davep-finger2gemtext
+generated_repository: ./fresh/generation/davep-finger2gemtext
+package:
+  name: finger2gemtext
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/davep-finger2gemtext/functional_test.py
+  robustness: ./fresh/tests/davep-finger2gemtext/robustness_test.py
+  efficiency: ./fresh/tests/davep-finger2gemtext/efficiency_test.py
+  resource: ./fresh/tests/davep-finger2gemtext/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.806021
+    functional_tests_total: 8
+  robustness:
+    robustness_suite_time_s: 0.784026
+    robustness_tests_total: 8
+  efficiency:
+    efficiency_suite_time_s: 0.844624
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.838366
+    resource_tests_total: 1
+    avg_memory_mb: 41.04
+    avg_cpu_percent: 2.1
+  security:
+    security_suite_time_s: 0.759928
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 6.0
+      total_loc: 178.0
+  maintainability:
+    maintainability_suite_time_s: 0.764489
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 40.806
+      files_scanned: 7.0
+      total_loc: 219.0
+      max_cc: 6.0
+provenance:
+  repository: davep/finger2gemtext
+  source_url: https://github.com/davep/finger2gemtext
+  created_at: '2026-09-02T11:14:20Z'
+  pinned_commit: f36ee20a4aa0c418c335d996163cd6200d678a8f
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: finger2gemtext
+    module_root: src
+    source_file: src/finger2gemtext/__init__.py
+    symbols:
+    - name: version
+      kind: object
+      signature: ''
+    - name: AvailableServicesFilter
+      kind: object
+      signature: ''
+    - name: finger_to_gemtext
+      kind: object
+      signature: ''
+    - name: FingerFilter
+      kind: object
+      signature: ''
+    - name: UserListFilter
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: finger_to_gemtext(''A plain finger
+      response'') returns that exact string; empty input returns empty output; repeated
+      conversion is deterministic; None is outside the documented string input domain
+      and raises.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Quick start
+    - path: docs/finger2gemtext.md
+      section: finger2gemtext API reference
+    limitation: Public prose documents the string-to-string API and one remote finger
+      example but no self-contained raw input fixture for the formatted service-list
+      output; tests therefore cover the documented conversion boundary without inventing
+      such a fixture.
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

@@ -1,20 +1,20 @@
 task_id: tinydb
 domain: lib
 difficulty: medium
-description: Implement a lightweight local task manager backed by a JSON-based database.
-  The tool should support creating tasks, organizing them into projects, updating
-  fields such as status and estimates, and performing filtered queries. The API should
-  expose basic CRUD operations and allow simple analytics-like queries (e.g., unfinished
-  tasks per project). The system must remain file-based and require no external services.
+description: Implement a lightweight local task manager backed by a JSON-based database. The tool should
+  support creating tasks, organizing them into projects, updating fields such as status and estimates,
+  and performing filtered queries. The API should expose basic CRUD operations and allow simple analytics-like
+  queries (e.g., unfinished tasks per project). The system must remain file-based and require no external
+  services.
 interfaces:
   type: LIB
   language: python
   entry_point: tinydb/__init__.py
 reference_repository: ./repositories/tinydb
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 3.353348
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 3.353348
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 1.990859
     resource_tests_total: 1
@@ -43,7 +43,7 @@ baseline_metrics:
       max_cc: 9.0
 test_suite:
   functional: ./tests/TinyDB/functional_test.py
-  performance: ./tests/TinyDB/performance_test.py
+  efficiency: ./tests/TinyDB/efficiency_test.py
   resource: ./tests/TinyDB/resource_test.py
   robustness: ./tests/TinyDB/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -61,12 +61,41 @@ files:
   description: Core TinyDB database implementation and table management.
 - path: tinydb/table.py
   role: table_implementation
-  description: Table abstraction providing insert, search, update, remove, and all
-    operations.
+  description: Table abstraction providing insert, search, update, remove, and all operations.
 - path: tinydb/queries.py
   role: queries_implementation
   description: Query API (Query object, where helper) and boolean composition logic.
 - path: tinydb/storages.py
   role: storages_implementation
-  description: Storage backends including JSON file storage and in-memory storage
-    (MemoryStorage).
+  description: Storage backends including JSON file storage and in-memory storage (MemoryStorage).
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - from tinydb import Query
+
+  - from tinydb import TinyDB
+
+  - from tinydb import where
+
+  - from tinydb.middlewares import CachingMiddleware
+
+  - from tinydb.storages import JSONStorage
+
+  - from tinydb.storages import MemoryStorage
+
+
+  Required module/file paths:
+
+  - tinydb/__init__.py
+
+  - tinydb/database.py
+
+  - tinydb/table.py
+
+  - tinydb/queries.py
+
+  - tinydb/storages.py
+
+  '

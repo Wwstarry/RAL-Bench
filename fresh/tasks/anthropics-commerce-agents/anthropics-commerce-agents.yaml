@@ -1,0 +1,97 @@
+task_id: anthropics-commerce-agents
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of anthropics/commerce-agents. The repository must provide importable
+  module `commerce_common.config` at `commerce-common/commerce_common/config.py` and
+  expose the declared public names: BaseAgentConfig, DEFAULT_MEMORY_MODEL. Imports
+  must be deterministic, unknown attributes must raise AttributeError, and public
+  callables must support Python signature introspection. No network service may be
+  required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import commerce_common.config
+
+  Required path: commerce-common/commerce_common/config.py
+
+  - class BaseAgentConfig
+
+  - constant DEFAULT_MEMORY_MODEL = ''claude-haiku-4-5-20251001''
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: commerce-common/commerce_common/config.py
+reference_repository: ./fresh/cache/anthropics-commerce-agents
+generated_repository: ./fresh/generation/anthropics-commerce-agents
+package:
+  name: commerce_common
+  root_dir: commerce-common
+test_suite:
+  functional: ./fresh/tests/anthropics-commerce-agents/functional_test.py
+  robustness: ./fresh/tests/anthropics-commerce-agents/robustness_test.py
+  efficiency: ./fresh/tests/anthropics-commerce-agents/efficiency_test.py
+  resource: ./fresh/tests/anthropics-commerce-agents/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.048378
+    functional_tests_total: 4
+  robustness:
+    robustness_suite_time_s: 1.016108
+    robustness_tests_total: 4
+  efficiency:
+    efficiency_suite_time_s: 0.996976
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 1.006484
+    resource_tests_total: 1
+    avg_memory_mb: 46.4
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 1.287185
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 117.0
+      total_loc: 21676.0
+  maintainability:
+    maintainability_suite_time_s: 2.382201
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.9944
+      files_scanned: 200.0
+      total_loc: 33705.0
+      max_cc: 47.0
+provenance:
+  repository: anthropics/commerce-agents
+  source_url: https://github.com/anthropics/commerce-agents
+  created_at: '2026-09-01T12:30:12Z'
+  pinned_commit: fd4d59224ab96b43c6dc6888207c67b3bd5a24cf
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: commerce_common.config
+    module_root: commerce-common
+    source_file: commerce-common/commerce_common/config.py
+    symbols:
+    - name: BaseAgentConfig
+      kind: class
+      signature: class
+    constants:
+      DEFAULT_MEMORY_MODEL: claude-haiku-4-5-20251001
+  semantic_cases:
+  - id: config_defaults
+    evidence: commerce-common/README.md#configuration
+    covers: exact memory/tool defaults
+  - id: config_round_trip
+    evidence: commerce-common/README.md#configuration
+    covers: deterministic Pydantic serialization round trip
+  - id: config_bounds
+    evidence: commerce-common/README.md#configuration
+    covers: required model and search/retention boundaries
+  independent_review: pending

@@ -1,0 +1,108 @@
+task_id: mizorewww-laya-mlx
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of mizorewww/laya-mlx. The repository must provide importable module `math_costs`
+  at `experiments/math_costs.py` and expose the declared public names: model_budget,
+  student_budget, main, BANDWIDTH. Imports must be deterministic, unknown attributes
+  must raise AttributeError, and public callables must support Python signature introspection.
+  No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import math_costs
+
+  Required path: experiments/math_costs.py
+
+  - function model_budget(name)
+
+  - function student_budget(name, n_student, d_student, i_student, h_student)
+
+  - function main()
+
+  - constant BANDWIDTH = 400000000000
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: experiments/math_costs.py
+reference_repository: ./fresh/cache/mizorewww-laya-mlx
+generated_repository: ./fresh/generation/mizorewww-laya-mlx
+package:
+  name: math_costs
+  root_dir: experiments
+test_suite:
+  functional: ./fresh/tests/mizorewww-laya-mlx/functional_test.py
+  robustness: ./fresh/tests/mizorewww-laya-mlx/robustness_test.py
+  efficiency: ./fresh/tests/mizorewww-laya-mlx/efficiency_test.py
+  resource: ./fresh/tests/mizorewww-laya-mlx/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.886665
+    functional_tests_total: 8
+  robustness:
+    robustness_suite_time_s: 0.799591
+    robustness_tests_total: 7
+  efficiency:
+    efficiency_suite_time_s: 0.799526
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.840163
+    resource_tests_total: 1
+    avg_memory_mb: 41.3
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.919451
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 44.0
+      total_loc: 6678.0
+  maintainability:
+    maintainability_suite_time_s: 1.138888
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.1827
+      files_scanned: 52.0
+      total_loc: 7926.0
+      max_cc: 48.0
+provenance:
+  repository: mizorewww/laya-mlx
+  source_url: https://github.com/mizorewww/laya-mlx
+  created_at: '2026-09-19T13:50:26Z'
+  pinned_commit: ca5940aa9286dbbdfaacbecbdb7b337295ad36a2
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: math_costs
+    module_root: experiments
+    source_file: experiments/math_costs.py
+    symbols:
+    - name: model_budget
+      kind: function
+      signature: (name)
+    - name: student_budget
+      kind: function
+      signature: (name, n_student, d_student, i_student, h_student)
+    - name: main
+      kind: function
+      signature: ()
+    constants:
+      BANDWIDTH: 400000000000
+  semantic_cases:
+  - id: advertised_bandwidth
+    evidence: docs/MATH_10X_RESEARCH.md#2-dense-work-and-conditional-lower-bounds
+    covers: exact 400 GB/s arithmetic constant and repeatability
+  - id: student_budget
+    evidence: docs/MATH_10X_RESEARCH.md#7-a-credible-route-to-an-order-of-magnitude-model-improvement
+    covers: architecture fields and teacher-to-student work ratio with documented
+      teacher budget
+  - id: unavailable_model_assets
+    evidence: docs/MATH_10X_RESEARCH.md#reproduction-and-scope
+    covers: missing/unknown checkpoint and zero-size boundary; committed checkout
+      omits model assets
+  independent_review: pending

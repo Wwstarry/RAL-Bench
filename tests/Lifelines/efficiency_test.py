@@ -31,7 +31,7 @@ def _make_small_dataset(n: int = 100) -> pd.DataFrame:
     return pd.DataFrame({"duration": durations, "event": events})
 
 
-def run_lifelines_performance_benchmark(iterations: int = 50, n: int = 100) -> dict[str, float]:
+def run_lifelines_efficiency_benchmark(iterations: int = 50, n: int = 100) -> dict[str, float]:
     """Run repeated KaplanMeierFitter fits and measure total time."""
     df = _make_small_dataset(n)
     kmf = KaplanMeierFitter()
@@ -53,9 +53,9 @@ def run_lifelines_performance_benchmark(iterations: int = 50, n: int = 100) -> d
     }
 
 
-def test_lifelines_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_lifelines_performance_benchmark(iterations=10, n=50)
+def test_lifelines_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_lifelines_efficiency_benchmark(iterations=10, n=50)
     assert metrics["iterations"] == 10.0
     assert metrics["n_samples"] == 50.0
     assert metrics["total_fits"] == 10.0

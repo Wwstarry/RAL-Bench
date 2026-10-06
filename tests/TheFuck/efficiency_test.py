@@ -35,7 +35,7 @@ def _iter_rule_module_names(limit: Optional[int] = None) -> List[str]:
     return names
 
 
-def test_performance_import_and_discover_rules_is_fast_enough() -> None:
+def test_efficiency_import_and_discover_rules_is_fast_enough() -> None:
     t0 = time.time()
     _ensure_repo_on_syspath()
     importlib.import_module("thefuck")
@@ -46,7 +46,7 @@ def test_performance_import_and_discover_rules_is_fast_enough() -> None:
     assert dt < 5.0, "import + discover too slow: {:.3f}s".format(dt)
 
 
-def test_performance_import_first_30_rules_is_fast_enough() -> None:
+def test_efficiency_import_first_30_rules_is_fast_enough() -> None:
     names = _iter_rule_module_names(limit=30)
     t0 = time.time()
     ok = 0

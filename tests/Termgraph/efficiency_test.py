@@ -28,7 +28,7 @@ from termgraph import (  # type: ignore  # noqa: E402
 
 
 def _make_args(**overrides) -> Args:
-    """Create an Args instance with defaults used in performance tests."""
+    """Create an Args instance with defaults used in efficiency tests."""
     base: dict = {
         "title": None,
         "width": 20,
@@ -43,8 +43,8 @@ def _make_args(**overrides) -> Args:
     return Args(**kwargs)  # type: ignore[arg-type]
 
 
-def test_performance_many_small_charts() -> None:
-    """Render many small charts to ensure performance is reasonable."""
+def test_efficiency_many_small_charts() -> None:
+    """Render many small charts to ensure efficiency is reasonable."""
     labels = ["A", "B", "C"]
     values = [[1], [2], [3]]
 

@@ -1,38 +1,32 @@
 task_id: pypdf
 domain: lib
 difficulty: medium
-description: "Implement a pure Python PDF manipulation library that is API-compatible\n\
-  with the core parts of the reference pypdf project under ./repositories/pypdf.\n\
-  The generated repository must:\n\n- Provide a top-level \"pypdf\" package importable\
-  \ with `from pypdf import PdfReader, PdfWriter`.\n\n- Expose the key public API\
-  \ used by the test suite, including at least:\n    * pypdf.PdfReader(path_or_file)\n\
-  \    * pypdf.PdfWriter()\n    * The PdfReader.pages sequence providing PageObject\
-  \ items.\n    * PdfWriter.add_page(page) and PdfWriter.add_blank_page(width, height).\n\
-  \    * PdfWriter.write(file_obj) for writing the resulting PDF.\n    * PdfWriter.encrypt(password)\
-  \ for encrypting documents.\n    * PdfWriter.add_metadata(mapping) for setting document\
-  \ information.\n    * The PdfReader.is_encrypted property and .decrypt(password)\
-  \ method.\n    * PageObject.rotate(angle) for rotating pages.\n    * PageObject.rotation\
-  \ (or an equivalent property) exposing the effective rotation angle in degrees.\n\
-  \n- Correctly handle reading and writing of multi-page documents, including:\n \
-  \   * Preserving the number and order of pages when copying pages from a reader\n\
-  \      into a writer and writing out a new document.\n    * Producing valid PDF\
-  \ files that can be opened again by PdfReader.\n\n- Support splitting and merging\
-  \ PDFs by iterating over reader.pages and\n  adding them to a PdfWriter instance,\
-  \ as exercised by the test suite.\n\n- Support basic encryption flows as used by\
-  \ the tests, where a document is\n  encrypted using PdfWriter.encrypt(password),\
-  \ written to disk, and then\n  opened and decrypted using PdfReader.decrypt(password)\
-  \ before accessing\n  the pages.\n\n- Support basic document metadata round-trips\
-  \ via PdfWriter.add_metadata(...)\n  and PdfReader.metadata, at least for the fields\
-  \ covered by the tests\n  (e.g., \"/Title\" and \"/Author\").\n\n- Behave in a way\
-  \ that allows the same black-box tests used for the reference\n  repository to run\
-  \ successfully on the generated repository, including the\n  exact public API names,\
-  \ module layout, and the observable behavior for the\n  operations exercised by\
-  \ the tests.\n"
+description: "Implement a pure Python PDF manipulation library that is API-compatible\nwith the core parts\
+  \ of the reference pypdf project under ./repositories/pypdf.\nThe generated repository must:\n\n- Provide\
+  \ a top-level \"pypdf\" package importable with `from pypdf import PdfReader, PdfWriter`.\n\n- Expose\
+  \ the key public API used by the test suite, including at least:\n    * pypdf.PdfReader(path_or_file)\n\
+  \    * pypdf.PdfWriter()\n    * The PdfReader.pages sequence providing PageObject items.\n    * PdfWriter.add_page(page)\
+  \ and PdfWriter.add_blank_page(width, height).\n    * PdfWriter.write(file_obj) for writing the resulting\
+  \ PDF.\n    * PdfWriter.encrypt(password) for encrypting documents.\n    * PdfWriter.add_metadata(mapping)\
+  \ for setting document information.\n    * The PdfReader.is_encrypted property and .decrypt(password)\
+  \ method.\n    * PageObject.rotate(angle) for rotating pages.\n    * PageObject.rotation (or an equivalent\
+  \ property) exposing the effective rotation angle in degrees.\n\n- Correctly handle reading and writing\
+  \ of multi-page documents, including:\n    * Preserving the number and order of pages when copying pages\
+  \ from a reader\n      into a writer and writing out a new document.\n    * Producing valid PDF files\
+  \ that can be opened again by PdfReader.\n\n- Support splitting and merging PDFs by iterating over reader.pages\
+  \ and\n  adding them to a PdfWriter instance, as exercised by the test suite.\n\n- Support basic encryption\
+  \ flows as used by the tests, where a document is\n  encrypted using PdfWriter.encrypt(password), written\
+  \ to disk, and then\n  opened and decrypted using PdfReader.decrypt(password) before accessing\n  the\
+  \ pages.\n\n- Support basic document metadata round-trips via PdfWriter.add_metadata(...)\n  and PdfReader.metadata,\
+  \ at least for the fields covered by the tests\n  (e.g., \"/Title\" and \"/Author\").\n\n- Behave in\
+  \ a way that allows the same black-box tests used for the reference\n  repository to run successfully\
+  \ on the generated repository, including the\n  exact public API names, module layout, and the observable\
+  \ behavior for the\n  operations exercised by the tests.\n"
 reference_repository: ./repositories/pypdf
 generated_repository: ./generation/PyPDF
 test_suite:
   functional: ./tests/PyPDF/functional_test.py
-  performance: ./tests/PyPDF/performance_test.py
+  efficiency: ./tests/PyPDF/efficiency_test.py
   resource: ./tests/PyPDF/resource_test.py
   robustness: ./tests/PyPDF/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -45,9 +39,9 @@ package:
   name: pypdf
   root_dir: .
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 1.841743
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 1.841743
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 1.962762
     resource_tests_total: 1
@@ -74,3 +68,13 @@ baseline_metrics:
       files_scanned: 56.0
       total_loc: 37260.0
       max_cc: 47.0
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - from pypdf import PdfReader
+
+  - from pypdf import PdfWriter
+
+  '

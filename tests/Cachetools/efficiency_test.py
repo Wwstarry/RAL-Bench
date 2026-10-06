@@ -18,7 +18,7 @@ else:
 from cachetools import LRUCache, cached  # type: ignore  # noqa: E402
 
 
-def test_many_cached_calls_performance():
+def test_many_cached_calls_efficiency():
     cache = LRUCache(maxsize=1024)
 
     call_count = {"count": 0}

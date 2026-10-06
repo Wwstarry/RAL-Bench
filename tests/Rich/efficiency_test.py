@@ -32,10 +32,10 @@ def make_console_buffer():
     return console, buf
 
 
-def test_large_table_and_progress_performance():
+def test_large_table_and_progress_efficiency():
     console, buf = make_console_buffer()
 
-    table = Table(title="Performance Table")
+    table = Table(title="Efficiency Table")
     table.add_column("Index")
     table.add_column("Value")
     table.add_column("Status")
@@ -53,7 +53,7 @@ def test_large_table_and_progress_performance():
     elapsed = time.perf_counter() - start
 
     output = buf.getvalue()
-    assert "Performance Table" in output
+    assert "Efficiency Table" in output
     assert "PerfTask" in output
     assert "value-0" in output
     assert "value-1999" in output

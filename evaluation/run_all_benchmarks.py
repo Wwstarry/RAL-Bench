@@ -3,6 +3,7 @@ import subprocess
 import yaml
 import csv
 import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,7 +17,7 @@ def find_all_tasks():
 
 def run_single_task(task_yaml: Path, model_name: str, skip_generation: bool) -> bool:
     cmd = [
-        "python",
+        sys.executable,
         "-m",
         "evaluation.run_benchmark",
         "--task",
@@ -46,7 +47,6 @@ def load_result_or_default(project: str) -> dict:
         print(f"[WARN] Result file not found for {project}, using zero scores")
         return {
             "functional_score": 0.0,
-            "non_functional_score": 0.0,
             "scores": {},
             "non_functional_subscores": {},
         }
@@ -75,11 +75,10 @@ def main(model_name: str, skip_generation: bool):
         "mode",
         "project",
         "functional_score",
-        "non_functional_score",
         "maintainability",
         "security",
         "robustness",
-        "performance",
+        "efficiency",
         "resource",
     ]
 
@@ -109,11 +108,10 @@ def main(model_name: str, skip_generation: bool):
             "mode": mode_str,
             "project": project,
             "functional_score": _f(result.get("functional_score"), 0.0),
-            "non_functional_score": _f(result.get("non_functional_score"), 0.0),
             "maintainability": get_sub("maintainability"),
             "security": get_sub("security"),
             "robustness": get_sub("robustness"),
-            "performance": get_sub("performance"),
+            "efficiency": get_sub("efficiency"),
             "resource": get_sub("resource"),
         })
 

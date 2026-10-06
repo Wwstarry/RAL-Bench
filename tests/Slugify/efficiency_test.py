@@ -58,7 +58,7 @@ def _run_slugify_batch(batch_size: int = 500, text_length: int = 64) -> int:
     return total_len
 
 
-def run_slugify_performance_benchmark(
+def run_slugify_efficiency_benchmark(
     iterations: int = 10,
     batch_size: int = 500,
     text_length: int = 64,
@@ -86,9 +86,9 @@ def run_slugify_performance_benchmark(
     }
 
 
-def test_slugify_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_slugify_performance_benchmark(iterations=3, batch_size=100, text_length=32)
+def test_slugify_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_slugify_efficiency_benchmark(iterations=3, batch_size=100, text_length=32)
 
     assert metrics["iterations"] == 3.0
     assert metrics["batch_size"] == 100.0

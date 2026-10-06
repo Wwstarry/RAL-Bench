@@ -1,35 +1,30 @@
 task_id: lifelines
 domain: lifestyle
 difficulty: medium
-description: "Implement a pure Python survival analysis library that is API-compatible\n\
-  with the core parts of the reference lifelines project under ./repositories/lifelines.\n\
-  The generated repository must:\n\n- Provide a top-level \"lifelines\" package importable\
-  \ with `import lifelines`.\n\n- Expose the key public APIs used by the test suite,\
-  \ including at least:\n    * lifelines.KaplanMeierFitter for univariate survival\
-  \ estimation.\n    * lifelines.CoxPHFitter for Cox proportional hazards regression.\n\
-  \    * lifelines.datasets.load_waltons to load the Waltons example dataset.\n\n\
-  - For KaplanMeierFitter:\n    * Support .fit(durations, event_observed) to estimate\
-  \ the survival function.\n    * Expose a .survival_function_ attribute as a pandas\
-  \ DataFrame indexed by time.\n    * Provide a .predict(time) method that returns\
-  \ the estimated survival probability\n      at the given time, with values in the\
-  \ range [0, 1].\n\n- For CoxPHFitter:\n    * Support .fit(df, duration_col=...,\
-  \ event_col=...) on a pandas DataFrame with\n      numeric covariates, fitting a\
-  \ proportional hazards model.\n    * Expose a .summary attribute as a pandas DataFrame\
-  \ containing at least the\n      coefficient (\"coef\") and standard error (\"se(coef)\"\
-  ) columns.\n    * Provide a .predict_survival_function(row) method that accepts\
-  \ a single-row\n      DataFrame and returns a survival curve with values in the\
-  \ range [0, 1].\n\n- Provide a datasets submodule with a load_waltons() function\
-  \ that returns a\n  pandas DataFrame containing at least the columns:\n    * \"\
-  T\" (duration)\n    * \"E\" (event indicator)\n    * \"group\" (categorical group\
-  \ label)\n\n- Behave in a way that allows the same black-box tests used for the\
-  \ reference\n  repository to run successfully on the generated repository, including\
-  \ the\n  exact public API names, module layout, and observable behavior for the\n\
-  \  operations covered by the tests.\n"
+description: "Implement a pure Python survival analysis library that is API-compatible\nwith the core\
+  \ parts of the reference lifelines project under ./repositories/lifelines.\nThe generated repository\
+  \ must:\n\n- Provide a top-level \"lifelines\" package importable with `import lifelines`.\n\n- Expose\
+  \ the key public APIs used by the test suite, including at least:\n    * lifelines.KaplanMeierFitter\
+  \ for univariate survival estimation.\n    * lifelines.CoxPHFitter for Cox proportional hazards regression.\n\
+  \    * lifelines.datasets.load_waltons to load the Waltons example dataset.\n\n- For KaplanMeierFitter:\n\
+  \    * Support .fit(durations, event_observed) to estimate the survival function.\n    * Expose a .survival_function_\
+  \ attribute as a pandas DataFrame indexed by time.\n    * Provide a .predict(time) method that returns\
+  \ the estimated survival probability\n      at the given time, with values in the range [0, 1].\n\n\
+  - For CoxPHFitter:\n    * Support .fit(df, duration_col=..., event_col=...) on a pandas DataFrame with\n\
+  \      numeric covariates, fitting a proportional hazards model.\n    * Expose a .summary attribute\
+  \ as a pandas DataFrame containing at least the\n      coefficient (\"coef\") and standard error (\"\
+  se(coef)\") columns.\n    * Provide a .predict_survival_function(row) method that accepts a single-row\n\
+  \      DataFrame and returns a survival curve with values in the range [0, 1].\n\n- Provide a datasets\
+  \ submodule with a load_waltons() function that returns a\n  pandas DataFrame containing at least the\
+  \ columns:\n    * \"T\" (duration)\n    * \"E\" (event indicator)\n    * \"group\" (categorical group\
+  \ label)\n\n- Behave in a way that allows the same black-box tests used for the reference\n  repository\
+  \ to run successfully on the generated repository, including the\n  exact public API names, module layout,\
+  \ and observable behavior for the\n  operations covered by the tests.\n"
 reference_repository: ./repositories/lifelines
 generated_repository: ./generation/Lifelines
 test_suite:
   functional: ./tests/Lifelines/functional_test.py
-  performance: ./tests/Lifelines/performance_test.py
+  efficiency: ./tests/Lifelines/efficiency_test.py
   resource: ./tests/Lifelines/resource_test.py
   robustness: ./tests/Lifelines/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -42,9 +37,9 @@ package:
   name: lifelines
   root_dir: .
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 4.479736
-    performance_tests_total: 1
+  efficiency:
+    efficiency_suite_time_s: 4.479736
+    efficiency_tests_total: 1
   resource:
     resource_suite_time_s: 4.442984
     resource_tests_total: 1
@@ -71,3 +66,15 @@ baseline_metrics:
       files_scanned: 47.0
       total_loc: 20752.0
       max_cc: 31.0
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - from lifelines import CoxPHFitter
+
+  - from lifelines import KaplanMeierFitter
+
+  - from lifelines.datasets import load_waltons
+
+  '

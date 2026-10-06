@@ -1,44 +1,39 @@
 task_id: dataset_core_table_api
 domain: data
 difficulty: medium
-description: "Implement a pure Python lightweight tabular data access layer that is\
-  \ API-compatible with\nthe core parts of the reference Dataset project. The generated\
-  \ repository must:\n\n- Provide a top-level `dataset` package importable as `import\
-  \ dataset`, structured so that\n  the following modules exist:\n    * dataset\n\
-  \    * dataset.database\n    * dataset.table\n\n- Expose the key public API objects\
-  \ and functions used by the test suite, including at least:\n    * Top-level function:\
-  \ `dataset.connect(url)` returning a `Database` instance.\n    * Class `Database`\
-  \ with:\n        - `__getitem__(self, name)` returning a `Table` object for the\
-  \ given name.\n        - Transaction methods: `begin()`, `commit()`, `rollback()`.\n\
-  \        - SQL helper: `query(sql, **params)` yielding row mappings.\n    * Class\
-  \ `Table` with:\n        - Data modification methods: `insert(row)`, `insert_many(rows,\
-  \ chunk_size=None)`,\n          `update(row, keys)`, `upsert(row, keys)`, `delete(**filters)`.\n\
-  \        - Query methods: `all()`, `find(**filters)`, `find_one(**filters)`,\n \
-  \         `distinct(column)`, `count(**filters)`.\n        - Index helpers: `create_index(columns)`\
-  \ and `has_index(columns)`.\n        - Introspection: `columns` attribute and support\
-  \ for `len(table)`.\n\n- Ensure that `dataset.connect(\"sqlite:///:memory:\")` produces\
-  \ an in-memory SQLite\n  database where tables are created lazily when accessed\
-  \ via `db['name']`, and columns\n  are added as needed when inserting dictionaries\
-  \ with new keys.\n\n- Implement basic transaction semantics such that explicit `begin()`,\
-  \ `commit()`,\n  and `rollback()` calls control visibility of inserted rows consistently\
-  \ with the\n  expectations in the tests, including rolled-back inserts not being\
-  \ visible.\n\n- Implement index handling in a way that makes `create_index(columns)`\
-  \ and\n  `has_index(columns)` behave consistently across the reference and generated\n\
-  \  repositories, even if the internal representation of indexes is simplified.\n\
-  \n- Ensure the generated repository behaves in a way that allows the provided black-box\n\
-  \  tests to run successfully, including functional scenarios (row insertion, querying,\n\
-  \  updates, upserts, deletes, distinct and counts), performance scenarios (bulk\
-  \ insert\n  and filtered queries on large tables), and resource scenarios (memory\
-  \ usage under\n  repeated connections and bulk workloads).\n"
+description: "Implement a pure Python lightweight tabular data access layer that is API-compatible with\n\
+  the core parts of the reference Dataset project. The generated repository must:\n\n- Provide a top-level\
+  \ `dataset` package importable as `import dataset`, structured so that\n  the following modules exist:\n\
+  \    * dataset\n    * dataset.database\n    * dataset.table\n\n- Expose the key public API objects and\
+  \ functions used by the test suite, including at least:\n    * Top-level function: `dataset.connect(url)`\
+  \ returning a `Database` instance.\n    * Class `Database` with:\n        - `__getitem__(self, name)`\
+  \ returning a `Table` object for the given name.\n        - Transaction methods: `begin()`, `commit()`,\
+  \ `rollback()`.\n        - SQL helper: `query(sql, **params)` yielding row mappings.\n    * Class `Table`\
+  \ with:\n        - Data modification methods: `insert(row)`, `insert_many(rows, chunk_size=None)`,\n\
+  \          `update(row, keys)`, `upsert(row, keys)`, `delete(**filters)`.\n        - Query methods:\
+  \ `all()`, `find(**filters)`, `find_one(**filters)`,\n          `distinct(column)`, `count(**filters)`.\n\
+  \        - Index helpers: `create_index(columns)` and `has_index(columns)`.\n        - Introspection:\
+  \ `columns` attribute and support for `len(table)`.\n\n- Ensure that `dataset.connect(\"sqlite:///:memory:\"\
+  )` produces an in-memory SQLite\n  database where tables are created lazily when accessed via `db['name']`,\
+  \ and columns\n  are added as needed when inserting dictionaries with new keys.\n\n- Implement basic\
+  \ transaction semantics such that explicit `begin()`, `commit()`,\n  and `rollback()` calls control\
+  \ visibility of inserted rows consistently with the\n  expectations in the tests, including rolled-back\
+  \ inserts not being visible.\n\n- Implement index handling in a way that makes `create_index(columns)`\
+  \ and\n  `has_index(columns)` behave consistently across the reference and generated\n  repositories,\
+  \ even if the internal representation of indexes is simplified.\n\n- Ensure the generated repository\
+  \ behaves in a way that allows the provided black-box\n  tests to run successfully, including functional\
+  \ scenarios (row insertion, querying,\n  updates, upserts, deletes, distinct and counts), efficiency\
+  \ scenarios (bulk insert\n  and filtered queries on large tables), and resource scenarios (memory usage\
+  \ under\n  repeated connections and bulk workloads).\n"
 interfaces:
   type: LIB
   language: python
   entry_point: dataset/__init__.py
 reference_repository: ./repositories/Dataset
 baseline_metrics:
-  performance:
-    performance_suite_time_s: 2.781374
-    performance_tests_total: 2
+  efficiency:
+    efficiency_suite_time_s: 2.781374
+    efficiency_tests_total: 2
   resource:
     resource_suite_time_s: 2.854474
     resource_tests_total: 2
@@ -67,7 +62,7 @@ baseline_metrics:
       max_cc: 16.0
 test_suite:
   functional: ./tests/Dataset/functional_test.py
-  performance: ./tests/Dataset/performance_test.py
+  efficiency: ./tests/Dataset/efficiency_test.py
   resource: ./tests/Dataset/resource_test.py
   robustness: ./tests/Dataset/robustness_test.py
   security: ./tests/_generic/security_test.py
@@ -79,13 +74,33 @@ package:
 files:
 - path: dataset/__init__.py
   role: package_init
-  description: Package entry point; exposes connect() and re-exports Database for
-    top-level use.
+  description: Package entry point; exposes connect() and re-exports Database for top-level use.
 - path: dataset/database.py
   role: core_database_impl
-  description: Defines the Database class, connection management, transaction control,
-    and db.query().
+  description: Defines the Database class, connection management, transaction control, and db.query().
 - path: dataset/table.py
   role: core_table_impl
-  description: Defines the Table abstraction implementing insert, find, update, upsert,
-    delete, count, distinct, and index helpers.
+  description: Defines the Table abstraction implementing insert, find, update, upsert, delete, count,
+    distinct, and index helpers.
+api_contract: 'PUBLIC SURFACE (benchmark input; no implementation bodies)
+
+
+  Required import forms:
+
+  - import dataset
+
+
+  Referenced package attributes:
+
+  - dataset.connect
+
+
+  Required module/file paths:
+
+  - dataset/__init__.py
+
+  - dataset/database.py
+
+  - dataset/table.py
+
+  '

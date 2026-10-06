@@ -110,6 +110,7 @@ def _run_pytest_with_sampling(
 ) -> Dict[str, Any]:
     env = os.environ.copy()
     env.update(extra_env)
+    env["PYTHONUTF8"] = "1"
 
     existing_pp = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = str(repo_root) + (os.pathsep + existing_pp if existing_pp else "")
@@ -255,6 +256,7 @@ def main() -> None:
 
     baseline: Dict[str, Any] = task.get("baseline_metrics") or {}
     task["baseline_metrics"] = baseline
+    failures: List[str] = []
 
     for test_type, test_rel in test_suite.items():
         test_path = _resolve_test_path(project_name, str(test_rel))
@@ -278,6 +280,11 @@ def main() -> None:
             timeout_s=timeout_s,
             add_s=add_s,
         )
+        if int(r.get("returncode", 1)) != 0:
+            failures.append(
+                f"{test_type}: returncode={r.get('returncode')} "
+                f"passed={r.get('passed')} failed={r.get('failed')}"
+            )
 
         entry: Dict[str, Any] = baseline.get(test_type) or {}
         entry[f"{test_type}_suite_time_s"] = float(r.get("elapsed_time_s", 0.0) or 0.0)
@@ -293,6 +300,9 @@ def main() -> None:
                 entry["metrics"] = metrics
 
         baseline[test_type] = entry
+
+    if failures:
+        raise RuntimeError("reference validation failed; baselines not written: " + "; ".join(failures))
 
     print("Measured baseline_metrics:")
     print(task["baseline_metrics"])

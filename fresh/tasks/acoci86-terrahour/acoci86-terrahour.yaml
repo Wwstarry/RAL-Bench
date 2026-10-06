@@ -1,0 +1,108 @@
+task_id: acoci86-terrahour
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of ACoci86/terrahour. The repository must provide importable module `terrahour.alerts`
+  at `terrahour/alerts.py` and expose the declared public names: resolve_place, parse_alert,
+  alert_city, notify, check_alerts. Imports must be deterministic, unknown attributes
+  must raise AttributeError, and public callables must support Python signature introspection.
+  No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import terrahour.alerts
+
+  Required path: terrahour/alerts.py
+
+  - function resolve_place(st, name)
+
+  - function parse_alert(text, st)
+
+  - function alert_city(a)
+
+  - function notify(text)
+
+  - function check_alerts(st, live)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: terrahour/alerts.py
+reference_repository: ./fresh/cache/acoci86-terrahour
+generated_repository: ./fresh/generation/acoci86-terrahour
+package:
+  name: terrahour
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/acoci86-terrahour/functional_test.py
+  robustness: ./fresh/tests/acoci86-terrahour/robustness_test.py
+  efficiency: ./fresh/tests/acoci86-terrahour/efficiency_test.py
+  resource: ./fresh/tests/acoci86-terrahour/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.934693
+    functional_tests_total: 8
+  robustness:
+    robustness_suite_time_s: 0.855286
+    robustness_tests_total: 10
+  efficiency:
+    efficiency_suite_time_s: 0.882043
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.872775
+    resource_tests_total: 1
+    avg_memory_mb: 43.21
+    avg_cpu_percent: 2.0
+  security:
+    security_suite_time_s: 0.883859
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 20.0
+      total_loc: 2728.0
+  maintainability:
+    maintainability_suite_time_s: 0.944636
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 8.085
+      files_scanned: 20.0
+      total_loc: 2728.0
+      max_cc: 109.0
+provenance:
+  repository: ACoci86/terrahour
+  source_url: https://github.com/ACoci86/terrahour
+  created_at: '2026-10-01T11:05:15Z'
+  pinned_commit: 7176298a76f8b6efcb6e33e3b129b9ff697b4a6a
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: terrahour.alerts
+    module_root: .
+    source_file: terrahour/alerts.py
+    symbols:
+    - name: resolve_place
+      kind: function
+      signature: (st, name)
+    - name: parse_alert
+      kind: function
+      signature: (text, st)
+    - name: alert_city
+      kind: function
+      signature: (a)
+    - name: notify
+      kind: function
+      signature: (text)
+    - name: check_alerts
+      kind: function
+      signature: (st, live)
+    constants: {}
+  semantic_cases:
+  - source: README.md#usage
+    normal: parse the documented "in 2m" alert into a timer at the expected epoch
+    state: a fired one-shot timer is removed from the saved alert list
+    boundary: zero-duration, impossible time, and unrecognized alert text return errors
+  independent_review: pending

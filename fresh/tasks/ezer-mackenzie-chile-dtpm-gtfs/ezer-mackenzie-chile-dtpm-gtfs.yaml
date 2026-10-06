@@ -1,0 +1,118 @@
+task_id: ezer-mackenzie-chile-dtpm-gtfs
+domain: fresh
+difficulty: medium
+description: 'Implement chile-dtpm-gtfs public immutable records and configuration
+  boundary: preserve FeedPublication dates/URLs/filenames, expose immutable FeedMetadata
+  with optional provenance, and reject nonpositive download size limits before I/O.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import chile_dtpm_gtfs
+
+  Required path: src/chile_dtpm_gtfs/__init__.py
+
+  - object GTFSFeed
+
+  - object FeedMetadata
+
+  - object DTPM
+
+  - object FeedPublication
+
+
+  Semantic cases: FeedPublication and FeedMetadata retain exact constructor values
+  and are frozen; omitted metadata source_url is None; FeedDownloader(max_bytes=0)
+  raises ValueError(''max_bytes must be positive'').
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/chile_dtpm_gtfs/__init__.py
+reference_repository: ./fresh/cache/ezer-mackenzie-chile-dtpm-gtfs
+generated_repository: ./fresh/generation/ezer-mackenzie-chile-dtpm-gtfs
+package:
+  name: chile_dtpm_gtfs
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/ezer-mackenzie-chile-dtpm-gtfs/functional_test.py
+  robustness: ./fresh/tests/ezer-mackenzie-chile-dtpm-gtfs/robustness_test.py
+  efficiency: ./fresh/tests/ezer-mackenzie-chile-dtpm-gtfs/efficiency_test.py
+  resource: ./fresh/tests/ezer-mackenzie-chile-dtpm-gtfs/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.884638
+    functional_tests_total: 7
+  robustness:
+    robustness_suite_time_s: 0.945672
+    robustness_tests_total: 7
+  efficiency:
+    efficiency_suite_time_s: 0.958175
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.928709
+    resource_tests_total: 1
+    avg_memory_mb: 44.5
+    avg_cpu_percent: 3.8
+  security:
+    security_suite_time_s: 0.794521
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 28.0
+      total_loc: 1513.0
+  maintainability:
+    maintainability_suite_time_s: 0.913477
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 25.5033
+      files_scanned: 36.0
+      total_loc: 2127.0
+      max_cc: 23.0
+provenance:
+  repository: ezer-mackenzie/chile-dtpm-gtfs
+  source_url: https://github.com/ezer-mackenzie/chile-dtpm-gtfs
+  created_at: '2026-09-13T07:28:36Z'
+  pinned_commit: d1c358f81b2fc20d69095ff098caea31dbb8513d
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: chile_dtpm_gtfs
+    module_root: src
+    source_file: src/chile_dtpm_gtfs/__init__.py
+    symbols:
+    - name: GTFSFeed
+      kind: object
+      signature: ''
+    - name: FeedMetadata
+      kind: object
+      signature: ''
+    - name: DTPM
+      kind: object
+      signature: ''
+    - name: FeedPublication
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: FeedPublication and FeedMetadata
+      retain exact constructor values and are frozen; omitted metadata source_url
+      is None; FeedDownloader(max_bytes=0) raises ValueError(''max_bytes must be positive'').'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: docs/api.md
+      section: Discovery; Downloads and feeds; Export and errors
+    - path: docs/gtfs.md
+      section: GTFS loading and validation
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

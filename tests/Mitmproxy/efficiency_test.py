@@ -27,7 +27,7 @@ def _pythonpath_root() -> Path:
     return repo.resolve()
 
 
-def test_performance_import_mitmproxy_elapsed():
+def test_efficiency_import_mitmproxy_elapsed():
     """
     Measure a stable, dependency-light workload:
     - import mitmproxy (top-level)
@@ -50,4 +50,4 @@ def test_performance_import_mitmproxy_elapsed():
 
     assert p.returncode == 0
     elapsed_s = t1 - t0
-    print(f"METRIC performance.import_mitmproxy.elapsed_s={elapsed_s:.6f}")
+    print(f"METRIC efficiency.import_mitmproxy.elapsed_s={elapsed_s:.6f}")

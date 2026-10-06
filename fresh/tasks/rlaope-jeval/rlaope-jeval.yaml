@@ -1,0 +1,105 @@
+task_id: rlaope-jeval
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of rlaope/jeval. The repository must provide importable module `jeval`
+  at `jeval/__init__.py` and expose the declared public names: annotations, PackageNotFoundError,
+  version, DISTRIBUTION. Imports must be deterministic, unknown attributes must raise
+  AttributeError, and public callables must support Python signature introspection.
+  No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import jeval
+
+  Required path: jeval/__init__.py
+
+  - object annotations
+
+  - object PackageNotFoundError
+
+  - object version
+
+  - constant DISTRIBUTION = ''jeval-cli''
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: jeval/__init__.py
+reference_repository: ./fresh/cache/rlaope-jeval
+generated_repository: ./fresh/generation/rlaope-jeval
+package:
+  name: jeval
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/rlaope-jeval/functional_test.py
+  robustness: ./fresh/tests/rlaope-jeval/robustness_test.py
+  efficiency: ./fresh/tests/rlaope-jeval/efficiency_test.py
+  resource: ./fresh/tests/rlaope-jeval/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.06439
+    functional_tests_total: 6
+  robustness:
+    robustness_suite_time_s: 1.014466
+    robustness_tests_total: 6
+  efficiency:
+    efficiency_suite_time_s: 0.794349
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.840863
+    resource_tests_total: 1
+    avg_memory_mb: 40.94
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 1.200869
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 32.0
+      total_loc: 13921.0
+  maintainability:
+    maintainability_suite_time_s: 1.425623
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 32.0
+      total_loc: 13921.0
+      max_cc: 31.0
+provenance:
+  repository: rlaope/jeval
+  source_url: https://github.com/rlaope/jeval
+  created_at: '2026-09-20T14:41:55Z'
+  pinned_commit: 61bdcccf9038ff898e82f9465d1a979f5d68bc6e
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: jeval
+    module_root: .
+    source_file: jeval/__init__.py
+    symbols:
+    - name: annotations
+      kind: object
+      signature: ''
+    - name: PackageNotFoundError
+      kind: object
+      signature: ''
+    - name: version
+      kind: object
+      signature: ''
+    constants:
+      DISTRIBUTION: jeval-cli
+  semantic_cases:
+  - id: collect_record
+    evidence: docs/library.md#1-record-what-the-model-answered-collecttrack
+    covers: exact JSONL append and written counter
+  - id: collect_resolve
+    evidence: docs/library.md#2-record-what-a-human-settled-on-collectresolve
+    covers: labels state transition joined by source key and question
+  - id: collection_disabled_and_invalid
+    evidence: docs/library.md#3-choose-where-it-goes
+    covers: repeatable off switch and invalid-value drop behavior

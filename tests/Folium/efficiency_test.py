@@ -24,7 +24,7 @@ def _plugins_module():
     return importlib.import_module("folium.plugins")
 
 
-def test_performance_large_marker_map_build_and_html_size():
+def test_efficiency_large_marker_map_build_and_html_size():
     _prepend_import_path()
     import folium
 
@@ -44,7 +44,7 @@ def test_performance_large_marker_map_build_and_html_size():
     )
 
 
-def test_performance_markercluster_build_and_html_size():
+def test_efficiency_markercluster_build_and_html_size():
     _prepend_import_path()
     import folium
 

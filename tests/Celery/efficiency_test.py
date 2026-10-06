@@ -1,4 +1,4 @@
-# tests/Celery/performance_test.py
+# tests/Celery/efficiency_test.py
 from __future__ import annotations
 
 import sys
@@ -44,8 +44,8 @@ def _make_app(name: str = "celery_perf_app"):
     return app
 
 
-@pytest.mark.performance
-def test_performance_001_many_small_tasks_finish_quickly() -> None:
+@pytest.mark.efficiency
+def test_efficiency_001_many_small_tasks_finish_quickly() -> None:
     """
     Absolute threshold is intentionally conservative to avoid false failures on slow CI.
     """
@@ -66,8 +66,8 @@ def test_performance_001_many_small_tasks_finish_quickly() -> None:
     assert dt < 12.0, f"too slow for {n} eager tasks: {dt:.3f}s"
 
 
-@pytest.mark.performance
-def test_performance_002_group_batching_is_reasonable() -> None:
+@pytest.mark.efficiency
+def test_efficiency_002_group_batching_is_reasonable() -> None:
     app = _make_app()
     from celery import group
 

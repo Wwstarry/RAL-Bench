@@ -46,9 +46,9 @@ def _build_large_dataset(num_rows: int = 10000) -> "tablib.Dataset":
     return data
 
 
-def test_bulk_export_csv_and_json_performance() -> None:
+def test_bulk_export_csv_and_json_efficiency() -> None:
     """
-    Measure performance of bulk CSV/JSON export on a moderately large dataset.
+    Measure efficiency of bulk CSV/JSON export on a moderately large dataset.
 
     The threshold is intentionally generous so that the test remains stable
     across a variety of machines while still producing a useful baseline.

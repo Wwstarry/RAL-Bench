@@ -44,7 +44,7 @@ def _make_large_xml(n: int = 200) -> str:
     return _LARGE_XML_TEMPLATE.format(users=users_xml)
 
 
-def run_xmltodict_performance_benchmark(
+def run_xmltodict_efficiency_benchmark(
     iterations: int = 20,
     n_users: int = 200,
 ) -> Dict[str, Any]:
@@ -79,9 +79,9 @@ def run_xmltodict_performance_benchmark(
     }
 
 
-def test_xmltodict_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_xmltodict_performance_benchmark(iterations=5, n_users=50)
+def test_xmltodict_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_xmltodict_efficiency_benchmark(iterations=5, n_users=50)
 
     assert metrics["iterations"] == 5.0
     assert metrics["n_users"] == 50.0

@@ -1,0 +1,159 @@
+task_id: vantas15-rotationledger
+domain: fresh
+difficulty: medium
+description: 'Implement RotationLedger''s documented credential detectors without
+  exposing raw secrets: recognize AWS and Bearer shapes, return 12-hex SHA-256 fingerprints,
+  reject short low-entropy generic candidates, compute zero entropy for a constant
+  string, and remain deterministic.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import rotationledger
+
+  Required path: src/rotationledger/__init__.py
+
+  - object annotations
+
+  - object Finding
+
+  - object scan_line
+
+  - object CharClasses
+
+  - object classify
+
+  - object looks_random
+
+  - object shannon_entropy
+
+  - object Lifetime
+
+  - object reconstruct
+
+  - object Commit
+
+  - object DiffLine
+
+  - object parse_log
+
+
+  Semantic cases: documented AWS and 22-character Bearer shapes yield their respective
+  single rules; fingerprints are 12 characters and repr excludes the value; ''token
+  = abc'' yields no finding; shannon_entropy(''aaaa'') == 0.0.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/rotationledger/__init__.py
+reference_repository: ./fresh/cache/vantas15-rotationledger
+generated_repository: ./fresh/generation/vantas15-rotationledger
+package:
+  name: rotationledger
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/vantas15-rotationledger/functional_test.py
+  robustness: ./fresh/tests/vantas15-rotationledger/robustness_test.py
+  efficiency: ./fresh/tests/vantas15-rotationledger/efficiency_test.py
+  resource: ./fresh/tests/vantas15-rotationledger/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.978015
+    functional_tests_total: 15
+  robustness:
+    robustness_suite_time_s: 0.938244
+    robustness_tests_total: 15
+  efficiency:
+    efficiency_suite_time_s: 0.9125
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.891751
+    resource_tests_total: 1
+    avg_memory_mb: 41.57
+    avg_cpu_percent: 2.0
+  security:
+    security_suite_time_s: 0.872657
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 9.0
+      total_loc: 727.0
+  maintainability:
+    maintainability_suite_time_s: 0.797208
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 20.1653
+      files_scanned: 13.0
+      total_loc: 877.0
+      max_cc: 18.0
+provenance:
+  repository: VanTaS15/RotationLedger
+  source_url: https://github.com/VanTaS15/RotationLedger
+  created_at: '2026-09-05T19:16:54Z'
+  pinned_commit: e4b91c60a9ac03be40c636b362d1fb8eb4878f77
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: rotationledger
+    module_root: src
+    source_file: src/rotationledger/__init__.py
+    symbols:
+    - name: annotations
+      kind: object
+      signature: ''
+    - name: Finding
+      kind: object
+      signature: ''
+    - name: scan_line
+      kind: object
+      signature: ''
+    - name: CharClasses
+      kind: object
+      signature: ''
+    - name: classify
+      kind: object
+      signature: ''
+    - name: looks_random
+      kind: object
+      signature: ''
+    - name: shannon_entropy
+      kind: object
+      signature: ''
+    - name: Lifetime
+      kind: object
+      signature: ''
+    - name: reconstruct
+      kind: object
+      signature: ''
+    - name: Commit
+      kind: object
+      signature: ''
+    - name: DiffLine
+      kind: object
+      signature: ''
+    - name: parse_log
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: documented AWS and 22-character
+      Bearer shapes yield their respective single rules; fingerprints are 12 characters
+      and repr excludes the value; ''token = abc'' yields no finding; shannon_entropy(''aaaa'')
+      == 0.0.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Detection rules; Entropy scoring and its false positives; Why fingerprints
+        and not values
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

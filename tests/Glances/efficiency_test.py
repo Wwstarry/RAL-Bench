@@ -50,9 +50,9 @@ def _best_effort_import_some(mods: List[str], want: int) -> Tuple[List[str], Dic
     return ok, fail
 
 
-def test_performance_import_and_reload_plugins_is_fast_enough() -> None:
+def test_efficiency_import_and_reload_plugins_is_fast_enough() -> None:
     """
-    Performance proxy: importing+reloading a set of plugins should not be extremely slow.
+    Efficiency proxy: importing+reloading a set of plugins should not be extremely slow.
     Avoid invoking glances CLI (curses dependency on Windows).
     """
     _ensure_repo_on_syspath()

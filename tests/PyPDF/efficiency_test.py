@@ -36,7 +36,7 @@ def _create_pdf_with_pages(path: Path, num_pages: int) -> None:
 
 
 def _build_corpus(tmp_dir: Path) -> list[Path]:
-    """Build a small corpus of PDF files for performance testing."""
+    """Build a small corpus of PDF files for efficiency testing."""
     pdf_paths: List[Path] = []
     for i in range(10):
         path = tmp_dir / f"doc_{i}.pdf"
@@ -45,8 +45,8 @@ def _build_corpus(tmp_dir: Path) -> list[Path]:
     return pdf_paths
 
 
-def run_pypdf_performance_benchmark(tmp_dir: Path) -> dict[str, float]:
-    """Run a basic performance benchmark over a synthetic PDF corpus."""
+def run_pypdf_efficiency_benchmark(tmp_dir: Path) -> dict[str, float]:
+    """Run a basic efficiency benchmark over a synthetic PDF corpus."""
     pdf_paths = _build_corpus(tmp_dir)
 
     total_pages = 0
@@ -74,9 +74,9 @@ def run_pypdf_performance_benchmark(tmp_dir: Path) -> dict[str, float]:
     }
 
 
-def test_pypdf_performance_smoke(tmp_path: Path) -> None:
-    """Smoke test to ensure that the performance benchmark runs successfully."""
-    metrics = run_pypdf_performance_benchmark(tmp_path)
+def test_pypdf_efficiency_smoke(tmp_path: Path) -> None:
+    """Smoke test to ensure that the efficiency benchmark runs successfully."""
+    metrics = run_pypdf_efficiency_benchmark(tmp_path)
     assert metrics["num_documents"] > 0
     assert metrics["total_pages"] > 0
     assert metrics["total_time_seconds"] > 0.0

@@ -75,7 +75,7 @@ import jwt  # type: ignore  # noqa: E402
 
 
 def run_jwt_benchmark(n: int = 2000) -> Dict[str, float]:
-    """Sign many JWT tokens and measure performance."""
+    """Sign many JWT tokens and measure efficiency."""
     key = "perf-key"
     payload = {"v": 123}
 
@@ -93,8 +93,8 @@ def run_jwt_benchmark(n: int = 2000) -> Dict[str, float]:
     }
 
 
-def test_jwt_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
+def test_jwt_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
     metrics = run_jwt_benchmark(500)
     assert metrics["count"] == 500.0
     assert metrics["total_time"] >= 0.0

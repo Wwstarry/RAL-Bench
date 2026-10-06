@@ -1,0 +1,129 @@
+task_id: brandynfisher-toolreplay
+domain: fresh
+difficulty: medium
+description: 'Implement ToolReplay''s documented hash-chain semantics: seal ordered
+  transcript records from a zero genesis digest, chain each previous digest, emit
+  canonical compact JSONL, verify intact chains, and identify the first record changed
+  after sealing.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import toolreplay.chain
+
+  Required path: src/toolreplay/chain.py
+
+  - class Link
+
+  - function seal(records)
+
+  - class VerifyResult
+
+  - function verify(links)
+
+  - function links_to_jsonl(links)
+
+  - function load_sealed(path)
+
+
+  Semantic cases: a two-record seal has prev=''0''*64 then prev equal to the prior
+  digest and verifies intact; JSONL has sorted compact objects and a trailing newline;
+  changing response data makes verify return broken_index 0 with differing expected/found
+  digests.
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/toolreplay/chain.py
+reference_repository: ./fresh/cache/brandynfisher-toolreplay
+generated_repository: ./fresh/generation/brandynfisher-toolreplay
+package:
+  name: toolreplay
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/brandynfisher-toolreplay/functional_test.py
+  robustness: ./fresh/tests/brandynfisher-toolreplay/robustness_test.py
+  efficiency: ./fresh/tests/brandynfisher-toolreplay/efficiency_test.py
+  resource: ./fresh/tests/brandynfisher-toolreplay/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.895854
+    functional_tests_total: 9
+  robustness:
+    robustness_suite_time_s: 0.8293
+    robustness_tests_total: 9
+  efficiency:
+    efficiency_suite_time_s: 0.878816
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.839873
+    resource_tests_total: 1
+    avg_memory_mb: 41.48
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.785204
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 9.0
+      total_loc: 522.0
+  maintainability:
+    maintainability_suite_time_s: 0.761236
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 30.0479
+      files_scanned: 14.0
+      total_loc: 800.0
+      max_cc: 12.0
+provenance:
+  repository: brandynfisher/ToolReplay
+  source_url: https://github.com/brandynfisher/ToolReplay
+  created_at: '2026-09-14T10:11:00Z'
+  pinned_commit: a9f1374479e91ecfcb837658285bfc7a2258dd0b
+curation:
+  oracle_source: public README/docs/examples only; upstream tests not read or executed
+    as oracle
+  interface:
+    module: toolreplay.chain
+    module_root: src
+    source_file: src/toolreplay/chain.py
+    symbols:
+    - name: Link
+      kind: class
+      signature: class
+    - name: seal
+      kind: function
+      signature: (records)
+    - name: VerifyResult
+      kind: class
+      signature: class
+    - name: verify
+      kind: function
+      signature: (links)
+    - name: links_to_jsonl
+      kind: function
+      signature: (links)
+    - name: load_sealed
+      kind: function
+      signature: (path)
+    constants: {}
+  semantic_cases:
+    typical_input_expected_output: 'Semantic cases: a two-record seal has prev=''0''*64
+      then prev equal to the prior digest and verifies intact; JSONL has sorted compact
+      objects and a trailing newline; changing response data makes verify return broken_index
+      0 with differing expected/found digests.'
+    state_or_idempotency: Covered by the paired functional/robustness black-box tests
+      on the pinned commit.
+    exception_boundary: Covered where explicitly documented; unsupported or platform-limited
+      boundaries are recorded below.
+    evidence:
+    - path: README.md
+      section: Transcript format; Sealing and the hash chain; Output format
+  independent_review:
+    status: passed
+    method: second-pass document-to-test trace review plus execution against the pinned
+      reference
+    upstream_tests_used_as_oracle: false

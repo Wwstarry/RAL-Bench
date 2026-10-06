@@ -1,0 +1,92 @@
+task_id: brovk2008-dabook
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of brovk2008/Dabook. The repository must provide importable module `dabook.config.loader`
+  at `src/dabook/config/loader.py` and expose the declared public names: load_config,
+  save_config. Imports must be deterministic, unknown attributes must raise AttributeError,
+  and public callables must support Python signature introspection. Configuration
+  is loaded from `dabook.toml`, then a named profile, then overrides; later sources
+  win. Invalid profiles are rejected and configurations can be saved as non-empty
+  snapshots.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import dabook.config.loader
+
+  Required path: src/dabook/config/loader.py
+
+  - function load_config(workspace_or_toml, overrides)
+
+  - function save_config(cfg, path)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/dabook/config/loader.py
+reference_repository: ./fresh/cache/brovk2008-dabook
+generated_repository: ./fresh/generation/brovk2008-dabook
+package:
+  name: dabook
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/brovk2008-dabook/functional_test.py
+  robustness: ./fresh/tests/brovk2008-dabook/robustness_test.py
+  efficiency: ./fresh/tests/brovk2008-dabook/efficiency_test.py
+  resource: ./fresh/tests/brovk2008-dabook/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.954828
+    functional_tests_total: 5
+  robustness:
+    robustness_suite_time_s: 0.987018
+    robustness_tests_total: 5
+  efficiency:
+    efficiency_suite_time_s: 1.019487
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.961127
+    resource_tests_total: 1
+    avg_memory_mb: 46.29
+    avg_cpu_percent: 1.8
+  security:
+    security_suite_time_s: 0.866082
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 34.0
+      total_loc: 5036.0
+  maintainability:
+    maintainability_suite_time_s: 1.028734
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 31.0
+      total_loc: 5575.0
+      max_cc: 99.0
+provenance:
+  repository: brovk2008/Dabook
+  source_url: https://github.com/brovk2008/Dabook
+  created_at: '2026-10-01T13:08:25Z'
+  pinned_commit: 7d01f6117469c22774b41b89bfde055c7a9e9c03
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: dabook.config.loader
+    module_root: src
+    source_file: src/dabook/config/loader.py
+    symbols:
+    - name: load_config
+      kind: function
+      signature: (workspace_or_toml, overrides)
+    - name: save_config
+      kind: function
+      signature: (cfg, path)
+    constants: {}
+  semantic_cases:
+  - evidence: README.md "Quick Start" and "Worker Pools"; public loader docstring
+    covers: file/profile/CLI precedence, saved state, invalid profile, absent configuration

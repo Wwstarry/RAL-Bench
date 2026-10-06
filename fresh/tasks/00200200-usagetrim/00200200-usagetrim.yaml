@@ -1,0 +1,121 @@
+task_id: 00200200-usagetrim
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of 00200200/usagetrim. The repository must provide importable module `companion_state`
+  at `src/usagetrim/core/companion_state.py` and expose the declared public names:
+  state_dir, settings, paused, update_settings, already_wrapped, project_for, client_name.
+  Imports must be deterministic, unknown attributes must raise AttributeError, and
+  public callables must support Python signature introspection. No network service
+  may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import companion_state
+
+  Required path: src/usagetrim/core/companion_state.py
+
+  - function state_dir()
+
+  - function settings()
+
+  - function paused()
+
+  - function update_settings(**changes)
+
+  - function already_wrapped(command)
+
+  - function project_for(path)
+
+  - function client_name(default)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/usagetrim/core/companion_state.py
+reference_repository: ./fresh/cache/00200200-usagetrim
+generated_repository: ./fresh/generation/00200200-usagetrim
+package:
+  name: companion_state
+  root_dir: src/usagetrim/core
+test_suite:
+  functional: ./fresh/tests/00200200-usagetrim/functional_test.py
+  robustness: ./fresh/tests/00200200-usagetrim/robustness_test.py
+  efficiency: ./fresh/tests/00200200-usagetrim/efficiency_test.py
+  resource: ./fresh/tests/00200200-usagetrim/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.931529
+    functional_tests_total: 10
+  robustness:
+    robustness_suite_time_s: 0.860692
+    robustness_tests_total: 10
+  efficiency:
+    efficiency_suite_time_s: 0.854672
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.818409
+    resource_tests_total: 1
+    avg_memory_mb: 40.71
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 1.184955
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 7.0
+      files_scanned: 46.0
+      total_loc: 14822.0
+  maintainability:
+    maintainability_suite_time_s: 1.787172
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 81.0
+      total_loc: 22319.0
+      max_cc: 100.0
+provenance:
+  repository: 00200200/usagetrim
+  source_url: https://github.com/00200200/usagetrim
+  created_at: '2026-09-20T13:09:59Z'
+  pinned_commit: 7712b06496e8571893fb10280a252ca37e459fa0
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: companion_state
+    module_root: src/usagetrim/core
+    source_file: src/usagetrim/core/companion_state.py
+    symbols:
+    - name: state_dir
+      kind: function
+      signature: ()
+    - name: settings
+      kind: function
+      signature: ()
+    - name: paused
+      kind: function
+      signature: ()
+    - name: update_settings
+      kind: function
+      signature: (**changes)
+    - name: already_wrapped
+      kind: function
+      signature: (command)
+    - name: project_for
+      kind: function
+      signature: (path)
+    - name: client_name
+      kind: function
+      signature: (default)
+    constants: {}
+  semantic_cases:
+  - source: README.md#desktop-companion
+    normal: companion preferences are persisted and merged without discarding existing
+      keys
+    state: paused follows successive true and false preference updates
+    boundary: malformed JSON and malformed shell text degrade to empty settings or
+      not-wrapped
+  independent_review: pending

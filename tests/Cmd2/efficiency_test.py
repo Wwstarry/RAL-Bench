@@ -45,7 +45,7 @@ def run_commands(app: PerfApp, commands: list[str]) -> str:
     return buffer.getvalue()
 
 
-def test_bulk_commands_performance() -> None:
+def test_bulk_commands_efficiency() -> None:
     app = PerfApp()
     commands = ["ping"] * 2000
 

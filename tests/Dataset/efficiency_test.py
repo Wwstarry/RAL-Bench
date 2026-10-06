@@ -30,9 +30,9 @@ def create_in_memory_db() -> "dataset.Database":
     return dataset.connect("sqlite:///:memory:")
 
 
-def test_bulk_insert_and_filtered_query_performance() -> None:
+def test_bulk_insert_and_filtered_query_efficiency() -> None:
     """
-    Measure bulk insert and filtered querying performance.
+    Measure bulk insert and filtered querying efficiency.
 
     The thresholds are intentionally generous so that the test
     remains stable across a variety of machines while still

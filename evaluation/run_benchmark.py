@@ -4,7 +4,7 @@ import argparse
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import yaml
 from openai import OpenAI
@@ -110,7 +110,6 @@ def call_model(prompt: str, model: str) -> str:
             {"role": "system", "content": "You are a helpful code generator."},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.2,
     )
     return (resp.choices[0].message.content or "").strip()
 
@@ -128,40 +127,20 @@ def generate_code_with_model(task: Dict[str, Any], output_repo: Path, model: str
 
     for rel_path, content in blocks:
         rel_path = rel_path.lstrip("/\\")
-        dst = output_repo / rel_path
+        rel = Path(rel_path)
+        if rel.is_absolute() or ".." in rel.parts:
+            raise ValueError(f"Unsafe model output path: {rel_path}")
+        dst = (output_repo.resolve() / rel).resolve()
+        if output_repo.resolve() not in dst.parents:
+            raise ValueError(f"Unsafe model output path: {rel_path}")
         save_text(dst, content)
         print(f"Saved file: {dst}")
-
-
-def try_extract_api_contract(task: Dict[str, Any]) -> Optional[str]:
-    try:
-        from api_contract_extractor import extract_api_contract_text
-    except Exception:
-        return None
-
-    ref_repo = task.get("reference_repository")
-    pkg = (task.get("package") or {}).get("name")
-    if not ref_repo or not pkg:
-        return None
-
-    ref_repo_path = (
-        (ROOT / Path(str(ref_repo))).resolve()
-        if not Path(str(ref_repo)).is_absolute()
-        else Path(str(ref_repo)).resolve()
-    )
-
-    contract = extract_api_contract_text(
-        reference_repo=ref_repo_path,
-        package_name=pkg,
-    )
-    return contract
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", required=True, type=str, help="Path to task yaml")
     parser.add_argument("--model", default=os.environ.get("RACB_MODEL", "gpt-4o-mini"), type=str)
-    parser.add_argument("--auto-api-contract", action="store_true", help="Auto extract API contract from reference repo")
     parser.add_argument("--skip-generation", action="store_true", help="Skip code generation and evaluate existing generated repo")
 
     args = parser.parse_args()
@@ -173,13 +152,6 @@ def main() -> None:
     generated_repo = (ROOT / Path(task.get("generated_repository", f"./generation/{project_name}"))).resolve()
 
     _ensure_empty_dir(generated_repo)
-
-    if args.auto_api_contract:
-        contract = try_extract_api_contract(task)
-        if contract:
-            task["api_contract"] = contract
-            pkg_name = (task.get("package") or {}).get("name")
-            print(f"[INFO] Auto-extracted api_contract from reference repository (package='{pkg_name}').")
 
     # Generation
     if not args.skip_generation:

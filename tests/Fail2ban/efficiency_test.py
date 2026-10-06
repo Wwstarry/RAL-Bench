@@ -25,7 +25,7 @@ def _resolve_repo_root() -> Path:
     return repo
 
 
-def test_performance_import_fail2ban_elapsed():
+def test_efficiency_import_fail2ban_elapsed():
     """
     Minimal, stable workload:
     - import fail2ban (top-level)
@@ -46,7 +46,7 @@ def test_performance_import_fail2ban_elapsed():
     t1 = time.perf_counter()
 
     # If import fails on your platform due to POSIX-only modules, allow that but still measure elapsed.
-    # We do not hard-fail performance test due to platform constraints.
+    # We do not hard-fail efficiency test due to platform constraints.
     elapsed = t1 - t0
-    print(f"METRIC performance.import_fail2ban.elapsed_s={elapsed:.6f}")
+    print(f"METRIC efficiency.import_fail2ban.elapsed_s={elapsed:.6f}")
     assert elapsed >= 0.0

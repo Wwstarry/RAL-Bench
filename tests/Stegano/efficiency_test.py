@@ -4,7 +4,7 @@ import time
 import statistics
 from pathlib import Path
 
-#   <root>/tests/Stegano/performance_test.py
+#   <root>/tests/Stegano/efficiency_test.py
 ROOT = Path(__file__).resolve().parents[2]
 
 target = os.environ.get("STEGANO_TARGET", "generated").lower()
@@ -41,7 +41,7 @@ def _measure_hide_reveal(iterations: int = 10):
     hide_times = []
     reveal_times = []
 
-    message = "Performance benchmark message for Stegano" * 3
+    message = "Efficiency benchmark message for Stegano" * 3
 
     for _ in range(iterations):
         start = time.perf_counter()
@@ -56,8 +56,8 @@ def _measure_hide_reveal(iterations: int = 10):
     return statistics.mean(hide_times), statistics.mean(reveal_times)
 
 
-def test_lsb_performance_smoke() -> None:
-    """Simple performance sanity check for LSB hide/reveal."""
+def test_lsb_efficiency_smoke() -> None:
+    """Simple efficiency sanity check for LSB hide/reveal."""
     avg_hide, avg_reveal = _measure_hide_reveal(iterations=5)
     print(f"Average hide time: {avg_hide:.6f}s, reveal time: {avg_reveal:.6f}s")
     assert avg_hide > 0.0

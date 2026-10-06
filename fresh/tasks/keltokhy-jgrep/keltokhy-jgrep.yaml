@@ -1,0 +1,103 @@
+task_id: keltokhy-jgrep
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of keltokhy/jgrep. The repository must provide importable module `context_eval`
+  at `bench/context_eval.py` and expose the declared public names: build, fixture,
+  score. Imports must be deterministic, unknown attributes must raise AttributeError,
+  and public callables must support Python signature introspection. No network service
+  may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import context_eval
+
+  Required path: bench/context_eval.py
+
+  - function build()
+
+  - function fixture(folder)
+
+  - function score(scores, records, metrics, lines)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: bench/context_eval.py
+reference_repository: ./fresh/cache/keltokhy-jgrep
+generated_repository: ./fresh/generation/keltokhy-jgrep
+package:
+  name: context_eval
+  root_dir: bench
+test_suite:
+  functional: ./fresh/tests/keltokhy-jgrep/functional_test.py
+  robustness: ./fresh/tests/keltokhy-jgrep/robustness_test.py
+  efficiency: ./fresh/tests/keltokhy-jgrep/efficiency_test.py
+  resource: ./fresh/tests/keltokhy-jgrep/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.103452
+    functional_tests_total: 7
+  robustness:
+    robustness_suite_time_s: 0.959793
+    robustness_tests_total: 6
+  efficiency:
+    efficiency_suite_time_s: 0.84709
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.814522
+    resource_tests_total: 1
+    avg_memory_mb: 41.61
+    avg_cpu_percent: 2.1
+  security:
+    security_suite_time_s: 0.854127
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 15.0
+      total_loc: 2349.0
+  maintainability:
+    maintainability_suite_time_s: 1.113738
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 7.6366
+      files_scanned: 25.0
+      total_loc: 4203.0
+      max_cc: 76.0
+provenance:
+  repository: keltokhy/jgrep
+  source_url: https://github.com/keltokhy/jgrep
+  created_at: '2026-09-18T11:11:25Z'
+  pinned_commit: 9d56104abcf35b0af330122dbe14989c6111a1fd
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: context_eval
+    module_root: bench
+    source_file: bench/context_eval.py
+    symbols:
+    - name: build
+      kind: function
+      signature: ()
+    - name: fixture
+      kind: function
+      signature: (folder)
+    - name: score
+      kind: function
+      signature: (scores, records, metrics, lines)
+    constants: {}
+  semantic_cases:
+  - id: plain_semantic_question
+    evidence: README.md#examples
+    covers: exact natural-language predicate construction and repetition
+  - id: diff_semantics
+    evidence: README.md#changes-and-complete-functions
+    covers: before/after change instruction boundary
+  - id: threshold_boundary
+    evidence: README.md#options
+    covers: probability outside zero-to-one range returns usage error
+  independent_review: pending

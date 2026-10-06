@@ -1,0 +1,151 @@
+task_id: awlevin-typesafe-computer-use
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of awlevin/typesafe-computer-use. The repository must provide importable
+  module `typesafe_computer_use.ax_walk` at `typesafe_computer_use/ax_walk.py` and
+  expose the declared public names: AxAttrs, off_display, center_on_display, node_identity,
+  subtree_key, clickable, descendant_label, walk_actionable, AX_PRESS, AX_NODE_CAP,
+  AX_TIME_CAP, AX_OFFSCREEN_CAP, AX_MIN_SIDE_PT, AX_FANOUT. Imports must be deterministic,
+  unknown attributes must raise AttributeError, and public callables must support
+  Python signature introspection. No network service may be required by these tested
+  behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import typesafe_computer_use.ax_walk
+
+  Required path: typesafe_computer_use/ax_walk.py
+
+  - class AxAttrs
+
+  - function off_display(frame, display_w_pt, display_h_pt)
+
+  - function center_on_display(frame, display_w_pt, display_h_pt)
+
+  - function node_identity(node)
+
+  - function subtree_key(role, label, frame)
+
+  - function clickable(frame)
+
+  - function descendant_label(kids, children, attrs)
+
+  - function walk_actionable(root, children, attrs, actions, display_w_pt, display_h_pt,
+  node_cap, time_cap, offscreen_cap, clock)
+
+  - constant AX_PRESS = ''AXPress''
+
+  - constant AX_NODE_CAP = 4000
+
+  - constant AX_TIME_CAP = 0.6
+
+  - constant AX_OFFSCREEN_CAP = 120
+
+  - constant AX_MIN_SIDE_PT = 4.0
+
+  - constant AX_FANOUT = 8
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: typesafe_computer_use/ax_walk.py
+reference_repository: ./fresh/cache/awlevin-typesafe-computer-use
+generated_repository: ./fresh/generation/awlevin-typesafe-computer-use
+package:
+  name: typesafe_computer_use
+  root_dir: .
+test_suite:
+  functional: ./fresh/tests/awlevin-typesafe-computer-use/functional_test.py
+  robustness: ./fresh/tests/awlevin-typesafe-computer-use/robustness_test.py
+  efficiency: ./fresh/tests/awlevin-typesafe-computer-use/efficiency_test.py
+  resource: ./fresh/tests/awlevin-typesafe-computer-use/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.927157
+    functional_tests_total: 17
+  robustness:
+    robustness_suite_time_s: 0.862301
+    robustness_tests_total: 12
+  efficiency:
+    efficiency_suite_time_s: 0.89467
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.852733
+    resource_tests_total: 1
+    avg_memory_mb: 42.84
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.941742
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 38.0
+      total_loc: 6939.0
+  maintainability:
+    maintainability_suite_time_s: 1.085367
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 5.9623
+      files_scanned: 38.0
+      total_loc: 6939.0
+      max_cc: 34.0
+provenance:
+  repository: awlevin/typesafe-computer-use
+  source_url: https://github.com/awlevin/typesafe-computer-use
+  created_at: '2026-09-16T17:48:45Z'
+  pinned_commit: 44ca11f0935b021b73020825da054b5c92cc1288
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: typesafe_computer_use.ax_walk
+    module_root: .
+    source_file: typesafe_computer_use/ax_walk.py
+    symbols:
+    - name: AxAttrs
+      kind: class
+      signature: class
+    - name: off_display
+      kind: function
+      signature: (frame, display_w_pt, display_h_pt)
+    - name: center_on_display
+      kind: function
+      signature: (frame, display_w_pt, display_h_pt)
+    - name: node_identity
+      kind: function
+      signature: (node)
+    - name: subtree_key
+      kind: function
+      signature: (role, label, frame)
+    - name: clickable
+      kind: function
+      signature: (frame)
+    - name: descendant_label
+      kind: function
+      signature: (kids, children, attrs)
+    - name: walk_actionable
+      kind: function
+      signature: (root, children, attrs, actions, display_w_pt, display_h_pt, node_cap,
+        time_cap, offscreen_cap, clock)
+    constants:
+      AX_PRESS: AXPress
+      AX_NODE_CAP: 4000
+      AX_TIME_CAP: 0.6
+      AX_OFFSCREEN_CAP: 120
+      AX_MIN_SIDE_PT: 4.0
+      AX_FANOUT: 8
+  semantic_cases:
+  - id: actionable_geometry
+    evidence: docs/how-a-step-works.md#accessibility-tree
+    covers: exact on-display and clickable classification
+  - id: geometry_repeatability
+    evidence: docs/how-a-step-works.md#off-screen-controls
+    covers: stable subtree identity
+  - id: missing_tiny_offscreen_frames
+    evidence: docs/how-a-step-works.md#off-screen-controls
+    covers: absent, undersized, and outside-display boundaries
+  independent_review: pending

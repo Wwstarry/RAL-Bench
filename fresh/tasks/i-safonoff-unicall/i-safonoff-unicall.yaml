@@ -1,0 +1,155 @@
+task_id: i-safonoff-unicall
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of i-safonoff/unicall. The repository must provide importable module `unicall`
+  at `src/unicall/__init__.py` and expose the declared public names: CoalescedFunction,
+  Coalescer, UnhashableArgumentsError, unicall, Backend, DistributedCoalescer, JSONSerializer,
+  RemoteFlightError, Serializer, UnserializableResultError, distributed, Metrics,
+  Stats, stable_hash. Imports must be deterministic, unknown attributes must raise
+  AttributeError, and public callables must support Python signature introspection.
+  Concurrent same-key calls coalesce into one execution and share its result; completed
+  flights are evicted, and unhashable arguments raise UnhashableArgumentsError.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import unicall
+
+  Required path: src/unicall/__init__.py
+
+  - object CoalescedFunction
+
+  - object Coalescer
+
+  - object UnhashableArgumentsError
+
+  - object unicall
+
+  - object Backend
+
+  - object DistributedCoalescer
+
+  - object JSONSerializer
+
+  - object RemoteFlightError
+
+  - object Serializer
+
+  - object UnserializableResultError
+
+  - object distributed
+
+  - object Metrics
+
+  - object Stats
+
+  - object stable_hash
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/unicall/__init__.py
+reference_repository: ./fresh/cache/i-safonoff-unicall
+generated_repository: ./fresh/generation/i-safonoff-unicall
+package:
+  name: unicall
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/i-safonoff-unicall/functional_test.py
+  robustness: ./fresh/tests/i-safonoff-unicall/robustness_test.py
+  efficiency: ./fresh/tests/i-safonoff-unicall/efficiency_test.py
+  resource: ./fresh/tests/i-safonoff-unicall/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.808818
+    functional_tests_total: 17
+  robustness:
+    robustness_suite_time_s: 0.926893
+    robustness_tests_total: 17
+  efficiency:
+    efficiency_suite_time_s: 0.893539
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.769268
+    resource_tests_total: 1
+    avg_memory_mb: 41.71
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 0.838566
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 9.0
+      total_loc: 581.0
+  maintainability:
+    maintainability_suite_time_s: 0.80214
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 20.4302
+      files_scanned: 17.0
+      total_loc: 917.0
+      max_cc: 9.0
+provenance:
+  repository: i-safonoff/unicall
+  source_url: https://github.com/i-safonoff/unicall
+  created_at: '2026-09-15T16:44:08Z'
+  pinned_commit: 0f7f36bb84c472b057ca030fca82b2e61424e7ca
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: unicall
+    module_root: src
+    source_file: src/unicall/__init__.py
+    symbols:
+    - name: CoalescedFunction
+      kind: object
+      signature: ''
+    - name: Coalescer
+      kind: object
+      signature: ''
+    - name: UnhashableArgumentsError
+      kind: object
+      signature: ''
+    - name: unicall
+      kind: object
+      signature: ''
+    - name: Backend
+      kind: object
+      signature: ''
+    - name: DistributedCoalescer
+      kind: object
+      signature: ''
+    - name: JSONSerializer
+      kind: object
+      signature: ''
+    - name: RemoteFlightError
+      kind: object
+      signature: ''
+    - name: Serializer
+      kind: object
+      signature: ''
+    - name: UnserializableResultError
+      kind: object
+      signature: ''
+    - name: distributed
+      kind: object
+      signature: ''
+    - name: Metrics
+      kind: object
+      signature: ''
+    - name: Stats
+      kind: object
+      signature: ''
+    - name: stable_hash
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - evidence: README.md "What it does", "Quickstart", and "The six things the local
+      version is really about"
+    covers: same-key concurrent coalescing, post-flight eviction, unhashable argument
+      failure

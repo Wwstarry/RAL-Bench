@@ -34,7 +34,7 @@ class Hero(SQLModel, table=True):  # type: ignore[misc]
     age: Optional[int] = None
 
 
-def test_bulk_insert_and_query_performance(tmp_path: Path):
+def test_bulk_insert_and_query_efficiency(tmp_path: Path):
     db_path = tmp_path / "perf.db"
     engine = create_engine(f"sqlite:///{db_path}")
     SQLModel.metadata.drop_all(bind=engine)

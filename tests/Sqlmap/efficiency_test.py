@@ -24,7 +24,7 @@ def _entrypoint() -> Path:
     return (_repo_root() / "sqlmap.py").resolve()
 
 
-def test_performance_help_startup_time():
+def test_efficiency_help_startup_time():
     """
     Measure CLI startup/argument parsing cost via a benign invocation (-h).
     No hard threshold; emit a METRIC line for the runner.
@@ -45,4 +45,4 @@ def test_performance_help_startup_time():
 
     assert p.returncode == 0
     elapsed_s = t1 - t0
-    print(f"METRIC performance.help_startup.elapsed_s={elapsed_s:.6f}")
+    print(f"METRIC efficiency.help_startup.elapsed_s={elapsed_s:.6f}")

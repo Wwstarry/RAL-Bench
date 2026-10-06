@@ -46,7 +46,7 @@ def _london_location() -> LocationInfo:
     return LocationInfo("London", "England", "Europe/London", 51.5074, -0.1278)
 
 
-def run_astral_performance_benchmark(iterations: int = 10, days: int = 30) -> Dict[str, float]:
+def run_astral_efficiency_benchmark(iterations: int = 10, days: int = 30) -> Dict[str, float]:
     """Run repeated sun() calculations and report simple timing metrics."""
     loc = _london_location()
     base_date = dt.date(2020, 1, 1)
@@ -70,9 +70,9 @@ def run_astral_performance_benchmark(iterations: int = 10, days: int = 30) -> Di
     }
 
 
-def test_astral_performance_smoke() -> None:
-    """Smoke test to ensure the performance benchmark runs successfully."""
-    metrics = run_astral_performance_benchmark(iterations=5, days=10)
+def test_astral_efficiency_smoke() -> None:
+    """Smoke test to ensure the efficiency benchmark runs successfully."""
+    metrics = run_astral_efficiency_benchmark(iterations=5, days=10)
     assert metrics["iterations"] == 5.0
     assert metrics["days_per_iteration"] == 10.0
     assert metrics["total_calls"] == 50.0

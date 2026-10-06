@@ -1,0 +1,127 @@
+task_id: visionably-outloud
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of visionably/outloud. The repository must provide importable module `outloud`
+  at `src/outloud/__init__.py` and expose the declared public names: annotations,
+  Optional, Result, Document, features, load_catalogue, run_rules, check. Imports
+  must be deterministic, unknown attributes must raise AttributeError, and public
+  callables must support Python signature introspection. No network service may be
+  required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import outloud
+
+  Required path: src/outloud/__init__.py
+
+  - object annotations
+
+  - object Optional
+
+  - object Result
+
+  - object Document
+
+  - object features
+
+  - object load_catalogue
+
+  - object run_rules
+
+  - function check(path, source, only, skip, layers)
+
+  Additional documented content helpers: outloud.content.mul and outloud.content.apply
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/outloud/__init__.py
+reference_repository: ./fresh/cache/visionably-outloud
+generated_repository: ./fresh/generation/visionably-outloud
+package:
+  name: outloud
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/visionably-outloud/functional_test.py
+  robustness: ./fresh/tests/visionably-outloud/robustness_test.py
+  efficiency: ./fresh/tests/visionably-outloud/efficiency_test.py
+  resource: ./fresh/tests/visionably-outloud/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 1.094493
+    functional_tests_total: 11
+  robustness:
+    robustness_suite_time_s: 1.087793
+    robustness_tests_total: 11
+  efficiency:
+    efficiency_suite_time_s: 0.925341
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.847752
+    resource_tests_total: 1
+    avg_memory_mb: 47.75
+    avg_cpu_percent: 4.2
+  security:
+    security_suite_time_s: 0.780061
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 31.0
+      total_loc: 4654.0
+  maintainability:
+    maintainability_suite_time_s: 1.126969
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 8.6526
+      files_scanned: 34.0
+      total_loc: 5448.0
+      max_cc: 111.0
+provenance:
+  repository: visionably/outloud
+  source_url: https://github.com/visionably/outloud
+  created_at: '2026-09-17T10:15:17Z'
+  pinned_commit: 42ed25b0d3d381d635375021a697d0645c701121
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: outloud
+    module_root: src
+    source_file: src/outloud/__init__.py
+    symbols:
+    - name: annotations
+      kind: object
+      signature: ''
+    - name: Optional
+      kind: object
+      signature: ''
+    - name: Result
+      kind: object
+      signature: ''
+    - name: Document
+      kind: object
+      signature: ''
+    - name: features
+      kind: object
+      signature: ''
+    - name: load_catalogue
+      kind: object
+      signature: ''
+    - name: run_rules
+      kind: object
+      signature: ''
+    - name: check
+      kind: function
+      signature: (path, source, only, skip, layers)
+    constants: {}
+  semantic_cases:
+  - source: README.md#as-a-library
+    normal: affine composition transforms a point and check returns a Result object
+    state: checking the same absent document is deterministic
+    boundary: an absent PDF is represented by a Result carrying FileNotFoundError
+      details
+  independent_review: pending

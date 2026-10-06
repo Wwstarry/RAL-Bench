@@ -1,0 +1,109 @@
+task_id: lyfuci-ai-terminal-manager
+domain: fresh
+difficulty: medium
+description: 'Implement a Python repository compatible with the documented public
+  interface of lyfuci/ai-terminal-manager. The repository must provide importable
+  module `atm` at `src/atm/__init__.py` and expose the declared public names: IndexStats,
+  SessionEntry, SessionIndex, Source. Imports must be deterministic, unknown attributes
+  must raise AttributeError, and public callables must support Python signature introspection.
+  No network service may be required by these tested behaviors.'
+api_contract: 'PUBLIC SURFACE (no implementation bodies)
+
+  Import: import atm
+
+  Required path: src/atm/__init__.py
+
+  - object IndexStats
+
+  - object SessionEntry
+
+  - object SessionIndex
+
+  - object Source
+
+  Additional documented module: atm.config
+
+  - function validate_size(label, value)
+
+  - function size_to_bytes(value)
+
+  '
+interfaces:
+  type: LIB
+  language: python
+  entry_point: src/atm/__init__.py
+reference_repository: ./fresh/cache/lyfuci-ai-terminal-manager
+generated_repository: ./fresh/generation/lyfuci-ai-terminal-manager
+package:
+  name: atm
+  root_dir: src
+test_suite:
+  functional: ./fresh/tests/lyfuci-ai-terminal-manager/functional_test.py
+  robustness: ./fresh/tests/lyfuci-ai-terminal-manager/robustness_test.py
+  efficiency: ./fresh/tests/lyfuci-ai-terminal-manager/efficiency_test.py
+  resource: ./fresh/tests/lyfuci-ai-terminal-manager/resource_test.py
+  security: ./tests/_generic/security_test.py
+  maintainability: ./tests/_generic/maintainability_test.py
+suite_timeouts_s:
+  default: 30
+baseline_metrics:
+  functional:
+    functional_suite_time_s: 0.825441
+    functional_tests_total: 7
+  robustness:
+    robustness_suite_time_s: 0.8509
+    robustness_tests_total: 7
+  efficiency:
+    efficiency_suite_time_s: 0.833577
+    efficiency_tests_total: 1
+  resource:
+    resource_suite_time_s: 0.826683
+    resource_tests_total: 1
+    avg_memory_mb: 40.79
+    avg_cpu_percent: 0.0
+  security:
+    security_suite_time_s: 1.060191
+    security_tests_total: 1
+    metrics:
+      high_risk_count: 0.0
+      files_scanned: 39.0
+      total_loc: 11293.0
+  maintainability:
+    maintainability_suite_time_s: 1.620843
+    maintainability_tests_total: 1
+    metrics:
+      mi_min: 0.0
+      files_scanned: 65.0
+      total_loc: 17618.0
+      max_cc: 39.0
+provenance:
+  repository: lyfuci/ai-terminal-manager
+  source_url: https://github.com/lyfuci/ai-terminal-manager
+  created_at: '2026-09-02T09:09:25Z'
+  pinned_commit: 614125459927e0366a9cf014a9c441671f70591c
+curation:
+  oracle_source: public package surface; upstream tests not used
+  interface:
+    module: atm
+    module_root: src
+    source_file: src/atm/__init__.py
+    symbols:
+    - name: IndexStats
+      kind: object
+      signature: ''
+    - name: SessionEntry
+      kind: object
+      signature: ''
+    - name: SessionIndex
+      kind: object
+      signature: ''
+    - name: Source
+      kind: object
+      signature: ''
+    constants: {}
+  semantic_cases:
+  - source: docs/usage.md
+    normal: normalize K/M/G/T memory limits and convert them to bytes
+    state: normalization is deterministic and does not mutate configuration
+    boundary: infinity maps to no byte limit and malformed sizes raise ConfigError
+  independent_review: pending
