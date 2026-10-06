@@ -1,1 +1,0 @@
-# SQL injection testing tool library

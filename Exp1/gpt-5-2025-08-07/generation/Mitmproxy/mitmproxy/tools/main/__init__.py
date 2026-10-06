@@ -1,1 +1,0 @@
-# Entrypoint package for tool frontends.

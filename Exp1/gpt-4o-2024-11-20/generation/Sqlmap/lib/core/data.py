@@ -1,3 +1,0 @@
-cmdLineOptions = {}
-conf = {}
-kb = {}

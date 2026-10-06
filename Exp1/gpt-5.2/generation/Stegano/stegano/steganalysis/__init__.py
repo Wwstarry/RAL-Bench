@@ -1,1 +1,0 @@
-# Placeholder package for compatibility with reference project structure.

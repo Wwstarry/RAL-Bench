@@ -1,1 +1,0 @@
-# Minimal celery.utils package

@@ -1,1 +1,0 @@
-"""Server-side minimal API surface for the benchmark."""

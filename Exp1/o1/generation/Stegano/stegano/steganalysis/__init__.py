@@ -1,3 +1,0 @@
-"""
-steganalysis package initialization (placeholder).
-"""

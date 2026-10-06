@@ -1,1 +1,0 @@
-# empty init to make thefuck a package

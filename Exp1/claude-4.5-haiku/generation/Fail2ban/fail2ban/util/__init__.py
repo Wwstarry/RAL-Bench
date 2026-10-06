@@ -1,1 +1,0 @@
-"""Fail2Ban utility module."""

@@ -1,1 +1,0 @@
-# Console package for stegano

@@ -1,3 +1,0 @@
-"""
-mitmproxy tools and frontends.
-"""

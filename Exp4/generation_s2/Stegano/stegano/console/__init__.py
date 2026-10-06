@@ -1,1 +1,0 @@
-# Console entrypoints are not required for core functionality in tests.

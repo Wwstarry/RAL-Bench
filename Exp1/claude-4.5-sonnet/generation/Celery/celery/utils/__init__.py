@@ -1,3 +1,0 @@
-"""
-Celery utilities
-"""

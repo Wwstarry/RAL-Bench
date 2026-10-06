@@ -1,3 +1,0 @@
-"""
-Transform module for petl.
-"""

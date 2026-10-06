@@ -1,1 +1,0 @@
-# This file makes 'mitmproxy' a package.

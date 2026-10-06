@@ -1,3 +1,0 @@
-"""
-Formats module for tablib.
-"""

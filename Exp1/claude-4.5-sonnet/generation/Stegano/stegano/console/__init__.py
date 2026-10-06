@@ -1,3 +1,0 @@
-"""
-Console interface for stegano
-"""

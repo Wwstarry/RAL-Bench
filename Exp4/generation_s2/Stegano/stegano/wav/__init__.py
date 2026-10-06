@@ -1,3 +1,0 @@
-from .wav import hide, reveal  # noqa: F401
-
-__all__ = ["hide", "reveal"]

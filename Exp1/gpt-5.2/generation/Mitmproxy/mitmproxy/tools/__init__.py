@@ -1,1 +1,0 @@
-# Namespace package for tool frontends (mitmdump, mitmweb, mitmproxy UI).

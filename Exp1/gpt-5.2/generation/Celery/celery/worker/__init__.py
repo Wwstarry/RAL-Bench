@@ -1,1 +1,0 @@
-# Minimal package placeholder for celery.worker

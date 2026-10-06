@@ -1,3 +1,0 @@
-"""
-Proxy layer for mitmproxy.
-"""

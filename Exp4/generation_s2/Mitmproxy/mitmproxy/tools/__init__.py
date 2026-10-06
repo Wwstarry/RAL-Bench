@@ -1,1 +1,0 @@
-# Namespace package for minimal tool frontends.

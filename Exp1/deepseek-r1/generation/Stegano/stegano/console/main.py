@@ -1,1 +1,0 @@
-# Placeholder for console script implementation

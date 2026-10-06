@@ -1,3 +1,0 @@
-"""
-Plugins subpackage for Folium
-"""

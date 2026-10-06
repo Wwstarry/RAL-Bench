@@ -1,3 +1,0 @@
-"""
-console package initialization.
-"""

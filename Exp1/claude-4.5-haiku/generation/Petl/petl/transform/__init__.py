@@ -1,3 +1,0 @@
-"""
-Transform modules for PETL.
-"""

@@ -1,1 +1,0 @@
-# This file makes 'fail2ban.server' a Python package.
